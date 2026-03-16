@@ -1,11 +1,33 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import { useState, useEffect } from "react";
+import reactLogo from "./assets/react.svg";
+import viteLogo from "./assets/vite.svg";
+import heroImg from "./assets/hero.png";
+import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [count, setCount] = useState(0);
+  const [health, setHealth] = useState(null);
+  const [redis, setRedis] = useState(null);
+  const [db, setDb] = useState(null);
+
+  useEffect(() => {
+    const API_URL = import.meta.env.VITE_API_URL;
+
+    fetch(`${API_URL}/health`)
+      .then((res) => res.json())
+      .then((data) => setHealth(data.status))
+      .catch(() => setHealth("error"));
+
+    fetch(`${API_URL}/health/redis`)
+      .then((res) => res.json())
+      .then((data) => setRedis(data.status))
+      .catch(() => setRedis("error"));
+
+    fetch(`${API_URL}/health/db`)
+      .then((res) => res.json())
+      .then((data) => setDb(data.status))
+      .catch(() => setDb("error"));
+  }, []);
 
   return (
     <>
@@ -21,6 +43,20 @@ function App() {
             Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
           </p>
         </div>
+
+        <div
+          style={{
+            margin: "16px 0",
+            display: "flex",
+            gap: "12px",
+            justifyContent: "center",
+          }}
+        >
+          <span>백엔드: {health ?? "확인중..."}</span>
+          <span>Redis: {redis ?? "확인중..."}</span>
+          <span>DB: {db ?? "확인중..."}</span>
+        </div>
+
         <button
           className="counter"
           onClick={() => setCount((count) => count + 1)}
@@ -115,7 +151,7 @@ function App() {
       <div className="ticks"></div>
       <section id="spacer"></section>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
