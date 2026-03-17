@@ -3,6 +3,8 @@ FROM node:${NODE_VERSION}-alpine
 
 WORKDIR /app
 
+RUN npm install -g ts-node typescript nodemon
+
 COPY package*.json ./
 
 RUN npm install
@@ -11,4 +13,4 @@ COPY . .
 
 EXPOSE 4000
 
-CMD ["npx", "ts-node", "src/index.ts"]
+CMD ["nodemon", "--exec", "ts-node", "src/index.ts"]
