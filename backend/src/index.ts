@@ -5,7 +5,8 @@ import { Server } from "socket.io";
 import cors from "cors";
 import * as dotenv from "dotenv";
 import { AppDataSource } from "./database/data-source";
-import { sessionMiddleware, redisClient } from "./config/session";
+import { sessionMiddleware } from './config/session'
+import { redisClient } from './config/redis'
 
 dotenv.config();
 
