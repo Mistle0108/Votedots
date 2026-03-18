@@ -2,10 +2,10 @@ import "reflect-metadata";
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import { createClient } from "redis";
 import cors from "cors";
 import * as dotenv from "dotenv";
 import { AppDataSource } from "./database/data-source";
+import { sessionMiddleware, redisClient } from "./config/session";
 
 dotenv.config();
 
@@ -15,15 +15,14 @@ const io = new Server(server, {
   cors: { origin: process.env.CLIENT_URL ?? "http://localhost:5173" },
 });
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL ?? "http://localhost:5173",
+    credentials: true,
+  }),
+);
 app.use(express.json());
-
-// Redis 연결
-const redisClient = createClient({ url: process.env.REDIS_URL });
-redisClient
-  .connect()
-  .then(() => console.log("Redis 연결 성공"))
-  .catch((err) => console.error("Redis 연결 실패:", err));
+app.use(sessionMiddleware);
 
 // TypeORM 연결
 AppDataSource.initialize()
@@ -62,7 +61,7 @@ io.on("connection", (socket) => {
   });
 });
 
-const PORT = process.env.PORT ?? 4000;
+const PORT = process.env.PORT ?? 5173;
 server.listen(PORT, () => {
   console.log(`서버 실행 중: http://localhost:${PORT}`);
 });
