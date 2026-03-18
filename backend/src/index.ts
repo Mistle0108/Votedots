@@ -2,12 +2,10 @@ import "reflect-metadata";
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import { createClient } from "redis";
 import cors from "cors";
 import * as dotenv from "dotenv";
-import session from "express-session";
-import { RedisStore } from "connect-redis";
 import { AppDataSource } from "./database/data-source";
+import { sessionMiddleware, redisClient } from "./config/session";
 
 dotenv.config();
 
@@ -20,32 +18,11 @@ const io = new Server(server, {
 app.use(
   cors({
     origin: process.env.CLIENT_URL ?? "http://localhost:5173",
-    credentials: true, // 쿠키 전송 허용
+    credentials: true,
   }),
 );
 app.use(express.json());
-
-// Redis 연결
-const redisClient = createClient({ url: process.env.REDIS_URL });
-redisClient
-  .connect()
-  .then(() => console.log("Redis 연결 성공"))
-  .catch((err) => console.error("Redis 연결 실패:", err));
-
-// 세션 설정
-app.use(
-  session({
-    store: new RedisStore({ client: redisClient }),
-    secret: process.env.SESSION_SECRET ?? "dev-secret",
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      httpOnly: true, // JS에서 쿠키 접근 차단
-      secure: false, // HTTPS 아니면 false
-      maxAge: 1000 * 60 * 60 * 24, // 24시간
-    },
-  }),
-);
+app.use(sessionMiddleware);
 
 // TypeORM 연결
 AppDataSource.initialize()
