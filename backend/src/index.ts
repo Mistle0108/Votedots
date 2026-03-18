@@ -7,6 +7,8 @@ import * as dotenv from "dotenv";
 import { AppDataSource } from "./database/data-source";
 import { sessionMiddleware } from './config/session'
 import { redisClient } from './config/redis'
+import authRouter from './modules/auth/auth.router'
+
 
 dotenv.config();
 
@@ -16,6 +18,7 @@ const io = new Server(server, {
   cors: { origin: process.env.CLIENT_URL ?? "http://localhost:5173" },
 });
 
+// Front 연결
 app.use(
   cors({
     origin: process.env.CLIENT_URL ?? "http://localhost:5173",
@@ -35,6 +38,7 @@ app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
+// Redis 연결
 app.get("/health/redis", async (_req, res) => {
   try {
     await redisClient.set("test", "ok");
@@ -45,6 +49,7 @@ app.get("/health/redis", async (_req, res) => {
   }
 });
 
+// DB
 app.get("/health/db", async (_req, res) => {
   try {
     await AppDataSource.query("SELECT 1");
@@ -53,6 +58,9 @@ app.get("/health/db", async (_req, res) => {
     res.status(500).json({ status: "error", message: String(err) });
   }
 });
+
+// Auth Router
+app.use('/auth', authRouter);
 
 // Socket.io
 io.on("connection", (socket) => {
