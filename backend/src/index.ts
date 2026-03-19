@@ -5,10 +5,9 @@ import { Server } from "socket.io";
 import cors from "cors";
 import * as dotenv from "dotenv";
 import { AppDataSource } from "./database/data-source";
-import { sessionMiddleware } from './config/session'
-import { redisClient } from './config/redis'
-import authRouter from './modules/auth/auth.router'
-
+import { sessionMiddleware } from "./config/session";
+import { redisClient } from "./config/redis";
+import authRouter from "./modules/auth/auth.router";
 
 dotenv.config();
 
@@ -60,7 +59,7 @@ app.get("/health/db", async (_req, res) => {
 });
 
 // Auth Router
-app.use('/auth', authRouter);
+app.use("/auth", authRouter);
 
 // Socket.io
 io.on("connection", (socket) => {
