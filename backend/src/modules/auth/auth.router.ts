@@ -1,21 +1,12 @@
-import { Router, Request, Response } from 'express';
+import { Router } from "express";
+import { authController } from "./auth.controller";
+import { authMiddleware } from "../../middlewares/auth.middleware";
 
 const router = Router();
 
-router.post('/register', (_req: Request, res: Response) => {
-  res.json({ message: 'register' });
-});
-
-router.post('/login', (_req: Request, res: Response) => {
-  res.json({ message: 'login' });
-});
-
-router.post('/logout', (_req: Request, res: Response) => {
-  res.json({ message: 'logout' });
-});
-
-router.get('/me', (_req: Request, res: Response) => {
-  res.json({ message: 'me' });
-});
+router.post("/register", authController.register);
+router.post("/login", authController.login);
+router.post("/logout", authMiddleware, authController.logout);
+router.get("/me", authMiddleware, authController.me);
 
 export default router;
