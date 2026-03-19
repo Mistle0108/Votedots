@@ -1,0 +1,11 @@
+import { Router } from "express";
+import { roundController } from "./round.controller";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+
+const router = Router({ mergeParams: true });
+
+router.post("/", authMiddleware, roundController.startRound);
+router.post("/:roundId/end", authMiddleware, roundController.endRound);
+router.get("/active", authMiddleware, roundController.getActiveRound);
+
+export default router;
