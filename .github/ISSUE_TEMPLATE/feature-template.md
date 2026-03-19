@@ -1,9 +1,8 @@
 ---
 name: Feature Template
 about: Creating Feature Template
-title: ''
+title: '[feat]'
 labels: 'feat'
-assignees: ''
 ---
 
 ## 작업 개요

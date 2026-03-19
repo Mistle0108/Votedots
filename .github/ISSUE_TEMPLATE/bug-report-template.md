@@ -1,6 +1,7 @@
 ---
 name: Bug Report template
 about: Creating Bug Report
+title: '[bug]'
 labels: 'bug'
 ---
 

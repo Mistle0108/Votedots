@@ -1,9 +1,6 @@
 ---
 name: Pull Request Template
 about: Creating Pull Request
-title: ''
-labels: ''
-assignees: ''
 
 ---
 
