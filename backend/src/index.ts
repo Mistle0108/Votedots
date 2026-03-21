@@ -7,7 +7,11 @@ import * as dotenv from "dotenv";
 import { AppDataSource } from "./database/data-source";
 import { sessionMiddleware } from "./config/session";
 import { redisClient } from "./config/redis";
+
 import authRouter from "./modules/auth/auth.router";
+import canvasRouter from "./modules/canvas/canvas.router";
+import roundRouter from "./modules/round/round.router";
+import voteRouter from "./modules/vote/vote.router";
 
 dotenv.config();
 
@@ -58,9 +62,6 @@ app.get("/health/db", async (_req, res) => {
   }
 });
 
-// Auth Router
-app.use("/auth", authRouter);
-
 // Socket.io
 io.on("connection", (socket) => {
   console.log("클라이언트 연결:", socket.id);
@@ -68,6 +69,12 @@ io.on("connection", (socket) => {
     console.log("클라이언트 해제:", socket.id);
   });
 });
+
+//Router
+app.use("/auth", authRouter);
+app.use("/canvas", canvasRouter);
+app.use("/canvas/:canvasId/rounds", roundRouter);
+app.use("/vote", voteRouter);
 
 const PORT = process.env.PORT ?? 5173;
 server.listen(PORT, () => {
