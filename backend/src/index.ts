@@ -7,6 +7,7 @@ import * as dotenv from "dotenv";
 import { AppDataSource } from "./database/data-source";
 import { sessionMiddleware } from "./config/session";
 import { redisClient } from "./config/redis";
+import { initSocket } from "./socket/socket";
 
 import authRouter from "./modules/auth/auth.router";
 import canvasRouter from "./modules/canvas/canvas.router";
@@ -21,7 +22,7 @@ const io = new Server(server, {
   cors: { origin: process.env.CLIENT_URL ?? "http://localhost:5173" },
 });
 
-// Front 연결
+// 미들웨어
 app.use(
   cors({
     origin: process.env.CLIENT_URL ?? "http://localhost:5173",
@@ -62,13 +63,8 @@ app.get("/health/db", async (_req, res) => {
   }
 });
 
-// Socket.io
-io.on("connection", (socket) => {
-  console.log("클라이언트 연결:", socket.id);
-  socket.on("disconnect", () => {
-    console.log("클라이언트 해제:", socket.id);
-  });
-});
+// Socket.io 초기화 (세션 인증 미들웨어 포함)
+initSocket(io);
 
 //Router
 app.use("/auth", authRouter);
