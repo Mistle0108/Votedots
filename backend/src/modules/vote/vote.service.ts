@@ -48,23 +48,42 @@ export const voteService = {
       throw new Error("남은 투표권이 없어요");
     }
 
-    // 투표권 소모
-    ticket.isUsed = true;
-    await voteTicketRepository.save(ticket);
+    // 트랜잭션 — 투표권 소모 + 투표 저장 원자적 처리
+    // 둘 다 성공하거나 둘 다 실패 (중간 상태 없음)
+    let vote: Vote;
+    try {
+      vote = await AppDataSource.transaction(async (manager) => {
+        // 투표권 소모
+        ticket.isUsed = true;
+        await manager.save(ticket);
 
-    // 투표 저장
-    const vote = voteRepository.create({
-      round,
-      cell,
-      voter: { id: voterId },
-      ticket,
-      color,
-    });
-    await voteRepository.save(vote);
+        // 투표 저장
+        const newVote = manager.create(Vote, {
+          round,
+          cell,
+          voter: { id: voterId },
+          ticket,
+          color,
+        });
+        return manager.save(newVote);
+      });
+    } catch (err) {
+      // 트랜잭션 실패 — DB 롤백됨, Redis 진행 안 함
+      throw new Error(`투표 처리 중 오류가 발생했어요: ${String(err)}`);
+    }
 
-    // Redis 득표 집계 +1
-    const redisKey = `vote:round:${roundId}`;
-    await redisClient.hIncrBy(redisKey, `${cellId}:${color}`, 1);
+    // 트랜잭션 성공 후에만 Redis 집계 진행
+    try {
+      const redisKey = `vote:round:${roundId}`;
+      await redisClient.hIncrBy(redisKey, `${cellId}:${color}`, 1);
+    } catch (err) {
+      // Redis 실패 — DB는 이미 저장됨
+      // 라운드 종료 시 DB fallback 집계로 커버
+      console.error(
+        `Redis 집계 실패 (roundId: ${roundId}, cellId: ${cellId}):`,
+        err,
+      );
+    }
 
     return vote;
   },
