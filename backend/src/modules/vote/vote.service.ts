@@ -77,12 +77,13 @@ export const voteService = {
       const redisKey = `vote:round:${roundId}`;
       await redisClient.hIncrBy(redisKey, `${cellId}:${color}`, 1);
     } catch (err) {
-      // Redis 실패 — DB는 이미 저장됨
-      // 라운드 종료 시 DB fallback 집계로 커버
-      console.error(
-        `Redis 집계 실패 (roundId: ${roundId}, cellId: ${cellId}):`,
-        err,
-      );
+      // Redis 실패 → DB 투표 데이터 직접 롤백
+      await AppDataSource.transaction(async (manager) => {
+        ticket.isUsed = false;
+        await manager.save(ticket);
+        await manager.delete(Vote, vote.id);
+      });
+      throw new Error("투표 집계 중 오류가 발생했어요. 다시 시도해주세요");
     }
 
     return vote;
