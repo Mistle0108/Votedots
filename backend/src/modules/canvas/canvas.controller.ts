@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
+import { Server } from "socket.io";
 import { canvasService } from "./canvas.service";
 
 export const canvasController = {
   async create(req: Request, res: Response) {
     try {
-      const canvas = await canvasService.create();
+      const io = req.app.get("io") as Server;
+      const canvas = await canvasService.create(io);
       return res.status(201).json({ message: "캔버스가 생성됐어요", canvas });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
