@@ -1,3 +1,4 @@
+import { Server } from "socket.io";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
@@ -17,7 +18,7 @@ const voterRepository = AppDataSource.getRepository(Voter);
 const VOTES_PER_ROUND = parseInt(process.env.VOTES_PER_ROUND ?? "3");
 
 export const roundService = {
-  async startRound(canvasId: number): Promise<VoteRound> {
+  async startRound(canvasId: number, io?: Server): Promise<VoteRound> {
     const canvas = await canvasRepository.findOne({ where: { id: canvasId } });
     if (!canvas) {
       throw new Error("캔버스를 찾을 수 없어요");
@@ -61,10 +62,18 @@ export const roundService = {
     }
     await voteTicketRepository.save(tickets as VoteTicket[]);
 
+    if (io) {
+      io.to(`canvas:${canvasId}`).emit("round:started", {
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        startedAt: round.startedAt,
+      });
+    }
+
     return round;
   },
 
-  async endRound(canvasId: number, roundId: number): Promise<VoteRound> {
+  async endRound(canvasId: number, roundId: number, io?: Server): Promise<VoteRound> {
     const round = await voteRoundRepository.findOne({
       where: { id: roundId, canvas: { id: canvasId }, isActive: true },
     });
@@ -140,11 +149,13 @@ export const roundService = {
     }
 
     // 당선 셀 색상 업데이트
+    let winningCell: Cell | null = null;
     if (winningCellId && winningColor) {
       await cellRepository.update(winningCellId, {
         color: winningColor,
         status: CellStatus.PAINTED,
       });
+      winningCell = await cellRepository.findOne({ where: { id: winningCellId } });
     }
 
     // 라운드 종료 처리
@@ -154,6 +165,26 @@ export const roundService = {
 
     // Redis 키 삭제
     await redisClient.del(redisKey);
+
+    if (io) {
+      io.to(`canvas:${canvasId}`).emit("round:ended", {
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        endedAt: round.endedAt,
+        winningCell: winningCell
+          ? { id: winningCell.id, x: winningCell.x, y: winningCell.y, color: winningCell.color }
+          : null,
+      });
+
+      if (winningCell) {
+        io.to(`canvas:${canvasId}`).emit("canvas:updated", {
+          cellId: winningCell.id,
+          x: winningCell.x,
+          y: winningCell.y,
+          color: winningCell.color,
+        });
+      }
+    }
 
     return round;
   },
