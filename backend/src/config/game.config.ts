@@ -1,6 +1,6 @@
 export const gameConfig = {
-    roundDurationSec: 60,
-    totalRounds: 30,
+    roundDurationSec: 3,
+    totalRounds: 5,
     votesPerRound: 3,
     get totalDurationSec() {
         return this.roundDurationSec * this.totalRounds;
