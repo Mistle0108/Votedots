@@ -65,6 +65,7 @@ app.get("/health/db", async (_req, res) => {
 
 // Socket.io 초기화 (세션 인증 미들웨어 포함)
 initSocket(io);
+app.set("io", io);
 
 //Router
 app.use("/auth", authRouter);

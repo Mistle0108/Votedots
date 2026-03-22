@@ -1,6 +1,8 @@
+import { Server } from "socket.io";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
+import { startGameTimer } from "../game/game.timer";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -9,7 +11,7 @@ const GRID_X = parseInt(process.env.GRID_SIZE_X ?? "25");
 const GRID_Y = parseInt(process.env.GRID_SIZE_Y ?? "25");
 
 export const canvasService = {
-  async create(): Promise<Canvas> {
+  async create(io: Server): Promise<Canvas> {
     // 이미 진행 중인 캔버스가 있으면 생성 불가
     const existing = await canvasRepository.findOne({
       where: { status: CanvasStatus.PLAYING },
@@ -41,6 +43,9 @@ export const canvasService = {
       }
     }
     await cellRepository.save(cells as Cell[]);
+
+    // 게임 타이머 시작
+    await startGameTimer(io, canvas.id);
 
     return canvas;
   },
