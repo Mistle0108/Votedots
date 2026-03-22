@@ -47,7 +47,6 @@ export const roundService = {
     });
     await voteRoundRepository.save(round);
 
-    // TODO: bulk insert로 변경(TypeORM Insert() 참고)
     // 참가자 전원에게 투표권 발급
     const voters = await voterRepository.find();
     const tickets: Partial<VoteTicket>[] = [];

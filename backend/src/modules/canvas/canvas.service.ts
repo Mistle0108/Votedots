@@ -27,7 +27,6 @@ export const canvasService = {
     });
     await canvasRepository.save(canvas);
 
-    // TODO: bulk insert로 변경(TypeORM Insert() 참고)
     // N×N 셀 일괄 생성
     const cells: Partial<Cell>[] = [];
     for (let y = 0; y < GRID_Y; y++) {
