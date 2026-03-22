@@ -1,9 +1,8 @@
 ---
-name: Refactor
-about: Creating Refactor
-title: '[refactor] '
-labels: 'refactor'
-
+name: Etc
+about: Creating Issue
+title: ''
+labels: ''
 ---
 
 ## 작업 내용
