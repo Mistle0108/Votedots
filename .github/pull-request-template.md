@@ -1,8 +1,3 @@
----
-name: Pull Request Template
-about: Creating Pull Request
----
-
 ## 관련 이슈
 - Close #
 
