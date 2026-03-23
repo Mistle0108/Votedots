@@ -1,12 +1,19 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import ColorPalette from "./ColorPalette";
+import RoundInfo from "./RoundInfo";
 import { voteApi } from "@/api/vote";
 import { Cell } from "@/types/canvas";
+
+const ROUND_DURATION_SEC = parseInt(
+  import.meta.env.VITE_ROUND_DURATION_SEC ?? "60",
+);
 
 interface Props {
   canvasId: number;
   roundId: number | null;
+  roundNumber: number | null;
+  startedAt: string | null;
   selectedCell: Cell | null;
   onVoteSuccess: () => void;
 }
@@ -14,6 +21,8 @@ interface Props {
 export default function VotePanel({
   canvasId,
   roundId,
+  roundNumber,
+  startedAt,
   selectedCell,
   onVoteSuccess,
 }: Props) {
@@ -23,7 +32,10 @@ export default function VotePanel({
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!roundId) return;
+    if (!roundId) {
+      setRemaining(null);
+      return;
+    }
     voteApi.getTickets(roundId).then(({ data }) => {
       setRemaining(data.remaining);
     });
@@ -61,13 +73,12 @@ export default function VotePanel({
         <h2 className="text-lg font-bold">VoteDots</h2>
       </div>
 
-      {/* 라운드 정보 */}
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">라운드</p>
-        <p className="text-sm text-gray-500">
-          {roundId ? `#${roundId}` : "진행 중인 라운드 없음"}
-        </p>
-      </div>
+      {/* 라운드 정보 + 타이머 */}
+      <RoundInfo
+        roundNumber={roundNumber}
+        startedAt={startedAt}
+        durationSec={ROUND_DURATION_SEC}
+      />
 
       {/* 남은 투표권 */}
       <div className="flex flex-col gap-1">
@@ -93,10 +104,8 @@ export default function VotePanel({
         <ColorPalette selected={color} onChange={setColor} />
       </div>
 
-      {/* 에러 */}
       {error && <p className="text-sm text-red-500">{error}</p>}
 
-      {/* 투표 버튼 */}
       <Button
         onClick={handleSubmit}
         disabled={!selectedCell || !roundId || loading}

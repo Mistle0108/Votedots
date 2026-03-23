@@ -1,6 +1,5 @@
 import { useEffect } from "react";
 import socket from "@/lib/socket";
-import { Cell } from "@/types/canvas";
 
 interface RoundStartedPayload {
   roundId: number;
