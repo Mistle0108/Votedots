@@ -25,7 +25,6 @@ function drawGrid(
     );
   });
 
-  // 선택된 셀 하이라이트
   if (selectedCell) {
     ctx.strokeStyle = "#3b82f6";
     ctx.lineWidth = 2;
@@ -48,6 +47,8 @@ export default function CanvasPage() {
   const [cells, setCells] = useState<Cell[]>([]);
   const [canvasId, setCanvasId] = useState<number | null>(null);
   const [roundId, setRoundId] = useState<number | null>(null);
+  const [roundNumber, setRoundNumber] = useState<number | null>(null);
+  const [startedAt, setStartedAt] = useState<string | null>(null);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,19 +71,19 @@ export default function CanvasPage() {
         if (!ctx) return;
         drawGrid(ctx, cells, null);
 
-        // 진행 중인 라운드 조회
         return api.get(`/canvas/${canvas.id}/rounds/active`);
       })
       .then((res) => {
         if (res?.data?.round) {
           setRoundId(res.data.round.id);
+          setRoundNumber(res.data.round.roundNumber);
+          setStartedAt(res.data.round.startedAt);
         }
       })
       .catch(() => setError("진행 중인 캔버스가 없어요."))
       .finally(() => setLoading(false));
   }, []);
 
-  // 셀 목록 또는 선택 셀 변경 시 리렌더
   useEffect(() => {
     const canvasEl = canvasRef.current;
     if (!canvasEl) return;
@@ -91,12 +92,28 @@ export default function CanvasPage() {
     drawGrid(ctx, cells, selectedCell);
   }, [cells, selectedCell]);
 
-  const handleRoundStarted = useCallback(({ roundId }: { roundId: number }) => {
-    setRoundId(roundId);
-  }, []);
+  const handleRoundStarted = useCallback(
+    ({
+      roundId,
+      roundNumber,
+      startedAt,
+    }: {
+      roundId: number;
+      roundNumber: number;
+      startedAt: string;
+    }) => {
+      setRoundId(roundId);
+      setRoundNumber(roundNumber);
+      setStartedAt(startedAt);
+    },
+    [],
+  );
 
   const handleRoundEnded = useCallback(() => {
     setSelectedCell(null);
+    setRoundId(null);
+    setRoundNumber(null);
+    setStartedAt(null);
   }, []);
 
   const handleCanvasUpdated = useCallback(
@@ -116,6 +133,8 @@ export default function CanvasPage() {
   const handleGameEnded = useCallback(() => {
     setGameEnded(true);
     setRoundId(null);
+    setRoundNumber(null);
+    setStartedAt(null);
   }, []);
 
   useSocket({
@@ -150,7 +169,6 @@ export default function CanvasPage() {
     if (e.button !== 0) return;
     isPanning.current = false;
 
-    // 드래그가 아닌 클릭일 때만 셀 선택
     if (!hasPanned.current) {
       const canvasEl = canvasRef.current;
       const container = containerRef.current;
@@ -190,7 +208,6 @@ export default function CanvasPage() {
 
   return (
     <div className="flex w-full h-screen">
-      {/* 캔버스 영역 */}
       <div
         ref={containerRef}
         className="overflow-auto bg-gray-50 cursor-grab active:cursor-grabbing"
@@ -207,7 +224,6 @@ export default function CanvasPage() {
         </div>
       </div>
 
-      {/* 패널 영역 */}
       <div
         className="border-l border-gray-200 bg-white shrink-0"
         style={{ width: `${PANEL_WIDTH}px` }}
@@ -216,6 +232,8 @@ export default function CanvasPage() {
           <VotePanel
             canvasId={canvasId}
             roundId={roundId}
+            roundNumber={roundNumber}
+            startedAt={startedAt}
             selectedCell={selectedCell}
             onVoteSuccess={handleVoteSuccess}
           />
