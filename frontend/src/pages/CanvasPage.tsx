@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import api from "@/lib/api";
 import { CanvasCurrentResponse, Cell } from "@/types/canvas";
 import VotePanel from "@/components/vote/VotePanel";
+import useSocket from "@/hooks/useSocket";
 
 const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8");
 const PANEL_WIDTH = 280;
@@ -50,6 +51,7 @@ export default function CanvasPage() {
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [gameEnded, setGameEnded] = useState(false);
 
   useEffect(() => {
     api
@@ -88,6 +90,42 @@ export default function CanvasPage() {
     if (!ctx) return;
     drawGrid(ctx, cells, selectedCell);
   }, [cells, selectedCell]);
+
+  const handleRoundStarted = useCallback(({ roundId }: { roundId: number }) => {
+    setRoundId(roundId);
+  }, []);
+
+  const handleRoundEnded = useCallback(() => {
+    setSelectedCell(null);
+  }, []);
+
+  const handleCanvasUpdated = useCallback(
+    ({ cellId, color }: { cellId: number; color: string }) => {
+      setCells((prev) =>
+        prev.map((c) =>
+          c.id === cellId ? { ...c, color, status: "painted" } : c,
+        ),
+      );
+      setSelectedCell((prev) => (prev?.id === cellId ? null : prev));
+    },
+    [],
+  );
+
+  const handleVoteUpdate = useCallback(() => {}, []);
+
+  const handleGameEnded = useCallback(() => {
+    setGameEnded(true);
+    setRoundId(null);
+  }, []);
+
+  useSocket({
+    canvasId,
+    onRoundStarted: handleRoundStarted,
+    onRoundEnded: handleRoundEnded,
+    onCanvasUpdated: handleCanvasUpdated,
+    onVoteUpdate: handleVoteUpdate,
+    onGameEnded: handleGameEnded,
+  });
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
@@ -142,6 +180,12 @@ export default function CanvasPage() {
   if (error)
     return (
       <div className="flex items-center justify-center h-screen">{error}</div>
+    );
+  if (gameEnded)
+    return (
+      <div className="flex items-center justify-center h-screen text-xl font-bold">
+        게임이 종료됐어요 🎨
+      </div>
     );
 
   return (
