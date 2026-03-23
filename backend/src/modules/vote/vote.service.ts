@@ -1,3 +1,4 @@
+import { Server } from "socket.io";
 import { AppDataSource } from "../../database/data-source";
 import { Vote } from "../../entities/vote.entity";
 import { VoteTicket } from "../../entities/vote-ticket.entity";
@@ -13,9 +14,11 @@ const cellRepository = AppDataSource.getRepository(Cell);
 export const voteService = {
   async submit(
     voterId: number,
+    canvasId: number,
     roundId: number,
     cellId: number,
     color: string,
+    io?: Server,
   ): Promise<Vote> {
     // 라운드 확인
     const round = await voteRoundRepository.findOne({
@@ -76,6 +79,21 @@ export const voteService = {
     try {
       const redisKey = `vote:round:${roundId}`;
       await redisClient.hIncrBy(redisKey, `${cellId}:${color}`, 1);
+
+      // 현재 득표 현황 조회 후 브로드캐스트
+      if (io) {
+        const voteData = await redisClient.hGetAll(redisKey);
+        const votes: Record<string, number> = {};
+        for (const [key, value] of Object.entries(voteData)) {
+          votes[key] = parseInt(value);
+        }
+        io.to(`canvas:${canvasId}`).emit("vote:update", {
+          roundId,
+          cellId,
+          color,
+          votes,
+        });
+      }
     } catch (err) {
       // Redis 실패 → DB 투표 데이터 직접 롤백
       await AppDataSource.transaction(async (manager) => {
