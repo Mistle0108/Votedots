@@ -1,19 +1,30 @@
 import { Request, Response } from "express";
+import { Server } from "socket.io";
 import { voteService } from "./vote.service";
 
 export const voteController = {
   async submit(req: Request, res: Response) {
     try {
+      const io = req.app.get("io") as Server;
       const voterId = req.session.voter!.id;
-      const { roundId, cellId, color } = req.body;
+      const { canvasId, roundId, cellId, color } = req.body;
 
-      if (!roundId || !cellId || !color) {
+      if (!canvasId || !roundId || !cellId || !color) {
         return res
           .status(400)
-          .json({ message: "라운드 ID, 셀 ID, 색상을 모두 입력해주세요" });
+          .json({
+            message: "캔버스 ID, 라운드 ID, 셀 ID, 색상을 모두 입력해주세요",
+          });
       }
 
-      const vote = await voteService.submit(voterId, roundId, cellId, color);
+      const vote = await voteService.submit(
+        voterId,
+        canvasId,
+        roundId,
+        cellId,
+        color,
+        io,
+      );
       return res.status(201).json({ message: "투표가 완료됐어요", vote });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
