@@ -16,6 +16,7 @@ interface Props {
   startedAt: string | null;
   selectedCell: Cell | null;
   onVoteSuccess: () => void;
+  onColorChange: (color: string | null) => void;
 }
 
 export default function VotePanel({
@@ -25,6 +26,7 @@ export default function VotePanel({
   startedAt,
   selectedCell,
   onVoteSuccess,
+  onColorChange,
 }: Props) {
   const [color, setColor] = useState("#000000");
   const [remaining, setRemaining] = useState<number | null>(null);
@@ -41,6 +43,19 @@ export default function VotePanel({
     });
   }, [roundId]);
 
+  useEffect(() => {
+    if (!selectedCell) {
+      onColorChange(null);
+    }
+  }, [selectedCell]);
+
+  const handleColorChange = (newColor: string) => {
+    setColor(newColor);
+    if (selectedCell) {
+      onColorChange(newColor);
+    }
+  };
+
   const handleSubmit = async () => {
     if (!selectedCell || !roundId) return;
     setError("");
@@ -54,6 +69,7 @@ export default function VotePanel({
       });
       const { data } = await voteApi.getTickets(roundId);
       setRemaining(data.remaining);
+      onColorChange(null);
       onVoteSuccess();
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
@@ -73,14 +89,12 @@ export default function VotePanel({
         <h2 className="text-lg font-bold">VoteDots</h2>
       </div>
 
-      {/* 라운드 정보 + 타이머 */}
       <RoundInfo
         roundNumber={roundNumber}
         startedAt={startedAt}
         durationSec={ROUND_DURATION_SEC}
       />
 
-      {/* 남은 투표권 */}
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">남은 투표권</p>
         <p className="text-sm text-gray-500">
@@ -88,7 +102,6 @@ export default function VotePanel({
         </p>
       </div>
 
-      {/* 선택된 셀 */}
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">선택된 셀</p>
         <p className="text-sm text-gray-500">
@@ -98,10 +111,9 @@ export default function VotePanel({
         </p>
       </div>
 
-      {/* 색상 선택 */}
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium">색상 선택</p>
-        <ColorPalette selected={color} onChange={setColor} />
+        <ColorPalette selected={color} onChange={handleColorChange} />
       </div>
 
       {error && <p className="text-sm text-red-500">{error}</p>}

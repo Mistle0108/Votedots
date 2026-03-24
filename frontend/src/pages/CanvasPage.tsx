@@ -7,42 +7,19 @@ import useSocket from "@/hooks/useSocket";
 const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8");
 const PANEL_WIDTH = 280;
 
-function drawGrid(
-  ctx: CanvasRenderingContext2D,
-  cells: Cell[],
-  selectedCell: Cell | null,
-) {
-  cells.forEach((cell) => {
-    ctx.fillStyle = cell.color ?? "#e5e7eb";
-    ctx.fillRect(cell.x * CELL_SIZE, cell.y * CELL_SIZE, CELL_SIZE, CELL_SIZE);
-    ctx.strokeStyle = "#000000";
-    ctx.lineWidth = 0.5;
-    ctx.strokeRect(
-      cell.x * CELL_SIZE,
-      cell.y * CELL_SIZE,
-      CELL_SIZE,
-      CELL_SIZE,
-    );
-  });
-
-  if (selectedCell) {
-    ctx.strokeStyle = "#3b82f6";
-    ctx.lineWidth = 2;
-    ctx.strokeRect(
-      selectedCell.x * CELL_SIZE,
-      selectedCell.y * CELL_SIZE,
-      CELL_SIZE,
-      CELL_SIZE,
-    );
-  }
-}
-
 export default function CanvasPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const animationRef = useRef<number>(0);
   const isPanning = useRef(false);
   const hasPanned = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
+
+  const cellsRef = useRef<Cell[]>([]);
+  const selectedCellRef = useRef<Cell | null>(null);
+  const previewColorRef = useRef<string | null>(null);
+  const votingCellIdsRef = useRef<Set<number>>(new Set());
+  const topColorMapRef = useRef<Map<number, string>>(new Map());
 
   const [cells, setCells] = useState<Cell[]>([]);
   const [canvasId, setCanvasId] = useState<number | null>(null);
@@ -50,9 +27,124 @@ export default function CanvasPage() {
   const [roundNumber, setRoundNumber] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
+  const [previewColor, setPreviewColor] = useState<string | null>(null);
+  const [votingCellIds, setVotingCellIds] = useState<Set<number>>(new Set());
+  const [topColorMap, setTopColorMap] = useState<Map<number, string>>(
+    new Map(),
+  );
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [gameEnded, setGameEnded] = useState(false);
+  const [canvasReady, setCanvasReady] = useState(false);
+
+  // ref 동기화
+  useEffect(() => {
+    selectedCellRef.current = selectedCell;
+  }, [selectedCell]);
+  useEffect(() => {
+    previewColorRef.current = previewColor;
+  }, [previewColor]);
+  useEffect(() => {
+    votingCellIdsRef.current = votingCellIds;
+  }, [votingCellIds]);
+  useEffect(() => {
+    topColorMapRef.current = topColorMap;
+  }, [topColorMap]);
+
+  // cells는 ref와 state 동시 업데이트하는 헬퍼 사용
+  const updateCells = useCallback(
+    (updater: Cell[] | ((prev: Cell[]) => Cell[])) => {
+      if (typeof updater === "function") {
+        setCells((prev) => {
+          const next = updater(prev);
+          cellsRef.current = next;
+          return next;
+        });
+      } else {
+        cellsRef.current = updater;
+        setCells(updater);
+      }
+    },
+    [],
+  );
+
+  // 애니메이션 루프
+  useEffect(() => {
+    if (!canvasReady) return;
+    const canvasEl = canvasRef.current;
+    if (!canvasEl) return;
+
+    const render = (timestamp: number) => {
+      const ctx = canvasEl.getContext("2d");
+      if (!ctx) return;
+
+      ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+
+      const cells = cellsRef.current;
+      const selectedCell = selectedCellRef.current;
+      const previewColor = previewColorRef.current;
+      const votingCellIds = votingCellIdsRef.current;
+      const topColorMap = topColorMapRef.current;
+
+      const alpha = (Math.sin((timestamp / 500) * Math.PI) + 1) / 2;
+      const dashOffset = -(timestamp / 100) % 8;
+
+      cells.forEach((cell) => {
+        const x = cell.x * CELL_SIZE;
+        const y = cell.y * CELL_SIZE;
+        const isSelected = selectedCell?.id === cell.id;
+        const isVoting = votingCellIds.has(cell.id);
+        const topColor = topColorMap.get(cell.id);
+
+        // 기본 배경색
+        ctx.fillStyle = cell.color ?? "#e5e7eb";
+        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+
+        // 색상 미리보기
+        if (isSelected && previewColor) {
+          ctx.fillStyle = previewColor;
+          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        }
+
+        // 투표 중 sin 점멸
+        if (isVoting && topColor) {
+          ctx.fillStyle = topColor;
+          ctx.globalAlpha = alpha * 0.7;
+          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+          ctx.globalAlpha = 1.0;
+        }
+
+        // 그리드 선
+        ctx.strokeStyle = "#d1d5db";
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+
+        // 선택된 셀 빨간 테두리 (안쪽 1px)
+        if (isSelected) {
+          ctx.strokeStyle = "#ef4444";
+          ctx.lineWidth = 2;
+          ctx.strokeRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
+        }
+
+        // 투표 중인 셀 점선 회전 테두리
+        if (isVoting) {
+          ctx.save();
+          ctx.strokeStyle = "#6366f1";
+          ctx.lineWidth = 1.5;
+          ctx.setLineDash([3, 3]);
+          ctx.lineDashOffset = dashOffset;
+          ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+          ctx.setLineDash([]);
+          ctx.restore();
+        }
+      });
+
+      animationRef.current = requestAnimationFrame(render);
+    };
+
+    animationRef.current = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(animationRef.current);
+  }, [canvasReady]);
 
   useEffect(() => {
     api
@@ -60,16 +152,13 @@ export default function CanvasPage() {
       .then(({ data }) => {
         const { canvas, cells } = data;
         setCanvasId(canvas.id);
-        setCells(cells);
+        updateCells(cells);
 
         const canvasEl = canvasRef.current;
         if (!canvasEl) return;
         canvasEl.width = canvas.gridX * CELL_SIZE;
         canvasEl.height = canvas.gridY * CELL_SIZE;
-
-        const ctx = canvasEl.getContext("2d");
-        if (!ctx) return;
-        drawGrid(ctx, cells, null);
+        setCanvasReady(true);
 
         return api.get(`/canvas/${canvas.id}/rounds/active`);
       })
@@ -84,14 +173,6 @@ export default function CanvasPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  useEffect(() => {
-    const canvasEl = canvasRef.current;
-    if (!canvasEl) return;
-    const ctx = canvasEl.getContext("2d");
-    if (!ctx) return;
-    drawGrid(ctx, cells, selectedCell);
-  }, [cells, selectedCell]);
-
   const handleRoundStarted = useCallback(
     ({
       roundId,
@@ -105,36 +186,80 @@ export default function CanvasPage() {
       setRoundId(roundId);
       setRoundNumber(roundNumber);
       setStartedAt(startedAt);
+      votingCellIdsRef.current = new Set();
+      topColorMapRef.current = new Map();
+      setVotingCellIds(new Set());
+      setTopColorMap(new Map());
     },
     [],
   );
 
   const handleRoundEnded = useCallback(() => {
     setSelectedCell(null);
+    selectedCellRef.current = null;
+    setPreviewColor(null);
+    previewColorRef.current = null;
     setRoundId(null);
     setRoundNumber(null);
     setStartedAt(null);
+    votingCellIdsRef.current = new Set();
+    topColorMapRef.current = new Map();
+    setVotingCellIds(new Set());
+    setTopColorMap(new Map());
   }, []);
 
   const handleCanvasUpdated = useCallback(
     ({ cellId, color }: { cellId: number; color: string }) => {
-      setCells((prev) =>
+      updateCells((prev) =>
         prev.map((c) =>
           c.id === cellId ? { ...c, color, status: "painted" } : c,
         ),
       );
-      setSelectedCell((prev) => (prev?.id === cellId ? null : prev));
+      if (selectedCellRef.current?.id === cellId) {
+        setSelectedCell(null);
+        selectedCellRef.current = null;
+      }
     },
     [],
   );
 
-  const handleVoteUpdate = useCallback(() => {}, []);
+  const handleVoteUpdate = useCallback(
+    ({ votes }: { votes: Record<string, number> }) => {
+      const newVotingCellIds = new Set<number>();
+      const countMap = new Map<number, { color: string; count: number }>();
+
+      for (const [key, count] of Object.entries(votes)) {
+        const [cellIdStr, color] = key.split(":");
+        const cellId = parseInt(cellIdStr);
+        newVotingCellIds.add(cellId);
+        const existing = countMap.get(cellId);
+        if (!existing || count > existing.count) {
+          countMap.set(cellId, { color, count });
+        }
+      }
+
+      const newTopColorMap = new Map<number, string>();
+      countMap.forEach(({ color }, cellId) => {
+        newTopColorMap.set(cellId, color);
+      });
+
+      votingCellIdsRef.current = newVotingCellIds;
+      topColorMapRef.current = newTopColorMap;
+      setVotingCellIds(newVotingCellIds);
+      setTopColorMap(newTopColorMap);
+    },
+    [],
+  );
 
   const handleGameEnded = useCallback(() => {
     setGameEnded(true);
     setRoundId(null);
     setRoundNumber(null);
     setStartedAt(null);
+    votingCellIdsRef.current = new Set();
+    topColorMapRef.current = new Map();
+    setVotingCellIds(new Set());
+    setTopColorMap(new Map());
   }, []);
 
   useSocket({
@@ -171,22 +296,27 @@ export default function CanvasPage() {
 
     if (!hasPanned.current) {
       const canvasEl = canvasRef.current;
-      const container = containerRef.current;
-      if (!canvasEl || !container) return;
+      if (!canvasEl) return;
 
       const rect = canvasEl.getBoundingClientRect();
       const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
       const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
 
       const cell = cells.find((c) => c.x === x && c.y === y);
-      if (cell && cell.status !== "painted" && cell.status !== "locked") {
+      if (cell && cell.status !== "locked") {
         setSelectedCell(cell);
+        selectedCellRef.current = cell;
+        setPreviewColor(null);
+        previewColorRef.current = null;
       }
     }
   };
 
   const handleVoteSuccess = () => {
     setSelectedCell(null);
+    selectedCellRef.current = null;
+    setPreviewColor(null);
+    previewColorRef.current = null;
   };
 
   if (loading)
@@ -236,6 +366,10 @@ export default function CanvasPage() {
             startedAt={startedAt}
             selectedCell={selectedCell}
             onVoteSuccess={handleVoteSuccess}
+            onColorChange={(color) => {
+              setPreviewColor(color);
+              previewColorRef.current = color;
+            }}
           />
         )}
       </div>
