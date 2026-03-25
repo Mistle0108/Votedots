@@ -2,10 +2,12 @@ import { Server } from "socket.io";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
+import { VoteRound } from "../../entities/vote-round.entity";
 import { startGameTimer } from "../game/game.timer";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
+const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 
 const GRID_X = parseInt(process.env.GRID_SIZE_X ?? "25");
 const GRID_Y = parseInt(process.env.GRID_SIZE_Y ?? "25");
@@ -61,5 +63,38 @@ export const canvasService = {
       where: { canvas: { id: canvasId } },
       order: { y: "ASC", x: "ASC" },
     });
+  },
+
+  async recoverOnStartup(io: Server): Promise<Canvas> {
+    const now = new Date();
+
+    const playingCanvases = await canvasRepository.find({
+      where: { status: CanvasStatus.PLAYING },
+      order: { startedAt: "DESC" },
+    });
+
+    if (playingCanvases.length > 0) {
+      const canvasIds = playingCanvases.map((canvas) => canvas.id);
+
+      await canvasRepository.update(
+        { status: CanvasStatus.PLAYING },
+        {
+          status: CanvasStatus.FINISHED,
+          endedAt: now,
+        },
+      );
+
+      for (const canvasId of canvasIds) {
+        await voteRoundRepository.update(
+          { canvas: { id: canvasId }, isActive: true },
+          {
+            isActive: false,
+            endedAt: now,
+          },
+        );
+      }
+    }
+
+    return this.create(io);
   },
 };

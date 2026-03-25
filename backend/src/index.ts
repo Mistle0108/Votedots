@@ -13,6 +13,7 @@ import authRouter from "./modules/auth/auth.router";
 import canvasRouter from "./modules/canvas/canvas.router";
 import roundRouter from "./modules/round/round.router";
 import voteRouter from "./modules/vote/vote.router";
+import { canvasService } from "./modules/canvas/canvas.service";
 
 dotenv.config();
 
@@ -34,7 +35,10 @@ app.use(sessionMiddleware);
 
 // TypeORM 연결
 AppDataSource.initialize()
-  .then(() => console.log("DB 연결 성공"))
+  .then(async () => {
+    console.log("DB 연결 성공");
+    await canvasService.recoverOnStartup(io);
+  })
   .catch((err) => console.error("DB 연결 실패:", err));
 
 // Health check
