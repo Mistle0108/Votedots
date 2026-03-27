@@ -3,6 +3,8 @@ import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { roundService } from "../round/round.service";
 import { gameConfig } from "../../config/game.config";
+import { canvasService } from "../canvas/canvas.service";
+
 
 // canvasId별 타이머 핸들 관리 (중복 방지)
 const activeTimers = new Map<number, NodeJS.Timeout>();
@@ -88,4 +90,11 @@ async function endGame(io: Server, canvasId: number): Promise<void> {
   console.log(`[타이머] 게임 종료 (canvasId=${canvasId})`);
 
   io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
+
+  try {
+    await canvasService.create(io);
+    console.log(`[타이머] 새 캔버스 자동 생성 완료`);
+  } catch (err) {
+    console.error(`[타이머] 새 캔버스 생성 실패:`, err);
+  }
 }
