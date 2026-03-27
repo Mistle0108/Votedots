@@ -305,6 +305,7 @@ export default function CanvasPage() {
     lastPos.current = { x: e.clientX, y: e.clientY };
   };
 
+  /** 투표 모달 팝업 동작*/
   const handleMouseUp = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     isPanning.current = false;
@@ -323,7 +324,11 @@ export default function CanvasPage() {
         selectedCellRef.current = cell;
         setPreviewColor(null);
         previewColorRef.current = null;
-        setPopupPos({ x: e.clientX + 10, y: e.clientY });
+        const rect = canvasEl.getBoundingClientRect();
+        setPopupPos({
+          x: rect.left + (cell.x + 2) * CELL_SIZE,
+          y: rect.top + (cell.y - 1.5) * CELL_SIZE,
+        });
         setPopupOpen(true);
       }
     }
