@@ -140,10 +140,23 @@ export default function CanvasPage() {
          * 투표 중 셀 (깜빡임 효과)
          */
         if (isVoting && topColor) {
+          const badgeSize = Math.max(4, Math.floor(CELL_SIZE * 0.45));
+          const badgeX = x + CELL_SIZE - badgeSize - 1;
+          const badgeY = y + 1;
+
+          ctx.save();
+
+          // 배지 배경
           ctx.fillStyle = topColor;
-          ctx.globalAlpha = alpha * 0.7;
-          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-          ctx.globalAlpha = 1.0;
+          ctx.globalAlpha = 1;
+          ctx.fillRect(badgeX, badgeY, badgeSize, badgeSize);
+
+          // 배지 테두리
+          ctx.strokeStyle = "topColor";
+          ctx.lineWidth = 1;
+          ctx.strokeRect(badgeX, badgeY, badgeSize, badgeSize);
+
+          ctx.restore();
         }
 
         /**
@@ -167,11 +180,20 @@ export default function CanvasPage() {
          */
         if (isVoting) {
           ctx.save();
-          ctx.strokeStyle = "#6366f1";
+
+          ctx.strokeStyle = topColor ?? "#111827";
           ctx.lineWidth = 1.5;
-          ctx.setLineDash([3, 3]);
+          ctx.setLineDash([3, 2]);
           ctx.lineDashOffset = dashOffset;
-          ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+
+          const inset = 0.75;
+          ctx.strokeRect(
+            x + inset,
+            y + inset,
+            CELL_SIZE - inset * 2,
+            CELL_SIZE - inset * 2,
+          );
+
           ctx.setLineDash([]);
           ctx.restore();
         }
@@ -245,21 +267,17 @@ export default function CanvasPage() {
     [],
   );
 
-  // 라운드 종료
+  // // 라운드 종료
   const handleRoundEnded = useCallback(() => {
     setSelectedCell(null);
     selectedCellRef.current = null;
-
     setPreviewColor(null);
     previewColorRef.current = null;
-
     setRoundId(null);
     setRoundNumber(null);
     setStartedAt(null);
-
     votingCellIdsRef.current = new Set();
     topColorMapRef.current = new Map();
-
     setVotingCellIds(new Set());
     setTopColorMap(new Map());
   }, []);

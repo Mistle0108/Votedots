@@ -35,9 +35,9 @@ export const voteService = {
     }
 
     // 잠긴 셀 또는 칠해진 셀 투표 불가
-    if (cell.status === "painted" || cell.status === "locked") {
-      throw new Error("이 셀에는 투표할 수 없어요");
-    }
+    // if (cell.status === "painted" || cell.status === "locked") {
+    //   throw new Error("이 셀에는 투표할 수 없어요");
+    // }
 
     // 미사용 투표권 조회
     const ticket = await voteTicketRepository.findOne({
