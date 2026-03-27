@@ -10,8 +10,9 @@ interface VoteEntry {
   cellId: number;
   x: number;
   y: number;
-  color: string;
-  count: number;
+  topColor: string;   // color → topColor (1위 색상)
+  topCount: number;   // 1위 색상 득표수
+  totalCount: number; // 해당 셀 전체 득표수
 }
 
 interface Cell {
@@ -38,17 +39,37 @@ export default function VotePanel({
   cells,
 }: Props) {
   // 득표 현황 — 좌표 표시, 상위 5개
-  const voteEntries: VoteEntry[] = Object.entries(votes)
-    .map(([key, count]) => {
-      const [cellIdStr, color] = key.split(":");
-      const cellId = parseInt(cellIdStr);
-      const cell = cells.find((c) => c.id === cellId);
-      return { cellId, x: cell?.x ?? 0, y: cell?.y ?? 0, color, count };
-    })
-    .sort((a, b) => b.count - a.count)
+  const voteEntries: VoteEntry[] = Array.from(
+    Object.entries(votes)
+      .reduce<Map<number, VoteEntry>>((map, [key, count]) => {
+        const [cellIdStr, color] = key.split(":");
+        const cellId = parseInt(cellIdStr);
+        const cell = cells.find((c) => c.id === cellId);
+        const existing = map.get(cellId);
+        if (!existing) {
+          map.set(cellId, {
+            cellId,
+            x: cell?.x ?? 0,
+            y: cell?.y ?? 0,
+            topColor: color,
+            topCount: count,
+            totalCount: count,
+          });
+        } else {
+          existing.totalCount += count;
+          if (count > existing.topCount) {
+            existing.topColor = color;
+            existing.topCount = count;
+          }
+        }
+        return map;
+      }, new Map())
+      .values(),
+  )
+    .sort((a, b) => b.totalCount - a.totalCount)
     .slice(0, MAX_ENTRIES);
 
-  const maxCount = voteEntries[0]?.count ?? 1;
+  const maxCount = voteEntries[0]?.totalCount ?? 1; // count → totalCount
   const usedCount = remaining !== null ? VOTES_PER_ROUND - remaining : 0;
 
   // 5개 고정 슬롯
@@ -96,7 +117,7 @@ export default function VotePanel({
                 <>
                   <div
                     className="w-3 h-3 rounded-sm shrink-0 border border-gray-200"
-                    style={{ backgroundColor: entry.color }}
+                    style={{ backgroundColor: entry.topColor }}
                   />
                   <span className="text-xs text-gray-500 w-16 shrink-0">
                     ({entry.x}, {entry.y})
@@ -105,13 +126,13 @@ export default function VotePanel({
                     <div
                       className="h-2 rounded"
                       style={{
-                        width: `${(entry.count / maxCount) * 100}%`,
-                        backgroundColor: entry.color,
+                        width: `${(entry.topCount / maxCount) * 100}%`,
+                        backgroundColor: entry.topColor,
                       }}
                     />
                   </div>
-                  <span className="text-xs text-gray-500 w-4 shrink-0 text-right">
-                    {entry.count}
+                  <span className="text-xs text-gray-500 w-8 shrink-0 text-right">
+                    {entry.topCount}/{entry.totalCount}
                   </span>
                 </>
               ) : (
