@@ -1,34 +1,44 @@
 interface Props {
   selected: string;
   onChange: (color: string) => void;
+  extraColors?: string[];
 }
 
-const COLORS = [
+const DEFAULT_COLORS = [
   "#000000",
   "#ffffff",
   "#ff0000",
   "#00ff00",
   "#0000ff",
   "#ffff00",
+  "#ff8800",
   "#ff00ff",
   "#00ffff",
-  "#ff8800",
   "#8800ff",
-  "#00ff88",
-  "#ff0088",
   "#888888",
-  "#444444",
   "#cccccc",
-  "#ff4444",
 ];
 
-export default function ColorPalette({ selected, onChange }: Props) {
+export default function ColorPalette({
+  selected,
+  onChange,
+  extraColors = [],
+}: Props) {
+  // 기본 12개에서 extraColors로 마지막부터 교체
+  const colors = [...DEFAULT_COLORS];
+  extraColors.forEach((color, i) => {
+    colors[DEFAULT_COLORS.length - 1 - i] = color;
+  });
+
   return (
-    <div className="flex flex-wrap gap-2">
-      {COLORS.map((color) => (
+    <div className="grid grid-cols-6 gap-1">
+      {colors.map((color, idx) => (
         <button
-          key={color}
-          onClick={() => onChange(color)}
+          key={idx}
+          onClick={(e) => {
+            e.stopPropagation();
+            onChange(color);
+          }}
           className="w-7 h-7 rounded border-2"
           style={{
             backgroundColor: color,
