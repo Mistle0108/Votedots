@@ -90,11 +90,4 @@ async function endGame(io: Server, canvasId: number): Promise<void> {
   console.log(`[타이머] 게임 종료 (canvasId=${canvasId})`);
 
   io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
-
-  try {
-    await canvasService.create(io);
-    console.log(`[타이머] 새 캔버스 자동 생성 완료`);
-  } catch (err) {
-    console.error(`[타이머] 새 캔버스 생성 실패:`, err);
-  }
 }

@@ -9,6 +9,7 @@ import useSocket from "@/hooks/useSocket";
  */
 const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8"); // 셀 하나의 크기
 const PANEL_WIDTH = 280; // 우측 투표 패널 너비
+const RESTART_TIME = 3;  // 게임 종료 후 새로 고침 타이머
 
 export default function CanvasPage() {
   /**
@@ -240,6 +241,22 @@ export default function CanvasPage() {
   }, []);
 
   /**
+   * 게임 종료시 새 게임 실행
+   */
+  useEffect(() => {
+  if (!gameEnded) return;
+  const timer = setTimeout(async () => {
+    try {
+      await api.post("/canvas");
+    } catch (err) {
+      console.error("캔버스 생성 실패:", err);
+    }
+    window.location.reload();
+  }, RESTART_TIME * 1000);
+  return () => clearTimeout(timer);
+}, [gameEnded]);
+
+  /**
    * 소켓 이벤트 핸들러
    */
 
@@ -426,7 +443,7 @@ export default function CanvasPage() {
   if (gameEnded)
     return (
       <div className="flex items-center justify-center h-screen text-xl font-bold">
-        게임이 종료됐어요 🎨
+        게임이 종료됐어요 🎨 새 게임을 생성할게요.
       </div>
     );
 
