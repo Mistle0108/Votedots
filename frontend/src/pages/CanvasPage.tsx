@@ -43,6 +43,7 @@ export default function CanvasPage() {
   const [roundId, setRoundId] = useState<number | null>(null);
   const [roundNumber, setRoundNumber] = useState<number | null>(null);
   const [startedAt, setStartedAt] = useState<string | null>(null);
+  const [roundDurationSec, setRoundDurationSec] = useState<number>(60);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
   const [previewColor, setPreviewColor] = useState<string | null>(null);
   const [votingCellIds, setVotingCellIds] = useState<Set<number>>(new Set());
@@ -214,9 +215,10 @@ export default function CanvasPage() {
     api
       .get<CanvasCurrentResponse>("/canvas/current")
       .then(({ data }) => {
-        const { canvas, cells } = data;
+        const { canvas, cells, roundDurationSec } = data;
         setCanvasId(canvas.id);
         updateCells(cells);
+        setRoundDurationSec(roundDurationSec);
 
         const canvasEl = canvasRef.current;
         if (!canvasEl) return;
@@ -476,6 +478,7 @@ export default function CanvasPage() {
             canvasId={canvasId}
             roundId={roundId}
             roundNumber={roundNumber}
+            roundDurationSec={roundDurationSec}
             startedAt={startedAt}
             selectedCell={selectedCell}
             onVoteSuccess={handleVoteSuccess}
