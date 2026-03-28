@@ -5,6 +5,9 @@ interface RoundStartedPayload {
   roundId: number;
   roundNumber: number;
   startedAt: string;
+  roundDurationSec: number;
+  totalRounds: number;
+  gameEndAt: string;
 }
 
 interface RoundEndedPayload {
@@ -28,12 +31,23 @@ interface VoteUpdatePayload {
   votes: Record<string, number>;
 }
 
+interface TimerUpdatePayload {
+  roundId: number;
+  roundNumber: number;
+  remainingSeconds: number;
+  isRoundExpired: boolean;
+  roundDurationSec: number;
+  totalRounds: number;
+  gameEndAt: string;
+}
+
 interface Props {
   canvasId: number | null;
   onRoundStarted: (payload: RoundStartedPayload) => void;
   onRoundEnded: (payload: RoundEndedPayload) => void;
   onCanvasUpdated: (payload: CanvasUpdatedPayload) => void;
   onVoteUpdate: (payload: VoteUpdatePayload) => void;
+  onTimerUpdate: (payload: TimerUpdatePayload) => void;
   onGameEnded: () => void;
 }
 
@@ -43,6 +57,7 @@ export default function useSocket({
   onRoundEnded,
   onCanvasUpdated,
   onVoteUpdate,
+  onTimerUpdate,
   onGameEnded,
 }: Props) {
   useEffect(() => {
@@ -55,6 +70,7 @@ export default function useSocket({
     socket.on("round:ended", onRoundEnded);
     socket.on("canvas:updated", onCanvasUpdated);
     socket.on("vote:update", onVoteUpdate);
+    socket.on("timer:update", onTimerUpdate);
     socket.on("game:ended", onGameEnded);
 
     return () => {
@@ -63,6 +79,7 @@ export default function useSocket({
       socket.off("round:ended", onRoundEnded);
       socket.off("canvas:updated", onCanvasUpdated);
       socket.off("vote:update", onVoteUpdate);
+      socket.off("timer:update", onTimerUpdate);
       socket.off("game:ended", onGameEnded);
       socket.disconnect();
     };
