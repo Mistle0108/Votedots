@@ -3,7 +3,6 @@ import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { roundService } from "../round/round.service";
 import { gameConfig } from "../../config/game.config";
-import { canvasService } from "../canvas/canvas.service";
 
 
 // canvasId별 타이머 핸들 관리 (중복 방지)
