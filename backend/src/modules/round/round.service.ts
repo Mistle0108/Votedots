@@ -74,7 +74,11 @@ export const roundService = {
     return round;
   },
 
-  async endRound(canvasId: number, roundId: number, io?: Server): Promise<VoteRound> {
+  async endRound(
+    canvasId: number,
+    roundId: number,
+    io?: Server,
+  ): Promise<VoteRound> {
     const round = await voteRoundRepository.findOne({
       where: { id: roundId, canvas: { id: canvasId }, isActive: true },
     });
@@ -156,7 +160,9 @@ export const roundService = {
         color: winningColor,
         status: CellStatus.PAINTED,
       });
-      winningCell = await cellRepository.findOne({ where: { id: winningCellId } });
+      winningCell = await cellRepository.findOne({
+        where: { id: winningCellId },
+      });
     }
 
     // 라운드 종료 처리
@@ -173,7 +179,12 @@ export const roundService = {
         roundNumber: round.roundNumber,
         endedAt: round.endedAt,
         winningCell: winningCell
-          ? { id: winningCell.id, x: winningCell.x, y: winningCell.y, color: winningCell.color }
+          ? {
+              id: winningCell.id,
+              x: winningCell.x,
+              y: winningCell.y,
+              color: winningCell.color,
+            }
           : null,
       });
 

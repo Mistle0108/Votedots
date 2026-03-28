@@ -1,129 +1,146 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import ColorPalette from "./ColorPalette";
 import RoundInfo from "./RoundInfo";
-import { voteApi } from "@/api/vote";
-import { Cell } from "@/types/canvas";
 
+const VOTES_PER_ROUND = parseInt(import.meta.env.VITE_VOTES_PER_ROUND ?? "3");
+const MAX_ENTRIES = 5;
+
+interface VoteEntry {
+  cellId: number;
+  x: number;
+  y: number;
+  topColor: string;   // color → topColor (1위 색상)
+  topCount: number;   // 1위 색상 득표수
+  totalCount: number; // 해당 셀 전체 득표수
+}
+
+interface Cell {
+  id: number;
+  x: number;
+  y: number;
+}
 
 interface Props {
-  canvasId: number;
   roundId: number | null;
   roundNumber: number | null;
   roundDurationSec: number | 60;
   startedAt: string | null;
-  selectedCell: Cell | null;
-  onVoteSuccess: () => void;
-  onColorChange: (color: string | null) => void;
+  votes: Record<string, number>;
+  remaining: number | null;
+  cells: Cell[];
 }
 
 export default function VotePanel({
-  canvasId,
   roundId,
   roundNumber,
   roundDurationSec,
   startedAt,
-  selectedCell,
-  onVoteSuccess,
-  onColorChange,
+  votes,
+  remaining,
+  cells,
 }: Props) {
-  const [color, setColor] = useState("#000000");
-  const [remaining, setRemaining] = useState<number | null>(null);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
+  // 득표 현황 — 좌표 표시, 상위 5개
+  const voteEntries: VoteEntry[] = Array.from(
+    Object.entries(votes)
+      .reduce<Map<number, VoteEntry>>((map, [key, count]) => {
+        const [cellIdStr, color] = key.split(":");
+        const cellId = parseInt(cellIdStr);
+        const cell = cells.find((c) => c.id === cellId);
+        const existing = map.get(cellId);
+        if (!existing) {
+          map.set(cellId, {
+            cellId,
+            x: cell?.x ?? 0,
+            y: cell?.y ?? 0,
+            topColor: color,
+            topCount: count,
+            totalCount: count,
+          });
+        } else {
+          existing.totalCount += count;
+          if (count > existing.topCount) {
+            existing.topColor = color;
+            existing.topCount = count;
+          }
+        }
+        return map;
+      }, new Map())
+      .values(),
+  )
+    .sort((a, b) => b.totalCount - a.totalCount)
+    .slice(0, MAX_ENTRIES);
 
-  useEffect(() => {
-    if (!roundId) {
-      setRemaining(null);
-      return;
-    }
-    voteApi.getTickets(roundId).then(({ data }) => {
-      setRemaining(data.remaining);
-    });
-  }, [roundId]);
+  const maxCount = voteEntries[0]?.totalCount ?? 1; // count → totalCount
+  const usedCount = remaining !== null ? VOTES_PER_ROUND - remaining : 0;
 
-  useEffect(() => {
-    if (!selectedCell) {
-      onColorChange(null);
-    }
-  }, [selectedCell]);
-
-  const handleColorChange = (newColor: string) => {
-    setColor(newColor);
-    if (selectedCell) {
-      onColorChange(newColor);
-    }
-  };
-
-  const handleSubmit = async () => {
-    if (!selectedCell || !roundId) return;
-    setError("");
-    setLoading(true);
-    try {
-      await voteApi.submit({
-        canvasId,
-        roundId,
-        cellId: selectedCell.id,
-        color,
-      });
-      const { data } = await voteApi.getTickets(roundId);
-      setRemaining(data.remaining);
-      onColorChange(null);
-      onVoteSuccess();
-    } catch (err: unknown) {
-      if (err && typeof err === "object" && "response" in err) {
-        const axiosErr = err as { response: { data: { message: string } } };
-        setError(axiosErr.response.data.message);
-      } else {
-        setError("투표 중 오류가 발생했어요");
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
+  // 5개 고정 슬롯
+  const slots = Array.from({ length: MAX_ENTRIES }).map(
+    (_, i) => voteEntries[i] ?? null,
+  );
 
   return (
-    <div className="flex flex-col gap-6 p-6 h-full">
-      <div>
-        <h2 className="text-lg font-bold">VoteDots</h2>
-      </div>
+    <div className="flex flex-col gap-5 p-5 h-full overflow-y-auto">
+      <h2 className="text-lg font-bold">VoteDots</h2>
 
+      {/* 라운드 정보 + 타이머 */}
       <RoundInfo
         roundNumber={roundNumber}
         startedAt={startedAt}
         durationSec={roundDurationSec}
       />
 
+      {/* 남은 투표권 */}
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">남은 투표권</p>
-        <p className="text-sm text-gray-500">
-          {remaining !== null ? `${remaining}표` : "-"}
-        </p>
+        <div className="flex gap-1">
+          {remaining !== null ? (
+            Array.from({ length: VOTES_PER_ROUND }).map((_, i) => (
+              <span
+                key={i}
+                className={`text-lg ${i < usedCount ? "text-gray-300" : "text-blue-500"}`}
+              >
+                ●
+              </span>
+            ))
+          ) : (
+            <span className="text-sm text-gray-400">-</span>
+          )}
+        </div>
       </div>
 
+      {/* 득표 현황 — 5개 고정 공간 + 빨간 테두리 */}
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">선택된 셀</p>
-        <p className="text-sm text-gray-500">
-          {selectedCell
-            ? `(${selectedCell.x}, ${selectedCell.y})`
-            : "셀을 클릭해주세요"}
-        </p>
+        <p className="text-sm font-medium">득표 현황</p>
+        <div className="border border-red-400 rounded p-2 flex flex-col gap-1.5">
+          {slots.map((entry, i) => (
+            <div key={i} className="flex items-center gap-2 h-5">
+              {entry ? (
+                <>
+                  <div
+                    className="w-3 h-3 rounded-sm shrink-0 border border-gray-200"
+                    style={{ backgroundColor: entry.topColor }}
+                  />
+                  <span className="text-xs text-gray-500 w-16 shrink-0">
+                    ({entry.x}, {entry.y})
+                  </span>
+                  <div className="flex-1 bg-gray-100 rounded h-2">
+                    <div
+                      className="h-2 rounded"
+                      style={{
+                        width: `${(entry.topCount / maxCount) * 100}%`,
+                        backgroundColor: entry.topColor,
+                      }}
+                    />
+                  </div>
+                  <span className="text-xs text-gray-500 w-8 shrink-0 text-right">
+                    {entry.topCount}/{entry.totalCount}
+                  </span>
+                </>
+              ) : (
+                <div className="w-full h-2 bg-gray-50 rounded" />
+              )}
+            </div>
+          ))}
+        </div>
       </div>
-
-      <div className="flex flex-col gap-2">
-        <p className="text-sm font-medium">색상 선택</p>
-        <ColorPalette selected={color} onChange={handleColorChange} />
-      </div>
-
-      {error && <p className="text-sm text-red-500">{error}</p>}
-
-      <Button
-        onClick={handleSubmit}
-        disabled={!selectedCell || !roundId || loading}
-        className="w-full mt-auto"
-      >
-        {loading ? "투표 중..." : "투표하기"}
-      </Button>
     </div>
   );
 }
