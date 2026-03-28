@@ -4,7 +4,6 @@ import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { roundService } from "../round/round.service";
 import { gameConfig } from "../../config/game.config";
 
-
 // canvasId별 타이머 핸들 관리 (중복 방지)
 const activeTimers = new Map<number, NodeJS.Timeout>();
 
