@@ -1,46 +1,38 @@
-import { useEffect, useState } from "react";
-
 interface Props {
   roundNumber: number | null;
-  startedAt: string | null;
-  durationSec: number;
+  totalRounds: number;
+  formattedGameEndTime: string | null;
+  formattedRemainingTime: string | null;
 }
 
 export default function RoundInfo({
   roundNumber,
-  startedAt,
-  durationSec,
+  totalRounds,
+  formattedGameEndTime,
+  formattedRemainingTime,
 }: Props) {
-  const [remaining, setRemaining] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (!startedAt) {
-      setRemaining(null);
-      return;
-    }
-
-    const calc = () => {
-      const elapsed = Math.floor(
-        (Date.now() - new Date(startedAt).getTime()) / 1000,
-      );
-      const left = Math.max(0, durationSec - elapsed);
-      setRemaining(left);
-    };
-
-    calc();
-    const interval = setInterval(calc, 1000);
-    return () => clearInterval(interval);
-  }, [startedAt, durationSec]);
-
   return (
-    <div className="flex flex-col gap-1">
-      <p className="text-sm font-medium">라운드</p>
-      <p className="text-sm text-gray-500">
-        {roundNumber ? `#${roundNumber}` : "진행 중인 라운드 없음"}
-      </p>
-      {remaining !== null && (
-        <p className="text-sm text-gray-500">남은 시간: {remaining}초</p>
-      )}
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">라운드</p>
+        <p className="text-sm text-gray-500">
+          {roundNumber ? `${roundNumber}/${totalRounds}` : "-"}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">게임 종료</p>
+        <p className="text-sm text-gray-500">
+          {formattedGameEndTime ?? "-"}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">타이머</p>
+        <p className="text-base font-bold text-red-500">
+          {formattedRemainingTime ?? "-"}
+        </p>
+      </div>
     </div>
   );
 }
