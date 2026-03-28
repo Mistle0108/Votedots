@@ -31,5 +31,4 @@ export interface Cell {
 export interface CanvasCurrentResponse {
   canvas: Canvas;
   cells: Cell[];
-  roundDurationSec: number;
 }

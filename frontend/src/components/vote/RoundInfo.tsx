@@ -2,45 +2,80 @@ import { useEffect, useState } from "react";
 
 interface Props {
   roundNumber: number | null;
-  startedAt: string | null;
-  durationSec: number;
+  totalRounds: number;
+  formattedGameEndTime: string | null;
+  formattedRemainingTime: string | null;
+  remainingSeconds: number | null;
+  roundDurationSec: number | null;
 }
 
 export default function RoundInfo({
   roundNumber,
-  startedAt,
-  durationSec,
+  totalRounds,
+  formattedGameEndTime,
+  formattedRemainingTime,
+  remainingSeconds,
+  roundDurationSec,
 }: Props) {
-  const [remaining, setRemaining] = useState<number | null>(null);
+  const [enableProgressTransition, setEnableProgressTransition] = useState(false);
+
+  const progressPercent =
+    remainingSeconds !== null &&
+      roundDurationSec !== null &&
+      roundDurationSec > 0
+      ? (remainingSeconds / roundDurationSec) * 100
+      : 0;
 
   useEffect(() => {
-    if (!startedAt) {
-      setRemaining(null);
-      return;
-    }
+    const isInitialSync =
+      remainingSeconds !== null &&
+      roundDurationSec !== null &&
+      (remainingSeconds === roundDurationSec || !enableProgressTransition);
 
-    const calc = () => {
-      const elapsed = Math.floor(
-        (Date.now() - new Date(startedAt).getTime()) / 1000,
-      );
-      const left = Math.max(0, durationSec - elapsed);
-      setRemaining(left);
-    };
+    if (!isInitialSync) return;
 
-    calc();
-    const interval = setInterval(calc, 1000);
-    return () => clearInterval(interval);
-  }, [startedAt, durationSec]);
+    setEnableProgressTransition(false);
+
+    const frame1 = requestAnimationFrame(() => {
+      const frame2 = requestAnimationFrame(() => {
+        setEnableProgressTransition(true);
+      });
+
+      return () => cancelAnimationFrame(frame2);
+    });
+
+    return () => cancelAnimationFrame(frame1);
+  }, [remainingSeconds, roundDurationSec, enableProgressTransition]);
 
   return (
-    <div className="flex flex-col gap-1">
-      <p className="text-sm font-medium">라운드</p>
-      <p className="text-sm text-gray-500">
-        {roundNumber ? `#${roundNumber}` : "진행 중인 라운드 없음"}
-      </p>
-      {remaining !== null && (
-        <p className="text-sm text-gray-500">남은 시간: {remaining}초</p>
-      )}
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">라운드</p>
+        <p className="text-sm text-gray-500">
+          {roundNumber ? `${roundNumber}/${totalRounds}` : "-"}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">게임 종료</p>
+        <p className="text-sm text-gray-500">
+          {formattedGameEndTime ?? "-"}
+        </p>
+      </div>
+
+      <div className="flex flex-col gap-1.5">
+        <p className="text-sm font-medium">타이머</p>
+        <p className="text-base font-bold text-red-500">
+          {formattedRemainingTime ?? "-"}
+        </p>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full bg-red-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+
+        </div>
+      </div>
     </div>
   );
 }

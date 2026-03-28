@@ -9,12 +9,25 @@ import { voteApi } from "@/api/vote";
 /**
  * 상수 정의
  */
-const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8"); // 셀 하나의 크기
-const PANEL_WIDTH = 280; // 우측 투표 패널 너비
-const RESTART_TIME = 3;  // 게임 종료 후 새로 고침 타이머
+const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8");
+const PANEL_WIDTH = 280;
+const RESTART_TIME = 3;
 const CHECKER_LIGHT = "#6f6f6f";
 const CHECKER_DARK = "#5f5f5f";
 const CANVAS_BACKGROUND_COLOR = "#2a2a2a";
+
+function formatClockTime(date: Date): string {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  return `${hours}:${minutes}`;
+}
+
+function formatDuration(seconds: number): string {
+  const safeSeconds = Math.max(0, seconds);
+  const minutes = Math.floor(safeSeconds / 60);
+  const secs = safeSeconds % 60;
+  return `${minutes}:${String(secs).padStart(2, "0")}`;
+}
 
 export default function CanvasPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,8 +47,12 @@ export default function CanvasPage() {
   const [canvasId, setCanvasId] = useState<number | null>(null);
   const [roundId, setRoundId] = useState<number | null>(null);
   const [roundNumber, setRoundNumber] = useState<number | null>(null);
-  const [startedAt, setStartedAt] = useState<string | null>(null);
-  const [roundDurationSec, setRoundDurationSec] = useState<number>(60);
+  const [roundDurationSec, setRoundDurationSec] = useState<number | null>(null);
+  const [totalRounds, setTotalRounds] = useState<number>(0);
+  const [formattedGameEndTime, setFormattedGameEndTime] = useState<string | null>(null);
+  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
+  const [formattedRemainingTime, setFormattedRemainingTime] = useState<string | null>(null);
+  const [isRoundExpired, setIsRoundExpired] = useState(false);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
   const [previewColor, setPreviewColor] = useState<string | null>(null);
   const [votingCellIds, setVotingCellIds] = useState<Set<number>>(new Set());
@@ -46,7 +63,6 @@ export default function CanvasPage() {
   const [popupOpen, setPopupOpen] = useState(false);
   const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [remaining, setRemaining] = useState<number | null>(null);
-  const [usedColors, setUsedColors] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [gameEnded, setGameEnded] = useState(false);
@@ -55,12 +71,15 @@ export default function CanvasPage() {
   useEffect(() => {
     selectedCellRef.current = selectedCell;
   }, [selectedCell]);
+
   useEffect(() => {
     previewColorRef.current = previewColor;
   }, [previewColor]);
+
   useEffect(() => {
     votingCellIdsRef.current = votingCellIds;
   }, [votingCellIds]);
+
   useEffect(() => {
     topColorMapRef.current = topColorMap;
   }, [topColorMap]);
@@ -122,12 +141,10 @@ export default function CanvasPage() {
           ctx.fillRect(x + half, y + half, half, half);
         }
 
-        // 선택 중인 셀은 점등 없이 previewColor로만 표시
         if (isSelected && previewColor) {
           ctx.fillStyle = previewColor;
           ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
         } else if (isVoting && topColor && !isSelected) {
-          // 선택 중이 아닌 투표 중 셀만 점등
           ctx.fillStyle = topColor;
           ctx.globalAlpha = alpha * 0.7;
           ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
@@ -163,10 +180,9 @@ export default function CanvasPage() {
     api
       .get<CanvasCurrentResponse>("/canvas/current")
       .then(({ data }) => {
-        const { canvas, cells, roundDurationSec } = data;
+        const { canvas, cells } = data;
         setCanvasId(canvas.id);
         updateCells(cells);
-        setRoundDurationSec(roundDurationSec);
 
         const canvasEl = canvasRef.current;
         if (!canvasEl) return;
@@ -180,7 +196,6 @@ export default function CanvasPage() {
         if (res?.data?.round) {
           setRoundId(res.data.round.id);
           setRoundNumber(res.data.round.roundNumber);
-          setStartedAt(res.data.round.startedAt);
           return voteApi.getTickets(res.data.round.id);
         }
       })
@@ -191,9 +206,6 @@ export default function CanvasPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  /**
-   * 게임 종료시 새 게임 실행
-   */
   useEffect(() => {
     if (!gameEnded) return;
     const timer = setTimeout(async () => {
@@ -207,25 +219,30 @@ export default function CanvasPage() {
     return () => clearTimeout(timer);
   }, [gameEnded]);
 
-  /**
-   * 소켓 이벤트 핸들러
-   */
-
-  // 라운드 시작
   const handleRoundStarted = useCallback(
     ({
       roundId,
       roundNumber,
-      startedAt,
+      totalRounds,
+      gameEndAt,
+      roundDurationSec,
     }: {
       roundId: number;
       roundNumber: number;
       startedAt: string;
+      roundDurationSec: number;
+      totalRounds: number;
+      gameEndAt: string;
     }) => {
       setRoundId(roundId);
       setRoundNumber(roundNumber);
-      setStartedAt(startedAt);
+      setRoundDurationSec(roundDurationSec);
+      setTotalRounds(totalRounds);
+      setFormattedGameEndTime(formatClockTime(new Date(gameEndAt)));
       setVotes({});
+      setRemainingSeconds(roundDurationSec);
+      setFormattedRemainingTime(formatDuration(roundDurationSec));
+      setIsRoundExpired(false);
       votingCellIdsRef.current = new Set();
       topColorMapRef.current = new Map();
       setVotingCellIds(new Set());
@@ -233,9 +250,7 @@ export default function CanvasPage() {
       voteApi
         .getTickets(roundId)
         .then(({ data }) => setRemaining(data.remaining));
-    },
-    [],
-  );
+    }, []);
 
   const handleRoundEnded = useCallback(() => {
     setSelectedCell(null);
@@ -245,14 +260,18 @@ export default function CanvasPage() {
     setPopupOpen(false);
     setRoundId(null);
     setRoundNumber(null);
-    setStartedAt(null);
+    setRoundDurationSec(null);
     setVotes({});
     setRemaining(null);
+    setRemainingSeconds(null);
+    setFormattedRemainingTime(null);
+    setIsRoundExpired(false);
     votingCellIdsRef.current = new Set();
     topColorMapRef.current = new Map();
     setVotingCellIds(new Set());
     setTopColorMap(new Map());
   }, []);
+
 
   const handleCanvasUpdated = useCallback(
     ({ cellId, color }: { cellId: number; color: string }) => {
@@ -300,19 +319,47 @@ export default function CanvasPage() {
     [],
   );
 
+  const handleTimerUpdate = useCallback(
+    ({
+      remainingSeconds,
+      isRoundExpired,
+      gameEndAt,
+      roundDurationSec,
+      totalRounds,
+    }: {
+      remainingSeconds: number;
+      isRoundExpired: boolean;
+      gameEndAt: string;
+      roundDurationSec: number;
+      totalRounds: number;
+    }) => {
+      setRemainingSeconds(remainingSeconds);
+      setFormattedRemainingTime(formatDuration(remainingSeconds));
+      setIsRoundExpired(isRoundExpired);
+      setFormattedGameEndTime(formatClockTime(new Date(gameEndAt)));
+      setRoundDurationSec(roundDurationSec);
+      setTotalRounds(totalRounds);
+    }, []);
+
+
   const handleGameEnded = useCallback(() => {
     setGameEnded(true);
     setPopupOpen(false);
     setRoundId(null);
     setRoundNumber(null);
-    setStartedAt(null);
+    setRoundDurationSec(null);
     setVotes({});
     setRemaining(null);
+    setRemainingSeconds(null);
+    setFormattedRemainingTime(null);
+    setFormattedGameEndTime(null);
+    setIsRoundExpired(false);
     votingCellIdsRef.current = new Set();
     topColorMapRef.current = new Map();
     setVotingCellIds(new Set());
     setTopColorMap(new Map());
   }, []);
+
 
   useSocket({
     canvasId,
@@ -320,6 +367,7 @@ export default function CanvasPage() {
     onRoundEnded: handleRoundEnded,
     onCanvasUpdated: handleCanvasUpdated,
     onVoteUpdate: handleVoteUpdate,
+    onTimerUpdate: handleTimerUpdate,
     onGameEnded: handleGameEnded,
   });
 
@@ -342,7 +390,6 @@ export default function CanvasPage() {
     lastPos.current = { x: e.clientX, y: e.clientY };
   };
 
-  /** 투표 모달 팝업 동작*/
   const handleMouseUp = (e: React.MouseEvent) => {
     if (e.button !== 0) return;
     isPanning.current = false;
@@ -361,7 +408,6 @@ export default function CanvasPage() {
         selectedCellRef.current = cell;
         setPreviewColor(null);
         previewColorRef.current = null;
-        const rect = canvasEl.getBoundingClientRect();
         setPopupPos({
           x: rect.left + (cell.x + 2) * CELL_SIZE,
           y: rect.top + (cell.y - 1.5) * CELL_SIZE,
@@ -371,12 +417,7 @@ export default function CanvasPage() {
     }
   };
 
-  const handleVoteSuccess = (color: string) => {
-    // 사용한 색상 추가 — 중복 제거 후 앞에 추가, 최대 12개
-    setUsedColors((prev) => {
-      const filtered = prev.filter((c) => c !== color);
-      return [color, ...filtered].slice(0, 12);
-    });
+  const handleVoteSuccess = () => {
     setSelectedCell(null);
     selectedCellRef.current = null;
     setPreviewColor(null);
@@ -441,7 +482,6 @@ export default function CanvasPage() {
         </div>
       </div>
 
-      {/* 투표 팝업 */}
       {popupOpen && selectedCell && canvasId && (
         <VotePopup
           canvasId={canvasId}
@@ -456,7 +496,6 @@ export default function CanvasPage() {
         />
       )}
 
-      {/* 우측 패널 */}
       <div
         className="border-l border-gray-200 bg-white shrink-0"
         style={{ width: `${PANEL_WIDTH}px` }}
@@ -465,8 +504,11 @@ export default function CanvasPage() {
           <VotePanel
             roundId={roundId}
             roundNumber={roundNumber}
+            totalRounds={totalRounds}
+            formattedGameEndTime={formattedGameEndTime}
+            formattedRemainingTime={formattedRemainingTime}
+            remainingSeconds={remainingSeconds}
             roundDurationSec={roundDurationSec}
-            startedAt={startedAt}
             votes={votes}
             remaining={remaining}
             cells={cells}

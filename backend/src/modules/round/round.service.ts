@@ -64,10 +64,21 @@ export const roundService = {
     await voteTicketRepository.save(tickets as VoteTicket[]);
 
     if (io) {
+      const remainingRoundsIncludingCurrent =
+        gameConfig.totalRounds - round.roundNumber + 1;
+
+      const gameEndAt = new Date(
+        round.startedAt.getTime() +
+        remainingRoundsIncludingCurrent * gameConfig.roundDurationSec * 1000,
+      );
+
       io.to(`canvas:${canvasId}`).emit("round:started", {
         roundId: round.id,
         roundNumber: round.roundNumber,
         startedAt: round.startedAt,
+        roundDurationSec: gameConfig.roundDurationSec,
+        totalRounds: gameConfig.totalRounds,
+        gameEndAt: gameEndAt.toISOString(),
       });
     }
 
@@ -180,11 +191,11 @@ export const roundService = {
         endedAt: round.endedAt,
         winningCell: winningCell
           ? {
-              id: winningCell.id,
-              x: winningCell.x,
-              y: winningCell.y,
-              color: winningCell.color,
-            }
+            id: winningCell.id,
+            x: winningCell.x,
+            y: winningCell.y,
+            color: winningCell.color,
+          }
           : null,
       });
 

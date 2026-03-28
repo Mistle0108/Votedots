@@ -7,9 +7,9 @@ interface VoteEntry {
   cellId: number;
   x: number;
   y: number;
-  topColor: string;   // color → topColor (1위 색상)
-  topCount: number;   // 1위 색상 득표수
-  totalCount: number; // 해당 셀 전체 득표수
+  topColor: string;
+  topCount: number;
+  totalCount: number;
 }
 
 interface Cell {
@@ -21,8 +21,11 @@ interface Cell {
 interface Props {
   roundId: number | null;
   roundNumber: number | null;
-  roundDurationSec: number | 60;
-  startedAt: string | null;
+  totalRounds: number;
+  formattedGameEndTime: string | null;
+  formattedRemainingTime: string | null;
+  remainingSeconds: number | null;
+  roundDurationSec: number | null;
   votes: Record<string, number>;
   remaining: number | null;
   cells: Cell[];
@@ -31,13 +34,15 @@ interface Props {
 export default function VotePanel({
   roundId,
   roundNumber,
+  totalRounds,
+  formattedGameEndTime,
+  formattedRemainingTime,
+  remainingSeconds,
   roundDurationSec,
-  startedAt,
   votes,
   remaining,
   cells,
 }: Props) {
-  // 득표 현황 — 좌표 표시, 상위 5개
   const voteEntries: VoteEntry[] = Array.from(
     Object.entries(votes)
       .reduce<Map<number, VoteEntry>>((map, [key, count]) => {
@@ -45,6 +50,7 @@ export default function VotePanel({
         const cellId = parseInt(cellIdStr);
         const cell = cells.find((c) => c.id === cellId);
         const existing = map.get(cellId);
+
         if (!existing) {
           map.set(cellId, {
             cellId,
@@ -61,6 +67,7 @@ export default function VotePanel({
             existing.topCount = count;
           }
         }
+
         return map;
       }, new Map())
       .values(),
@@ -68,26 +75,26 @@ export default function VotePanel({
     .sort((a, b) => b.totalCount - a.totalCount)
     .slice(0, MAX_ENTRIES);
 
-  const maxCount = voteEntries[0]?.totalCount ?? 1; // count → totalCount
+  const maxCount = voteEntries[0]?.totalCount ?? 1;
   const usedCount = remaining !== null ? VOTES_PER_ROUND - remaining : 0;
 
-  // 5개 고정 슬롯
   const slots = Array.from({ length: MAX_ENTRIES }).map(
     (_, i) => voteEntries[i] ?? null,
   );
 
   return (
-    <div className="flex flex-col gap-5 p-5 h-full overflow-y-auto">
+    <div className="flex h-full flex-col gap-5 overflow-y-auto p-5">
       <h2 className="text-lg font-bold">VoteDots</h2>
 
-      {/* 라운드 정보 + 타이머 */}
       <RoundInfo
         roundNumber={roundNumber}
-        startedAt={startedAt}
-        durationSec={roundDurationSec}
+        totalRounds={totalRounds}
+        formattedGameEndTime={formattedGameEndTime}
+        formattedRemainingTime={formattedRemainingTime}
+        remainingSeconds={remainingSeconds}
+        roundDurationSec={roundDurationSec}
       />
 
-      {/* 남은 투표권 */}
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">남은 투표권</p>
         <div className="flex gap-1">
@@ -106,22 +113,21 @@ export default function VotePanel({
         </div>
       </div>
 
-      {/* 득표 현황 — 5개 고정 공간 + 빨간 테두리 */}
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">득표 현황</p>
-        <div className="border border-red-400 rounded p-2 flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5 rounded border border-red-400 p-2">
           {slots.map((entry, i) => (
-            <div key={i} className="flex items-center gap-2 h-5">
+            <div key={i} className="flex h-5 items-center gap-2">
               {entry ? (
                 <>
                   <div
-                    className="w-3 h-3 rounded-sm shrink-0 border border-gray-200"
+                    className="h-3 w-3 shrink-0 rounded-sm border border-gray-200"
                     style={{ backgroundColor: entry.topColor }}
                   />
-                  <span className="text-xs text-gray-500 w-16 shrink-0">
+                  <span className="w-16 shrink-0 text-xs text-gray-500">
                     ({entry.x}, {entry.y})
                   </span>
-                  <div className="flex-1 bg-gray-100 rounded h-2">
+                  <div className="h-2 flex-1 rounded bg-gray-100">
                     <div
                       className="h-2 rounded"
                       style={{
@@ -130,12 +136,12 @@ export default function VotePanel({
                       }}
                     />
                   </div>
-                  <span className="text-xs text-gray-500 w-8 shrink-0 text-right">
+                  <span className="w-8 shrink-0 text-right text-xs text-gray-500">
                     {entry.topCount}/{entry.totalCount}
                   </span>
                 </>
               ) : (
-                <div className="w-full h-2 bg-gray-50 rounded" />
+                <div className="h-2 w-full rounded bg-gray-50" />
               )}
             </div>
           ))}
