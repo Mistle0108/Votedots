@@ -13,6 +13,7 @@ export interface Canvas {
   updatedAt: string;
   createdBy: number | null;
   updatedBy: number | null;
+  roundDurationSec: number | null;
 }
 
 export interface Cell {
@@ -30,4 +31,5 @@ export interface Cell {
 export interface CanvasCurrentResponse {
   canvas: Canvas;
   cells: Cell[];
+  roundDurationSec: number;
 }

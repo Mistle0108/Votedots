@@ -5,14 +5,12 @@ import RoundInfo from "./RoundInfo";
 import { voteApi } from "@/api/vote";
 import { Cell } from "@/types/canvas";
 
-const ROUND_DURATION_SEC = parseInt(
-  import.meta.env.VITE_ROUND_DURATION_SEC ?? "60",
-);
 
 interface Props {
   canvasId: number;
   roundId: number | null;
   roundNumber: number | null;
+  roundDurationSec: number | 60;
   startedAt: string | null;
   selectedCell: Cell | null;
   onVoteSuccess: () => void;
@@ -23,6 +21,7 @@ export default function VotePanel({
   canvasId,
   roundId,
   roundNumber,
+  roundDurationSec,
   startedAt,
   selectedCell,
   onVoteSuccess,
@@ -92,7 +91,7 @@ export default function VotePanel({
       <RoundInfo
         roundNumber={roundNumber}
         startedAt={startedAt}
-        durationSec={ROUND_DURATION_SEC}
+        durationSec={roundDurationSec}
       />
 
       <div className="flex flex-col gap-1">
