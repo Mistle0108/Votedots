@@ -1,8 +1,12 @@
+import { useEffect, useState } from "react";
+
 interface Props {
   roundNumber: number | null;
   totalRounds: number;
   formattedGameEndTime: string | null;
   formattedRemainingTime: string | null;
+  remainingSeconds: number | null;
+  roundDurationSec: number | null;
 }
 
 export default function RoundInfo({
@@ -10,7 +14,39 @@ export default function RoundInfo({
   totalRounds,
   formattedGameEndTime,
   formattedRemainingTime,
+  remainingSeconds,
+  roundDurationSec,
 }: Props) {
+  const [enableProgressTransition, setEnableProgressTransition] = useState(false);
+
+  const progressPercent =
+    remainingSeconds !== null &&
+      roundDurationSec !== null &&
+      roundDurationSec > 0
+      ? (remainingSeconds / roundDurationSec) * 100
+      : 0;
+
+  useEffect(() => {
+    const isInitialSync =
+      remainingSeconds !== null &&
+      roundDurationSec !== null &&
+      (remainingSeconds === roundDurationSec || !enableProgressTransition);
+
+    if (!isInitialSync) return;
+
+    setEnableProgressTransition(false);
+
+    const frame1 = requestAnimationFrame(() => {
+      const frame2 = requestAnimationFrame(() => {
+        setEnableProgressTransition(true);
+      });
+
+      return () => cancelAnimationFrame(frame2);
+    });
+
+    return () => cancelAnimationFrame(frame1);
+  }, [remainingSeconds, roundDurationSec, enableProgressTransition]);
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
@@ -27,11 +63,18 @@ export default function RoundInfo({
         </p>
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1.5">
         <p className="text-sm font-medium">타이머</p>
         <p className="text-base font-bold text-red-500">
           {formattedRemainingTime ?? "-"}
         </p>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full bg-red-500"
+            style={{ width: `${progressPercent}%` }}
+          />
+
+        </div>
       </div>
     </div>
   );
