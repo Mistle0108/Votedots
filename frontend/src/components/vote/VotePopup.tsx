@@ -5,7 +5,13 @@ import { voteApi } from "@/api/vote";
 import { Cell } from "@/types/canvas";
 
 const SLOT_COUNT = 12;
-const INITIAL_SLOTS = Array(SLOT_COUNT).fill("#ffffff");
+const STORAGE_KEYS = {
+  slotColors: "votedots:vote-popup-slot-colors",
+  lastVotedColor: "votedots:last-voted-color",
+} as const;
+const INITIAL_SLOTS = Array(SLOT_COUNT).fill("");
+const CHECKER_PATTERN =
+  "linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db), linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db)";
 
 interface VoteEntry {
   cellId: number;
@@ -27,6 +33,39 @@ interface Props {
   onClose: () => void;
 }
 
+function loadSlotColors(): string[] {
+  if (typeof window === "undefined") return INITIAL_SLOTS;
+
+  const saved = window.localStorage.getItem(STORAGE_KEYS.slotColors);
+  if (!saved) return INITIAL_SLOTS;
+
+  try {
+    const parsed = JSON.parse(saved);
+    if (!Array.isArray(parsed)) return INITIAL_SLOTS;
+
+    const normalized = parsed
+      .slice(0, SLOT_COUNT)
+      .map((value) => (typeof value === "string" ? value : ""));
+
+    while (normalized.length < SLOT_COUNT) {
+      normalized.push("");
+    }
+
+    return normalized;
+  } catch {
+    return INITIAL_SLOTS;
+  }
+}
+
+function loadLastVotedColor(): string {
+  if (typeof window === "undefined") return "#000000";
+
+  const saved = window.localStorage.getItem(STORAGE_KEYS.lastVotedColor);
+  if (!saved) return "#000000";
+
+  return /^#[0-9a-fA-F]{6}$/.test(saved) ? saved : "#000000";
+}
+
 export default function VotePopup({
   canvasId,
   roundId,
@@ -38,17 +77,16 @@ export default function VotePopup({
   onColorChange,
   onClose,
 }: Props) {
-  const [color, setColor] = useState("#000000");
+  const [color, setColor] = useState(() => loadLastVotedColor());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [slotColors, setSlotColors] = useState<string[]>(INITIAL_SLOTS);
+  const [slotColors, setSlotColors] = useState<string[]>(() => loadSlotColors());
   const [slotCursor, setSlotCursor] = useState(0);
   const [pos, setPos] = useState(position);
   const isDragging = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
 
-  // 득표 현황 — 해당 셀 기준, 전체 목록
   const voteEntries: VoteEntry[] = Object.entries(votes)
     .filter(([key]) => key.startsWith(`${selectedCell.id}:`))
     .map(([key, count]) => {
@@ -70,7 +108,6 @@ export default function VotePopup({
     handleColorChange(entryColor);
   };
 
-  // 슬롯 커서 위치에 현재 색상 추가 후 커서 이동
   const handleSlotAdd = () => {
     setSlotColors((prev) => {
       const next = [...prev];
@@ -85,14 +122,22 @@ export default function VotePopup({
     setSlotCursor(0);
   };
 
-  const handleSlotSelect = (slotColor: string) => {
+  const handleSlotSelect = (slotColor: string, slotIndex: number) => {
+    setSlotCursor(slotIndex);
+
+    if (!slotColor) return;
     handleColorChange(slotColor);
   };
 
+
   const handleSubmit = async () => {
     if (!roundId) return;
+
     setError("");
     setLoading(true);
+
+    window.localStorage.setItem(STORAGE_KEYS.lastVotedColor, color);
+
     try {
       await voteApi.submit({
         canvasId,
@@ -100,6 +145,7 @@ export default function VotePopup({
         cellId: selectedCell.id,
         color,
       });
+
       onColorChange(null);
       onVoteSuccess(color);
       onClose();
@@ -115,12 +161,15 @@ export default function VotePopup({
     }
   };
 
-  // 드래그 이동
   const handleDragStart = (e: React.MouseEvent) => {
     isDragging.current = true;
     dragOffset.current = { x: e.clientX - pos.x, y: e.clientY - pos.y };
     e.stopPropagation();
   };
+
+  useEffect(() => {
+    window.localStorage.setItem(STORAGE_KEYS.slotColors, JSON.stringify(slotColors));
+  }, [slotColors]);
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
@@ -130,41 +179,47 @@ export default function VotePopup({
         y: e.clientY - dragOffset.current.y,
       });
     };
-    const handleMouseUp = () => { isDragging.current = false; };
+
+    const handleMouseUp = () => {
+      isDragging.current = false;
+    };
+
     window.addEventListener("mousemove", handleMouseMove);
     window.addEventListener("mouseup", handleMouseUp);
+
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, []);
 
-  // 외부 클릭 시 닫기
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (popupRef.current && !popupRef.current.contains(e.target as Node)) {
         onClose();
       }
     };
+
     window.addEventListener("mousedown", handleClickOutside);
     return () => window.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
-  // 화면 밖 위치 보정
   useEffect(() => {
     if (!popupRef.current) return;
+
     const popup = popupRef.current.getBoundingClientRect();
     const vw = window.innerWidth;
     const vh = window.innerHeight;
     let { x, y } = position;
+
     if (x + popup.width > vw) x = vw - popup.width - 8;
     if (y + popup.height > vh) y = vh - popup.height - 8;
     if (x < 0) x = 8;
     if (y < 0) y = 8;
-    setPos({ x, y });
-  }, []);
 
-  // 초기 색상 미리보기
+    setPos({ x, y });
+  }, [position]);
+
   useEffect(() => {
     onColorChange(color);
     return () => onColorChange(null);
@@ -173,58 +228,71 @@ export default function VotePopup({
   return (
     <div
       ref={popupRef}
-      className="fixed z-50 bg-white border border-gray-200 rounded-lg shadow-lg w-64"
+      className="fixed z-50 w-64 rounded-lg border border-gray-200 bg-white shadow-lg"
       style={{ top: pos.y, left: pos.x }}
       onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
-      {/* 헤더 — painted 색상 + 좌표 + 닫기 */}
       <div
-        className="flex items-center justify-between px-4 py-3 border-b border-gray-100 cursor-move select-none"
+        className="flex cursor-move select-none items-center justify-between border-b border-gray-100 px-4 py-3"
         onMouseDown={handleDragStart}
       >
         <div className="flex items-center gap-2">
-          {/* painted 색상 아이콘 — 클릭 시 색상 선택 */}
           <div
-            className="w-5 h-5 rounded border border-gray-300 shrink-0 cursor-pointer"
-            style={{ backgroundColor: selectedCell.color ?? "#e5e7eb" }}
+            className="h-5 w-5 shrink-0 cursor-pointer rounded border border-gray-300"
+            style={
+              selectedCell.color
+                ? { backgroundColor: selectedCell.color }
+                : {
+                  backgroundColor: "#f9fafb",
+                  backgroundImage: CHECKER_PATTERN,
+                  backgroundPosition: "0 0, 4px 4px",
+                  backgroundSize: "8px 8px",
+                }
+            }
             onClick={(e) => {
               e.stopPropagation();
               if (selectedCell.color) handleColorChange(selectedCell.color);
             }}
           />
-          <p className="font-semibold text-sm">
+          <p className="text-sm font-semibold">
             ({selectedCell.x}, {selectedCell.y})
           </p>
         </div>
+
         <button
-          onClick={(e) => { e.stopPropagation(); onClose(); }}
-          className="text-gray-400 hover:text-gray-600 text-lg leading-none"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          className="text-lg leading-none text-gray-400 hover:text-gray-600"
         >
           ×
         </button>
       </div>
 
-      <div className="p-4 flex flex-col gap-3">
-        {/* 득표 현황 — 3개 고정 높이 + 스크롤 */}
+      <div className="flex flex-col gap-3 p-4">
         {voteEntries.length > 0 && (
           <div>
-            <p className="text-xs font-medium mb-2">득표 현황</p>
-            <div className="flex flex-col gap-1 max-h-[72px] overflow-y-auto">
+            <p className="mb-2 text-xs font-medium">득표 현황</p>
+            <div className="flex max-h-[72px] flex-col gap-1 overflow-y-auto">
               {voteEntries.map(({ color: c, count }) => (
                 <button
                   key={c}
-                  className="flex items-center gap-2 w-full hover:bg-gray-50 rounded px-1 py-0.5"
-                  onClick={(e) => { e.stopPropagation(); handleVoteEntryClick(c); }}
+                  className="flex w-full items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-50"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleVoteEntryClick(c);
+                  }}
                 >
                   <div
-                    className="w-3 h-3 rounded-sm shrink-0 border border-gray-200"
+                    className="h-3 w-3 shrink-0 rounded-sm border border-gray-200"
                     style={{ backgroundColor: c }}
                   />
-                  <span className="text-xs text-gray-500 w-14 shrink-0 text-left">
+                  <span className="w-14 shrink-0 text-left text-xs text-gray-500">
                     {c}
                   </span>
-                  <div className="flex-1 bg-gray-100 rounded h-2">
+                  <div className="h-2 flex-1 rounded bg-gray-100">
                     <div
                       className="h-2 rounded transition-all"
                       style={{
@@ -233,7 +301,7 @@ export default function VotePopup({
                       }}
                     />
                   </div>
-                  <span className="text-xs text-gray-500 w-4 shrink-0 text-right">
+                  <span className="w-4 shrink-0 text-right text-xs text-gray-500">
                     {count}
                   </span>
                 </button>
@@ -242,7 +310,6 @@ export default function VotePopup({
           </div>
         )}
 
-        {/* 색상 선택 */}
         <ColorPalette
           selected={color}
           onChange={handleColorChange}
@@ -253,10 +320,14 @@ export default function VotePopup({
           onSlotSelect={handleSlotSelect}
         />
 
+
         {error && <p className="text-xs text-red-500">{error}</p>}
 
         <Button
-          onClick={(e) => { e.stopPropagation(); handleSubmit(); }}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleSubmit();
+          }}
           disabled={!roundId || loading}
           className="w-full"
           size="sm"

@@ -1,4 +1,8 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import { HexColorPicker } from "react-colorful";
+
+const CHECKER_PATTERN =
+  "linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db), linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db)";
 
 interface Props {
   selected: string;
@@ -7,14 +11,8 @@ interface Props {
   slotCursor: number;
   onSlotAdd: () => void;
   onSlotReset: () => void;
-  onSlotSelect: (color: string) => void;
+  onSlotSelect: (color: string, index: number) => void;
 }
-
-const DEFAULT_COLORS = [
-  "#000000", "#ffffff", "#ff0000", "#00ff00",
-  "#0000ff", "#ffff00", "#ff8800", "#ff00ff",
-  "#00ffff", "#8800ff", "#888888", "#cccccc",
-];
 
 export default function ColorPalette({
   selected,
@@ -26,111 +24,131 @@ export default function ColorPalette({
   onSlotSelect,
 }: Props) {
   const colorInputRef = useRef<HTMLInputElement>(null);
-  const eyeDropperRef = useRef<{ open: () => Promise<{ sRGBHex: string }> } | null>(null);
+  const [draftHex, setDraftHex] = useState(selected);
+
+  useEffect(() => {
+    setDraftHex(selected);
+  }, [selected]);
 
   const handleEyeDropper = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!("EyeDropper" in window)) return;
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    eyeDropperRef.current = new (window as any).EyeDropper();
+    const eyeDropper = new (window as any).EyeDropper();
+
     try {
-      const result = await eyeDropperRef.current!.open();
+      const result = await eyeDropper.open();
       onChange(result.sRGBHex);
     } catch {
-      // 취소
+      // 브라우저 기본 취소(Esc 등) 시 색상 변경 없음
     }
   };
 
   const handleHexInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
-    const val = e.target.value;
-    if (/^#[0-9a-fA-F]{6}$/.test(val)) {
-      onChange(val);
+    const value = e.target.value;
+    setDraftHex(value);
+
+    if (/^#[0-9a-fA-F]{6}$/.test(value)) {
+      onChange(value);
     }
   };
 
+  const handleHexBlur = () => {
+    setDraftHex(selected);
+  };
+
   return (
-    <div className="flex flex-col gap-2">
-      {/* 기본 색상 그리드 */}
-      <div className="grid grid-cols-6 gap-1">
-        {DEFAULT_COLORS.map((color, idx) => (
-          <button
-            key={idx}
-            onClick={(e) => { e.stopPropagation(); onChange(color); }}
-            className="w-7 h-7 rounded border-2"
-            style={{
-              backgroundColor: color,
-              borderColor: selected === color ? "#3b82f6" : "#d1d5db",
-            }}
-          />
-        ))}
+    <div className="flex flex-col gap-3">
+      <div
+        className="overflow-hidden rounded-md border border-gray-200"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <HexColorPicker
+          color={selected}
+          onChange={onChange}
+          style={{ width: "100%", height: 180 }}
+        />
       </div>
 
-      {/* 컨트롤 한 줄: 스포이드 | 색상 미리보기 + HEX | + | 초기화 */}
       <div className="flex items-center gap-1.5">
-        {/* 스포이드 */}
         <button
           onClick={handleEyeDropper}
-          className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-500 text-xs shrink-0"
-          title="스포이드"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-200 text-xs text-gray-500 hover:bg-gray-50"
+          title="색상 선택 (취소는 Esc)"
         >
           🖊
         </button>
 
-        {/* 색상 미리보기 + HEX 입력 */}
-        <div className="flex items-center flex-1 border border-gray-200 rounded overflow-hidden">
+        <div className="flex flex-1 items-center overflow-hidden rounded border border-gray-200">
           <div
-            className="w-7 h-7 shrink-0 cursor-pointer"
+            className="h-7 w-7 shrink-0 cursor-pointer"
             style={{ backgroundColor: selected }}
-            onClick={(e) => { e.stopPropagation(); colorInputRef.current?.click(); }}
+            onClick={(e) => {
+              e.stopPropagation();
+              colorInputRef.current?.click();
+            }}
           />
           <input
             ref={colorInputRef}
             type="color"
             value={selected}
-            onChange={(e) => { e.stopPropagation(); onChange(e.target.value); }}
-            className="absolute opacity-0 w-0 h-0"
+            onChange={(e) => {
+              e.stopPropagation();
+              onChange(e.target.value);
+            }}
+            className="absolute h-0 w-0 opacity-0"
           />
           <input
             type="text"
-            defaultValue={selected}
-            key={selected}
+            value={draftHex}
             onChange={handleHexInput}
+            onBlur={handleHexBlur}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 text-xs px-1.5 outline-none w-0"
+            className="w-0 flex-1 px-1.5 text-xs outline-none"
             maxLength={7}
           />
         </div>
 
-        {/* + 버튼 */}
         <button
-          onClick={(e) => { e.stopPropagation(); onSlotAdd(); }}
-          className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-500 text-sm shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSlotAdd();
+          }}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-200 text-sm text-gray-500 hover:bg-gray-50"
           title="슬롯에 추가"
         >
           +
         </button>
 
-        {/* 초기화 버튼 */}
         <button
-          onClick={(e) => { e.stopPropagation(); onSlotReset(); }}
-          className="w-7 h-7 flex items-center justify-center rounded border border-gray-200 hover:bg-gray-50 text-gray-500 text-xs shrink-0"
+          onClick={(e) => {
+            e.stopPropagation();
+            onSlotReset();
+          }}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-200 text-xs text-gray-500 hover:bg-gray-50"
           title="초기화"
         >
           ↺
         </button>
       </div>
 
-      {/* 슬롯 6개 × 2줄 */}
       <div className="grid grid-cols-6 gap-1">
         {slotColors.map((c, idx) => (
           <button
             key={idx}
-            onClick={(e) => { e.stopPropagation(); onSlotSelect(c); }}
-            className="w-7 h-7 rounded border-2 relative"
+            onClick={(e) => {
+              e.stopPropagation();
+              onSlotSelect(c, idx);
+            }}
+            className="relative h-7 w-7 rounded border-2"
             style={{
-              backgroundColor: c,
-              borderColor: selected === c ? "#3b82f6" : idx === slotCursor ? "#f97316" : "#d1d5db",
+              backgroundColor: c || "#f9fafb",
+              backgroundImage: c ? "none" : CHECKER_PATTERN,
+              backgroundPosition: c ? undefined : "0 0, 4px 4px",
+              backgroundSize: c ? undefined : "8px 8px",
+              borderColor: idx === slotCursor ? "#f97316" : "#d1d5db",
             }}
           >
             {idx === slotCursor && (
