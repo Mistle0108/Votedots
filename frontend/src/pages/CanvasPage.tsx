@@ -12,6 +12,9 @@ import { voteApi } from "@/api/vote";
 const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8"); // 셀 하나의 크기
 const PANEL_WIDTH = 280; // 우측 투표 패널 너비
 const RESTART_TIME = 3;  // 게임 종료 후 새로 고침 타이머
+const CHECKER_LIGHT = "#6f6f6f";
+const CHECKER_DARK = "#5f5f5f";
+const CANVAS_BACKGROUND_COLOR = "#2a2a2a";
 
 export default function CanvasPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -105,8 +108,19 @@ export default function CanvasPage() {
         const isVoting = votingCellIds.has(cell.id);
         const topColor = topColorMap.get(cell.id);
 
-        ctx.fillStyle = cell.color ?? "#e5e7eb";
-        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        if (cell.color) {
+          ctx.fillStyle = cell.color;
+          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+        } else {
+          const half = CELL_SIZE / 2;
+
+          ctx.fillStyle = CHECKER_LIGHT;
+          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
+
+          ctx.fillStyle = CHECKER_DARK;
+          ctx.fillRect(x, y, half, half);
+          ctx.fillRect(x + half, y + half, half, half);
+        }
 
         // 선택 중인 셀은 점등 없이 previewColor로만 표시
         if (isSelected && previewColor) {
@@ -120,10 +134,6 @@ export default function CanvasPage() {
           ctx.globalAlpha = 1.0;
         }
 
-        ctx.strokeStyle = "#d1d5db";
-        ctx.lineWidth = 0.5;
-        ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
-
         if (isSelected) {
           ctx.strokeStyle = "#ef4444";
           ctx.lineWidth = 2;
@@ -132,11 +142,11 @@ export default function CanvasPage() {
 
         if (isVoting && !isSelected) {
           ctx.save();
-          ctx.strokeStyle = "#6366f1";
-          ctx.lineWidth = 1.5;
-          ctx.setLineDash([3, 3]);
+          ctx.strokeStyle = "#facc15";
+          ctx.lineWidth = 2;
+          ctx.setLineDash([4, 4]);
           ctx.lineDashOffset = dashOffset;
-          ctx.strokeRect(x, y, CELL_SIZE, CELL_SIZE);
+          ctx.strokeRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
           ctx.setLineDash([]);
           ctx.restore();
         }
@@ -185,17 +195,17 @@ export default function CanvasPage() {
    * 게임 종료시 새 게임 실행
    */
   useEffect(() => {
-  if (!gameEnded) return;
-  const timer = setTimeout(async () => {
-    try {
-      await api.post("/canvas");
-    } catch (err) {
-      console.error("캔버스 생성 실패:", err);
-    }
-    window.location.reload();
-  }, RESTART_TIME * 1000);
-  return () => clearTimeout(timer);
-}, [gameEnded]);
+    if (!gameEnded) return;
+    const timer = setTimeout(async () => {
+      try {
+        await api.post("/canvas");
+      } catch (err) {
+        console.error("캔버스 생성 실패:", err);
+      }
+      window.location.reload();
+    }, RESTART_TIME * 1000);
+    return () => clearTimeout(timer);
+  }, [gameEnded]);
 
   /**
    * 소켓 이벤트 핸들러
@@ -412,8 +422,11 @@ export default function CanvasPage() {
   return (
     <div className="flex w-full h-screen">
       <div
-        className="relative overflow-hidden bg-gray-50 cursor-grab active:cursor-grabbing"
-        style={{ width: `calc(100% - ${PANEL_WIDTH}px)` }}
+        className="relative overflow-hidden cursor-grab active:cursor-grabbing"
+        style={{
+          width: `calc(100% - ${PANEL_WIDTH}px)`,
+          backgroundColor: CANVAS_BACKGROUND_COLOR,
+        }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
