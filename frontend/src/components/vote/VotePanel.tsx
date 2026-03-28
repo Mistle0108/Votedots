@@ -1,8 +1,5 @@
 import RoundInfo from "./RoundInfo";
 
-const ROUND_DURATION_SEC = parseInt(
-  import.meta.env.VITE_ROUND_DURATION_SEC ?? "60",
-);
 const VOTES_PER_ROUND = parseInt(import.meta.env.VITE_VOTES_PER_ROUND ?? "3");
 const MAX_ENTRIES = 5;
 
@@ -24,6 +21,7 @@ interface Cell {
 interface Props {
   roundId: number | null;
   roundNumber: number | null;
+  roundDurationSec: number | 60;
   startedAt: string | null;
   votes: Record<string, number>;
   remaining: number | null;
@@ -33,6 +31,7 @@ interface Props {
 export default function VotePanel({
   roundId,
   roundNumber,
+  roundDurationSec,
   startedAt,
   votes,
   remaining,
@@ -85,7 +84,7 @@ export default function VotePanel({
       <RoundInfo
         roundNumber={roundNumber}
         startedAt={startedAt}
-        durationSec={ROUND_DURATION_SEC}
+        durationSec={roundDurationSec}
       />
 
       {/* 남은 투표권 */}

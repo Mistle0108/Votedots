@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { Server } from "socket.io";
 import { canvasService } from "./canvas.service";
+import { gameConfig } from "../../config/game.config";
 
 export const canvasController = {
   async create(req: Request, res: Response) {
@@ -20,7 +21,11 @@ export const canvasController = {
         return res.status(404).json({ message: "진행 중인 캔버스가 없어요" });
       }
       const cells = await canvasService.getCells(canvas.id);
-      return res.json({ canvas, cells });
+      return res.json({
+        canvas,
+        cells,
+        roundDurationSec: gameConfig.roundDurationSec,
+      });
     } catch (err) {
       return res.status(500).json({ message: String(err) });
     }

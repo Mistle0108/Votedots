@@ -7,6 +7,7 @@ import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { Vote } from "../../entities/vote.entity";
 import { Voter } from "../../entities/voter.entity";
 import { redisClient } from "../../config/redis";
+import { gameConfig } from "../../config/game.config";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -15,10 +16,10 @@ const voteTicketRepository = AppDataSource.getRepository(VoteTicket);
 const voteRepository = AppDataSource.getRepository(Vote);
 const voterRepository = AppDataSource.getRepository(Voter);
 
+const VOTES_PER_ROUND = gameConfig.votesPerRound;
+
 export const roundService = {
   async startRound(canvasId: number, io?: Server): Promise<VoteRound> {
-    const VOTES_PER_ROUND = parseInt(process.env.VOTES_PER_ROUND ?? "3");
-
     const canvas = await canvasRepository.findOne({ where: { id: canvasId } });
     if (!canvas) {
       throw new Error("캔버스를 찾을 수 없어요");
