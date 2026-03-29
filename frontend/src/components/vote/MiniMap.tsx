@@ -149,7 +149,7 @@ export default function MiniMap({
 
   return (
     <div className="flex justify-center">
-      <div className="flex h-[220px] w-full items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-2">
+      <div className="flex h-[220px] w-full items-center justify-center rounded-lg p-2">
         <canvas
           ref={canvasRef}
           onMouseDown={(event) => {
@@ -157,7 +157,7 @@ export default function MiniMap({
             navigateFromPointer(event.clientX, event.clientY, "auto");
           }}
           onDragStart={(event) => event.preventDefault()}
-          className="block cursor-crosshair rounded border border-gray-200 bg-transparent"
+          className="block cursor-crosshair rounded border border-gray-50 bg-transparent"
           style={{
             width: `${minimapDimensions.width}px`,
             height: `${minimapDimensions.height}px`,

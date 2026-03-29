@@ -73,7 +73,7 @@ export default function CanvasPage() {
   const [canvasId, setCanvasId] = useState<number | null>(null);
   const [gridX, setGridX] = useState(0);
   const [gridY, setGridY] = useState(0);
-  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
+
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [roundId, setRoundId] = useState<number | null>(null);
   const [roundNumber, setRoundNumber] = useState<number | null>(null);
@@ -137,25 +137,6 @@ export default function CanvasPage() {
     },
     [],
   );
-
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const updateContainerSize = () => {
-      setContainerSize({
-        width: container.clientWidth,
-        height: container.clientHeight,
-      });
-    };
-
-    updateContainerSize();
-    window.addEventListener("resize", updateContainerSize);
-
-    return () => {
-      window.removeEventListener("resize", updateContainerSize);
-    };
-  }, []);
 
   const updateViewport = useCallback(() => {
     const container = containerRef.current;
@@ -684,16 +665,6 @@ export default function CanvasPage() {
     );
   }
 
-  const canvasPixelWidth = gridX * CELL_SIZE;
-  const canvasPixelHeight = gridY * CELL_SIZE;
-  const wrapperPadding = 64;
-
-  const shouldCenterHorizontally =
-    canvasPixelWidth + wrapperPadding <= containerSize.width;
-
-  const shouldCenterVertically =
-    canvasPixelHeight + wrapperPadding <= containerSize.height;
-
   return (
     <div className="flex h-screen w-full">
       <div
@@ -709,16 +680,11 @@ export default function CanvasPage() {
           isPanning.current = false;
         }}
       >
-        <div ref={containerRef} className="h-full w-full overflow-auto">
-          <div
-            className="flex min-h-full min-w-full p-8"
-            style={{
-              justifyContent: shouldCenterHorizontally
-                ? "center"
-                : "flex-start",
-              alignItems: shouldCenterVertically ? "center" : "flex-start",
-            }}
-          >
+        <div
+          ref={containerRef}
+          className="h-full w-full overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        >
+          <div className="min-h-full min-w-full">
             <canvas ref={canvasRef} className="border border-gray-300" />
           </div>
         </div>
