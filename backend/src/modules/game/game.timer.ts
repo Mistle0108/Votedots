@@ -10,13 +10,19 @@ const activeTimers = new Map<number, NodeJS.Timeout>();
 // canvasId별 timer:update broadcast interval 관리
 const activeBroadcasts = new Map<number, NodeJS.Timeout>();
 
+// 라운드 종료 후 다음 라운드 시작 전 마감 상태 유지 시간(초)
+const ROUND_RESULT_DELAY_SEC = 10;
+
 function getGameEndAt(roundStartedAt: Date, currentRound: number): Date {
   const remainingRoundsIncludingCurrent =
     gameConfig.totalRounds - currentRound + 1;
 
   return new Date(
     roundStartedAt.getTime() +
-      remainingRoundsIncludingCurrent * gameConfig.roundDurationSec * 1000,
+      remainingRoundsIncludingCurrent * gameConfig.roundDurationSec * 1000 +
+      Math.max(0, remainingRoundsIncludingCurrent - 1) *
+        gameConfig.roundResultDelaySec *
+        1000,
   );
 }
 
@@ -32,7 +38,7 @@ export async function startGameTimer(
   const canvasRepository = AppDataSource.getRepository(Canvas);
   const canvas = await canvasRepository.findOne({ where: { id: canvasId } });
   if (!canvas) {
-    throw new Error(`캔버스를 찾을 수 없어요 (id=${canvasId})`);
+    throw new Error(`캔버스를 찾을 수 없습니다. (id=${canvasId})`);
   }
 
   async function runRound(currentRound: number): Promise<void> {
@@ -56,37 +62,47 @@ export async function startGameTimer(
 
     const gameEndAt = getGameEndAt(round.startedAt, round.roundNumber);
 
-    const broadcastTimerUpdate = () => {
+    const broadcastTimerUpdate = (
+      remainingSecondsOverride?: number,
+      isRoundExpiredOverride?: boolean,
+    ) => {
       const elapsed = Math.floor(
         (Date.now() - round.startedAt.getTime()) / 1000,
       );
-      const remainingSeconds = Math.max(0, gameConfig.roundDurationSec - elapsed);
+
+      const remainingSeconds =
+        remainingSecondsOverride ??
+        Math.max(0, gameConfig.roundDurationSec - elapsed);
+
+      const isRoundExpired = isRoundExpiredOverride ?? remainingSeconds === 0;
 
       io.to(`canvas:${canvasId}`).emit("timer:update", {
         roundId: round.id,
         roundNumber: round.roundNumber,
         remainingSeconds,
-        isRoundExpired: remainingSeconds === 0,
+        isRoundExpired,
         roundDurationSec: gameConfig.roundDurationSec,
         totalRounds: gameConfig.totalRounds,
         gameEndAt: gameEndAt.toISOString(),
       });
     };
 
-    // 라운드 시작 직후 즉시 1회 전송
     broadcastTimerUpdate();
 
-    const broadcastInterval = setInterval(broadcastTimerUpdate, 1000);
+    const broadcastInterval = setInterval(() => {
+      broadcastTimerUpdate();
+    }, 1000);
     activeBroadcasts.set(canvasId, broadcastInterval);
 
     const timer = setTimeout(async () => {
-      activeTimers.delete(canvasId);
-
       const runningBroadcast = activeBroadcasts.get(canvasId);
       if (runningBroadcast) {
         clearInterval(runningBroadcast);
         activeBroadcasts.delete(canvasId);
       }
+
+      // 라운드 종료 직후 마감 상태를 즉시 1회 전송
+      broadcastTimerUpdate(0, true);
 
       try {
         await roundService.endRound(canvasId, round.id, io);
@@ -95,6 +111,7 @@ export async function startGameTimer(
           `[타이머] 라운드 종료 실패 (canvasId=${canvasId}, roundId=${round.id}):`,
           err,
         );
+        activeTimers.delete(canvasId);
         return;
       }
 
@@ -102,7 +119,12 @@ export async function startGameTimer(
         `[타이머] 라운드 ${round.roundNumber} 종료 (canvasId=${canvasId})`,
       );
 
-      runRound(currentRound + 1);
+      const delayTimer = setTimeout(() => {
+        activeTimers.delete(canvasId);
+        runRound(currentRound + 1);
+      }, gameConfig.roundResultDelaySec * 1000);
+
+      activeTimers.set(canvasId, delayTimer);
     }, gameConfig.roundDurationSec * 1000);
 
     activeTimers.set(canvasId, timer);

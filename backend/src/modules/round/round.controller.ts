@@ -35,14 +35,19 @@ export const roundController = {
     try {
       const canvasId = parseInt(String(req.params["canvasId"]));
       if (isNaN(canvasId)) {
-        return res.status(400).json({ message: "올바르지 않은 캔버스 ID예요" });
+        return res
+          .status(400)
+          .json({ message: "올바르지 않은 캔버스 ID입니다." });
       }
 
-      const round = await roundService.getActiveRound(canvasId);
-      if (!round) {
-        return res.status(404).json({ message: "진행 중인 라운드가 없어요" });
+      const roundState = await roundService.getActiveRoundState(canvasId);
+      if (!roundState) {
+        return res
+          .status(404)
+          .json({ message: "진행 중인 라운드가 없습니다." });
       }
-      return res.json({ round });
+
+      return res.json(roundState);
     } catch (err) {
       return res.status(500).json({ message: String(err) });
     }

@@ -6,15 +6,32 @@ import VotePopup from "@/components/vote/VotePopup";
 import useSocket from "@/hooks/useSocket";
 import { voteApi } from "@/api/vote";
 
-/**
- * 상수 정의
- */
 const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8");
 const PANEL_WIDTH = 280;
 const RESTART_TIME = 3;
 const CHECKER_LIGHT = "#6f6f6f";
 const CHECKER_DARK = "#5f5f5f";
 const CANVAS_BACKGROUND_COLOR = "#2a2a2a";
+
+interface RoundStateResponse {
+  status: "active" | "waiting";
+  round: {
+    id: number;
+    roundNumber: number;
+    startedAt: string;
+    endedAt: string | null;
+    roundDurationSec: number;
+    totalRounds: number;
+    gameEndAt: string;
+  };
+  timer: {
+    remainingSeconds: number;
+    isRoundExpired: boolean;
+    roundDurationSec: number;
+    totalRounds: number;
+    gameEndAt: string;
+  };
+}
 
 function formatClockTime(date: Date): string {
   const hours = String(date.getHours()).padStart(2, "0");
@@ -42,6 +59,7 @@ export default function CanvasPage() {
   const previewColorRef = useRef<string | null>(null);
   const votingCellIdsRef = useRef<Set<number>>(new Set());
   const topColorMapRef = useRef<Map<number, string>>(new Map());
+  const isRoundExpiredRef = useRef(false);
 
   const [cells, setCells] = useState<Cell[]>([]);
   const [canvasId, setCanvasId] = useState<number | null>(null);
@@ -49,9 +67,13 @@ export default function CanvasPage() {
   const [roundNumber, setRoundNumber] = useState<number | null>(null);
   const [roundDurationSec, setRoundDurationSec] = useState<number | null>(null);
   const [totalRounds, setTotalRounds] = useState<number>(0);
-  const [formattedGameEndTime, setFormattedGameEndTime] = useState<string | null>(null);
+  const [formattedGameEndTime, setFormattedGameEndTime] = useState<
+    string | null
+  >(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  const [formattedRemainingTime, setFormattedRemainingTime] = useState<string | null>(null);
+  const [formattedRemainingTime, setFormattedRemainingTime] = useState<
+    string | null
+  >(null);
   const [isRoundExpired, setIsRoundExpired] = useState(false);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
   const [previewColor, setPreviewColor] = useState<string | null>(null);
@@ -84,6 +106,10 @@ export default function CanvasPage() {
     topColorMapRef.current = topColorMap;
   }, [topColorMap]);
 
+  useEffect(() => {
+    isRoundExpiredRef.current = isRoundExpired;
+  }, [isRoundExpired]);
+
   const updateCells = useCallback(
     (updater: Cell[] | ((prev: Cell[]) => Cell[])) => {
       if (typeof updater === "function") {
@@ -111,21 +137,21 @@ export default function CanvasPage() {
 
       ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
 
-      const cells = cellsRef.current;
-      const selectedCell = selectedCellRef.current;
-      const previewColor = previewColorRef.current;
-      const votingCellIds = votingCellIdsRef.current;
-      const topColorMap = topColorMapRef.current;
+      const currentCells = cellsRef.current;
+      const currentSelectedCell = selectedCellRef.current;
+      const currentPreviewColor = previewColorRef.current;
+      const currentVotingCellIds = votingCellIdsRef.current;
+      const currentTopColorMap = topColorMapRef.current;
 
       const alpha = (Math.sin((timestamp / 500) * Math.PI) + 1) / 2;
       const dashOffset = -(timestamp / 100) % 8;
 
-      cells.forEach((cell) => {
+      currentCells.forEach((cell) => {
         const x = cell.x * CELL_SIZE;
         const y = cell.y * CELL_SIZE;
-        const isSelected = selectedCell?.id === cell.id;
-        const isVoting = votingCellIds.has(cell.id);
-        const topColor = topColorMap.get(cell.id);
+        const isSelected = currentSelectedCell?.id === cell.id;
+        const isVoting = currentVotingCellIds.has(cell.id);
+        const topColor = currentTopColorMap.get(cell.id);
 
         if (cell.color) {
           ctx.fillStyle = cell.color;
@@ -141,8 +167,8 @@ export default function CanvasPage() {
           ctx.fillRect(x + half, y + half, half, half);
         }
 
-        if (isSelected && previewColor) {
-          ctx.fillStyle = previewColor;
+        if (isSelected && currentPreviewColor) {
+          ctx.fillStyle = currentPreviewColor;
           ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
         } else if (isVoting && topColor && !isSelected) {
           ctx.fillStyle = topColor;
@@ -177,34 +203,60 @@ export default function CanvasPage() {
   }, [canvasReady]);
 
   useEffect(() => {
-    api
-      .get<CanvasCurrentResponse>("/canvas/current")
-      .then(({ data }) => {
+    const initialize = async () => {
+      try {
+        const { data } =
+          await api.get<CanvasCurrentResponse>("/canvas/current");
         const { canvas, cells } = data;
+
         setCanvasId(canvas.id);
         updateCells(cells);
 
         const canvasEl = canvasRef.current;
         if (!canvasEl) return;
+
         canvasEl.width = canvas.gridX * CELL_SIZE;
         canvasEl.height = canvas.gridY * CELL_SIZE;
         setCanvasReady(true);
 
-        return api.get(`/canvas/${canvas.id}/rounds/active`);
-      })
-      .then((res) => {
-        if (res?.data?.round) {
-          setRoundId(res.data.round.id);
-          setRoundNumber(res.data.round.roundNumber);
-          return voteApi.getTickets(res.data.round.id);
+        const roundRes = await api.get<RoundStateResponse>(
+          `/canvas/${canvas.id}/rounds/active`,
+        );
+        const roundState = roundRes.data;
+
+        if (roundState?.round) {
+          setRoundId(roundState.round.id);
+          setRoundNumber(roundState.round.roundNumber);
+          setRoundDurationSec(roundState.round.roundDurationSec);
+          setTotalRounds(roundState.round.totalRounds);
+          setFormattedGameEndTime(
+            formatClockTime(new Date(roundState.round.gameEndAt)),
+          );
         }
-      })
-      .then((res) => {
-        if (res?.data) setRemaining(res.data.remaining);
-      })
-      .catch(() => setError("진행 중인 캔버스가 없어요."))
-      .finally(() => setLoading(false));
-  }, []);
+
+        if (roundState?.timer) {
+          setRemainingSeconds(roundState.timer.remainingSeconds);
+          setFormattedRemainingTime(
+            formatDuration(roundState.timer.remainingSeconds),
+          );
+          setIsRoundExpired(roundState.timer.isRoundExpired);
+        }
+
+        if (roundState?.status === "active" && roundState.round.id) {
+          const ticketsRes = await voteApi.getTickets(roundState.round.id);
+          setRemaining(ticketsRes.data.remaining);
+        } else {
+          setRemaining(null);
+        }
+      } catch {
+        setError("진행중인 캔버스가 없어요");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initialize();
+  }, [updateCells]);
 
   useEffect(() => {
     if (!gameEnded) return;
@@ -243,35 +295,31 @@ export default function CanvasPage() {
       setRemainingSeconds(roundDurationSec);
       setFormattedRemainingTime(formatDuration(roundDurationSec));
       setIsRoundExpired(false);
+      setError(null);
       votingCellIdsRef.current = new Set();
       topColorMapRef.current = new Map();
       setVotingCellIds(new Set());
       setTopColorMap(new Map());
+
       voteApi
         .getTickets(roundId)
-        .then(({ data }) => setRemaining(data.remaining));
-    }, []);
+        .then(({ data }) => setRemaining(data.remaining))
+        .catch(() => setRemaining(null));
+    },
+    [],
+  );
 
   const handleRoundEnded = useCallback(() => {
-    setSelectedCell(null);
-    selectedCellRef.current = null;
-    setPreviewColor(null);
-    previewColorRef.current = null;
-    setPopupOpen(false);
-    setRoundId(null);
-    setRoundNumber(null);
-    setRoundDurationSec(null);
     setVotes({});
     setRemaining(null);
-    setRemainingSeconds(null);
-    setFormattedRemainingTime(null);
-    setIsRoundExpired(false);
+    setRemainingSeconds(0);
+    setFormattedRemainingTime(formatDuration(0));
+    setIsRoundExpired(true);
     votingCellIdsRef.current = new Set();
     topColorMapRef.current = new Map();
     setVotingCellIds(new Set());
     setTopColorMap(new Map());
   }, []);
-
 
   const handleCanvasUpdated = useCallback(
     ({ cellId, color }: { cellId: number; color: string }) => {
@@ -280,13 +328,22 @@ export default function CanvasPage() {
           c.id === cellId ? { ...c, color, status: "painted" } : c,
         ),
       );
+
       if (selectedCellRef.current?.id === cellId) {
-        setSelectedCell(null);
-        selectedCellRef.current = null;
-        setPopupOpen(false);
+        const nextSelectedCell: Cell = {
+          ...selectedCellRef.current,
+          color,
+          status: "painted",
+        };
+        setSelectedCell(nextSelectedCell);
+        selectedCellRef.current = nextSelectedCell;
+
+        if (!isRoundExpiredRef.current) {
+          setPopupOpen(false);
+        }
       }
     },
-    [],
+    [updateCells],
   );
 
   const handleVoteUpdate = useCallback(
@@ -339,8 +396,9 @@ export default function CanvasPage() {
       setFormattedGameEndTime(formatClockTime(new Date(gameEndAt)));
       setRoundDurationSec(roundDurationSec);
       setTotalRounds(totalRounds);
-    }, []);
-
+    },
+    [],
+  );
 
   const handleGameEnded = useCallback(() => {
     setGameEnded(true);
@@ -359,7 +417,6 @@ export default function CanvasPage() {
     setVotingCellIds(new Set());
     setTopColorMap(new Map());
   }, []);
-
 
   useSocket({
     canvasId,
@@ -418,15 +475,11 @@ export default function CanvasPage() {
   };
 
   const handleVoteSuccess = () => {
-    setSelectedCell(null);
-    selectedCellRef.current = null;
-    setPreviewColor(null);
-    previewColorRef.current = null;
-    setPopupOpen(false);
     if (roundId) {
       voteApi
         .getTickets(roundId)
-        .then(({ data }) => setRemaining(data.remaining));
+        .then(({ data }) => setRemaining(data.remaining))
+        .catch(() => setRemaining(null));
     }
   };
 
@@ -443,25 +496,30 @@ export default function CanvasPage() {
     previewColorRef.current = color;
   };
 
-  if (loading)
+  if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen">
+      <div className="flex h-screen items-center justify-center">
         로딩 중...
       </div>
     );
-  if (error)
+  }
+
+  if (error) {
     return (
-      <div className="flex items-center justify-center h-screen">{error}</div>
+      <div className="flex h-screen items-center justify-center">{error}</div>
     );
-  if (gameEnded)
+  }
+
+  if (gameEnded) {
     return (
-      <div className="flex items-center justify-center h-screen text-xl font-bold">
-        게임이 종료됐어요 🎨 새 게임을 생성할게요.
+      <div className="flex h-screen items-center justify-center text-xl font-bold">
+        게임이 종료되었어요. 곧 새 게임이 생성됩니다.
       </div>
     );
+  }
 
   return (
-    <div className="flex w-full h-screen">
+    <div className="flex h-screen w-full">
       <div
         className="relative overflow-hidden cursor-grab active:cursor-grabbing"
         style={{
@@ -475,8 +533,8 @@ export default function CanvasPage() {
           isPanning.current = false;
         }}
       >
-        <div ref={containerRef} className="overflow-auto w-full h-full">
-          <div className="flex items-center justify-center min-w-full min-h-full p-8">
+        <div ref={containerRef} className="h-full w-full overflow-auto">
+          <div className="flex min-h-full min-w-full items-center justify-center p-8">
             <canvas ref={canvasRef} className="border border-gray-300" />
           </div>
         </div>
@@ -486,6 +544,7 @@ export default function CanvasPage() {
         <VotePopup
           canvasId={canvasId}
           roundId={roundId}
+          isRoundExpired={isRoundExpired}
           selectedCell={selectedCell}
           votes={votes}
           cells={cells}
@@ -497,7 +556,7 @@ export default function CanvasPage() {
       )}
 
       <div
-        className="border-l border-gray-200 bg-white shrink-0"
+        className="shrink-0 border-l border-gray-200 bg-white"
         style={{ width: `${PANEL_WIDTH}px` }}
       >
         {canvasId && (

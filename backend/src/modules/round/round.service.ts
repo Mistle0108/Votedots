@@ -18,6 +18,50 @@ const voterRepository = AppDataSource.getRepository(Voter);
 
 const VOTES_PER_ROUND = gameConfig.votesPerRound;
 
+interface RoundStateResponse {
+  status: "active" | "waiting";
+  round: {
+    id: number;
+    roundNumber: number;
+    startedAt: Date;
+    endedAt: Date | null;
+    roundDurationSec: number;
+    totalRounds: number;
+    gameEndAt: string;
+  };
+  timer: {
+    remainingSeconds: number;
+    isRoundExpired: boolean;
+    roundDurationSec: number;
+    totalRounds: number;
+    gameEndAt: string;
+  };
+}
+
+function getActiveGameEndAt(roundStartedAt: Date, roundNumber: number): Date {
+  const remainingRoundsIncludingCurrent =
+    gameConfig.totalRounds - roundNumber + 1;
+
+  return new Date(
+    roundStartedAt.getTime() +
+      remainingRoundsIncludingCurrent * gameConfig.roundDurationSec * 1000 +
+      Math.max(0, remainingRoundsIncludingCurrent - 1) *
+        gameConfig.roundResultDelaySec *
+        1000,
+  );
+}
+
+function getWaitingGameEndAt(roundEndedAt: Date, roundNumber: number): Date {
+  const futureRounds = gameConfig.totalRounds - roundNumber;
+
+  return new Date(
+    roundEndedAt.getTime() +
+      gameConfig.roundResultDelaySec * 1000 +
+      futureRounds * gameConfig.roundDurationSec * 1000 +
+      Math.max(0, futureRounds - 1) * gameConfig.roundResultDelaySec * 1000,
+  );
+}
+
 export const roundService = {
   async startRound(canvasId: number, io?: Server): Promise<VoteRound> {
     const canvas = await canvasRepository.findOne({ where: { id: canvasId } });
@@ -67,10 +111,7 @@ export const roundService = {
       const remainingRoundsIncludingCurrent =
         gameConfig.totalRounds - round.roundNumber + 1;
 
-      const gameEndAt = new Date(
-        round.startedAt.getTime() +
-        remainingRoundsIncludingCurrent * gameConfig.roundDurationSec * 1000,
-      );
+      const gameEndAt = getActiveGameEndAt(round.startedAt, round.roundNumber);
 
       io.to(`canvas:${canvasId}`).emit("round:started", {
         roundId: round.id,
@@ -191,11 +232,11 @@ export const roundService = {
         endedAt: round.endedAt,
         winningCell: winningCell
           ? {
-            id: winningCell.id,
-            x: winningCell.x,
-            y: winningCell.y,
-            color: winningCell.color,
-          }
+              id: winningCell.id,
+              x: winningCell.x,
+              y: winningCell.y,
+              color: winningCell.color,
+            }
           : null,
       });
 
@@ -212,9 +253,85 @@ export const roundService = {
     return round;
   },
 
-  async getActiveRound(canvasId: number): Promise<VoteRound | null> {
-    return voteRoundRepository.findOne({
+  async getActiveRoundState(
+    canvasId: number,
+  ): Promise<RoundStateResponse | null> {
+    const now = new Date();
+
+    const activeRound = await voteRoundRepository.findOne({
       where: { canvas: { id: canvasId }, isActive: true },
+      order: { roundNumber: "DESC" },
     });
+
+    if (activeRound) {
+      const remainingSeconds = Math.max(
+        0,
+        gameConfig.roundDurationSec -
+          Math.floor((now.getTime() - activeRound.startedAt.getTime()) / 1000),
+      );
+
+      const gameEndAt = getActiveGameEndAt(
+        activeRound.startedAt,
+        activeRound.roundNumber,
+      );
+
+      return {
+        status: "active",
+        round: {
+          id: activeRound.id,
+          roundNumber: activeRound.roundNumber,
+          startedAt: activeRound.startedAt,
+          endedAt: activeRound.endedAt ?? null,
+          roundDurationSec: gameConfig.roundDurationSec,
+          totalRounds: gameConfig.totalRounds,
+          gameEndAt: gameEndAt.toISOString(),
+        },
+        timer: {
+          remainingSeconds,
+          isRoundExpired: remainingSeconds === 0,
+          roundDurationSec: gameConfig.roundDurationSec,
+          totalRounds: gameConfig.totalRounds,
+          gameEndAt: gameEndAt.toISOString(),
+        },
+      };
+    }
+
+    const lastRound = await voteRoundRepository.findOne({
+      where: { canvas: { id: canvasId } },
+      order: { roundNumber: "DESC" },
+    });
+
+    if (!lastRound?.endedAt) return null;
+
+    const waitingDeadline = new Date(
+      lastRound.endedAt.getTime() + gameConfig.roundResultDelaySec * 1000,
+    );
+
+    if (now >= waitingDeadline) return null;
+
+    const gameEndAt = getWaitingGameEndAt(
+      lastRound.endedAt,
+      lastRound.roundNumber,
+    );
+
+    return {
+      status: "waiting",
+      round: {
+        id: lastRound.id,
+        roundNumber: lastRound.roundNumber,
+        startedAt: lastRound.startedAt,
+        endedAt: lastRound.endedAt,
+        roundDurationSec: gameConfig.roundDurationSec,
+        totalRounds: gameConfig.totalRounds,
+        gameEndAt: gameEndAt.toISOString(),
+      },
+      timer: {
+        remainingSeconds: 0,
+        isRoundExpired: true,
+        roundDurationSec: gameConfig.roundDurationSec,
+        totalRounds: gameConfig.totalRounds,
+        gameEndAt: gameEndAt.toISOString(),
+      },
+    };
   },
 };
