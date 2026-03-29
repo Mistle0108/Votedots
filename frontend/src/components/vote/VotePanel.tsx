@@ -1,4 +1,7 @@
 import RoundInfo from "./RoundInfo";
+import MiniMap from "./MiniMap";
+import CoordinateNavigator from "./CoordinateNavigator";
+import { Cell } from "@/types/canvas";
 
 const VOTES_PER_ROUND = parseInt(import.meta.env.VITE_VOTES_PER_ROUND ?? "3");
 const MAX_ENTRIES = 5;
@@ -12,14 +15,14 @@ interface VoteEntry {
   totalCount: number;
 }
 
-interface Cell {
-  id: number;
-  x: number;
-  y: number;
+interface Viewport {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 interface Props {
-  roundId: number | null;
   roundNumber: number | null;
   totalRounds: number;
   formattedGameEndTime: string | null;
@@ -29,10 +32,14 @@ interface Props {
   votes: Record<string, number>;
   remaining: number | null;
   cells: Cell[];
+  gridX: number;
+  gridY: number;
+  selectedCell: Cell | null;
+  viewport: Viewport | null;
+  onNavigateToCoordinate: (x: number, y: number) => void;
 }
 
 export default function VotePanel({
-  roundId,
   roundNumber,
   totalRounds,
   formattedGameEndTime,
@@ -42,13 +49,18 @@ export default function VotePanel({
   votes,
   remaining,
   cells,
+  gridX,
+  gridY,
+  selectedCell,
+  viewport,
+  onNavigateToCoordinate,
 }: Props) {
   const voteEntries: VoteEntry[] = Array.from(
     Object.entries(votes)
       .reduce<Map<number, VoteEntry>>((map, [key, count]) => {
         const [cellIdStr, color] = key.split(":");
-        const cellId = parseInt(cellIdStr);
-        const cell = cells.find((c) => c.id === cellId);
+        const cellId = parseInt(cellIdStr, 10);
+        const cell = cells.find((candidate) => candidate.id === cellId);
         const existing = map.get(cellId);
 
         if (!existing) {
@@ -77,9 +89,8 @@ export default function VotePanel({
 
   const maxCount = voteEntries[0]?.totalCount ?? 1;
   const usedCount = remaining !== null ? VOTES_PER_ROUND - remaining : 0;
-
   const slots = Array.from({ length: MAX_ENTRIES }).map(
-    (_, i) => voteEntries[i] ?? null,
+    (_, index) => voteEntries[index] ?? null,
   );
 
   return (
@@ -99,10 +110,12 @@ export default function VotePanel({
         <p className="text-sm font-medium">남은 투표권</p>
         <div className="flex gap-1">
           {remaining !== null ? (
-            Array.from({ length: VOTES_PER_ROUND }).map((_, i) => (
+            Array.from({ length: VOTES_PER_ROUND }).map((_, index) => (
               <span
-                key={i}
-                className={`text-lg ${i < usedCount ? "text-gray-300" : "text-blue-500"}`}
+                key={index}
+                className={`text-lg ${
+                  index < usedCount ? "text-gray-300" : "text-blue-500"
+                }`}
               >
                 ●
               </span>
@@ -113,11 +126,28 @@ export default function VotePanel({
         </div>
       </div>
 
+      <MiniMap
+        cells={cells}
+        gridX={gridX}
+        gridY={gridY}
+        viewport={viewport}
+        selectedCell={selectedCell}
+        onNavigate={onNavigateToCoordinate}
+      />
+
+      <CoordinateNavigator
+        gridX={gridX}
+        gridY={gridY}
+        selectedX={selectedCell?.x ?? null}
+        selectedY={selectedCell?.y ?? null}
+        onNavigate={onNavigateToCoordinate}
+      />
+
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">득표 현황</p>
         <div className="flex flex-col gap-1.5 rounded border border-red-400 p-2">
-          {slots.map((entry, i) => (
-            <div key={i} className="flex h-5 items-center gap-2">
+          {slots.map((entry, index) => (
+            <div key={index} className="flex h-5 items-center gap-2">
               {entry ? (
                 <>
                   <div

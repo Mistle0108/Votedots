@@ -12,6 +12,7 @@ const RESTART_TIME = 3;
 const CHECKER_LIGHT = "#6f6f6f";
 const CHECKER_DARK = "#5f5f5f";
 const CANVAS_BACKGROUND_COLOR = "#2a2a2a";
+const MINIMAP_SIZE = 220;
 
 interface RoundStateResponse {
   status: "active" | "waiting";
@@ -31,6 +32,13 @@ interface RoundStateResponse {
     totalRounds: number;
     gameEndAt: string;
   };
+}
+
+interface Viewport {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
 }
 
 function formatClockTime(date: Date): string {
@@ -63,6 +71,9 @@ export default function CanvasPage() {
 
   const [cells, setCells] = useState<Cell[]>([]);
   const [canvasId, setCanvasId] = useState<number | null>(null);
+  const [gridX, setGridX] = useState(0);
+  const [gridY, setGridY] = useState(0);
+  const [viewport, setViewport] = useState<Viewport | null>(null);
   const [roundId, setRoundId] = useState<number | null>(null);
   const [roundNumber, setRoundNumber] = useState<number | null>(null);
   const [roundDurationSec, setRoundDurationSec] = useState<number | null>(null);
@@ -125,6 +136,109 @@ export default function CanvasPage() {
     },
     [],
   );
+
+  const updateViewport = useCallback(() => {
+    const container = containerRef.current;
+    const canvasEl = canvasRef.current;
+
+    if (!container || !canvasEl || gridX === 0 || gridY === 0) {
+      setViewport(null);
+      return;
+    }
+
+    const minimapScale = MINIMAP_SIZE / Math.max(gridX, gridY, 1);
+    const minimapWidth = gridX * minimapScale;
+    const minimapHeight = gridY * minimapScale;
+
+    const visibleLeft = container.scrollLeft;
+    const visibleTop = container.scrollTop;
+    const visibleRight = visibleLeft + container.clientWidth;
+    const visibleBottom = visibleTop + container.clientHeight;
+
+    const canvasLeft = canvasEl.offsetLeft;
+    const canvasTop = canvasEl.offsetTop;
+
+    const canvasVisibleLeft = Math.max(0, visibleLeft - canvasLeft);
+    const canvasVisibleTop = Math.max(0, visibleTop - canvasTop);
+    const canvasVisibleRight = Math.min(
+      canvasEl.width,
+      visibleRight - canvasLeft,
+    );
+    const canvasVisibleBottom = Math.min(
+      canvasEl.height,
+      visibleBottom - canvasTop,
+    );
+
+    const visibleWidth = Math.max(0, canvasVisibleRight - canvasVisibleLeft);
+    const visibleHeight = Math.max(0, canvasVisibleBottom - canvasVisibleTop);
+
+    setViewport({
+      left: (canvasVisibleLeft / canvasEl.width) * minimapWidth,
+      top: (canvasVisibleTop / canvasEl.height) * minimapHeight,
+      width: (visibleWidth / canvasEl.width) * minimapWidth,
+      height: (visibleHeight / canvasEl.height) * minimapHeight,
+    });
+  }, [gridX, gridY]);
+
+  const navigateToCoordinate = useCallback(
+    (x: number, y: number) => {
+      const container = containerRef.current;
+      const canvasEl = canvasRef.current;
+
+      if (!container || !canvasEl) return;
+
+      const targetX = x * CELL_SIZE + CELL_SIZE / 2;
+      const targetY = y * CELL_SIZE + CELL_SIZE / 2;
+
+      const nextScrollLeft =
+        canvasEl.offsetLeft + targetX - container.clientWidth / 2;
+      const nextScrollTop =
+        canvasEl.offsetTop + targetY - container.clientHeight / 2;
+
+      const maxScrollLeft = Math.max(
+        0,
+        container.scrollWidth - container.clientWidth,
+      );
+      const maxScrollTop = Math.max(
+        0,
+        container.scrollHeight - container.clientHeight,
+      );
+
+      container.scrollTo({
+        left: Math.min(Math.max(0, nextScrollLeft), maxScrollLeft),
+        top: Math.min(Math.max(0, nextScrollTop), maxScrollTop),
+        behavior: "smooth",
+      });
+
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          updateViewport();
+        });
+      });
+    },
+    [updateViewport],
+  );
+
+  useEffect(() => {
+    if (!canvasReady) return;
+
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleScroll = () => {
+      updateViewport();
+    };
+
+    updateViewport();
+
+    container.addEventListener("scroll", handleScroll);
+    window.addEventListener("resize", handleScroll);
+
+    return () => {
+      container.removeEventListener("scroll", handleScroll);
+      window.removeEventListener("resize", handleScroll);
+    };
+  }, [canvasReady, updateViewport]);
 
   useEffect(() => {
     if (!canvasReady) return;
@@ -210,6 +324,8 @@ export default function CanvasPage() {
         const { canvas, cells } = data;
 
         setCanvasId(canvas.id);
+        setGridX(canvas.gridX);
+        setGridY(canvas.gridY);
         updateCells(cells);
 
         const canvasEl = canvasRef.current;
@@ -248,6 +364,12 @@ export default function CanvasPage() {
         } else {
           setRemaining(null);
         }
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            updateViewport();
+          });
+        });
       } catch {
         setError("진행중인 캔버스가 없어요");
       } finally {
@@ -256,7 +378,7 @@ export default function CanvasPage() {
     };
 
     initialize();
-  }, [updateCells]);
+  }, [updateCells, updateViewport]);
 
   useEffect(() => {
     if (!gameEnded) return;
@@ -324,8 +446,8 @@ export default function CanvasPage() {
   const handleCanvasUpdated = useCallback(
     ({ cellId, color }: { cellId: number; color: string }) => {
       updateCells((prev) =>
-        prev.map((c) =>
-          c.id === cellId ? { ...c, color, status: "painted" } : c,
+        prev.map((cell) =>
+          cell.id === cellId ? { ...cell, color, status: "painted" } : cell,
         ),
       );
 
@@ -355,8 +477,9 @@ export default function CanvasPage() {
 
       for (const [key, count] of Object.entries(votes)) {
         const [cellIdStr, color] = key.split(":");
-        const cellId = parseInt(cellIdStr);
+        const cellId = parseInt(cellIdStr, 10);
         newVotingCellIds.add(cellId);
+
         const existing = countMap.get(cellId);
         if (!existing || count > existing.count) {
           countMap.set(cellId, { color, count });
@@ -428,27 +551,32 @@ export default function CanvasPage() {
     onGameEnded: handleGameEnded,
   });
 
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+  const handleMouseDown = (event: React.MouseEvent) => {
+    if (event.button !== 0) return;
     isPanning.current = true;
     hasPanned.current = false;
-    lastPos.current = { x: e.clientX, y: e.clientY };
+    lastPos.current = { x: event.clientX, y: event.clientY };
   };
 
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handleMouseMove = (event: React.MouseEvent) => {
     if (!isPanning.current) return;
     const container = containerRef.current;
     if (!container) return;
-    const dx = e.clientX - lastPos.current.x;
-    const dy = e.clientY - lastPos.current.y;
-    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) hasPanned.current = true;
+
+    const dx = event.clientX - lastPos.current.x;
+    const dy = event.clientY - lastPos.current.y;
+
+    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+      hasPanned.current = true;
+    }
+
     container.scrollLeft -= dx;
     container.scrollTop -= dy;
-    lastPos.current = { x: e.clientX, y: e.clientY };
+    lastPos.current = { x: event.clientX, y: event.clientY };
   };
 
-  const handleMouseUp = (e: React.MouseEvent) => {
-    if (e.button !== 0) return;
+  const handleMouseUp = (event: React.MouseEvent) => {
+    if (event.button !== 0) return;
     isPanning.current = false;
 
     if (!hasPanned.current) {
@@ -456,10 +584,12 @@ export default function CanvasPage() {
       if (!canvasEl) return;
 
       const rect = canvasEl.getBoundingClientRect();
-      const x = Math.floor((e.clientX - rect.left) / CELL_SIZE);
-      const y = Math.floor((e.clientY - rect.top) / CELL_SIZE);
+      const x = Math.floor((event.clientX - rect.left) / CELL_SIZE);
+      const y = Math.floor((event.clientY - rect.top) / CELL_SIZE);
 
-      const cell = cells.find((c) => c.x === x && c.y === y);
+      const cell = cells.find(
+        (candidate) => candidate.x === x && candidate.y === y,
+      );
       if (cell && cell.status !== "locked") {
         setSelectedCell(cell);
         selectedCellRef.current = cell;
@@ -561,7 +691,6 @@ export default function CanvasPage() {
       >
         {canvasId && (
           <VotePanel
-            roundId={roundId}
             roundNumber={roundNumber}
             totalRounds={totalRounds}
             formattedGameEndTime={formattedGameEndTime}
@@ -571,6 +700,11 @@ export default function CanvasPage() {
             votes={votes}
             remaining={remaining}
             cells={cells}
+            gridX={gridX}
+            gridY={gridY}
+            selectedCell={selectedCell}
+            viewport={viewport}
+            onNavigateToCoordinate={navigateToCoordinate}
           />
         )}
       </div>
