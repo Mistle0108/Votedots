@@ -36,7 +36,11 @@ interface Props {
   gridY: number;
   selectedCell: Cell | null;
   viewport: Viewport | null;
-  onNavigateToCoordinate: (x: number, y: number) => void;
+  onNavigateToCoordinate: (
+    x: number,
+    y: number,
+    behavior?: ScrollBehavior,
+  ) => void;
 }
 
 export default function VotePanel({

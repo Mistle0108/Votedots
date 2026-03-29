@@ -172,16 +172,34 @@ export default function CanvasPage() {
     const visibleWidth = Math.max(0, canvasVisibleRight - canvasVisibleLeft);
     const visibleHeight = Math.max(0, canvasVisibleBottom - canvasVisibleTop);
 
+    const nextWidth = Math.min(
+      minimapWidth,
+      (visibleWidth / canvasEl.width) * minimapWidth,
+    );
+    const nextHeight = Math.min(
+      minimapHeight,
+      (visibleHeight / canvasEl.height) * minimapHeight,
+    );
+
+    const nextLeft = Math.min(
+      Math.max(0, (canvasVisibleLeft / canvasEl.width) * minimapWidth),
+      Math.max(0, minimapWidth - nextWidth),
+    );
+    const nextTop = Math.min(
+      Math.max(0, (canvasVisibleTop / canvasEl.height) * minimapHeight),
+      Math.max(0, minimapHeight - nextHeight),
+    );
+
     setViewport({
-      left: (canvasVisibleLeft / canvasEl.width) * minimapWidth,
-      top: (canvasVisibleTop / canvasEl.height) * minimapHeight,
-      width: (visibleWidth / canvasEl.width) * minimapWidth,
-      height: (visibleHeight / canvasEl.height) * minimapHeight,
+      left: nextLeft,
+      top: nextTop,
+      width: nextWidth,
+      height: nextHeight,
     });
   }, [gridX, gridY]);
 
   const navigateToCoordinate = useCallback(
-    (x: number, y: number) => {
+    (x: number, y: number, behavior: ScrollBehavior = "smooth") => {
       const container = containerRef.current;
       const canvasEl = canvasRef.current;
 
@@ -207,13 +225,11 @@ export default function CanvasPage() {
       container.scrollTo({
         left: Math.min(Math.max(0, nextScrollLeft), maxScrollLeft),
         top: Math.min(Math.max(0, nextScrollTop), maxScrollTop),
-        behavior: "smooth",
+        behavior,
       });
 
       requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          updateViewport();
-        });
+        updateViewport();
       });
     },
     [updateViewport],

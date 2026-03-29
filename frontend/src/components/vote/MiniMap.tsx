@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Cell } from "@/types/canvas";
 
-const MINIMAP_SIZE = 220;
+const MINIMAP_BOX_SIZE = 220;
 const EMPTY_CELL_COLOR = "#d1d5db";
 const VIEWPORT_STROKE = "#ef4444";
 const VIEWPORT_FILL = "rgba(239, 68, 68, 0.12)";
+const SELECTED_CELL_STROKE = "#f97316";
 
 interface Viewport {
   left: number;
@@ -19,7 +20,7 @@ interface Props {
   gridY: number;
   viewport: Viewport | null;
   selectedCell: Cell | null;
-  onNavigate: (x: number, y: number) => void;
+  onNavigate: (x: number, y: number, behavior?: ScrollBehavior) => void;
 }
 
 export default function MiniMap({
@@ -31,15 +32,15 @@ export default function MiniMap({
   onNavigate,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isDraggingRef = useRef(false);
 
   const minimapDimensions = useMemo(() => {
     const longestSide = Math.max(gridX, gridY, 1);
-    const scale = MINIMAP_SIZE / longestSide;
+    const scale = MINIMAP_BOX_SIZE / longestSide;
 
     return {
       width: Math.max(1, Math.round(gridX * scale)),
       height: Math.max(1, Math.round(gridY * scale)),
-      scale,
     };
   }, [gridX, gridY]);
 
@@ -53,10 +54,11 @@ export default function MiniMap({
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
+    ctx.imageSmoothingEnabled = false;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    const cellWidth = canvas.width / gridX;
-    const cellHeight = canvas.height / gridY;
+    const cellWidth = canvas.width / Math.max(gridX, 1);
+    const cellHeight = canvas.height / Math.max(gridY, 1);
 
     for (const cell of cells) {
       ctx.fillStyle = cell.color ?? EMPTY_CELL_COLOR;
@@ -70,7 +72,7 @@ export default function MiniMap({
 
     if (selectedCell) {
       ctx.save();
-      ctx.strokeStyle = "#f97316";
+      ctx.strokeStyle = SELECTED_CELL_STROKE;
       ctx.lineWidth = 2;
       ctx.strokeRect(
         selectedCell.x * cellWidth,
@@ -102,45 +104,67 @@ export default function MiniMap({
     }
   }, [cells, gridX, gridY, minimapDimensions, selectedCell, viewport]);
 
-  const handleClick = (event: React.MouseEvent<HTMLCanvasElement>) => {
+  const navigateFromPointer = (
+    clientX: number,
+    clientY: number,
+    behavior: ScrollBehavior = "auto",
+  ) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
     const rect = canvas.getBoundingClientRect();
-    const clickX = event.clientX - rect.left;
-    const clickY = event.clientY - rect.top;
+    const relativeX = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+    const relativeY = Math.min(Math.max(clientY - rect.top, 0), rect.height);
 
-    const normalizedX = Math.min(
+    const nextX = Math.min(
       gridX - 1,
-      Math.max(0, Math.floor((clickX / rect.width) * gridX)),
+      Math.max(0, Math.floor((relativeX / rect.width) * gridX)),
     );
-    const normalizedY = Math.min(
+    const nextY = Math.min(
       gridY - 1,
-      Math.max(0, Math.floor((clickY / rect.height) * gridY)),
+      Math.max(0, Math.floor((relativeY / rect.height) * gridY)),
     );
 
-    onNavigate(normalizedX, normalizedY);
+    onNavigate(nextX, nextY, behavior);
   };
 
-  return (
-    <div className="flex flex-col gap-2">
-      <p className="text-sm font-medium">미니맵</p>
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!isDraggingRef.current) return;
+      navigateFromPointer(event.clientX, event.clientY, "auto");
+    };
 
-      <div className="rounded-lg border border-gray-200 bg-gray-50 p-2">
+    const handleMouseUp = () => {
+      isDraggingRef.current = false;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [gridX, gridY, onNavigate]);
+
+  return (
+    <div className="flex justify-center">
+      <div className="flex h-[220px] w-full items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-2">
         <canvas
           ref={canvasRef}
-          onClick={handleClick}
-          className="block w-full cursor-pointer rounded border border-gray-200 bg-white"
+          onMouseDown={(event) => {
+            isDraggingRef.current = true;
+            navigateFromPointer(event.clientX, event.clientY, "auto");
+          }}
+          onDragStart={(event) => event.preventDefault()}
+          className="block cursor-crosshair rounded border border-gray-200 bg-transparent"
           style={{
+            width: `${minimapDimensions.width}px`,
+            height: `${minimapDimensions.height}px`,
             imageRendering: "pixelated",
-            aspectRatio: `${gridX} / ${gridY}`,
           }}
         />
       </div>
-
-      <p className="text-xs text-gray-400">
-        미니맵을 클릭하면 해당 좌표가 메인 캔버스 화면 중앙으로 이동합니다.
-      </p>
     </div>
   );
 }
