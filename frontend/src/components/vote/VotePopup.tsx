@@ -24,11 +24,12 @@ interface VoteEntry {
 interface Props {
   canvasId: number;
   roundId: number | null;
+  isRoundExpired: boolean;
   selectedCell: Cell;
   votes: Record<string, number>;
   cells: Cell[];
   position: { x: number; y: number };
-  onVoteSuccess: (color: string) => void;
+  onVoteSuccess: () => void;
   onColorChange: (color: string | null) => void;
   onClose: () => void;
 }
@@ -69,6 +70,7 @@ function loadLastVotedColor(): string {
 export default function VotePopup({
   canvasId,
   roundId,
+  isRoundExpired,
   selectedCell,
   votes,
   cells,
@@ -80,7 +82,9 @@ export default function VotePopup({
   const [color, setColor] = useState(() => loadLastVotedColor());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [slotColors, setSlotColors] = useState<string[]>(() => loadSlotColors());
+  const [slotColors, setSlotColors] = useState<string[]>(() =>
+    loadSlotColors(),
+  );
   const [slotCursor, setSlotCursor] = useState(0);
   const [pos, setPos] = useState(position);
   const isDragging = useRef(false);
@@ -90,14 +94,28 @@ export default function VotePopup({
   const voteEntries: VoteEntry[] = Object.entries(votes)
     .filter(([key]) => key.startsWith(`${selectedCell.id}:`))
     .map(([key, count]) => {
-      const [cellIdStr, color] = key.split(":");
+      const [cellIdStr, entryColor] = key.split(":");
       const cellId = parseInt(cellIdStr);
       const cell = cells.find((c) => c.id === cellId);
-      return { cellId, x: cell?.x ?? 0, y: cell?.y ?? 0, color, count };
+
+      return {
+        cellId,
+        x: cell?.x ?? 0,
+        y: cell?.y ?? 0,
+        color: entryColor,
+        count,
+      };
     })
     .sort((a, b) => b.count - a.count);
 
   const maxCount = voteEntries[0]?.count ?? 1;
+  const isVoteDisabled = !roundId || loading || isRoundExpired;
+
+  const buttonLabel = isRoundExpired
+    ? "투표 마감"
+    : loading
+      ? "투표 중..."
+      : "투표하기";
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
@@ -129,9 +147,13 @@ export default function VotePopup({
     handleColorChange(slotColor);
   };
 
-
   const handleSubmit = async () => {
     if (!roundId) return;
+
+    if (isRoundExpired) {
+      setError("이 라운드 투표가 마감되었습니다.");
+      return;
+    }
 
     setError("");
     setLoading(true);
@@ -147,14 +169,16 @@ export default function VotePopup({
       });
 
       onColorChange(null);
-      onVoteSuccess(color);
+      onVoteSuccess();
       onClose();
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
-        const axiosErr = err as { response: { data: { message: string } } };
-        setError(axiosErr.response.data.message);
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setError(
+          axiosErr.response?.data?.message ?? "투표 중 오류가 발생했어요.",
+        );
       } else {
-        setError("투표 중 오류가 발생했어요");
+        setError("투표 중 오류가 발생했어요.");
       }
     } finally {
       setLoading(false);
@@ -168,7 +192,10 @@ export default function VotePopup({
   };
 
   useEffect(() => {
-    window.localStorage.setItem(STORAGE_KEYS.slotColors, JSON.stringify(slotColors));
+    window.localStorage.setItem(
+      STORAGE_KEYS.slotColors,
+      JSON.stringify(slotColors),
+    );
   }, [slotColors]);
 
   useEffect(() => {
@@ -225,6 +252,16 @@ export default function VotePopup({
     return () => onColorChange(null);
   }, []);
 
+  useEffect(() => {
+    if (isRoundExpired) {
+      setLoading(false);
+      setError("");
+      return;
+    }
+
+    setError("");
+  }, [isRoundExpired]);
+
   return (
     <div
       ref={popupRef}
@@ -244,11 +281,11 @@ export default function VotePopup({
               selectedCell.color
                 ? { backgroundColor: selectedCell.color }
                 : {
-                  backgroundColor: "#f9fafb",
-                  backgroundImage: CHECKER_PATTERN,
-                  backgroundPosition: "0 0, 4px 4px",
-                  backgroundSize: "8px 8px",
-                }
+                    backgroundColor: "#f9fafb",
+                    backgroundImage: CHECKER_PATTERN,
+                    backgroundPosition: "0 0, 4px 4px",
+                    backgroundSize: "8px 8px",
+                  }
             }
             onClick={(e) => {
               e.stopPropagation();
@@ -276,28 +313,28 @@ export default function VotePopup({
           <div>
             <p className="mb-2 text-xs font-medium">득표 현황</p>
             <div className="flex max-h-[72px] flex-col gap-1 overflow-y-auto">
-              {voteEntries.map(({ color: c, count }) => (
+              {voteEntries.map(({ color: entryColor, count }) => (
                 <button
-                  key={c}
+                  key={entryColor}
                   className="flex w-full items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-50"
                   onClick={(e) => {
                     e.stopPropagation();
-                    handleVoteEntryClick(c);
+                    handleVoteEntryClick(entryColor);
                   }}
                 >
                   <div
                     className="h-3 w-3 shrink-0 rounded-sm border border-gray-200"
-                    style={{ backgroundColor: c }}
+                    style={{ backgroundColor: entryColor }}
                   />
                   <span className="w-14 shrink-0 text-left text-xs text-gray-500">
-                    {c}
+                    {entryColor}
                   </span>
                   <div className="h-2 flex-1 rounded bg-gray-100">
                     <div
                       className="h-2 rounded transition-all"
                       style={{
                         width: `${(count / maxCount) * 100}%`,
-                        backgroundColor: c,
+                        backgroundColor: entryColor,
                       }}
                     />
                   </div>
@@ -320,20 +357,31 @@ export default function VotePopup({
           onSlotSelect={handleSlotSelect}
         />
 
-
-        {error && <p className="text-xs text-red-500">{error}</p>}
+        {error && !isRoundExpired && (
+          <p className="text-xs text-red-500">{error}</p>
+        )}
 
         <Button
           onClick={(e) => {
             e.stopPropagation();
             handleSubmit();
           }}
-          disabled={!roundId || loading}
+          disabled={isVoteDisabled}
           className="w-full"
           size="sm"
         >
-          {loading ? "투표 중..." : "투표하기"}
+          {buttonLabel}
         </Button>
+
+        {isRoundExpired && (
+          <p className="text-center text-xs text-red-500">
+            이 라운드 투표가 마감되었습니다.
+          </p>
+        )}
+
+        {error && isRoundExpired && (
+          <p className="text-center text-xs text-red-500">{error}</p>
+        )}
       </div>
     </div>
   );
