@@ -1,7 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import VotePanel from "@/components/vote/VotePanel";
-import VotePopup from "@/components/vote/VotePopup";
-import { voteApi } from "@/api/vote";
 import {
   CanvasStage,
   CanvasSurface,
@@ -21,6 +18,12 @@ import {
   useGameSession,
   useGameplaySocket,
 } from "@/features/gameplay/session";
+import {
+  VotePanel,
+  VotePopup,
+  useVotePopupState,
+  useVoteState,
+} from "@/features/gameplay/vote";
 
 function formatClockTime(date: Date): string {
   const hours = String(date.getHours()).padStart(2, "0");
@@ -64,16 +67,25 @@ export default function CanvasPage() {
   >(null);
   const [isRoundExpired, setIsRoundExpired] = useState(false);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
-  const [previewColor, setPreviewColor] = useState<string | null>(null);
-  const [votingCellIds, setVotingCellIds] = useState<Set<number>>(new Set());
-  const [topColorMap, setTopColorMap] = useState<Map<number, string>>(
-    new Map(),
-  );
-  const [votes, setVotes] = useState<Record<string, number>>({});
-  const [popupOpen, setPopupOpen] = useState(false);
-  const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
-  const [remaining, setRemaining] = useState<number | null>(null);
   const [canvasReady, setCanvasReady] = useState(false);
+
+  const {
+    votes,
+    remaining,
+    previewColor,
+    votingCellIds,
+    topColorMap,
+    setRemaining,
+    handleVoteUpdate: applyVoteUpdate,
+    handleRoundStarted: handleVoteRoundStarted,
+    handleRoundEnded: handleVoteRoundEnded,
+    handleVoteSuccess: refreshVoteTickets,
+    handleColorChange,
+    resetPreviewColor,
+    resetVotes,
+  } = useVoteState();
+
+  const { popupOpen, popupPos, openPopup, closePopup } = useVotePopupState();
 
   useEffect(() => {
     selectedCellRef.current = selectedCell;
@@ -126,9 +138,14 @@ export default function CanvasPage() {
       setRemainingSeconds(result.round.remainingSeconds);
       setFormattedRemainingTime(result.round.formattedRemainingTime);
       setIsRoundExpired(result.round.isRoundExpired);
+
+      resetVotes();
+      resetPreviewColor();
       setRemaining(result.remaining);
+      setSelectedCell(null);
+      closePopup();
     },
-    [updateCells],
+    [closePopup, resetPreviewColor, resetVotes, setRemaining, updateCells],
   );
 
   const {
@@ -184,24 +201,14 @@ export default function CanvasPage() {
     selectedCellRef.current = cell;
   }, []);
 
-  const handleResetPreviewColor = useCallback(() => {
-    setPreviewColor(null);
-    previewColorRef.current = null;
-  }, []);
-
-  const handleOpenPopup = useCallback((position: { x: number; y: number }) => {
-    setPopupPos(position);
-    setPopupOpen(true);
-  }, []);
-
   const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
     useCanvasInteraction({
       containerRef,
       canvasRef,
       cells,
       onSelectCell: handleSelectCell,
-      onResetPreviewColor: handleResetPreviewColor,
-      onOpenPopup: handleOpenPopup,
+      onResetPreviewColor: resetPreviewColor,
+      onOpenPopup: openPopup,
     });
 
   const handleRoundStarted = useCallback(
@@ -224,35 +231,21 @@ export default function CanvasPage() {
       setRoundDurationSec(roundDurationSec);
       setTotalRounds(totalRounds);
       setFormattedGameEndTime(formatClockTime(new Date(gameEndAt)));
-      setVotes({});
       setRemainingSeconds(roundDurationSec);
       setFormattedRemainingTime(formatDuration(roundDurationSec));
       setIsRoundExpired(false);
       clearSessionError();
-      votingCellIdsRef.current = new Set();
-      topColorMapRef.current = new Map();
-      setVotingCellIds(new Set());
-      setTopColorMap(new Map());
-
-      voteApi
-        .getTickets(roundId)
-        .then(({ data }) => setRemaining(data.remaining))
-        .catch(() => setRemaining(null));
+      void handleVoteRoundStarted(roundId);
     },
-    [clearSessionError],
+    [clearSessionError, handleVoteRoundStarted],
   );
 
   const handleRoundEnded = useCallback(() => {
-    setVotes({});
-    setRemaining(null);
     setRemainingSeconds(0);
     setFormattedRemainingTime(formatDuration(0));
     setIsRoundExpired(true);
-    votingCellIdsRef.current = new Set();
-    topColorMapRef.current = new Map();
-    setVotingCellIds(new Set());
-    setTopColorMap(new Map());
-  }, []);
+    handleVoteRoundEnded();
+  }, [handleVoteRoundEnded]);
 
   const handleCanvasUpdated = useCallback(
     ({ cellId, color }: { cellId: number; color: string }) => {
@@ -272,42 +265,18 @@ export default function CanvasPage() {
         selectedCellRef.current = nextSelectedCell;
 
         if (!isRoundExpiredRef.current) {
-          setPopupOpen(false);
+          closePopup();
         }
       }
     },
-    [updateCells],
+    [closePopup, updateCells],
   );
 
   const handleVoteUpdate = useCallback(
     ({ votes }: { votes: Record<string, number> }) => {
-      setVotes(votes);
-
-      const newVotingCellIds = new Set<number>();
-      const countMap = new Map<number, { color: string; count: number }>();
-
-      for (const [key, count] of Object.entries(votes)) {
-        const [cellIdStr, color] = key.split(":");
-        const cellId = parseInt(cellIdStr, 10);
-        newVotingCellIds.add(cellId);
-
-        const existing = countMap.get(cellId);
-        if (!existing || count > existing.count) {
-          countMap.set(cellId, { color, count });
-        }
-      }
-
-      const newTopColorMap = new Map<number, string>();
-      countMap.forEach(({ color }, cellId) => {
-        newTopColorMap.set(cellId, color);
-      });
-
-      votingCellIdsRef.current = newVotingCellIds;
-      topColorMapRef.current = newTopColorMap;
-      setVotingCellIds(newVotingCellIds);
-      setTopColorMap(newTopColorMap);
+      applyVoteUpdate({ votes });
     },
-    [],
+    [applyVoteUpdate],
   );
 
   const handleTimerUpdate = useCallback(
@@ -336,21 +305,20 @@ export default function CanvasPage() {
 
   const handleGameEnded = useCallback(() => {
     markGameEnded();
-    setPopupOpen(false);
+    closePopup();
+    setSelectedCell(null);
+    selectedCellRef.current = null;
     setRoundId(null);
     setRoundNumber(null);
     setRoundDurationSec(null);
-    setVotes({});
     setRemaining(null);
     setRemainingSeconds(null);
     setFormattedRemainingTime(null);
     setFormattedGameEndTime(null);
     setIsRoundExpired(false);
-    votingCellIdsRef.current = new Set();
-    topColorMapRef.current = new Map();
-    setVotingCellIds(new Set());
-    setTopColorMap(new Map());
-  }, [markGameEnded]);
+    resetVotes();
+    resetPreviewColor();
+  }, [closePopup, markGameEnded, resetPreviewColor, resetVotes, setRemaining]);
 
   useGameplaySocket({
     canvasId,
@@ -363,25 +331,14 @@ export default function CanvasPage() {
   });
 
   const handleVoteSuccess = () => {
-    if (roundId) {
-      voteApi
-        .getTickets(roundId)
-        .then(({ data }) => setRemaining(data.remaining))
-        .catch(() => setRemaining(null));
-    }
+    void refreshVoteTickets(roundId);
   };
 
   const handlePopupClose = () => {
     setSelectedCell(null);
     selectedCellRef.current = null;
-    setPreviewColor(null);
-    previewColorRef.current = null;
-    setPopupOpen(false);
-  };
-
-  const handleColorChange = (color: string | null) => {
-    setPreviewColor(color);
-    previewColorRef.current = color;
+    resetPreviewColor();
+    closePopup();
   };
 
   if (loading) {
