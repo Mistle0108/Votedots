@@ -1,18 +1,11 @@
 import { useEffect, useMemo, useRef } from "react";
-import { Cell } from "@/types/canvas";
+import { Cell, Viewport } from "../model/canvas.types";
 
 const MINIMAP_BOX_SIZE = 220;
 const EMPTY_CELL_COLOR = "#d1d5db";
 const VIEWPORT_STROKE = "#ef4444";
 const VIEWPORT_FILL = "rgba(239, 68, 68, 0.12)";
 const SELECTED_CELL_STROKE = "#f97316";
-
-interface Viewport {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
 
 interface Props {
   cells: Cell[];

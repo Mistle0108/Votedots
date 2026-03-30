@@ -1,7 +1,10 @@
 import RoundInfo from "./RoundInfo";
-import MiniMap from "./MiniMap";
-import CoordinateNavigator from "./CoordinateNavigator";
-import { Cell } from "@/types/canvas";
+import {
+  CoordinateNavigator,
+  MiniMap,
+  Cell,
+  Viewport,
+} from "@/features/gameplay/canvas";
 
 const VOTES_PER_ROUND = parseInt(import.meta.env.VITE_VOTES_PER_ROUND ?? "3");
 const MAX_ENTRIES = 5;
@@ -13,13 +16,6 @@ interface VoteEntry {
   topColor: string;
   topCount: number;
   totalCount: number;
-}
-
-interface Viewport {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
 }
 
 interface Props {

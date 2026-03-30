@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/shared/ui/button";
 import ColorPalette from "./ColorPalette";
 import { voteApi } from "@/api/vote";
-import { Cell } from "@/types/canvas";
+import { Cell } from "@/features/gameplay/canvas";
 
 const SLOT_COUNT = 12;
 const STORAGE_KEYS = {
