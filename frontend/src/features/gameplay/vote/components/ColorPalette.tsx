@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { HexColorPicker } from "react-colorful";
+import ColorSlotGrid from "./ColorSlotGrid";
 
-const CHECKER_PATTERN =
-  "linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db), linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db)";
-
-interface Props {
+interface ColorPaletteProps {
   selected: string;
   onChange: (color: string) => void;
   slotColors: string[];
@@ -22,7 +20,7 @@ export default function ColorPalette({
   onSlotAdd,
   onSlotReset,
   onSlotSelect,
-}: Props) {
+}: ColorPaletteProps) {
   const colorInputRef = useRef<HTMLInputElement>(null);
   const [draftHex, setDraftHex] = useState(selected);
 
@@ -134,31 +132,11 @@ export default function ColorPalette({
         </button>
       </div>
 
-      <div className="grid grid-cols-6 gap-1">
-        {slotColors.map((c, idx) => (
-          <button
-            key={idx}
-            onClick={(e) => {
-              e.stopPropagation();
-              onSlotSelect(c, idx);
-            }}
-            className="relative h-7 w-7 rounded border-2"
-            style={{
-              backgroundColor: c || "#f9fafb",
-              backgroundImage: c ? "none" : CHECKER_PATTERN,
-              backgroundPosition: c ? undefined : "0 0, 4px 4px",
-              backgroundSize: c ? undefined : "8px 8px",
-              borderColor: idx === slotCursor ? "#f97316" : "#d1d5db",
-            }}
-          >
-            {idx === slotCursor && (
-              <span className="absolute inset-0 flex items-center justify-center text-[8px] text-white drop-shadow">
-                ▼
-              </span>
-            )}
-          </button>
-        ))}
-      </div>
+      <ColorSlotGrid
+        slotColors={slotColors}
+        slotCursor={slotCursor}
+        onSlotSelect={onSlotSelect}
+      />
     </div>
   );
 }

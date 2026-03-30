@@ -1,8 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/shared/ui/button";
-import ColorPalette from "./ColorPalette";
-import { voteApi } from "@/api/vote";
 import { Cell } from "@/features/gameplay/canvas";
+import { gameplayVoteApi } from "../api/vote.api";
+import { getVoteEntriesForCell } from "../model/vote.selectors";
+import ColorPalette from "./ColorPalette";
+import VoteResultList from "./VoteResultList";
 
 const SLOT_COUNT = 12;
 const STORAGE_KEYS = {
@@ -13,15 +15,7 @@ const INITIAL_SLOTS = Array(SLOT_COUNT).fill("");
 const CHECKER_PATTERN =
   "linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db), linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db)";
 
-interface VoteEntry {
-  cellId: number;
-  x: number;
-  y: number;
-  color: string;
-  count: number;
-}
-
-interface Props {
+interface VotePopupProps {
   canvasId: number;
   roundId: number | null;
   isRoundExpired: boolean;
@@ -78,7 +72,7 @@ export default function VotePopup({
   onVoteSuccess,
   onColorChange,
   onClose,
-}: Props) {
+}: VotePopupProps) {
   const [color, setColor] = useState(() => loadLastVotedColor());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -91,23 +85,7 @@ export default function VotePopup({
   const dragOffset = useRef({ x: 0, y: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const voteEntries: VoteEntry[] = Object.entries(votes)
-    .filter(([key]) => key.startsWith(`${selectedCell.id}:`))
-    .map(([key, count]) => {
-      const [cellIdStr, entryColor] = key.split(":");
-      const cellId = parseInt(cellIdStr);
-      const cell = cells.find((c) => c.id === cellId);
-
-      return {
-        cellId,
-        x: cell?.x ?? 0,
-        y: cell?.y ?? 0,
-        color: entryColor,
-        count,
-      };
-    })
-    .sort((a, b) => b.count - a.count);
-
+  const voteEntries = getVoteEntriesForCell(votes, selectedCell.id, cells);
   const maxCount = voteEntries[0]?.count ?? 1;
   const isVoteDisabled = !roundId || loading || isRoundExpired;
 
@@ -119,11 +97,6 @@ export default function VotePopup({
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
-    onColorChange(newColor);
-  };
-
-  const handleVoteEntryClick = (entryColor: string) => {
-    handleColorChange(entryColor);
   };
 
   const handleSlotAdd = () => {
@@ -161,7 +134,7 @@ export default function VotePopup({
     window.localStorage.setItem(STORAGE_KEYS.lastVotedColor, color);
 
     try {
-      await voteApi.submit({
+      await gameplayVoteApi.submit({
         canvasId,
         roundId,
         cellId: selectedCell.id,
@@ -249,8 +222,11 @@ export default function VotePopup({
 
   useEffect(() => {
     onColorChange(color);
+  }, [color, onColorChange]);
+
+  useEffect(() => {
     return () => onColorChange(null);
-  }, []);
+  }, [onColorChange]);
 
   useEffect(() => {
     if (isRoundExpired) {
@@ -310,41 +286,11 @@ export default function VotePopup({
 
       <div className="flex flex-col gap-3 p-4">
         {voteEntries.length > 0 && (
-          <div>
-            <p className="mb-2 text-xs font-medium">득표 현황</p>
-            <div className="flex max-h-[72px] flex-col gap-1 overflow-y-auto">
-              {voteEntries.map(({ color: entryColor, count }) => (
-                <button
-                  key={entryColor}
-                  className="flex w-full items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-50"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleVoteEntryClick(entryColor);
-                  }}
-                >
-                  <div
-                    className="h-3 w-3 shrink-0 rounded-sm border border-gray-200"
-                    style={{ backgroundColor: entryColor }}
-                  />
-                  <span className="w-14 shrink-0 text-left text-xs text-gray-500">
-                    {entryColor}
-                  </span>
-                  <div className="h-2 flex-1 rounded bg-gray-100">
-                    <div
-                      className="h-2 rounded transition-all"
-                      style={{
-                        width: `${(count / maxCount) * 100}%`,
-                        backgroundColor: entryColor,
-                      }}
-                    />
-                  </div>
-                  <span className="w-4 shrink-0 text-right text-xs text-gray-500">
-                    {count}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
+          <VoteResultList
+            voteEntries={voteEntries}
+            maxCount={maxCount}
+            onSelectColor={handleColorChange}
+          />
         )}
 
         <ColorPalette
