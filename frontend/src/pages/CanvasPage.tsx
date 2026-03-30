@@ -5,6 +5,8 @@ import VotePanel from "@/components/vote/VotePanel";
 import VotePopup from "@/components/vote/VotePopup";
 import useSocket from "@/hooks/useSocket";
 import { voteApi } from "@/api/vote";
+import type { RoundStateResponse } from "@/features/gameplay/round/model/round.types";
+
 
 const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8");
 const PANEL_WIDTH = 280;
@@ -13,26 +15,6 @@ const CHECKER_LIGHT = "#6f6f6f";
 const CHECKER_DARK = "#5f5f5f";
 const CANVAS_BACKGROUND_COLOR = "#2a2a2a";
 const MINIMAP_SIZE = 220;
-
-interface RoundStateResponse {
-  status: "active" | "waiting";
-  round: {
-    id: number;
-    roundNumber: number;
-    startedAt: string;
-    endedAt: string | null;
-    roundDurationSec: number;
-    totalRounds: number;
-    gameEndAt: string;
-  };
-  timer: {
-    remainingSeconds: number;
-    isRoundExpired: boolean;
-    roundDurationSec: number;
-    totalRounds: number;
-    gameEndAt: string;
-  };
-}
 
 interface Viewport {
   left: number;
