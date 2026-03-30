@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/ui/button";
 import ColorPalette from "./ColorPalette";
 import { voteApi } from "@/api/vote";
 import { Cell } from "@/types/canvas";
