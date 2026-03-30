@@ -1,10 +1,8 @@
-import { Cell } from "@/features/gameplay/canvas";
 import { VoteEntry } from "../model/vote.types";
 
 interface VoteResultListProps {
   voteEntries: VoteEntry[];
   maxCount: number;
-  cells: Cell[];
   onSelectColor: (color: string) => void;
 }
 

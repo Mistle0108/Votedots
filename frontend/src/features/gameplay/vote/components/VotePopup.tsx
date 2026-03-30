@@ -97,7 +97,6 @@ export default function VotePopup({
 
   const handleColorChange = (newColor: string) => {
     setColor(newColor);
-    onColorChange(newColor);
   };
 
   const handleSlotAdd = () => {
@@ -223,8 +222,11 @@ export default function VotePopup({
 
   useEffect(() => {
     onColorChange(color);
+  }, [color, onColorChange]);
+
+  useEffect(() => {
     return () => onColorChange(null);
-  }, []);
+  }, [onColorChange]);
 
   useEffect(() => {
     if (isRoundExpired) {
@@ -287,7 +289,6 @@ export default function VotePopup({
           <VoteResultList
             voteEntries={voteEntries}
             maxCount={maxCount}
-            cells={cells}
             onSelectColor={handleColorChange}
           />
         )}
