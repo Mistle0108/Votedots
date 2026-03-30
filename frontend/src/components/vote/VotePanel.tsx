@@ -15,13 +15,6 @@ interface VoteEntry {
   totalCount: number;
 }
 
-interface Viewport {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
-
 interface Props {
   roundNumber: number | null;
   totalRounds: number;

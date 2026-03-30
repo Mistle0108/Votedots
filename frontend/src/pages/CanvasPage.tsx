@@ -1,37 +1,26 @@
-import { useEffect, useRef, useState, useCallback } from "react";
-import api from "@/shared/api/client";
-import { CanvasCurrentResponse, Cell } from "@/types/canvas";
+import { useCallback, useEffect, useRef, useState } from "react";
 import VotePanel from "@/components/vote/VotePanel";
 import VotePopup from "@/components/vote/VotePopup";
-import useSocket from "@/hooks/useSocket";
 import { voteApi } from "@/api/vote";
-import type { RoundStateResponse } from "@/features/gameplay/round/model/round.types";
-import { formatDuration } from "@/features/gameplay/round/model/round.formatters";
-import useRoundState from "@/features/gameplay/round/hooks/useRoundState";
-
-
-const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8");
-const PANEL_WIDTH = 280;
-const RESTART_TIME = 3;
-const CHECKER_LIGHT = "#6f6f6f";
-const CHECKER_DARK = "#5f5f5f";
-const CANVAS_BACKGROUND_COLOR = "#2a2a2a";
-const MINIMAP_SIZE = 220;
-
-interface Viewport {
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
+import useSocket from "@/hooks/useSocket";
+import {
+  CanvasStage,
+  CanvasSurface,
+  Cell,
+  CELL_SIZE,
+  PANEL_WIDTH,
+  RESTART_TIME,
+  canvasApi,
+  useCanvasInteraction,
+  useCanvasNavigation,
+  useCanvasRenderer,
+  useCanvasViewport,
+} from "@/features/gameplay/canvas";
+import { RoundStateResponse } from "@/features/gameplay/canvas/api/canvas.api";
 
 export default function CanvasPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const animationRef = useRef<number>(0);
-  const isPanning = useRef(false);
-  const hasPanned = useRef(false);
-  const lastPos = useRef({ x: 0, y: 0 });
 
   const cellsRef = useRef<Cell[]>([]);
   const selectedCellRef = useRef<Cell | null>(null);
@@ -113,206 +102,59 @@ export default function CanvasPage() {
     [],
   );
 
-  const updateViewport = useCallback(() => {
-    const container = containerRef.current;
-    const canvasEl = canvasRef.current;
+  const { viewport, updateViewport } = useCanvasViewport({
+    containerRef,
+    canvasRef,
+    gridX,
+    gridY,
+    canvasReady,
+  });
 
-    if (!container || !canvasEl || gridX === 0 || gridY === 0) {
-      setViewport(null);
-      return;
-    }
+  const { navigateToCoordinate } = useCanvasNavigation({
+    containerRef,
+    canvasRef,
+    updateViewport,
+  });
 
-    const minimapScale = MINIMAP_SIZE / Math.max(gridX, gridY, 1);
-    const minimapWidth = gridX * minimapScale;
-    const minimapHeight = gridY * minimapScale;
+  useCanvasRenderer({
+    canvasRef,
+    canvasReady,
+    cellsRef,
+    selectedCellRef,
+    previewColorRef,
+    votingCellIdsRef,
+    topColorMapRef,
+  });
 
-    const visibleLeft = container.scrollLeft;
-    const visibleTop = container.scrollTop;
-    const visibleRight = visibleLeft + container.clientWidth;
-    const visibleBottom = visibleTop + container.clientHeight;
+  const handleSelectCell = useCallback((cell: Cell) => {
+    setSelectedCell(cell);
+    selectedCellRef.current = cell;
+  }, []);
 
-    const canvasLeft = canvasEl.offsetLeft;
-    const canvasTop = canvasEl.offsetTop;
+  const handleResetPreviewColor = useCallback(() => {
+    setPreviewColor(null);
+    previewColorRef.current = null;
+  }, []);
 
-    const canvasVisibleLeft = Math.max(0, visibleLeft - canvasLeft);
-    const canvasVisibleTop = Math.max(0, visibleTop - canvasTop);
-    const canvasVisibleRight = Math.min(
-      canvasEl.width,
-      visibleRight - canvasLeft,
-    );
-    const canvasVisibleBottom = Math.min(
-      canvasEl.height,
-      visibleBottom - canvasTop,
-    );
+  const handleOpenPopup = useCallback((position: { x: number; y: number }) => {
+    setPopupPos(position);
+    setPopupOpen(true);
+  }, []);
 
-    const visibleWidth = Math.max(0, canvasVisibleRight - canvasVisibleLeft);
-    const visibleHeight = Math.max(0, canvasVisibleBottom - canvasVisibleTop);
-
-    const nextWidth = Math.min(
-      minimapWidth,
-      (visibleWidth / canvasEl.width) * minimapWidth,
-    );
-    const nextHeight = Math.min(
-      minimapHeight,
-      (visibleHeight / canvasEl.height) * minimapHeight,
-    );
-
-    const nextLeft = Math.min(
-      Math.max(0, (canvasVisibleLeft / canvasEl.width) * minimapWidth),
-      Math.max(0, minimapWidth - nextWidth),
-    );
-    const nextTop = Math.min(
-      Math.max(0, (canvasVisibleTop / canvasEl.height) * minimapHeight),
-      Math.max(0, minimapHeight - nextHeight),
-    );
-
-    setViewport({
-      left: nextLeft,
-      top: nextTop,
-      width: nextWidth,
-      height: nextHeight,
+  const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
+    useCanvasInteraction({
+      containerRef,
+      canvasRef,
+      cells,
+      onSelectCell: handleSelectCell,
+      onResetPreviewColor: handleResetPreviewColor,
+      onOpenPopup: handleOpenPopup,
     });
-  }, [gridX, gridY]);
-
-  const navigateToCoordinate = useCallback(
-    (x: number, y: number, behavior: ScrollBehavior = "smooth") => {
-      const container = containerRef.current;
-      const canvasEl = canvasRef.current;
-
-      if (!container || !canvasEl) return;
-
-      const targetX = x * CELL_SIZE + CELL_SIZE / 2;
-      const targetY = y * CELL_SIZE + CELL_SIZE / 2;
-
-      const nextScrollLeft =
-        canvasEl.offsetLeft + targetX - container.clientWidth / 2;
-      const nextScrollTop =
-        canvasEl.offsetTop + targetY - container.clientHeight / 2;
-
-      const maxScrollLeft = Math.max(
-        0,
-        container.scrollWidth - container.clientWidth,
-      );
-      const maxScrollTop = Math.max(
-        0,
-        container.scrollHeight - container.clientHeight,
-      );
-
-      container.scrollTo({
-        left: Math.min(Math.max(0, nextScrollLeft), maxScrollLeft),
-        top: Math.min(Math.max(0, nextScrollTop), maxScrollTop),
-        behavior,
-      });
-
-      requestAnimationFrame(() => {
-        updateViewport();
-      });
-    },
-    [updateViewport],
-  );
-
-  useEffect(() => {
-    if (!canvasReady) return;
-
-    const container = containerRef.current;
-    if (!container) return;
-
-    const handleScroll = () => {
-      updateViewport();
-    };
-
-    updateViewport();
-
-    container.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleScroll);
-
-    return () => {
-      container.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
-    };
-  }, [canvasReady, updateViewport]);
-
-  useEffect(() => {
-    if (!canvasReady) return;
-    const canvasEl = canvasRef.current;
-    if (!canvasEl) return;
-
-    const render = (timestamp: number) => {
-      const ctx = canvasEl.getContext("2d");
-      if (!ctx) return;
-
-      ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-
-      const currentCells = cellsRef.current;
-      const currentSelectedCell = selectedCellRef.current;
-      const currentPreviewColor = previewColorRef.current;
-      const currentVotingCellIds = votingCellIdsRef.current;
-      const currentTopColorMap = topColorMapRef.current;
-
-      const alpha = (Math.sin((timestamp / 500) * Math.PI) + 1) / 2;
-      const dashOffset = -(timestamp / 100) % 8;
-
-      currentCells.forEach((cell) => {
-        const x = cell.x * CELL_SIZE;
-        const y = cell.y * CELL_SIZE;
-        const isSelected = currentSelectedCell?.id === cell.id;
-        const isVoting = currentVotingCellIds.has(cell.id);
-        const topColor = currentTopColorMap.get(cell.id);
-
-        if (cell.color) {
-          ctx.fillStyle = cell.color;
-          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-        } else {
-          const half = CELL_SIZE / 2;
-
-          ctx.fillStyle = CHECKER_LIGHT;
-          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-
-          ctx.fillStyle = CHECKER_DARK;
-          ctx.fillRect(x, y, half, half);
-          ctx.fillRect(x + half, y + half, half, half);
-        }
-
-        if (isSelected && currentPreviewColor) {
-          ctx.fillStyle = currentPreviewColor;
-          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-        } else if (isVoting && topColor && !isSelected) {
-          ctx.fillStyle = topColor;
-          ctx.globalAlpha = alpha * 0.7;
-          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
-          ctx.globalAlpha = 1.0;
-        }
-
-        if (isSelected) {
-          ctx.strokeStyle = "#ef4444";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
-        }
-
-        if (isVoting && !isSelected) {
-          ctx.save();
-          ctx.strokeStyle = "#facc15";
-          ctx.lineWidth = 2;
-          ctx.setLineDash([4, 4]);
-          ctx.lineDashOffset = dashOffset;
-          ctx.strokeRect(x + 1, y + 1, CELL_SIZE - 2, CELL_SIZE - 2);
-          ctx.setLineDash([]);
-          ctx.restore();
-        }
-      });
-
-      animationRef.current = requestAnimationFrame(render);
-    };
-
-    animationRef.current = requestAnimationFrame(render);
-    return () => cancelAnimationFrame(animationRef.current);
-  }, [canvasReady]);
 
   useEffect(() => {
     const initialize = async () => {
       try {
-        const { data } =
-          await api.get<CanvasCurrentResponse>("/canvas/current");
+        const { data } = await canvasApi.getCurrent();
         const { canvas, cells } = data;
 
         setCanvasId(canvas.id);
@@ -327,10 +169,8 @@ export default function CanvasPage() {
         canvasEl.height = canvas.gridY * CELL_SIZE;
         setCanvasReady(true);
 
-        const roundRes = await api.get<RoundStateResponse>(
-          `/canvas/${canvas.id}/rounds/active`,
-        );
-        const roundState = roundRes.data;
+        const roundRes = await canvasApi.getActiveRound(canvas.id);
+        const roundState: RoundStateResponse = roundRes.data;
 
         if (roundState?.round) {
           applyRoundState(roundState.round);
@@ -368,14 +208,16 @@ export default function CanvasPage() {
 
   useEffect(() => {
     if (!gameEnded) return;
+
     const timer = setTimeout(async () => {
       try {
-        await api.post("/canvas");
+        await canvasApi.createCanvas();
       } catch (err) {
         console.error("캔버스 생성 실패:", err);
       }
       window.location.reload();
     }, RESTART_TIME * 1000);
+
     return () => clearTimeout(timer);
   }, [gameEnded]);
 
@@ -539,59 +381,6 @@ export default function CanvasPage() {
     onGameEnded: handleGameEnded,
   });
 
-  const handleMouseDown = (event: React.MouseEvent) => {
-    if (event.button !== 0) return;
-    isPanning.current = true;
-    hasPanned.current = false;
-    lastPos.current = { x: event.clientX, y: event.clientY };
-  };
-
-  const handleMouseMove = (event: React.MouseEvent) => {
-    if (!isPanning.current) return;
-    const container = containerRef.current;
-    if (!container) return;
-
-    const dx = event.clientX - lastPos.current.x;
-    const dy = event.clientY - lastPos.current.y;
-
-    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-      hasPanned.current = true;
-    }
-
-    container.scrollLeft -= dx;
-    container.scrollTop -= dy;
-    lastPos.current = { x: event.clientX, y: event.clientY };
-  };
-
-  const handleMouseUp = (event: React.MouseEvent) => {
-    if (event.button !== 0) return;
-    isPanning.current = false;
-
-    if (!hasPanned.current) {
-      const canvasEl = canvasRef.current;
-      if (!canvasEl) return;
-
-      const rect = canvasEl.getBoundingClientRect();
-      const x = Math.floor((event.clientX - rect.left) / CELL_SIZE);
-      const y = Math.floor((event.clientY - rect.top) / CELL_SIZE);
-
-      const cell = cells.find(
-        (candidate) => candidate.x === x && candidate.y === y,
-      );
-      if (cell && cell.status !== "locked") {
-        setSelectedCell(cell);
-        selectedCellRef.current = cell;
-        setPreviewColor(null);
-        previewColorRef.current = null;
-        setPopupPos({
-          x: rect.left + (cell.x + 2) * CELL_SIZE,
-          y: rect.top + (cell.y - 1.5) * CELL_SIZE,
-        });
-        setPopupOpen(true);
-      }
-    }
-  };
-
   const handleVoteSuccess = () => {
     if (roundId) {
       voteApi
@@ -638,28 +427,15 @@ export default function CanvasPage() {
 
   return (
     <div className="flex h-screen w-full">
-      <div
-        className="relative overflow-hidden cursor-grab active:cursor-grabbing"
-        style={{
-          width: `calc(100% - ${PANEL_WIDTH}px)`,
-          backgroundColor: CANVAS_BACKGROUND_COLOR,
-        }}
+      <CanvasStage
+        containerRef={containerRef}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
-        onMouseLeave={() => {
-          isPanning.current = false;
-        }}
+        onMouseLeave={handleMouseLeave}
       >
-        <div
-          ref={containerRef}
-          className="h-full w-full overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
-        >
-          <div className="min-h-full min-w-full">
-            <canvas ref={canvasRef} className="border border-gray-300" />
-          </div>
-        </div>
-      </div>
+        <CanvasSurface canvasRef={canvasRef} />
+      </CanvasStage>
 
       {popupOpen && selectedCell && canvasId && (
         <VotePopup
