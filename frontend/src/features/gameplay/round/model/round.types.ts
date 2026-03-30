@@ -23,3 +23,12 @@ export interface RoundStateResponse {
   round: RoundInfo;
   timer: RoundTimer;
 }
+
+export interface RoundInfoProps {
+  roundNumber: number | null;
+  totalRounds: number;
+  formattedGameEndTime: string | null;
+  formattedRemainingTime: string | null;
+  remainingSeconds: number | null;
+  roundDurationSec: number | null;
+}

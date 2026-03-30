@@ -1,13 +1,6 @@
 import { useEffect, useState } from "react";
+import type { RoundInfoProps } from "@/features/gameplay/round/model/round.types";
 
-interface Props {
-  roundNumber: number | null;
-  totalRounds: number;
-  formattedGameEndTime: string | null;
-  formattedRemainingTime: string | null;
-  remainingSeconds: number | null;
-  roundDurationSec: number | null;
-}
 
 export default function RoundInfo({
   roundNumber,
@@ -16,7 +9,7 @@ export default function RoundInfo({
   formattedRemainingTime,
   remainingSeconds,
   roundDurationSec,
-}: Props) {
+}: RoundInfoProps) {
   const [enableProgressTransition, setEnableProgressTransition] = useState(false);
 
   const progressPercent =
