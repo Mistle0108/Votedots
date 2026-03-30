@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import type { RoundInfoProps } from "@/features/gameplay/round/model/round.types";
-import { getRoundProgressPercent } from "@/features/gameplay/round/model/round.formatters";
-
+import {
+  getRoundProgressPercent,
+  type RoundInfoProps,
+} from "@/features/gameplay/round";
 
 export default function RoundInfo({
   roundNumber,

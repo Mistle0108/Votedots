@@ -1,7 +1,10 @@
-import RoundInfo from "@/features/gameplay/round/components/RoundInfo";
-import MiniMap from "./MiniMap";
-import CoordinateNavigator from "./CoordinateNavigator";
-import { Cell } from "@/types/canvas";
+import { RoundInfo } from "@/features/gameplay/round";
+import {
+  CoordinateNavigator,
+  MiniMap,
+  Cell,
+  Viewport,
+} from "@/features/gameplay/canvas";
 
 const VOTES_PER_ROUND = parseInt(import.meta.env.VITE_VOTES_PER_ROUND ?? "3");
 const MAX_ENTRIES = 5;
