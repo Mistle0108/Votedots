@@ -6,7 +6,7 @@ import VotePopup from "@/components/vote/VotePopup";
 import useSocket from "@/hooks/useSocket";
 import { voteApi } from "@/api/vote";
 import type { RoundStateResponse } from "@/features/gameplay/round/model/round.types";
-
+import { formatClockTime, formatDuration } from "@/features/gameplay/round/model/round.formatters";
 
 const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8");
 const PANEL_WIDTH = 280;
@@ -21,19 +21,6 @@ interface Viewport {
   top: number;
   width: number;
   height: number;
-}
-
-function formatClockTime(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
-}
-
-function formatDuration(seconds: number): string {
-  const safeSeconds = Math.max(0, seconds);
-  const minutes = Math.floor(safeSeconds / 60);
-  const secs = safeSeconds % 60;
-  return `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
 export default function CanvasPage() {

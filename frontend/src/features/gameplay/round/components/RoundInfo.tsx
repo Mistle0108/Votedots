@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { RoundInfoProps } from "@/features/gameplay/round/model/round.types";
+import { getRoundProgressPercent } from "@/features/gameplay/round/model/round.formatters";
 
 
 export default function RoundInfo({
@@ -11,13 +12,10 @@ export default function RoundInfo({
   roundDurationSec,
 }: RoundInfoProps) {
   const [enableProgressTransition, setEnableProgressTransition] = useState(false);
-
-  const progressPercent =
-    remainingSeconds !== null &&
-      roundDurationSec !== null &&
-      roundDurationSec > 0
-      ? (remainingSeconds / roundDurationSec) * 100
-      : 0;
+  const progressPercent = getRoundProgressPercent(
+    remainingSeconds,
+    roundDurationSec,
+  );
 
   useEffect(() => {
     const isInitialSync =
