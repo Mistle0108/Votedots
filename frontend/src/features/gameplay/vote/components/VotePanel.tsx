@@ -1,4 +1,4 @@
-import { RoundInfo } from "@/features/gameplay/round";
+import { RoundInfoPanel } from "@/features/gameplay/round";
 import {
   CoordinateNavigator,
   MiniMap,
@@ -49,7 +49,7 @@ export default function VotePanel({
     <div className="flex h-full flex-col gap-5 overflow-y-auto p-5">
       <h2 className="text-lg font-bold">VoteDots</h2>
 
-      <RoundInfo
+      <RoundInfoPanel
         roundNumber={roundNumber}
         totalRounds={totalRounds}
         formattedGameEndTime={formattedGameEndTime}
