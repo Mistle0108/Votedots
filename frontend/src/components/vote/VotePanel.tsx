@@ -1,4 +1,4 @@
-import RoundInfo from "./RoundInfo";
+import { RoundInfo } from "@/features/gameplay/round";
 import {
   CoordinateNavigator,
   MiniMap,
