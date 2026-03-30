@@ -1,4 +1,4 @@
-import RoundInfo from "./RoundInfo";
+import RoundInfo from "@/features/gameplay/round/components/RoundInfo";
 import MiniMap from "./MiniMap";
 import CoordinateNavigator from "./CoordinateNavigator";
 import { Cell } from "@/types/canvas";
