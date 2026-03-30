@@ -1,52 +1,54 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { formatClockTime } from "@/features/gameplay/round/model/round.formatters";
 import type {
-    RoundInfo,
-    RoundTimer,
+  RoundInfo,
+  RoundTimer,
 } from "@/features/gameplay/round/model/round.types";
 
 type RoundMetaFromTimer = Pick<
-    RoundTimer,
-    "roundDurationSec" | "totalRounds" | "gameEndAt"
+  RoundTimer,
+  "roundDurationSec" | "totalRounds" | "gameEndAt"
 >;
 
 export default function useRoundState() {
-    const [roundId, setRoundId] = useState<number | null>(null);
-    const [roundNumber, setRoundNumber] = useState<number | null>(null);
-    const [roundDurationSec, setRoundDurationSec] = useState<number | null>(null);
-    const [totalRounds, setTotalRounds] = useState<number>(0);
-    const [formattedGameEndTime, setFormattedGameEndTime] = useState<string | null>(null);
+  const [roundId, setRoundId] = useState<number | null>(null);
+  const [roundNumber, setRoundNumber] = useState<number | null>(null);
+  const [roundDurationSec, setRoundDurationSec] = useState<number | null>(null);
+  const [totalRounds, setTotalRounds] = useState(0);
+  const [formattedGameEndTime, setFormattedGameEndTime] = useState<
+    string | null
+  >(null);
 
-    const applyRoundState = (round: RoundInfo) => {
-        setRoundId(round.id);
-        setRoundNumber(round.roundNumber);
-        setRoundDurationSec(round.roundDurationSec);
-        setTotalRounds(round.totalRounds);
-        setFormattedGameEndTime(formatClockTime(new Date(round.gameEndAt)));
-    };
+  const applyRoundState = useCallback((round: RoundInfo) => {
+    setRoundId(round.id);
+    setRoundNumber(round.roundNumber);
+    setRoundDurationSec(round.roundDurationSec);
+    setTotalRounds(round.totalRounds);
+    setFormattedGameEndTime(formatClockTime(new Date(round.gameEndAt)));
+  }, []);
 
-    const applyRoundMeta = (timer: RoundMetaFromTimer) => {
-        setRoundDurationSec(timer.roundDurationSec);
-        setTotalRounds(timer.totalRounds);
-        setFormattedGameEndTime(formatClockTime(new Date(timer.gameEndAt)));
-    };
+  const applyRoundMeta = useCallback((timer: RoundMetaFromTimer) => {
+    setRoundDurationSec(timer.roundDurationSec);
+    setTotalRounds(timer.totalRounds);
+    setFormattedGameEndTime(formatClockTime(new Date(timer.gameEndAt)));
+  }, []);
 
-    const resetRoundState = () => {
-        setRoundId(null);
-        setRoundNumber(null);
-        setRoundDurationSec(null);
-        setTotalRounds(0);
-        setFormattedGameEndTime(null);
-    };
+  const resetRoundState = useCallback(() => {
+    setRoundId(null);
+    setRoundNumber(null);
+    setRoundDurationSec(null);
+    setTotalRounds(0);
+    setFormattedGameEndTime(null);
+  }, []);
 
-    return {
-        roundId,
-        roundNumber,
-        roundDurationSec,
-        totalRounds,
-        formattedGameEndTime,
-        applyRoundState,
-        applyRoundMeta,
-        resetRoundState,
-    };
+  return {
+    roundId,
+    roundNumber,
+    roundDurationSec,
+    totalRounds,
+    formattedGameEndTime,
+    applyRoundState,
+    applyRoundMeta,
+    resetRoundState,
+  };
 }

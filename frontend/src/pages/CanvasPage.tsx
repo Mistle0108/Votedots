@@ -16,7 +16,11 @@ import {
   useCanvasRenderer,
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
-import { RoundStateResponse } from "@/features/gameplay/canvas/api/canvas.api";
+import {
+  type RoundStateResponse,
+  useRoundState,
+  useRoundTimer,
+} from "@/features/gameplay/round";
 
 export default function CanvasPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -33,13 +37,6 @@ export default function CanvasPage() {
   const [canvasId, setCanvasId] = useState<number | null>(null);
   const [gridX, setGridX] = useState(0);
   const [gridY, setGridY] = useState(0);
-
-  const [viewport, setViewport] = useState<Viewport | null>(null);
-  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  const [formattedRemainingTime, setFormattedRemainingTime] = useState<
-    string | null
-  >(null);
-  const [isRoundExpired, setIsRoundExpired] = useState(false);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
   const [previewColor, setPreviewColor] = useState<string | null>(null);
   const [votingCellIds, setVotingCellIds] = useState<Set<number>>(new Set());
@@ -65,6 +62,16 @@ export default function CanvasPage() {
     applyRoundMeta,
     resetRoundState,
   } = useRoundState();
+
+  const {
+    remainingSeconds,
+    formattedRemainingTime,
+    isRoundExpired,
+    applyRoundTimer,
+    startRoundTimer,
+    expireRoundTimer,
+    resetRoundTimer,
+  } = useRoundTimer();
 
   useEffect(() => {
     selectedCellRef.current = selectedCell;
@@ -177,11 +184,7 @@ export default function CanvasPage() {
         }
 
         if (roundState?.timer) {
-          setRemainingSeconds(roundState.timer.remainingSeconds);
-          setFormattedRemainingTime(
-            formatDuration(roundState.timer.remainingSeconds),
-          );
-          setIsRoundExpired(roundState.timer.isRoundExpired);
+          applyRoundTimer(roundState.timer);
         }
 
         if (roundState?.status === "active" && roundState.round.id) {
@@ -204,7 +207,7 @@ export default function CanvasPage() {
     };
 
     initialize();
-  }, [updateCells, updateViewport]);
+  }, [applyRoundState, applyRoundTimer, updateCells, updateViewport]);
 
   useEffect(() => {
     if (!gameEnded) return;
@@ -246,9 +249,7 @@ export default function CanvasPage() {
         gameEndAt,
       });
       setVotes({});
-      setRemainingSeconds(roundDurationSec);
-      setFormattedRemainingTime(formatDuration(roundDurationSec));
-      setIsRoundExpired(false);
+      startRoundTimer(roundDurationSec);
       setError(null);
       votingCellIdsRef.current = new Set();
       topColorMapRef.current = new Map();
@@ -260,20 +261,18 @@ export default function CanvasPage() {
         .then(({ data }) => setRemaining(data.remaining))
         .catch(() => setRemaining(null));
     },
-    [],
+    [applyRoundState, startRoundTimer],
   );
 
   const handleRoundEnded = useCallback(() => {
     setVotes({});
     setRemaining(null);
-    setRemainingSeconds(0);
-    setFormattedRemainingTime(formatDuration(0));
-    setIsRoundExpired(true);
+    expireRoundTimer();
     votingCellIdsRef.current = new Set();
     topColorMapRef.current = new Map();
     setVotingCellIds(new Set());
     setTopColorMap(new Map());
-  }, []);
+  }, [expireRoundTimer]);
 
   const handleCanvasUpdated = useCallback(
     ({ cellId, color }: { cellId: number; color: string }) => {
@@ -345,31 +344,30 @@ export default function CanvasPage() {
       roundDurationSec: number;
       totalRounds: number;
     }) => {
-      setRemainingSeconds(remainingSeconds);
-      setFormattedRemainingTime(formatDuration(remainingSeconds));
-      setIsRoundExpired(isRoundExpired);
+      applyRoundTimer({
+        remainingSeconds,
+        isRoundExpired,
+      });
       applyRoundMeta({
         gameEndAt,
         roundDurationSec,
         totalRounds,
       });
     },
-    [],
+    [applyRoundMeta, applyRoundTimer],
   );
 
   const handleGameEnded = useCallback(() => {
     setGameEnded(true);
     setPopupOpen(false);
     resetRoundState();
+    resetRoundTimer();
     setRemaining(null);
-    setRemainingSeconds(null);
-    setFormattedRemainingTime(null);
-    setIsRoundExpired(false);
     votingCellIdsRef.current = new Set();
     topColorMapRef.current = new Map();
     setVotingCellIds(new Set());
     setTopColorMap(new Map());
-  }, []);
+  }, [resetRoundState, resetRoundTimer]);
 
   useSocket({
     canvasId,
