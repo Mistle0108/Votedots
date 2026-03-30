@@ -16,6 +16,9 @@ export function useGameSession({ onBootstrap }: UseGameSessionParams) {
   const [gameEnded, setGameEnded] = useState(false);
 
   const initializeSession = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+
     try {
       const result = await bootstrap();
       onBootstrap(result);
@@ -62,7 +65,6 @@ export function useGameSession({ onBootstrap }: UseGameSessionParams) {
     initializeSession,
     setSessionError,
     clearSessionError,
-    setGameEnded,
     markGameEnded,
   };
 }
