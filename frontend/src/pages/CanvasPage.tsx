@@ -6,7 +6,9 @@ import VotePopup from "@/components/vote/VotePopup";
 import useSocket from "@/hooks/useSocket";
 import { voteApi } from "@/api/vote";
 import type { RoundStateResponse } from "@/features/gameplay/round/model/round.types";
-import { formatClockTime, formatDuration } from "@/features/gameplay/round/model/round.formatters";
+import { formatDuration } from "@/features/gameplay/round/model/round.formatters";
+import useRoundState from "@/features/gameplay/round/hooks/useRoundState";
+
 
 const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8");
 const PANEL_WIDTH = 280;
@@ -44,13 +46,6 @@ export default function CanvasPage() {
   const [gridY, setGridY] = useState(0);
 
   const [viewport, setViewport] = useState<Viewport | null>(null);
-  const [roundId, setRoundId] = useState<number | null>(null);
-  const [roundNumber, setRoundNumber] = useState<number | null>(null);
-  const [roundDurationSec, setRoundDurationSec] = useState<number | null>(null);
-  const [totalRounds, setTotalRounds] = useState<number>(0);
-  const [formattedGameEndTime, setFormattedGameEndTime] = useState<
-    string | null
-  >(null);
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [formattedRemainingTime, setFormattedRemainingTime] = useState<
     string | null
@@ -70,6 +65,17 @@ export default function CanvasPage() {
   const [loading, setLoading] = useState(true);
   const [gameEnded, setGameEnded] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
+
+  const {
+    roundId,
+    roundNumber,
+    roundDurationSec,
+    totalRounds,
+    formattedGameEndTime,
+    applyRoundState,
+    applyRoundMeta,
+    resetRoundState,
+  } = useRoundState();
 
   useEffect(() => {
     selectedCellRef.current = selectedCell;
@@ -327,13 +333,7 @@ export default function CanvasPage() {
         const roundState = roundRes.data;
 
         if (roundState?.round) {
-          setRoundId(roundState.round.id);
-          setRoundNumber(roundState.round.roundNumber);
-          setRoundDurationSec(roundState.round.roundDurationSec);
-          setTotalRounds(roundState.round.totalRounds);
-          setFormattedGameEndTime(
-            formatClockTime(new Date(roundState.round.gameEndAt)),
-          );
+          applyRoundState(roundState.round);
         }
 
         if (roundState?.timer) {
@@ -394,11 +394,15 @@ export default function CanvasPage() {
       totalRounds: number;
       gameEndAt: string;
     }) => {
-      setRoundId(roundId);
-      setRoundNumber(roundNumber);
-      setRoundDurationSec(roundDurationSec);
-      setTotalRounds(totalRounds);
-      setFormattedGameEndTime(formatClockTime(new Date(gameEndAt)));
+      applyRoundState({
+        id: roundId,
+        roundNumber,
+        startedAt: "",
+        endedAt: null,
+        roundDurationSec,
+        totalRounds,
+        gameEndAt,
+      });
       setVotes({});
       setRemainingSeconds(roundDurationSec);
       setFormattedRemainingTime(formatDuration(roundDurationSec));
@@ -502,9 +506,11 @@ export default function CanvasPage() {
       setRemainingSeconds(remainingSeconds);
       setFormattedRemainingTime(formatDuration(remainingSeconds));
       setIsRoundExpired(isRoundExpired);
-      setFormattedGameEndTime(formatClockTime(new Date(gameEndAt)));
-      setRoundDurationSec(roundDurationSec);
-      setTotalRounds(totalRounds);
+      applyRoundMeta({
+        gameEndAt,
+        roundDurationSec,
+        totalRounds,
+      });
     },
     [],
   );
@@ -512,14 +518,10 @@ export default function CanvasPage() {
   const handleGameEnded = useCallback(() => {
     setGameEnded(true);
     setPopupOpen(false);
-    setRoundId(null);
-    setRoundNumber(null);
-    setRoundDurationSec(null);
-    setVotes({});
+    resetRoundState();
     setRemaining(null);
     setRemainingSeconds(null);
     setFormattedRemainingTime(null);
-    setFormattedGameEndTime(null);
     setIsRoundExpired(false);
     votingCellIdsRef.current = new Set();
     topColorMapRef.current = new Map();
