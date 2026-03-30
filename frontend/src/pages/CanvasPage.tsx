@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import api from "@/lib/api";
+import api from "@/shared/api/client";
 import { CanvasCurrentResponse, Cell } from "@/types/canvas";
 import VotePanel from "@/components/vote/VotePanel";
 import VotePopup from "@/components/vote/VotePopup";
