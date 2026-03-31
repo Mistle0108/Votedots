@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { getRoundProgressPercent } from "../model/round.formatters";
-import type { RoundInfoProps } from "../model/round.types";
-import RoundProgress from "./RoundProgress";
+import {
+  getRoundProgressPercent,
+  type RoundInfoProps,
+} from "@/features/gameplay/round";
 
 export default function RoundInfo({
   roundNumber,
@@ -11,9 +12,7 @@ export default function RoundInfo({
   remainingSeconds,
   roundDurationSec,
 }: RoundInfoProps) {
-  const [enableProgressTransition, setEnableProgressTransition] =
-    useState(false);
-
+  const [enableProgressTransition, setEnableProgressTransition] = useState(false);
   const progressPercent = getRoundProgressPercent(
     remainingSeconds,
     roundDurationSec,
@@ -51,19 +50,23 @@ export default function RoundInfo({
 
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">게임 종료</p>
-        <p className="text-sm text-gray-500">{formattedGameEndTime ?? "-"}</p>
+        <p className="text-sm text-gray-500">
+          {formattedGameEndTime ?? "-"}
+        </p>
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <p className="text-sm font-medium">잔여 타임</p>
+        <p className="text-sm font-medium">타이머</p>
         <p className="text-base font-bold text-red-500">
           {formattedRemainingTime ?? "-"}
         </p>
+        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+          <div
+            className="h-full rounded-full bg-red-500"
+            style={{ width: `${progressPercent}%` }}
+          />
 
-        <RoundProgress
-          progressPercent={progressPercent}
-          enableTransition={enableProgressTransition}
-        />
+        </div>
       </div>
     </div>
   );
