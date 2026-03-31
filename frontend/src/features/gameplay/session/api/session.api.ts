@@ -1,7 +1,26 @@
 import api from "@/shared/api/client";
 import type { CanvasCurrentResponse } from "@/features/gameplay/canvas";
-import type { RoundStateResponse } from "@/features/gameplay/round";
-import { gameplayVoteApi } from "@/features/gameplay/vote";
+import { voteApi } from "@/api/vote";
+
+export interface RoundStateResponse {
+  status: "active" | "waiting";
+  round: {
+    id: number;
+    roundNumber: number;
+    startedAt: string;
+    endedAt: string | null;
+    roundDurationSec: number;
+    totalRounds: number;
+    gameEndAt: string;
+  };
+  timer: {
+    remainingSeconds: number;
+    isRoundExpired: boolean;
+    roundDurationSec: number;
+    totalRounds: number;
+    gameEndAt: string;
+  };
+}
 
 export const sessionApi = {
   getCurrentCanvas: () => api.get<CanvasCurrentResponse>("/canvas/current"),
@@ -9,9 +28,9 @@ export const sessionApi = {
   getActiveRound: (canvasId: number) =>
     api.get<RoundStateResponse>(`/canvas/${canvasId}/rounds/active`),
 
-  getTickets: (roundId: number) => gameplayVoteApi.getTickets(roundId),
+  getTickets: (roundId: number) => voteApi.getTickets(roundId),
 
   createCanvas: () => api.post("/canvas"),
 };
 
-export type { CanvasCurrentResponse, RoundStateResponse };
+export type { CanvasCurrentResponse };

@@ -40,7 +40,6 @@ export function useGameSession({ onBootstrap }: UseGameSessionParams) {
       } catch (err) {
         console.error("캔버스 생성 실패:", err);
       }
-
       window.location.reload();
     }, RESTART_TIME * 1000);
 
