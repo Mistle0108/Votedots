@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { authApi } from "@/api/auth";
 import { Button } from "@/shared/ui/button";
-import { authApi } from "../api/auth.api";
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const navigate = useNavigate();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [nickname, setNickname] = useState("");
   const [error, setError] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -14,14 +15,14 @@ export default function LoginPage() {
     setError("");
 
     try {
-      await authApi.login({ username, password });
-      navigate("/canvas");
+      await authApi.register({ username, password, nickname });
+      navigate("/login");
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const axiosErr = err as { response: { data: { message: string } } };
         setError(axiosErr.response.data.message);
       } else {
-        setError("로그인 중 오류가 발생했어요.");
+        setError("회원가입 중 오류가 발생했어요.");
       }
     }
   };
@@ -44,6 +45,17 @@ export default function LoginPage() {
           </div>
 
           <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium">닉네임</label>
+            <input
+              type="text"
+              value={nickname}
+              onChange={(e) => setNickname(e.target.value)}
+              className="rounded border px-3 py-2 text-sm"
+              required
+            />
+          </div>
+
+          <div className="flex flex-col gap-1">
             <label className="text-sm font-medium">비밀번호</label>
             <input
               type="password"
@@ -57,14 +69,14 @@ export default function LoginPage() {
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <Button type="submit" className="w-full">
-            로그인
+            회원가입
           </Button>
         </form>
 
         <p className="text-center text-sm">
-          계정이 없으신가요?{" "}
-          <Link to="/register" className="underline">
-            회원가입
+          이미 계정이 있으신가요?{" "}
+          <Link to="/login" className="underline">
+            로그인
           </Link>
         </p>
       </div>
