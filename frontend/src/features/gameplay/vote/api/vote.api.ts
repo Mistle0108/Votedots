@@ -1,19 +1,9 @@
 import api from "@/shared/api/client";
-
-export interface VoteSubmitRequest {
-  canvasId: number;
-  roundId: number;
-  cellId: number;
-  color: string;
-}
-
-export interface VoteStatusResponse {
-  status: Record<string, number>;
-}
-
-export interface TicketsResponse {
-  remaining: number;
-}
+import type {
+  TicketsResponse,
+  VoteStatusResponse,
+  VoteSubmitRequest,
+} from "../model/vote.types";
 
 export const voteApi = {
   submit: (data: VoteSubmitRequest) =>
