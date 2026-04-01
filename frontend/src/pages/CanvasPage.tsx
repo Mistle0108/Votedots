@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  useVotePopup,
   useVoteState,
   useVoteTickets,
   VotePanel,
@@ -44,7 +45,6 @@ export default function CanvasPage() {
 
   const cellsRef = useRef<Cell[]>([]);
   const selectedCellRef = useRef<Cell | null>(null);
-  const previewColorRef = useRef<string | null>(null);
   const isRoundExpiredRef = useRef(false);
 
   const [cells, setCells] = useState<Cell[]>([]);
@@ -65,10 +65,17 @@ export default function CanvasPage() {
   >(null);
   const [isRoundExpired, setIsRoundExpired] = useState(false);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
-  const [previewColor, setPreviewColor] = useState<string | null>(null);
-  const [popupOpen, setPopupOpen] = useState(false);
-  const [popupPos, setPopupPos] = useState({ x: 0, y: 0 });
   const [canvasReady, setCanvasReady] = useState(false);
+
+  const {
+    popupOpen,
+    popupPos,
+    previewColorRef,
+    openPopup,
+    closePopup,
+    resetPreviewColor,
+    handleColorChange,
+  } = useVotePopup();
 
   const {
     votes,
@@ -86,10 +93,6 @@ export default function CanvasPage() {
   useEffect(() => {
     selectedCellRef.current = selectedCell;
   }, [selectedCell]);
-
-  useEffect(() => {
-    previewColorRef.current = previewColor;
-  }, [previewColor]);
 
   useEffect(() => {
     isRoundExpiredRef.current = isRoundExpired;
@@ -184,24 +187,14 @@ export default function CanvasPage() {
     selectedCellRef.current = cell;
   }, []);
 
-  const handleResetPreviewColor = useCallback(() => {
-    setPreviewColor(null);
-    previewColorRef.current = null;
-  }, []);
-
-  const handleOpenPopup = useCallback((position: { x: number; y: number }) => {
-    setPopupPos(position);
-    setPopupOpen(true);
-  }, []);
-
   const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
     useCanvasInteraction({
       containerRef,
       canvasRef,
       cells,
       onSelectCell: handleSelectCell,
-      onResetPreviewColor: handleResetPreviewColor,
-      onOpenPopup: handleOpenPopup,
+      onResetPreviewColor: resetPreviewColor,
+      onOpenPopup: openPopup,
     });
 
   const handleRoundStarted = useCallback(
@@ -260,11 +253,11 @@ export default function CanvasPage() {
         selectedCellRef.current = nextSelectedCell;
 
         if (!isRoundExpiredRef.current) {
-          setPopupOpen(false);
+          closePopup();
         }
       }
     },
-    [updateCells],
+    [closePopup, updateCells],
   );
 
   const handleVoteUpdate = useCallback(
@@ -300,7 +293,7 @@ export default function CanvasPage() {
 
   const handleGameEnded = useCallback(() => {
     markGameEnded();
-    setPopupOpen(false);
+    closePopup();
     setRoundId(null);
     setRoundNumber(null);
     setRoundDurationSec(null);
@@ -310,7 +303,7 @@ export default function CanvasPage() {
     setFormattedGameEndTime(null);
     setIsRoundExpired(false);
     resetVoteState();
-  }, [clearTickets, markGameEnded, resetVoteState]);
+  }, [clearTickets, closePopup, markGameEnded, resetVoteState]);
 
   useGameplaySocket({
     canvasId,
@@ -331,15 +324,8 @@ export default function CanvasPage() {
   const handlePopupClose = useCallback(() => {
     setSelectedCell(null);
     selectedCellRef.current = null;
-    setPreviewColor(null);
-    previewColorRef.current = null;
-    setPopupOpen(false);
-  }, []);
-
-  const handleColorChange = useCallback((color: string | null) => {
-    setPreviewColor(color);
-    previewColorRef.current = color;
-  }, []);
+    closePopup();
+  }, [closePopup]);
 
   if (loading) {
     return <LoadingScreen />;
