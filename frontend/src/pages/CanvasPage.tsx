@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import VotePanel from "@/components/vote/VotePanel";
-import VotePopup from "@/components/vote/VotePopup";
-import { voteApi } from "@/api/vote";
+import { voteApi, VotePanel, VotePopup } from "@/features/gameplay/vote";
 import {
   CanvasStage,
   CanvasSurface,

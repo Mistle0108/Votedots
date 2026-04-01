@@ -1,6 +1,6 @@
 import api from "@/shared/api/client";
 import type { CanvasCurrentResponse } from "@/features/gameplay/canvas";
-import { voteApi } from "@/api/vote";
+import { voteApi } from "@/features/gameplay/vote/api/vote.api";
 
 export interface RoundStateResponse {
   status: "active" | "waiting";
