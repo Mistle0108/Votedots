@@ -10,6 +10,14 @@ type RoundMetaFromTimer = Pick<
   "roundDurationSec" | "totalRounds" | "gameEndAt"
 >;
 
+interface RoundStateValue {
+  roundId: number | null;
+  roundNumber: number | null;
+  roundDurationSec: number | null;
+  totalRounds: number;
+  formattedGameEndTime: string | null;
+}
+
 export default function useRoundState() {
   const [roundId, setRoundId] = useState<number | null>(null);
   const [roundNumber, setRoundNumber] = useState<number | null>(null);
@@ -19,13 +27,23 @@ export default function useRoundState() {
     string | null
   >(null);
 
-  const applyRoundState = useCallback((round: RoundInfo) => {
-    setRoundId(round.id);
-    setRoundNumber(round.roundNumber);
-    setRoundDurationSec(round.roundDurationSec);
-    setTotalRounds(round.totalRounds);
-    setFormattedGameEndTime(formatClockTime(new Date(round.gameEndAt)));
+  const setRoundState = useCallback((state: RoundStateValue) => {
+    setRoundId(state.roundId);
+    setRoundNumber(state.roundNumber);
+    setRoundDurationSec(state.roundDurationSec);
+    setTotalRounds(state.totalRounds);
+    setFormattedGameEndTime(state.formattedGameEndTime);
   }, []);
+
+  const applyRoundState = useCallback((round: RoundInfo) => {
+    setRoundState({
+      roundId: round.id,
+      roundNumber: round.roundNumber,
+      roundDurationSec: round.roundDurationSec,
+      totalRounds: round.totalRounds,
+      formattedGameEndTime: formatClockTime(new Date(round.gameEndAt)),
+    });
+  }, [setRoundState]);
 
   const applyRoundMeta = useCallback((timer: RoundMetaFromTimer) => {
     setRoundDurationSec(timer.roundDurationSec);
@@ -34,12 +52,14 @@ export default function useRoundState() {
   }, []);
 
   const resetRoundState = useCallback(() => {
-    setRoundId(null);
-    setRoundNumber(null);
-    setRoundDurationSec(null);
-    setTotalRounds(0);
-    setFormattedGameEndTime(null);
-  }, []);
+    setRoundState({
+      roundId: null,
+      roundNumber: null,
+      roundDurationSec: null,
+      totalRounds: 0,
+      formattedGameEndTime: null,
+    });
+  }, [setRoundState]);
 
   return {
     roundId,
@@ -47,6 +67,7 @@ export default function useRoundState() {
     roundDurationSec,
     totalRounds,
     formattedGameEndTime,
+    setRoundState,
     applyRoundState,
     applyRoundMeta,
     resetRoundState,
