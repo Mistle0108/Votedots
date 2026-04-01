@@ -1,7 +1,7 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
-import CanvasPage from "@/pages/CanvasPage";
-import LoginPage from "@/pages/LoginPage";
-import RegisterPage from "@/pages/RegisterPage";
+import CanvasPage from "@/pages/canvas/CanvasPage";
+import LoginPage from "@/pages/login/LoginPage";
+import RegisterPage from "@/pages/register/RegisterPage";
 
 export const router = createBrowserRouter([
   {
