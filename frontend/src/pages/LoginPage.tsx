@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { authApi } from "@/api/auth";
+import { authApi } from "@/features/auth";
 import { Button } from "@/shared/ui/button";
 
 export default function LoginPage() {
