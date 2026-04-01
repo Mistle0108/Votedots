@@ -1,21 +1,5 @@
 import api from "@/shared/api/client";
-
-export interface RegisterRequest {
-  username: string;
-  password: string;
-  nickname: string;
-}
-
-export interface LoginRequest {
-  username: string;
-  password: string;
-}
-
-export interface Voter {
-  uuid: string;
-  nickname: string;
-  role: string;
-}
+import type { LoginRequest, RegisterRequest, Voter } from "../model/auth.types";
 
 export const authApi = {
   register: (data: RegisterRequest) =>
