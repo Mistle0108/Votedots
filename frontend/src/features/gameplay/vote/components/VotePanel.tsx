@@ -1,22 +1,11 @@
+import type { Cell, Viewport } from "@/features/gameplay/canvas";
+import { CoordinateNavigator, MiniMap } from "@/features/gameplay/canvas";
 import { RoundInfo } from "@/features/gameplay/round";
 import {
-  CoordinateNavigator,
-  MiniMap,
-  Cell,
-  Viewport,
-} from "@/features/gameplay/canvas";
-
-const VOTES_PER_ROUND = parseInt(import.meta.env.VITE_VOTES_PER_ROUND ?? "3");
-const MAX_ENTRIES = 5;
-
-interface VoteEntry {
-  cellId: number;
-  x: number;
-  y: number;
-  topColor: string;
-  topCount: number;
-  totalCount: number;
-}
+  MAX_VOTE_PANEL_ENTRIES,
+  VOTES_PER_ROUND,
+} from "../model/vote.constants";
+import { buildVotePanelEntries } from "../model/vote.utils";
 
 interface Props {
   roundNumber: number | null;
@@ -55,43 +44,15 @@ export default function VotePanel({
   viewport,
   onNavigateToCoordinate,
 }: Props) {
-  const voteEntries: VoteEntry[] = Array.from(
-    Object.entries(votes)
-      .reduce<Map<number, VoteEntry>>((map, [key, count]) => {
-        const [cellIdStr, color] = key.split(":");
-        const cellId = parseInt(cellIdStr, 10);
-        const cell = cells.find((candidate) => candidate.id === cellId);
-        const existing = map.get(cellId);
-
-        if (!existing) {
-          map.set(cellId, {
-            cellId,
-            x: cell?.x ?? 0,
-            y: cell?.y ?? 0,
-            topColor: color,
-            topCount: count,
-            totalCount: count,
-          });
-        } else {
-          existing.totalCount += count;
-          if (count > existing.topCount) {
-            existing.topColor = color;
-            existing.topCount = count;
-          }
-        }
-
-        return map;
-      }, new Map())
-      .values(),
-  )
-    .sort((a, b) => b.totalCount - a.totalCount)
-    .slice(0, MAX_ENTRIES);
-
+  const voteEntries = buildVotePanelEntries(votes, cells).slice(
+    0,
+    MAX_VOTE_PANEL_ENTRIES,
+  );
   const maxCount = voteEntries[0]?.totalCount ?? 1;
   const usedCount = remaining !== null ? VOTES_PER_ROUND - remaining : 0;
-  const slots = Array.from({ length: MAX_ENTRIES }).map(
-    (_, index) => voteEntries[index] ?? null,
-  );
+  const slots = Array.from({ length: MAX_VOTE_PANEL_ENTRIES }, (_, index) => {
+    return voteEntries[index] ?? null;
+  });
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto p-5">
