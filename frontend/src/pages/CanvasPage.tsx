@@ -18,6 +18,11 @@ import {
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
 import {
+  RoundInfo,
+  useRoundState,
+  useRoundTimer,
+} from "@/features/gameplay/round";
+import {
   ErrorScreen,
   GameEndedScreen,
   LoadingScreen,
@@ -32,13 +37,6 @@ function formatClockTime(date: Date): string {
   return `${hours}:${minutes}`;
 }
 
-function formatDuration(seconds: number): string {
-  const safeSeconds = Math.max(0, seconds);
-  const minutes = Math.floor(safeSeconds / 60);
-  const secs = safeSeconds % 60;
-  return `${minutes}:${String(secs).padStart(2, "0")}`;
-}
-
 export default function CanvasPage() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -51,21 +49,30 @@ export default function CanvasPage() {
   const [canvasId, setCanvasId] = useState<number | null>(null);
   const [gridX, setGridX] = useState(0);
   const [gridY, setGridY] = useState(0);
-
-  const [roundId, setRoundId] = useState<number | null>(null);
-  const [roundNumber, setRoundNumber] = useState<number | null>(null);
-  const [roundDurationSec, setRoundDurationSec] = useState<number | null>(null);
-  const [totalRounds, setTotalRounds] = useState(0);
-  const [formattedGameEndTime, setFormattedGameEndTime] = useState<
-    string | null
-  >(null);
-  const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
-  const [formattedRemainingTime, setFormattedRemainingTime] = useState<
-    string | null
-  >(null);
-  const [isRoundExpired, setIsRoundExpired] = useState(false);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
   const [canvasReady, setCanvasReady] = useState(false);
+
+  const {
+    roundId,
+    roundNumber,
+    roundDurationSec,
+    totalRounds,
+    formattedGameEndTime,
+    setRoundState,
+    applyRoundMeta,
+    resetRoundState,
+  } = useRoundState();
+
+  const {
+    remainingSeconds,
+    formattedRemainingTime,
+    isRoundExpired,
+    setRoundTimerState,
+    applyRoundTimer,
+    startRoundTimer,
+    expireRoundTimer,
+    resetRoundTimer,
+  } = useRoundTimer();
 
   const {
     popupOpen,
@@ -79,8 +86,6 @@ export default function CanvasPage() {
 
   const {
     votes,
-    votingCellIds,
-    topColorMap,
     votingCellIdsRef,
     topColorMapRef,
     applyVoteUpdate,
@@ -121,17 +126,23 @@ export default function CanvasPage() {
       setGridY(result.gridY);
       updateCells(result.cells);
 
-      setRoundId(result.round.roundId);
-      setRoundNumber(result.round.roundNumber);
-      setRoundDurationSec(result.round.roundDurationSec);
-      setTotalRounds(result.round.totalRounds);
-      setFormattedGameEndTime(result.round.formattedGameEndTime);
-      setRemainingSeconds(result.round.remainingSeconds);
-      setFormattedRemainingTime(result.round.formattedRemainingTime);
-      setIsRoundExpired(result.round.isRoundExpired);
+      setRoundState({
+        roundId: result.round.roundId,
+        roundNumber: result.round.roundNumber,
+        roundDurationSec: result.round.roundDurationSec,
+        totalRounds: result.round.totalRounds,
+        formattedGameEndTime: result.round.formattedGameEndTime,
+      });
+
+      setRoundTimerState({
+        remainingSeconds: result.round.remainingSeconds,
+        formattedRemainingTime: result.round.formattedRemainingTime,
+        isRoundExpired: result.round.isRoundExpired,
+      });
+
       setRemaining(result.remaining);
     },
-    [setRemaining, updateCells],
+    [setRemaining, setRoundState, setRoundTimerState, updateCells],
   );
 
   const {
@@ -212,28 +223,27 @@ export default function CanvasPage() {
       totalRounds: number;
       gameEndAt: string;
     }) => {
-      setRoundId(roundId);
-      setRoundNumber(roundNumber);
-      setRoundDurationSec(roundDurationSec);
-      setTotalRounds(totalRounds);
-      setFormattedGameEndTime(formatClockTime(new Date(gameEndAt)));
-      setRemainingSeconds(roundDurationSec);
-      setFormattedRemainingTime(formatDuration(roundDurationSec));
-      setIsRoundExpired(false);
+      setRoundState({
+        roundId,
+        roundNumber,
+        roundDurationSec,
+        totalRounds,
+        formattedGameEndTime: formatClockTime(new Date(gameEndAt)),
+      });
+
+      startRoundTimer(roundDurationSec);
       clearSessionError();
       resetVoteState();
       await fetchTickets(roundId);
     },
-    [clearSessionError, fetchTickets, resetVoteState],
+    [clearSessionError, fetchTickets, resetVoteState, setRoundState, startRoundTimer],
   );
 
   const handleRoundEnded = useCallback(() => {
     clearTickets();
-    setRemainingSeconds(0);
-    setFormattedRemainingTime(formatDuration(0));
-    setIsRoundExpired(true);
+    expireRoundTimer();
     resetVoteState();
-  }, [clearTickets, resetVoteState]);
+  }, [clearTickets, expireRoundTimer, resetVoteState]);
 
   const handleCanvasUpdated = useCallback(
     ({ cellId, color }: { cellId: number; color: string }) => {
@@ -281,29 +291,19 @@ export default function CanvasPage() {
       roundDurationSec: number;
       totalRounds: number;
     }) => {
-      setRemainingSeconds(remainingSeconds);
-      setFormattedRemainingTime(formatDuration(remainingSeconds));
-      setIsRoundExpired(isRoundExpired);
-      setFormattedGameEndTime(formatClockTime(new Date(gameEndAt)));
-      setRoundDurationSec(roundDurationSec);
-      setTotalRounds(totalRounds);
+      applyRoundTimer({ remainingSeconds, isRoundExpired });
+      applyRoundMeta({ roundDurationSec, totalRounds, gameEndAt });
     },
-    [],
+    [applyRoundMeta, applyRoundTimer],
   );
 
   const handleGameEnded = useCallback(() => {
     markGameEnded();
-    closePopup();
-    setRoundId(null);
-    setRoundNumber(null);
-    setRoundDurationSec(null);
     clearTickets();
-    setRemainingSeconds(null);
-    setFormattedRemainingTime(null);
-    setFormattedGameEndTime(null);
-    setIsRoundExpired(false);
+    resetRoundState();
+    resetRoundTimer();
     resetVoteState();
-  }, [clearTickets, closePopup, markGameEnded, resetVoteState]);
+  }, [clearTickets, markGameEnded, resetRoundState, resetRoundTimer, resetVoteState]);
 
   useGameplaySocket({
     canvasId,

@@ -7,6 +7,12 @@ type RoundTimerState = Pick<
   "remainingSeconds" | "isRoundExpired"
 >;
 
+interface RoundTimerStateValue {
+  remainingSeconds: number | null;
+  formattedRemainingTime: string | null;
+  isRoundExpired: boolean;
+}
+
 export default function useRoundTimer() {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [formattedRemainingTime, setFormattedRemainingTime] = useState<
@@ -14,37 +20,52 @@ export default function useRoundTimer() {
   >(null);
   const [isRoundExpired, setIsRoundExpired] = useState(false);
 
+  const setRoundTimerState = useCallback((state: RoundTimerStateValue) => {
+    setRemainingSeconds(state.remainingSeconds);
+    setFormattedRemainingTime(state.formattedRemainingTime);
+    setIsRoundExpired(state.isRoundExpired);
+  }, []);
+
   const applyRoundTimer = useCallback(
     ({ remainingSeconds, isRoundExpired }: RoundTimerState) => {
-      setRemainingSeconds(remainingSeconds);
-      setFormattedRemainingTime(formatDuration(remainingSeconds));
-      setIsRoundExpired(isRoundExpired);
+      setRoundTimerState({
+        remainingSeconds,
+        formattedRemainingTime: formatDuration(remainingSeconds),
+        isRoundExpired,
+      });
     },
-    [],
+    [setRoundTimerState],
   );
 
   const startRoundTimer = useCallback((roundDurationSec: number) => {
-    setRemainingSeconds(roundDurationSec);
-    setFormattedRemainingTime(formatDuration(roundDurationSec));
-    setIsRoundExpired(false);
-  }, []);
+    setRoundTimerState({
+      remainingSeconds: roundDurationSec,
+      formattedRemainingTime: formatDuration(roundDurationSec),
+      isRoundExpired: false,
+    });
+  }, [setRoundTimerState]);
 
   const expireRoundTimer = useCallback(() => {
-    setRemainingSeconds(0);
-    setFormattedRemainingTime(formatDuration(0));
-    setIsRoundExpired(true);
-  }, []);
+    setRoundTimerState({
+      remainingSeconds: 0,
+      formattedRemainingTime: formatDuration(0),
+      isRoundExpired: true,
+    });
+  }, [setRoundTimerState]);
 
   const resetRoundTimer = useCallback(() => {
-    setRemainingSeconds(null);
-    setFormattedRemainingTime(null);
-    setIsRoundExpired(false);
-  }, []);
+    setRoundTimerState({
+      remainingSeconds: null,
+      formattedRemainingTime: null,
+      isRoundExpired: false,
+    });
+  }, [setRoundTimerState]);
 
   return {
     remainingSeconds,
     formattedRemainingTime,
     isRoundExpired,
+    setRoundTimerState,
     applyRoundTimer,
     startRoundTimer,
     expireRoundTimer,
