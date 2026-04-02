@@ -7,7 +7,12 @@ export const voteController = {
     try {
       const io = req.app.get("io") as Server;
       const voterId = req.session.voter!.id;
+      const sessionId = req.sessionID;
       const { canvasId, roundId, cellId, color } = req.body;
+
+      if (!sessionId) {
+        return res.status(401).json({ message: "세션 정보를 찾을 수 없어요" });
+      }
 
       if (!canvasId || !roundId || !cellId || !color) {
         return res
@@ -19,12 +24,14 @@ export const voteController = {
 
       const vote = await voteService.submit(
         voterId,
+        sessionId,
         canvasId,
         roundId,
         cellId,
         color,
         io,
       );
+
       return res.status(201).json({ message: "투표가 완료됐어요", vote });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
