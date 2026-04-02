@@ -7,7 +7,12 @@ declare module "socket.io" {
     voterId?: number;
     voterUuid?: string;
     voterNickname?: string;
+    sessionId?: string;
   }
+}
+
+export function getSessionRoom(sessionId: string): string {
+  return `session:${sessionId}`;
 }
 
 // express-session 미들웨어를 Socket.io에서 사용할 수 있도록 래핑
@@ -32,10 +37,15 @@ export function initSocket(io: Server): void {
     socket.voterId = voter.id;
     socket.voterUuid = voter.uuid;
     socket.voterNickname = voter.nickname;
+    socket.sessionId = req.sessionID;
     next();
   });
 
   io.on("connection", (socket) => {
+    if (socket.sessionId) {
+      socket.join(getSessionRoom(socket.sessionId));
+    }
+
     console.log(`소켓 연결: ${socket.id} (${socket.voterNickname})`);
 
     // 이벤트 핸들러 등록
