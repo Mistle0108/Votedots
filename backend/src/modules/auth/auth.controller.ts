@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { authService } from "./auth.service";
 import { authSessionService } from "./auth-session.service";
+import { getSessionRoom } from "../../socket/socket";
 
 function regenerateSession(req: Request): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -71,6 +72,9 @@ export const authController = {
       );
 
       if (previousSessionId && previousSessionId !== req.sessionID) {
+        const io = req.app.get("io");
+        io.to(getSessionRoom(previousSessionId)).emit("auth:session-ended");
+        io.in(getSessionRoom(previousSessionId)).disconnectSockets(true);
         await authSessionService.destroySession(previousSessionId);
       }
 
