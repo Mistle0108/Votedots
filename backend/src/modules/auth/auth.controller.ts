@@ -1,5 +1,32 @@
 import { Request, Response } from "express";
 import { authService } from "./auth.service";
+import { authSessionService } from "./auth-session.service";
+
+function regenerateSession(req: Request): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.regenerate((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
+function destroyRequestSession(req: Request): Promise<void> {
+  return new Promise((resolve, reject) => {
+    req.session.destroy((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
 
 export const authController = {
   async register(req: Request, res: Response) {
@@ -29,12 +56,23 @@ export const authController = {
 
       const voter = await authService.login(username, password);
 
+      await regenerateSession(req);
+
       req.session.voter = {
         id: voter.id,
         uuid: voter.uuid,
         nickname: voter.nickname,
         role: voter.role,
       };
+
+      const previousSessionId = await authSessionService.replaceActiveSession(
+        voter.id,
+        req.sessionID,
+      );
+
+      if (previousSessionId && previousSessionId !== req.sessionID) {
+        await authSessionService.destroySession(previousSessionId);
+      }
 
       return res.json({
         message: "로그인 성공",
@@ -46,15 +84,23 @@ export const authController = {
   },
 
   async logout(req: Request, res: Response) {
-    req.session.destroy((err) => {
-      if (err) {
-        return res
-          .status(500)
-          .json({ message: "로그아웃 중 오류가 발생했어요" });
+    try {
+      const voterId = req.session.voter?.id;
+      const sessionId = req.sessionID;
+
+      if (voterId) {
+        await authSessionService.clearActiveSession(voterId, sessionId);
       }
+
+      await destroyRequestSession(req);
+
       res.clearCookie("connect.sid");
       return res.json({ message: "로그아웃 됐어요" });
-    });
+    } catch (err) {
+      return res
+        .status(500)
+        .json({ message: "로그아웃 중 오류가 발생했어요" });
+    }
   },
 
   async me(req: Request, res: Response) {
