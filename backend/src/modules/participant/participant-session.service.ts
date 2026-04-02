@@ -29,6 +29,15 @@ interface JoinCanvasResult {
   restored: boolean;
 }
 
+export interface ParticipantSummary {
+  sessionId: string;
+  voterId: number;
+  voterUuid: string;
+  nickname: string;
+  status: ParticipantStatus;
+  connected: boolean;
+}
+
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 
 class ParticipantSessionService {
@@ -199,8 +208,7 @@ class ParticipantSessionService {
     io: Server,
   ): Promise<JoinCanvasResult> {
     const existing = await this.getCanvasParticipation(canvasId, sessionId);
-    const replaced =
-      !!existing?.socketId && existing.socketId !== socketId;
+    const replaced = !!existing?.socketId && existing.socketId !== socketId;
 
     if (replaced && existing?.socketId) {
       io.to(existing.socketId).emit("session:replaced", { canvasId });
@@ -269,8 +277,7 @@ class ParticipantSessionService {
     const affectedCanvasIds: number[] = [];
     const disconnectedAt = new Date();
     const graceUntil = new Date(
-      disconnectedAt.getTime() +
-        gameConfig.participantGracePeriodSec * 1000,
+      disconnectedAt.getTime() + gameConfig.participantGracePeriodSec * 1000,
     ).toISOString();
 
     for (const canvasIdValue of canvasIds) {
@@ -344,6 +351,51 @@ class ParticipantSessionService {
     }
 
     return { voterIds };
+  }
+
+  async getParticipantList(canvasId: number): Promise<ParticipantSummary[]> {
+    const sessionIds = await redisClient.sMembers(
+      this.buildCanvasSessionsKey(canvasId),
+    );
+
+    const participants: ParticipantSummary[] = [];
+
+    for (const sessionId of sessionIds) {
+      const state = await this.getCanvasParticipation(canvasId, sessionId);
+      if (!state) {
+        continue;
+      }
+
+      const voter = await this.getSessionVoter(sessionId);
+      if (!voter) {
+        await this.cleanupParticipation(canvasId, sessionId);
+        continue;
+      }
+
+      participants.push({
+        sessionId,
+        voterId: voter.id,
+        voterUuid: voter.uuid,
+        nickname: voter.nickname,
+        status: state.status,
+        connected: state.connected,
+      });
+    }
+
+    participants.sort((left, right) => {
+      if (left.status !== right.status) {
+        return left.status === "voting" ? -1 : 1;
+      }
+
+      return left.nickname.localeCompare(right.nickname, "ko");
+    });
+
+    return participants;
+  }
+
+  async getParticipantCount(canvasId: number): Promise<number> {
+    const participants = await this.getParticipantList(canvasId);
+    return participants.length;
   }
 
   async assertVotingParticipant(
