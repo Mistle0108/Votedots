@@ -4,6 +4,10 @@ import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { startGameTimer } from "../game/game.timer";
+import {
+  participantSessionService,
+  type ParticipantSummary,
+} from "../participant/participant-session.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -14,7 +18,6 @@ const GRID_Y = parseInt(process.env.GRID_SIZE_Y ?? "25");
 
 export const canvasService = {
   async create(io: Server): Promise<Canvas> {
-    // 이미 진행 중인 캔버스가 있으면 생성 불가
     const existing = await canvasRepository.findOne({
       where: { status: CanvasStatus.PLAYING },
     });
@@ -22,7 +25,6 @@ export const canvasService = {
       throw new Error("이미 진행 중인 캔버스가 있어요");
     }
 
-    // 캔버스 생성
     const canvas = canvasRepository.create({
       gridX: GRID_X,
       gridY: GRID_Y,
@@ -31,7 +33,6 @@ export const canvasService = {
     });
     await canvasRepository.save(canvas);
 
-    // N×N 셀 일괄 생성
     const cells: Partial<Cell>[] = [];
     for (let y = 0; y < GRID_Y; y++) {
       for (let x = 0; x < GRID_X; x++) {
@@ -46,7 +47,6 @@ export const canvasService = {
     }
     await cellRepository.save(cells as Cell[]);
 
-    // 게임 타이머 시작
     await startGameTimer(io, canvas.id);
 
     return canvas;
@@ -63,6 +63,39 @@ export const canvasService = {
       where: { canvas: { id: canvasId } },
       order: { y: "ASC", x: "ASC" },
     });
+  },
+
+  async getCurrentParticipantCount(): Promise<{ canvasId: number; count: number }> {
+    const canvas = await this.getCurrent();
+    if (!canvas) {
+      throw new Error("진행 중인 캔버스가 없어요");
+    }
+
+    const count = await participantSessionService.getParticipantCount(canvas.id);
+
+    return {
+      canvasId: canvas.id,
+      count,
+    };
+  },
+
+  async getCurrentParticipantList(): Promise<{
+    canvasId: number;
+    participants: ParticipantSummary[];
+  }> {
+    const canvas = await this.getCurrent();
+    if (!canvas) {
+      throw new Error("진행 중인 캔버스가 없어요");
+    }
+
+    const participants = await participantSessionService.getParticipantList(
+      canvas.id,
+    );
+
+    return {
+      canvasId: canvas.id,
+      participants,
+    };
   },
 
   async recoverOnStartup(io: Server): Promise<Canvas> {

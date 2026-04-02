@@ -20,6 +20,7 @@ export const canvasController = {
       if (!canvas) {
         return res.status(404).json({ message: "진행 중인 캔버스가 없어요" });
       }
+
       const cells = await canvasService.getCells(canvas.id);
       return res.json({
         canvas,
@@ -27,6 +28,32 @@ export const canvasController = {
         roundDurationSec: gameConfig.roundDurationSec,
       });
     } catch (err) {
+      return res.status(500).json({ message: String(err) });
+    }
+  },
+
+  async getCurrentParticipantCount(_req: Request, res: Response) {
+    try {
+      const result = await canvasService.getCurrentParticipantCount();
+      return res.json(result);
+    } catch (err) {
+      if (String(err).includes("진행 중인 캔버스가 없어요")) {
+        return res.status(404).json({ message: String(err) });
+      }
+
+      return res.status(500).json({ message: String(err) });
+    }
+  },
+
+  async getCurrentParticipantList(_req: Request, res: Response) {
+    try {
+      const result = await canvasService.getCurrentParticipantList();
+      return res.json(result);
+    } catch (err) {
+      if (String(err).includes("진행 중인 캔버스가 없어요")) {
+        return res.status(404).json({ message: String(err) });
+      }
+
       return res.status(500).json({ message: String(err) });
     }
   },
