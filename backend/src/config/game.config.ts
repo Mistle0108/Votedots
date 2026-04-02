@@ -3,6 +3,7 @@ export const gameConfig = {
   totalRounds: 10,
   votesPerRound: 3,
   roundResultDelaySec: 3,
+  participantGracePeriodSec: 15,
   get totalDurationSec() {
     return (
       this.roundDurationSec * this.totalRounds +

@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import { In } from "typeorm";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
@@ -8,6 +9,7 @@ import { Vote } from "../../entities/vote.entity";
 import { Voter } from "../../entities/voter.entity";
 import { redisClient } from "../../config/redis";
 import { gameConfig } from "../../config/game.config";
+import { participantSessionService } from "../participant/participant-session.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -69,7 +71,6 @@ export const roundService = {
       throw new Error("캔버스를 찾을 수 없어요");
     }
 
-    // 현재 진행 중인 라운드가 있으면 시작 불가
     const activeRound = await voteRoundRepository.findOne({
       where: { canvas: { id: canvasId }, isActive: true },
     });
@@ -77,14 +78,12 @@ export const roundService = {
       throw new Error("이미 진행 중인 라운드가 있어요");
     }
 
-    // 마지막 라운드 번호 조회
     const lastRound = await voteRoundRepository.findOne({
       where: { canvas: { id: canvasId } },
       order: { roundNumber: "DESC" },
     });
     const nextRoundNumber = lastRound ? lastRound.roundNumber + 1 : 1;
 
-    // 라운드 생성
     const round = voteRoundRepository.create({
       canvas,
       roundNumber: nextRoundNumber,
@@ -93,8 +92,14 @@ export const roundService = {
     });
     await voteRoundRepository.save(round);
 
-    // 참가자 전원에게 투표권 발급
-    const voters = await voterRepository.find();
+    const { voterIds } =
+      await participantSessionService.activateParticipantsForRound(canvasId);
+
+    const voters =
+      voterIds.length > 0
+        ? await voterRepository.findBy({ id: In(voterIds) })
+        : [];
+
     const tickets: Partial<VoteTicket>[] = [];
     for (const voter of voters) {
       for (let i = 0; i < VOTES_PER_ROUND; i++) {
@@ -105,12 +110,12 @@ export const roundService = {
         });
       }
     }
-    await voteTicketRepository.save(tickets as VoteTicket[]);
+
+    if (tickets.length > 0) {
+      await voteTicketRepository.save(tickets as VoteTicket[]);
+    }
 
     if (io) {
-      const remainingRoundsIncludingCurrent =
-        gameConfig.totalRounds - round.roundNumber + 1;
-
       const gameEndAt = getActiveGameEndAt(round.startedAt, round.roundNumber);
 
       io.to(`canvas:${canvasId}`).emit("round:started", {
@@ -138,7 +143,6 @@ export const roundService = {
       throw new Error("진행 중인 라운드를 찾을 수 없어요");
     }
 
-    // Redis에서 Cell 득표 집계 조회
     const redisKey = `vote:round:${roundId}`;
     const voteData = await redisClient.hGetAll(redisKey);
 
@@ -157,7 +161,6 @@ export const roundService = {
       }
     }
 
-    // 동점 처리 — 랜덤 선택
     const topCandidates = candidates.filter((c) => c.count === maxVotes);
     if (topCandidates.length > 0) {
       const winner =
@@ -166,7 +169,6 @@ export const roundService = {
       winningColor = winner.color;
     }
 
-    // Redis 득표가 없으면 DB에서 직접 집계
     if (candidates.length === 0) {
       const votes = await voteRepository.find({
         where: { round: { id: roundId } },
@@ -177,6 +179,7 @@ export const roundService = {
         string,
         { cellId: number; color: string; count: number }
       >();
+
       for (const vote of votes) {
         const key = `${vote.cell.id}:${vote.color}`;
         const existing = countMap.get(key);
@@ -194,8 +197,11 @@ export const roundService = {
       let max = 0;
       const dbCandidates = Array.from(countMap.values());
       for (const c of dbCandidates) {
-        if (c.count > max) max = c.count;
+        if (c.count > max) {
+          max = c.count;
+        }
       }
+
       const topDbCandidates = dbCandidates.filter((c) => c.count === max);
       if (topDbCandidates.length > 0) {
         const winner =
@@ -205,24 +211,22 @@ export const roundService = {
       }
     }
 
-    // 당선 셀 색상 업데이트
     let winningCell: Cell | null = null;
     if (winningCellId && winningColor) {
       await cellRepository.update(winningCellId, {
         color: winningColor,
         status: CellStatus.PAINTED,
       });
+
       winningCell = await cellRepository.findOne({
         where: { id: winningCellId },
       });
     }
 
-    // 라운드 종료 처리
     round.isActive = false;
     round.endedAt = new Date();
     await voteRoundRepository.save(round);
 
-    // Redis 키 삭제
     await redisClient.del(redisKey);
 
     if (io) {
@@ -301,13 +305,17 @@ export const roundService = {
       order: { roundNumber: "DESC" },
     });
 
-    if (!lastRound?.endedAt) return null;
+    if (!lastRound?.endedAt) {
+      return null;
+    }
 
     const waitingDeadline = new Date(
       lastRound.endedAt.getTime() + gameConfig.roundResultDelaySec * 1000,
     );
 
-    if (now >= waitingDeadline) return null;
+    if (now >= waitingDeadline) {
+      return null;
+    }
 
     const gameEndAt = getWaitingGameEndAt(
       lastRound.endedAt,

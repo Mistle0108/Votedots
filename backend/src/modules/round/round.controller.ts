@@ -1,15 +1,18 @@
 import { Request, Response } from "express";
+import { Server } from "socket.io";
 import { roundService } from "./round.service";
 
 export const roundController = {
   async startRound(req: Request, res: Response) {
     try {
+      const io = req.app.get("io") as Server;
       const canvasId = parseInt(String(req.params["canvasId"]));
+
       if (isNaN(canvasId)) {
         return res.status(400).json({ message: "올바르지 않은 캔버스 ID예요" });
       }
 
-      const round = await roundService.startRound(canvasId);
+      const round = await roundService.startRound(canvasId, io);
       return res.status(201).json({ message: "라운드가 시작됐어요", round });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
@@ -18,13 +21,15 @@ export const roundController = {
 
   async endRound(req: Request, res: Response) {
     try {
+      const io = req.app.get("io") as Server;
       const canvasId = parseInt(String(req.params["canvasId"]));
       const roundId = parseInt(String(req.params["roundId"]));
+
       if (isNaN(canvasId) || isNaN(roundId)) {
         return res.status(400).json({ message: "올바르지 않은 ID예요" });
       }
 
-      const round = await roundService.endRound(canvasId, roundId);
+      const round = await roundService.endRound(canvasId, roundId, io);
       return res.json({ message: "라운드가 종료됐어요", round });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
