@@ -105,11 +105,12 @@ export default function useCanvasGameplay({
   useEffect(() => {
     if (!canvasId) {
       clearParticipantCount();
-      return;
     }
+  }, [canvasId, clearParticipantCount]);
 
+  const handleCanvasJoined = useCallback(() => {
     void refreshParticipantCount();
-  }, [canvasId, clearParticipantCount, refreshParticipantCount]);
+  }, [refreshParticipantCount]);
 
   const handleRoundStarted = useCallback(
     async ({
@@ -208,6 +209,7 @@ export default function useCanvasGameplay({
 
   useGameplaySocket({
     canvasId,
+    onCanvasJoined: handleCanvasJoined,
     onRoundStarted: handleRoundStarted,
     onRoundEnded: handleRoundEnded,
     onCanvasUpdated,

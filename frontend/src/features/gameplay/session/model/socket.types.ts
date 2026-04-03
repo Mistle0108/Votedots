@@ -1,3 +1,9 @@
+export interface CanvasJoinedPayload {
+  canvasId: number;
+  status: "voting" | "waiting";
+  restored: boolean;
+}
+
 export interface RoundStartedPayload {
   roundId: number;
   roundNumber: number;

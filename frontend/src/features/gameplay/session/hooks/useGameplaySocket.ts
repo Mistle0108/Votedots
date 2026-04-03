@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import socket from "@/shared/lib/socket";
 import {
+  CanvasJoinedPayload,
   CanvasUpdatedPayload,
   ParticipantsUpdatedPayload,
   RoundEndedPayload,
@@ -11,6 +12,7 @@ import {
 
 interface UseGameplaySocketParams {
   canvasId: number | null;
+  onCanvasJoined: (payload: CanvasJoinedPayload) => void;
   onRoundStarted: (payload: RoundStartedPayload) => void;
   onRoundEnded: (payload: RoundEndedPayload) => void;
   onCanvasUpdated: (payload: CanvasUpdatedPayload) => void;
@@ -22,6 +24,7 @@ interface UseGameplaySocketParams {
 
 export function useGameplaySocket({
   canvasId,
+  onCanvasJoined,
   onRoundStarted,
   onRoundEnded,
   onCanvasUpdated,
@@ -33,9 +36,7 @@ export function useGameplaySocket({
   useEffect(() => {
     if (!canvasId) return;
 
-    socket.connect();
-    socket.emit("join:canvas", canvasId);
-
+    socket.on("canvas:joined", onCanvasJoined);
     socket.on("round:started", onRoundStarted);
     socket.on("round:ended", onRoundEnded);
     socket.on("canvas:updated", onCanvasUpdated);
@@ -44,8 +45,12 @@ export function useGameplaySocket({
     socket.on("participants:updated", onParticipantsUpdated);
     socket.on("game:ended", onGameEnded);
 
+    socket.connect();
+    socket.emit("join:canvas", canvasId);
+
     return () => {
       socket.emit("leave:canvas", canvasId);
+      socket.off("canvas:joined", onCanvasJoined);
       socket.off("round:started", onRoundStarted);
       socket.off("round:ended", onRoundEnded);
       socket.off("canvas:updated", onCanvasUpdated);
@@ -57,6 +62,7 @@ export function useGameplaySocket({
     };
   }, [
     canvasId,
+    onCanvasJoined,
     onCanvasUpdated,
     onGameEnded,
     onParticipantsUpdated,

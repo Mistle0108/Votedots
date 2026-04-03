@@ -7,14 +7,14 @@ export function registerHandlers(socket: Socket, io: Server): void {
       const canvasId = Number(canvasIdValue);
       if (Number.isNaN(canvasId)) {
         socket.emit("canvas:error", {
-          message: "올바르지 않은 캔버스 ID예요",
+          message: "Invalid canvas id",
         });
         return;
       }
 
       if (!socket.sessionId) {
         socket.emit("canvas:error", {
-          message: "세션 정보를 찾을 수 없어요",
+          message: "Session information was not found",
         });
         return;
       }
@@ -35,8 +35,13 @@ export function registerHandlers(socket: Socket, io: Server): void {
         restored: result.restored,
       });
 
+      await participantSessionService.broadcastParticipantsUpdated(
+        io,
+        canvasId,
+      );
+
       console.log(
-        `${socket.voterNickname} → 룸 입장: ${room} (소켓: ${socket.id}, 상태: ${result.status})`,
+        `${socket.voterNickname} joined ${room} (socket: ${socket.id}, status: ${result.status})`,
       );
     } catch (err) {
       socket.emit("canvas:error", { message: String(err) });
@@ -48,14 +53,14 @@ export function registerHandlers(socket: Socket, io: Server): void {
       const canvasId = Number(canvasIdValue);
       if (Number.isNaN(canvasId)) {
         socket.emit("canvas:error", {
-          message: "올바르지 않은 캔버스 ID예요",
+          message: "Invalid canvas id",
         });
         return;
       }
 
       if (!socket.sessionId) {
         socket.emit("canvas:error", {
-          message: "세션 정보를 찾을 수 없어요",
+          message: "Session information was not found",
         });
         return;
       }
@@ -64,7 +69,6 @@ export function registerHandlers(socket: Socket, io: Server): void {
         canvasId,
         socket.sessionId,
         socket.id,
-        io,
       );
 
       const room = `canvas:${canvasId}`;
@@ -72,8 +76,13 @@ export function registerHandlers(socket: Socket, io: Server): void {
 
       socket.emit("canvas:left", { canvasId });
 
+      await participantSessionService.broadcastParticipantsUpdated(
+        io,
+        canvasId,
+      );
+
       console.log(
-        `${socket.voterNickname} → 룸 퇴장: ${room} (소켓: ${socket.id})`,
+        `${socket.voterNickname} left ${room} (socket: ${socket.id})`,
       );
     } catch (err) {
       socket.emit("canvas:error", { message: String(err) });

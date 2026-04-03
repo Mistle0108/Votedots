@@ -121,7 +121,7 @@ class ParticipantSessionService {
 
         if (expiresAt <= Date.now()) {
           await this.cleanupParticipation(canvasId, sessionId);
-          await this.emitParticipantsUpdated(io, canvasId);
+          await this.broadcastParticipantsUpdated(io, canvasId);
         }
       } finally {
         this.cleanupTimers.delete(timerKey);
@@ -240,8 +240,6 @@ class ParticipantSessionService {
       graceUntil: "",
     });
 
-    await this.emitParticipantsUpdated(io, canvasId);
-
     return {
       status,
       replaced,
@@ -253,7 +251,6 @@ class ParticipantSessionService {
     canvasId: number,
     sessionId: string,
     socketId: string,
-    io: Server,
   ): Promise<boolean> {
     const state = await this.getCanvasParticipation(canvasId, sessionId);
 
@@ -262,8 +259,6 @@ class ParticipantSessionService {
     }
 
     await this.cleanupParticipation(canvasId, sessionId);
-    await this.emitParticipantsUpdated(io, canvasId);
-
     return true;
   }
 
@@ -305,6 +300,7 @@ class ParticipantSessionService {
         graceUntil,
       });
 
+      await this.broadcastParticipantsUpdated(io, canvasId);
       this.scheduleCleanup(canvasId, sessionId, graceUntil, io);
       affectedCanvasIds.push(canvasId);
     }
@@ -368,7 +364,7 @@ class ParticipantSessionService {
 
     for (const sessionId of sessionIds) {
       const state = await this.getCanvasParticipation(canvasId, sessionId);
-      if (!state) {
+      if (!state || !state.connected) {
         continue;
       }
 
@@ -412,24 +408,24 @@ class ParticipantSessionService {
     const state = await this.getCanvasParticipation(canvasId, sessionId);
 
     if (!state || !state.connected) {
-      throw new Error("현재 캔버스에 참여 중인 세션이 아니에요");
+      throw new Error("Current session is not participating in this canvas");
     }
 
     if (state.status !== "voting") {
-      throw new Error("현재 라운드 투표 대상이 아니에요");
+      throw new Error("Current round is not available for voting");
     }
 
     const voter = await this.getSessionVoter(sessionId);
     if (!voter) {
-      throw new Error("세션 정보를 찾을 수 없어요");
+      throw new Error("Session voter information was not found");
     }
 
     if (voter.id !== expectedVoterId) {
-      throw new Error("세션 사용자 정보가 일치하지 않아요");
+      throw new Error("Session user information does not match");
     }
   }
 
-  private async emitParticipantsUpdated(
+  async broadcastParticipantsUpdated(
     io: Server,
     canvasId: number,
   ): Promise<void> {
