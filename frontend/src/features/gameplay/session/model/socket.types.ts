@@ -37,3 +37,8 @@ export interface TimerUpdatePayload {
   totalRounds: number;
   gameEndAt: string;
 }
+
+export interface ParticipantsUpdatedPayload {
+  canvasId: number;
+  count: number;
+}

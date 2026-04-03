@@ -22,6 +22,11 @@ export interface RoundStateResponse {
   };
 }
 
+export interface ParticipantCountResponse {
+  canvasId: number;
+  count: number;
+}
+
 export const sessionApi = {
   getCurrentCanvas: () => api.get<CanvasCurrentResponse>("/canvas/current"),
 
@@ -29,6 +34,9 @@ export const sessionApi = {
     api.get<RoundStateResponse>(`/canvas/${canvasId}/rounds/active`),
 
   getTickets: (roundId: number) => voteApi.getTickets(roundId),
+
+  getCurrentParticipantCount: () =>
+    api.get<ParticipantCountResponse>("/canvas/current/participants/count"),
 
   createCanvas: () => api.post("/canvas"),
 };

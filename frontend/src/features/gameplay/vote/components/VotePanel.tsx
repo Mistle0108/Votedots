@@ -14,6 +14,8 @@ interface Props {
   formattedRemainingTime: string | null;
   remainingSeconds: number | null;
   roundDurationSec: number | null;
+  participantCount: number | null;
+  participantCountLoading: boolean;
   votes: Record<string, number>;
   remaining: number | null;
   cells: Cell[];
@@ -35,6 +37,8 @@ export default function VotePanel({
   formattedRemainingTime,
   remainingSeconds,
   roundDurationSec,
+  participantCount,
+  participantCountLoading,
   votes,
   remaining,
   cells,
@@ -65,6 +69,8 @@ export default function VotePanel({
         formattedRemainingTime={formattedRemainingTime}
         remainingSeconds={remainingSeconds}
         roundDurationSec={roundDurationSec}
+        participantCount={participantCount}
+        participantCountLoading={participantCountLoading}
       />
 
       <div className="flex flex-col gap-1">

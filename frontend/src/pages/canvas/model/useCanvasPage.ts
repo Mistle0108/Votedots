@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import {
-  useVotePopup,
-  useVoteState,
-} from "@/features/gameplay/vote";
+import { useVotePopup, useVoteState } from "@/features/gameplay/vote";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
@@ -118,6 +115,8 @@ export default function useCanvasPage() {
     remainingSeconds: gameplay.remainingSeconds,
     roundDurationSec: gameplay.roundDurationSec,
     remaining: gameplay.remaining,
+    participantCount: gameplay.participantCount,
+    participantCountLoading: gameplay.participantCountLoading,
     gridX,
     gridY,
     viewport,

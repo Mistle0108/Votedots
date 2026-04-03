@@ -31,4 +31,6 @@ export interface RoundInfoProps {
   formattedRemainingTime: string | null;
   remainingSeconds: number | null;
   roundDurationSec: number | null;
+  participantCount: number | null;
+  participantCountLoading: boolean;
 }

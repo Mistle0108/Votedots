@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import socket from "@/shared/lib/socket";
 import {
   CanvasUpdatedPayload,
+  ParticipantsUpdatedPayload,
   RoundEndedPayload,
   RoundStartedPayload,
   TimerUpdatePayload,
@@ -15,6 +16,7 @@ interface UseGameplaySocketParams {
   onCanvasUpdated: (payload: CanvasUpdatedPayload) => void;
   onVoteUpdate: (payload: VoteUpdatePayload) => void;
   onTimerUpdate: (payload: TimerUpdatePayload) => void;
+  onParticipantsUpdated: (payload: ParticipantsUpdatedPayload) => void;
   onGameEnded: () => void;
 }
 
@@ -25,6 +27,7 @@ export function useGameplaySocket({
   onCanvasUpdated,
   onVoteUpdate,
   onTimerUpdate,
+  onParticipantsUpdated,
   onGameEnded,
 }: UseGameplaySocketParams) {
   useEffect(() => {
@@ -38,6 +41,7 @@ export function useGameplaySocket({
     socket.on("canvas:updated", onCanvasUpdated);
     socket.on("vote:update", onVoteUpdate);
     socket.on("timer:update", onTimerUpdate);
+    socket.on("participants:updated", onParticipantsUpdated);
     socket.on("game:ended", onGameEnded);
 
     return () => {
@@ -47,6 +51,7 @@ export function useGameplaySocket({
       socket.off("canvas:updated", onCanvasUpdated);
       socket.off("vote:update", onVoteUpdate);
       socket.off("timer:update", onTimerUpdate);
+      socket.off("participants:updated", onParticipantsUpdated);
       socket.off("game:ended", onGameEnded);
       socket.disconnect();
     };
@@ -54,6 +59,7 @@ export function useGameplaySocket({
     canvasId,
     onCanvasUpdated,
     onGameEnded,
+    onParticipantsUpdated,
     onRoundEnded,
     onRoundStarted,
     onTimerUpdate,
