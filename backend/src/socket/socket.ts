@@ -54,6 +54,7 @@ export function initSocket(io: Server): void {
           await participantSessionService.handleSocketDisconnect(
             socket.sessionId,
             socket.id,
+            io,
           );
         }
       } catch (err) {

@@ -101,6 +101,7 @@ class ParticipantSessionService {
     canvasId: number,
     sessionId: string,
     graceUntil: string,
+    io: Server,
   ): void {
     this.clearCleanupTimer(canvasId, sessionId);
 
@@ -120,6 +121,7 @@ class ParticipantSessionService {
 
         if (expiresAt <= Date.now()) {
           await this.cleanupParticipation(canvasId, sessionId);
+          await this.emitParticipantsUpdated(io, canvasId);
         }
       } finally {
         this.cleanupTimers.delete(timerKey);
@@ -156,9 +158,7 @@ class ParticipantSessionService {
     }
   }
 
-  private async getDefaultStatus(
-    canvasId: number,
-  ): Promise<ParticipantStatus> {
+  private async getDefaultStatus(canvasId: number): Promise<ParticipantStatus> {
     const activeRound = await voteRoundRepository.findOne({
       where: { canvas: { id: canvasId }, isActive: true },
     });
@@ -240,6 +240,8 @@ class ParticipantSessionService {
       graceUntil: "",
     });
 
+    await this.emitParticipantsUpdated(io, canvasId);
+
     return {
       status,
       replaced,
@@ -251,6 +253,7 @@ class ParticipantSessionService {
     canvasId: number,
     sessionId: string,
     socketId: string,
+    io: Server,
   ): Promise<boolean> {
     const state = await this.getCanvasParticipation(canvasId, sessionId);
 
@@ -259,12 +262,15 @@ class ParticipantSessionService {
     }
 
     await this.cleanupParticipation(canvasId, sessionId);
+    await this.emitParticipantsUpdated(io, canvasId);
+
     return true;
   }
 
   async handleSocketDisconnect(
     sessionId: string,
     socketId: string,
+    io: Server,
   ): Promise<number[]> {
     const canvasIds = await redisClient.sMembers(
       this.buildSessionCanvasesKey(sessionId),
@@ -299,7 +305,7 @@ class ParticipantSessionService {
         graceUntil,
       });
 
-      this.scheduleCleanup(canvasId, sessionId, graceUntil);
+      this.scheduleCleanup(canvasId, sessionId, graceUntil, io);
       affectedCanvasIds.push(canvasId);
     }
 
@@ -421,6 +427,18 @@ class ParticipantSessionService {
     if (voter.id !== expectedVoterId) {
       throw new Error("세션 사용자 정보가 일치하지 않아요");
     }
+  }
+
+  private async emitParticipantsUpdated(
+    io: Server,
+    canvasId: number,
+  ): Promise<void> {
+    const count = await this.getParticipantCount(canvasId);
+
+    io.to(`canvas:${canvasId}`).emit("participants:updated", {
+      canvasId,
+      count,
+    });
   }
 }
 

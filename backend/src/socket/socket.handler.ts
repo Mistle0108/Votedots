@@ -64,6 +64,7 @@ export function registerHandlers(socket: Socket, io: Server): void {
         canvasId,
         socket.sessionId,
         socket.id,
+        io,
       );
 
       const room = `canvas:${canvasId}`;
