@@ -11,12 +11,21 @@ export default function RoundInfo({
   formattedRemainingTime,
   remainingSeconds,
   roundDurationSec,
+  participantCount,
+  participantCountLoading,
 }: RoundInfoProps) {
-  const [enableProgressTransition, setEnableProgressTransition] = useState(false);
+  const [enableProgressTransition, setEnableProgressTransition] =
+    useState(false);
   const progressPercent = getRoundProgressPercent(
     remainingSeconds,
     roundDurationSec,
   );
+
+  const participantCountText = participantCountLoading
+    ? "불러오는 중..."
+    : participantCount !== null
+      ? `${participantCount}명`
+      : "-";
 
   useEffect(() => {
     const isInitialSync =
@@ -49,10 +58,13 @@ export default function RoundInfo({
       </div>
 
       <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium">참여자</p>
+        <p className="text-sm text-gray-500">{participantCountText}</p>
+      </div>
+
+      <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">게임 종료</p>
-        <p className="text-sm text-gray-500">
-          {formattedGameEndTime ?? "-"}
-        </p>
+        <p className="text-sm text-gray-500">{formattedGameEndTime ?? "-"}</p>
       </div>
 
       <div className="flex flex-col gap-1.5">
@@ -62,10 +74,13 @@ export default function RoundInfo({
         </p>
         <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
           <div
-            className="h-full rounded-full bg-red-500"
+            className={`h-full rounded-full bg-red-500 ${
+              enableProgressTransition
+                ? "transition-[width] duration-1000 linear"
+                : ""
+            }`}
             style={{ width: `${progressPercent}%` }}
           />
-
         </div>
       </div>
     </div>

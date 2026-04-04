@@ -1,3 +1,9 @@
+export interface CanvasJoinedPayload {
+  canvasId: number;
+  status: "voting" | "waiting";
+  restored: boolean;
+}
+
 export interface RoundStartedPayload {
   roundId: number;
   roundNumber: number;
@@ -36,4 +42,9 @@ export interface TimerUpdatePayload {
   roundDurationSec: number;
   totalRounds: number;
   gameEndAt: string;
+}
+
+export interface ParticipantsUpdatedPayload {
+  canvasId: number;
+  count: number;
 }

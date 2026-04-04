@@ -1,13 +1,11 @@
 import { useCallback, useEffect } from "react";
-import {
-  useRoundState,
-  useRoundTimer,
-} from "@/features/gameplay/round";
+import { useRoundState, useRoundTimer } from "@/features/gameplay/round";
 import {
   SessionBootstrapResult,
   useGameSession,
   useGameplaySocket,
 } from "@/features/gameplay/session";
+import useParticipantCount from "@/features/gameplay/session/hooks/useParticipantCount";
 import { useVoteTickets } from "@/features/gameplay/vote";
 
 function formatClockTime(date: Date): string {
@@ -58,6 +56,14 @@ export default function useCanvasGameplay({
   const { remaining, setRemaining, fetchTickets, clearTickets } =
     useVoteTickets();
 
+  const {
+    participantCount,
+    participantCountLoading,
+    refreshParticipantCount,
+    applyParticipantCount,
+    clearParticipantCount,
+  } = useParticipantCount();
+
   const applyBootstrap = useCallback(
     (result: SessionBootstrapResult) => {
       onBootstrapScene(result);
@@ -95,6 +101,16 @@ export default function useCanvasGameplay({
   useEffect(() => {
     initializeSession();
   }, [initializeSession]);
+
+  useEffect(() => {
+    if (!canvasId) {
+      clearParticipantCount();
+    }
+  }, [canvasId, clearParticipantCount]);
+
+  const handleCanvasJoined = useCallback(() => {
+    void refreshParticipantCount();
+  }, [refreshParticipantCount]);
 
   const handleRoundStarted = useCallback(
     async ({
@@ -166,14 +182,23 @@ export default function useCanvasGameplay({
     [applyRoundMeta, applyRoundTimer],
   );
 
+  const handleParticipantsUpdated = useCallback(
+    ({ count }: { canvasId: number; count: number }) => {
+      applyParticipantCount(count);
+    },
+    [applyParticipantCount],
+  );
+
   const handleGameEnded = useCallback(() => {
     markGameEnded();
     clearTickets();
+    clearParticipantCount();
     onGameEndedCleanup();
     resetRoundState();
     resetRoundTimer();
     resetVoteState();
   }, [
+    clearParticipantCount,
     clearTickets,
     markGameEnded,
     onGameEndedCleanup,
@@ -184,11 +209,13 @@ export default function useCanvasGameplay({
 
   useGameplaySocket({
     canvasId,
+    onCanvasJoined: handleCanvasJoined,
     onRoundStarted: handleRoundStarted,
     onRoundEnded: handleRoundEnded,
     onCanvasUpdated,
     onVoteUpdate: handleVoteUpdate,
     onTimerUpdate: handleTimerUpdate,
+    onParticipantsUpdated: handleParticipantsUpdated,
     onGameEnded: handleGameEnded,
   });
 
@@ -212,6 +239,8 @@ export default function useCanvasGameplay({
     roundDurationSec,
     isRoundExpired,
     remaining,
+    participantCount,
+    participantCountLoading,
     isRoundExpiredRefValue: isRoundExpired,
   };
 }

@@ -29,7 +29,7 @@ export function initSocket(io: Server): void {
     const voter = req.session?.voter;
 
     if (!voter) {
-      return next(new Error("인증이 필요해요"));
+      return next(new Error("Authentication is required"));
     }
 
     socket.voterId = voter.id;
@@ -44,7 +44,7 @@ export function initSocket(io: Server): void {
       socket.join(getSessionRoom(socket.sessionId));
     }
 
-    console.log(`소켓 연결: ${socket.id} (${socket.voterNickname})`);
+    console.log(`socket connected: ${socket.id} (${socket.voterNickname})`);
 
     require("./socket.handler").registerHandlers(socket, io);
 
@@ -54,16 +54,19 @@ export function initSocket(io: Server): void {
           await participantSessionService.handleSocketDisconnect(
             socket.sessionId,
             socket.id,
+            io,
           );
         }
       } catch (err) {
         console.error(
-          `[소켓] disconnect 처리 실패 (socketId=${socket.id}):`,
+          `[socket] disconnect handling failed (socketId=${socket.id}):`,
           err,
         );
       }
 
-      console.log(`소켓 해제: ${socket.id} (${socket.voterNickname})`);
+      console.log(
+        `socket disconnected: ${socket.id} (${socket.voterNickname})`,
+      );
     });
   });
 }
