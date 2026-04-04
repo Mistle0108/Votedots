@@ -121,6 +121,7 @@ export default function useCanvasPage({ onSessionEnded }: UseCanvasPageParams) {
     roundDurationSec: gameplay.roundDurationSec,
     remaining: gameplay.remaining,
     participantCount: gameplay.participantCount,
+    votingParticipantCount: gameplay.votingParticipantCount,
     participants: gameplay.participants,
     participantLoading: gameplay.participantLoading,
     participantError: gameplay.participantError,

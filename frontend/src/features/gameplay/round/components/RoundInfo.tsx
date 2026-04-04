@@ -11,7 +11,7 @@ export default function RoundInfo({
   formattedRemainingTime,
   remainingSeconds,
   roundDurationSec,
-  participantCount,
+  votingParticipantCount,
 }: RoundInfoProps) {
   const [enableProgressTransition, setEnableProgressTransition] =
     useState(false);
@@ -51,9 +51,11 @@ export default function RoundInfo({
       </div>
 
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">참여자</p>
+        <p className="text-sm font-medium">투표자</p>
         <p className="text-sm text-gray-500">
-          {participantCount !== null ? `${participantCount}명` : "-"}
+          {votingParticipantCount !== null
+            ? `${votingParticipantCount}명`
+            : "-"}
         </p>
       </div>
 

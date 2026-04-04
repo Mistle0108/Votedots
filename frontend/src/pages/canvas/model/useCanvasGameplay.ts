@@ -63,7 +63,7 @@ export default function useCanvasGameplay({
     participants,
     participantLoading,
     participantError,
-    refreshParticipantCount,
+    participantSummary,
     refreshParticipants,
     applyParticipantCount,
     clearParticipants,
@@ -267,6 +267,9 @@ export default function useCanvasGameplay({
     isRoundExpired,
     remaining,
     participantCount,
+    votingParticipantCount: participantLoading
+      ? null
+      : participantSummary.votingCount,
     participants,
     participantLoading,
     participantError,

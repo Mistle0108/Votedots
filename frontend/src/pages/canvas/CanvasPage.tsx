@@ -49,7 +49,7 @@ export default function CanvasPage() {
     remainingSeconds,
     roundDurationSec,
     remaining,
-    participantCount,
+    votingParticipantCount,
     participants,
     participantLoading,
     participantError,
@@ -112,7 +112,7 @@ export default function CanvasPage() {
             formattedRemainingTime={formattedRemainingTime}
             remainingSeconds={remainingSeconds}
             roundDurationSec={roundDurationSec}
-            participantCount={participantCount}
+            votingParticipantCount={votingParticipantCount}
             votes={votes}
             remaining={remaining}
             cells={cells}
