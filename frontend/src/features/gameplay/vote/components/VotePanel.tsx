@@ -1,6 +1,8 @@
 import type { Cell, Viewport } from "@/features/gameplay/canvas";
 import { CoordinateNavigator, MiniMap } from "@/features/gameplay/canvas";
 import { RoundInfo } from "@/features/gameplay/round";
+import { ParticipantPanel } from "@/features/gameplay/session";
+import type { ParticipantItem } from "@/features/gameplay/session/api/session.api";
 import {
   MAX_VOTE_PANEL_ENTRIES,
   VOTES_PER_ROUND,
@@ -15,10 +17,12 @@ interface Props {
   remainingSeconds: number | null;
   roundDurationSec: number | null;
   participantCount: number | null;
-  participantCountLoading: boolean;
   votes: Record<string, number>;
   remaining: number | null;
   cells: Cell[];
+  participants: ParticipantItem[];
+  participantLoading: boolean;
+  participantError: string | null;
   gridX: number;
   gridY: number;
   selectedCell: Cell | null;
@@ -38,10 +42,12 @@ export default function VotePanel({
   remainingSeconds,
   roundDurationSec,
   participantCount,
-  participantCountLoading,
   votes,
   remaining,
   cells,
+  participants,
+  participantLoading,
+  participantError,
   gridX,
   gridY,
   selectedCell,
@@ -70,7 +76,12 @@ export default function VotePanel({
         remainingSeconds={remainingSeconds}
         roundDurationSec={roundDurationSec}
         participantCount={participantCount}
-        participantCountLoading={participantCountLoading}
+      />
+
+      <ParticipantPanel
+        participants={participants}
+        loading={participantLoading}
+        error={participantError}
       />
 
       <div className="flex flex-col gap-1">

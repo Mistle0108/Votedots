@@ -48,3 +48,7 @@ export interface ParticipantsUpdatedPayload {
   canvasId: number;
   count: number;
 }
+
+export interface SessionEndedPayload {
+  reason?: string;
+}

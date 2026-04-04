@@ -32,5 +32,4 @@ export interface RoundInfoProps {
   remainingSeconds: number | null;
   roundDurationSec: number | null;
   participantCount: number | null;
-  participantCountLoading: boolean;
 }

@@ -1,3 +1,5 @@
+import { useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   CanvasStage,
   CanvasSurface,
@@ -12,6 +14,13 @@ import { VotePanel, VotePopup } from "@/features/gameplay/vote";
 import useCanvasPage from "./model/useCanvasPage";
 
 export default function CanvasPage() {
+  const navigate = useNavigate();
+
+  const handleSessionEnded = useCallback(() => {
+    window.alert("세션이 종료되었습니다. 다시 로그인해주세요.");
+    navigate("/login", { replace: true });
+  }, [navigate]);
+
   const {
     canvasRef,
     containerRef,
@@ -41,12 +50,16 @@ export default function CanvasPage() {
     roundDurationSec,
     remaining,
     participantCount,
-    participantCountLoading,
+    participants,
+    participantLoading,
+    participantError,
     gridX,
     gridY,
     viewport,
     navigateToCoordinate,
-  } = useCanvasPage();
+  } = useCanvasPage({
+    onSessionEnded: handleSessionEnded,
+  });
 
   if (loading) {
     return <LoadingScreen />;
@@ -100,10 +113,12 @@ export default function CanvasPage() {
             remainingSeconds={remainingSeconds}
             roundDurationSec={roundDurationSec}
             participantCount={participantCount}
-            participantCountLoading={participantCountLoading}
             votes={votes}
             remaining={remaining}
             cells={cells}
+            participants={participants}
+            participantLoading={participantLoading}
+            participantError={participantError}
             gridX={gridX}
             gridY={gridY}
             selectedCell={selectedCell}
