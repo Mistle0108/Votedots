@@ -4,7 +4,11 @@ import type { SessionBootstrapResult } from "@/features/gameplay/session";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
 
-export default function useCanvasPage() {
+interface UseCanvasPageParams {
+  onSessionEnded: () => void;
+}
+
+export default function useCanvasPage({ onSessionEnded }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
 
   const {
@@ -74,6 +78,7 @@ export default function useCanvasPage() {
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
     onGameEndedCleanup: handleGameEndedCleanup,
+    onSessionEnded,
     applyVoteUpdate,
     resetVoteState,
   });
@@ -116,7 +121,10 @@ export default function useCanvasPage() {
     roundDurationSec: gameplay.roundDurationSec,
     remaining: gameplay.remaining,
     participantCount: gameplay.participantCount,
-    participantCountLoading: gameplay.participantCountLoading,
+    votingParticipantCount: gameplay.votingParticipantCount,
+    participants: gameplay.participants,
+    participantLoading: gameplay.participantLoading,
+    participantError: gameplay.participantError,
     gridX,
     gridY,
     viewport,

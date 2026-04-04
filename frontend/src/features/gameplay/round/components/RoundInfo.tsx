@@ -11,8 +11,7 @@ export default function RoundInfo({
   formattedRemainingTime,
   remainingSeconds,
   roundDurationSec,
-  participantCount,
-  participantCountLoading,
+  votingParticipantCount,
 }: RoundInfoProps) {
   const [enableProgressTransition, setEnableProgressTransition] =
     useState(false);
@@ -20,12 +19,6 @@ export default function RoundInfo({
     remainingSeconds,
     roundDurationSec,
   );
-
-  const participantCountText = participantCountLoading
-    ? "불러오는 중..."
-    : participantCount !== null
-      ? `${participantCount}명`
-      : "-";
 
   useEffect(() => {
     const isInitialSync =
@@ -58,8 +51,12 @@ export default function RoundInfo({
       </div>
 
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">참여자</p>
-        <p className="text-sm text-gray-500">{participantCountText}</p>
+        <p className="text-sm font-medium">투표자</p>
+        <p className="text-sm text-gray-500">
+          {votingParticipantCount !== null
+            ? `${votingParticipantCount}명`
+            : "-"}
+        </p>
       </div>
 
       <div className="flex flex-col gap-1">

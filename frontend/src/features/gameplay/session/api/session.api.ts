@@ -27,6 +27,22 @@ export interface ParticipantCountResponse {
   count: number;
 }
 
+export type ParticipantStatus = "voting" | "waiting";
+
+export interface ParticipantItem {
+  sessionId: string;
+  voterId: number;
+  voterUuid: string;
+  nickname: string;
+  status: ParticipantStatus;
+  connected: boolean;
+}
+
+export interface ParticipantListResponse {
+  canvasId: number;
+  participants: ParticipantItem[];
+}
+
 export const sessionApi = {
   getCurrentCanvas: () => api.get<CanvasCurrentResponse>("/canvas/current"),
 
@@ -37,6 +53,9 @@ export const sessionApi = {
 
   getCurrentParticipantCount: () =>
     api.get<ParticipantCountResponse>("/canvas/current/participants/count"),
+
+  getCurrentParticipantList: () =>
+    api.get<ParticipantListResponse>("/canvas/current/participants"),
 
   createCanvas: () => api.post("/canvas"),
 };

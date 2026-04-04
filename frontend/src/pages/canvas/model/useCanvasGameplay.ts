@@ -4,8 +4,8 @@ import {
   SessionBootstrapResult,
   useGameSession,
   useGameplaySocket,
+  useParticipantsState,
 } from "@/features/gameplay/session";
-import useParticipantCount from "@/features/gameplay/session/hooks/useParticipantCount";
 import { useVoteTickets } from "@/features/gameplay/vote";
 
 function formatClockTime(date: Date): string {
@@ -19,6 +19,7 @@ interface UseCanvasGameplayParams {
   onBootstrapScene: (result: SessionBootstrapResult) => void;
   onCanvasUpdated: (payload: { cellId: number; color: string }) => void;
   onGameEndedCleanup: () => void;
+  onSessionEnded: () => void;
   applyVoteUpdate: (votes: Record<string, number>) => void;
   resetVoteState: () => void;
 }
@@ -28,6 +29,7 @@ export default function useCanvasGameplay({
   onBootstrapScene,
   onCanvasUpdated,
   onGameEndedCleanup,
+  onSessionEnded,
   applyVoteUpdate,
   resetVoteState,
 }: UseCanvasGameplayParams) {
@@ -58,11 +60,14 @@ export default function useCanvasGameplay({
 
   const {
     participantCount,
-    participantCountLoading,
-    refreshParticipantCount,
+    participants,
+    participantLoading,
+    participantError,
+    participantSummary,
+    refreshParticipants,
     applyParticipantCount,
-    clearParticipantCount,
-  } = useParticipantCount();
+    clearParticipants,
+  } = useParticipantsState();
 
   const applyBootstrap = useCallback(
     (result: SessionBootstrapResult) => {
@@ -104,13 +109,16 @@ export default function useCanvasGameplay({
 
   useEffect(() => {
     if (!canvasId) {
-      clearParticipantCount();
+      clearParticipants();
+      return;
     }
-  }, [canvasId, clearParticipantCount]);
+
+    void refreshParticipants();
+  }, [canvasId, clearParticipants, refreshParticipants]);
 
   const handleCanvasJoined = useCallback(() => {
-    void refreshParticipantCount();
-  }, [refreshParticipantCount]);
+    void refreshParticipants();
+  }, [refreshParticipants]);
 
   const handleRoundStarted = useCallback(
     async ({
@@ -138,11 +146,12 @@ export default function useCanvasGameplay({
       startRoundTimer(roundDurationSec);
       clearSessionError();
       resetVoteState();
-      await fetchTickets(roundId);
+      await Promise.all([fetchTickets(roundId), refreshParticipants()]);
     },
     [
       clearSessionError,
       fetchTickets,
+      refreshParticipants,
       resetVoteState,
       setRoundState,
       startRoundTimer,
@@ -183,22 +192,39 @@ export default function useCanvasGameplay({
   );
 
   const handleParticipantsUpdated = useCallback(
-    ({ count }: { canvasId: number; count: number }) => {
+    async ({ count }: { canvasId: number; count: number }) => {
       applyParticipantCount(count);
+      await refreshParticipants();
     },
-    [applyParticipantCount],
+    [applyParticipantCount, refreshParticipants],
   );
+
+  const handleSessionEnded = useCallback(() => {
+    clearTickets();
+    clearParticipants();
+    resetRoundState();
+    resetRoundTimer();
+    resetVoteState();
+    onSessionEnded();
+  }, [
+    clearParticipants,
+    clearTickets,
+    onSessionEnded,
+    resetRoundState,
+    resetRoundTimer,
+    resetVoteState,
+  ]);
 
   const handleGameEnded = useCallback(() => {
     markGameEnded();
     clearTickets();
-    clearParticipantCount();
+    clearParticipants();
     onGameEndedCleanup();
     resetRoundState();
     resetRoundTimer();
     resetVoteState();
   }, [
-    clearParticipantCount,
+    clearParticipants,
     clearTickets,
     markGameEnded,
     onGameEndedCleanup,
@@ -216,6 +242,7 @@ export default function useCanvasGameplay({
     onVoteUpdate: handleVoteUpdate,
     onTimerUpdate: handleTimerUpdate,
     onParticipantsUpdated: handleParticipantsUpdated,
+    onSessionEnded: handleSessionEnded,
     onGameEnded: handleGameEnded,
   });
 
@@ -240,7 +267,12 @@ export default function useCanvasGameplay({
     isRoundExpired,
     remaining,
     participantCount,
-    participantCountLoading,
+    votingParticipantCount: participantLoading
+      ? null
+      : participantSummary.votingCount,
+    participants,
+    participantLoading,
+    participantError,
     isRoundExpiredRefValue: isRoundExpired,
   };
 }
