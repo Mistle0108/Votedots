@@ -18,6 +18,8 @@ import { canvasService } from "./modules/canvas/canvas.service";
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
+
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
@@ -81,7 +83,7 @@ app.use("/canvas", canvasRouter);
 app.use("/canvas/:canvasId/rounds", roundRouter);
 app.use("/vote", voteRouter);
 
-const PORT = process.env.PORT ?? 5173;
+const PORT = process.env.PORT ?? 4000;
 server.listen(PORT, () => {
   console.log(`서버 실행 중: http://localhost:${PORT}`);
 });

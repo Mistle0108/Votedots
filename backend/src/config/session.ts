@@ -8,6 +8,8 @@ export const sessionStore = new RedisStore({
   client: redisClient,
 });
 
+const isProduction = process.env.NODE_ENV === "production";
+
 export const sessionMiddleware = session({
   store: sessionStore,
   secret: process.env.SESSION_SECRET ?? "dev-secret",
@@ -15,7 +17,8 @@ export const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     httpOnly: true,
-    secure: false,
+    secure: isProduction,
+    sameSite: "lax",
     maxAge: SESSION_COOKIE_MAX_AGE_MS,
   },
 });
