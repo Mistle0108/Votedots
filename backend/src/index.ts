@@ -29,7 +29,6 @@ const io = new Server(server, {
   },
 });
 
-// 미들웨어
 app.use(
   cors({
     origin: process.env.CLIENT_URL ?? "http://localhost:5173",
@@ -39,7 +38,6 @@ app.use(
 app.use(express.json());
 app.use(sessionMiddleware);
 
-// TypeORM 연결
 AppDataSource.initialize()
   .then(async () => {
     console.log("DB 연결 성공");
@@ -47,12 +45,10 @@ AppDataSource.initialize()
   })
   .catch((err) => console.error("DB 연결 실패:", err));
 
-// Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// Redis 연결
 app.get("/health/redis", async (_req, res) => {
   try {
     await redisClient.set("test", "ok");
@@ -63,7 +59,6 @@ app.get("/health/redis", async (_req, res) => {
   }
 });
 
-// DB
 app.get("/health/db", async (_req, res) => {
   try {
     await AppDataSource.query("SELECT 1");
@@ -73,11 +68,9 @@ app.get("/health/db", async (_req, res) => {
   }
 });
 
-// Socket.io 초기화 (세션 인증 미들웨어 포함)
 initSocket(io);
 app.set("io", io);
 
-//Router
 app.use("/auth", authRouter);
 app.use("/canvas", canvasRouter);
 app.use("/canvas/:canvasId/rounds", roundRouter);

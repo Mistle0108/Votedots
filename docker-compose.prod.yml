@@ -1,13 +1,14 @@
 services:
   nginx:
-    image: nginx:1.27-alpine
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION}
     container_name: votedots-nginx
     restart: unless-stopped
     ports:
       - "80:80"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
-      - ./frontend/dist:/usr/share/nginx/html:ro
     depends_on:
       - backend
     networks:
