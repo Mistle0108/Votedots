@@ -1,0 +1,46 @@
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: votedots-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
+    networks:
+      - default
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION}
+    container_name: votedots-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    expose:
+      - "4000"
+    depends_on:
+      - redis
+    networks:
+      - default
+      - shared-db-network
+
+  redis:
+    image: redis:${REDIS_VERSION}-alpine
+    container_name: votedots-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - /opt/votedots/data/redis:/data
+    networks:
+      - default
+
+networks:
+  shared-db-network:
+    external: true
