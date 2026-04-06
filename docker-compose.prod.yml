@@ -9,8 +9,12 @@ services:
     restart: unless-stopped
     ports:
       - "80:80"
+      - "443:443"
     depends_on:
       - backend
+    volumes:
+      - certbot-www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
     networks:
       - default
 
@@ -41,6 +45,19 @@ services:
       - /opt/votedots/data/redis:/data
     networks:
       - default
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: votedots-certbot
+    volumes:
+      - certbot-www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    networks:
+      - default
+
+volumes:
+  certbot-www:
+  letsencrypt:
 
 networks:
   shared-db-network:
