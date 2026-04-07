@@ -1,8 +1,10 @@
 import { Server } from "socket.io";
+import { gameConfig } from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
+import { GamePhase } from "../game/game-phase.types";
 import { startGameTimer } from "../game/game.timer";
 import {
   participantSessionService,
@@ -13,24 +15,35 @@ const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 
-const GRID_X = parseInt(process.env.GRID_SIZE_X ?? "25");
-const GRID_Y = parseInt(process.env.GRID_SIZE_Y ?? "25");
+const GRID_X = parseInt(process.env.GRID_SIZE_X ?? "25", 10);
+const GRID_Y = parseInt(process.env.GRID_SIZE_Y ?? "25", 10);
 
 export const canvasService = {
   async create(io: Server): Promise<Canvas> {
     const existing = await canvasRepository.findOne({
       where: { status: CanvasStatus.PLAYING },
     });
+
     if (existing) {
-      throw new Error("이미 진행 중인 캔버스가 있어요");
+      throw new Error("A canvas is already in progress.");
     }
+
+    const now = new Date();
+    const phaseEndsAt = new Date(
+      now.getTime() + gameConfig.roundStartWaitSec * 1000,
+    );
 
     const canvas = canvasRepository.create({
       gridX: GRID_X,
       gridY: GRID_Y,
       status: CanvasStatus.PLAYING,
-      startedAt: new Date(),
+      phase: GamePhase.ROUND_START_WAIT,
+      phaseStartedAt: now,
+      phaseEndsAt,
+      currentRoundNumber: 1,
+      startedAt: now,
     });
+
     await canvasRepository.save(canvas);
 
     const cells: Partial<Cell>[] = [];
@@ -45,8 +58,8 @@ export const canvasService = {
         });
       }
     }
-    await cellRepository.save(cells as Cell[]);
 
+    await cellRepository.save(cells as Cell[]);
     await startGameTimer(io, canvas.id);
 
     return canvas;
@@ -65,13 +78,19 @@ export const canvasService = {
     });
   },
 
-  async getCurrentParticipantCount(): Promise<{ canvasId: number; count: number }> {
+  async getCurrentParticipantCount(): Promise<{
+    canvasId: number;
+    count: number;
+  }> {
     const canvas = await this.getCurrent();
+
     if (!canvas) {
-      throw new Error("진행 중인 캔버스가 없어요");
+      throw new Error("No canvas is currently in progress.");
     }
 
-    const count = await participantSessionService.getParticipantCount(canvas.id);
+    const count = await participantSessionService.getParticipantCount(
+      canvas.id,
+    );
 
     return {
       canvasId: canvas.id,
@@ -84,8 +103,9 @@ export const canvasService = {
     participants: ParticipantSummary[];
   }> {
     const canvas = await this.getCurrent();
+
     if (!canvas) {
-      throw new Error("진행 중인 캔버스가 없어요");
+      throw new Error("No canvas is currently in progress.");
     }
 
     const participants = await participantSessionService.getParticipantList(
@@ -113,6 +133,9 @@ export const canvasService = {
         { status: CanvasStatus.PLAYING },
         {
           status: CanvasStatus.FINISHED,
+          phase: GamePhase.GAME_END,
+          phaseStartedAt: now,
+          phaseEndsAt: now,
           endedAt: now,
         },
       );

@@ -1,5 +1,7 @@
 import { Server } from "socket.io";
 import { In } from "typeorm";
+import { gameConfig } from "../../config/game.config";
+import { redisClient } from "../../config/redis";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
@@ -7,8 +9,7 @@ import { VoteRound } from "../../entities/vote-round.entity";
 import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { Vote } from "../../entities/vote.entity";
 import { Voter } from "../../entities/voter.entity";
-import { redisClient } from "../../config/redis";
-import { gameConfig } from "../../config/game.config";
+import { GamePhase } from "../game/game-phase.types";
 import { participantSessionService } from "../participant/participant-session.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
@@ -67,30 +68,45 @@ function getWaitingGameEndAt(roundEndedAt: Date, roundNumber: number): Date {
 export const roundService = {
   async startRound(canvasId: number, io?: Server): Promise<VoteRound> {
     const canvas = await canvasRepository.findOne({ where: { id: canvasId } });
+
     if (!canvas) {
-      throw new Error("캔버스를 찾을 수 없어요");
+      throw new Error("Canvas was not found.");
     }
 
     const activeRound = await voteRoundRepository.findOne({
       where: { canvas: { id: canvasId }, isActive: true },
     });
+
     if (activeRound) {
-      throw new Error("이미 진행 중인 라운드가 있어요");
+      throw new Error("An active round is already in progress.");
     }
 
     const lastRound = await voteRoundRepository.findOne({
       where: { canvas: { id: canvasId } },
       order: { roundNumber: "DESC" },
     });
+
     const nextRoundNumber = lastRound ? lastRound.roundNumber + 1 : 1;
+    const roundStartedAt = new Date();
+    const roundEndsAt = new Date(
+      roundStartedAt.getTime() + gameConfig.roundDurationSec * 1000,
+    );
 
     const round = voteRoundRepository.create({
       canvas,
       roundNumber: nextRoundNumber,
-      startedAt: new Date(),
+      startedAt: roundStartedAt,
       isActive: true,
     });
+
     await voteRoundRepository.save(round);
+
+    await canvasRepository.update(canvasId, {
+      phase: GamePhase.ROUND_ACTIVE,
+      phaseStartedAt: roundStartedAt,
+      phaseEndsAt: roundEndsAt,
+      currentRoundNumber: nextRoundNumber,
+    });
 
     const { voterIds } =
       await participantSessionService.activateParticipantsForRound(canvasId);
@@ -101,6 +117,7 @@ export const roundService = {
         : [];
 
     const tickets: Partial<VoteTicket>[] = [];
+
     for (const voter of voters) {
       for (let i = 0; i < VOTES_PER_ROUND; i++) {
         tickets.push({
@@ -139,8 +156,9 @@ export const roundService = {
     const round = await voteRoundRepository.findOne({
       where: { id: roundId, canvas: { id: canvasId }, isActive: true },
     });
+
     if (!round) {
-      throw new Error("진행 중인 라운드를 찾을 수 없어요");
+      throw new Error("No active round was found.");
     }
 
     const redisKey = `vote:round:${roundId}`;
@@ -154,14 +172,19 @@ export const roundService = {
 
     for (const [key, value] of Object.entries(voteData)) {
       const [cellId, color] = key.split(":");
-      const count = parseInt(value);
-      candidates.push({ cellId: parseInt(cellId), color, count });
+      const count = parseInt(value, 10);
+
+      candidates.push({ cellId: parseInt(cellId, 10), color, count });
+
       if (count > maxVotes) {
         maxVotes = count;
       }
     }
 
-    const topCandidates = candidates.filter((c) => c.count === maxVotes);
+    const topCandidates = candidates.filter((candidate) => {
+      return candidate.count === maxVotes;
+    });
+
     if (topCandidates.length > 0) {
       const winner =
         topCandidates[Math.floor(Math.random() * topCandidates.length)];
@@ -183,8 +206,9 @@ export const roundService = {
       for (const vote of votes) {
         const key = `${vote.cell.id}:${vote.color}`;
         const existing = countMap.get(key);
+
         if (existing) {
-          existing.count++;
+          existing.count += 1;
         } else {
           countMap.set(key, {
             cellId: vote.cell.id,
@@ -196,13 +220,17 @@ export const roundService = {
 
       let max = 0;
       const dbCandidates = Array.from(countMap.values());
-      for (const c of dbCandidates) {
-        if (c.count > max) {
-          max = c.count;
+
+      for (const candidate of dbCandidates) {
+        if (candidate.count > max) {
+          max = candidate.count;
         }
       }
 
-      const topDbCandidates = dbCandidates.filter((c) => c.count === max);
+      const topDbCandidates = dbCandidates.filter((candidate) => {
+        return candidate.count === max;
+      });
+
       if (topDbCandidates.length > 0) {
         const winner =
           topDbCandidates[Math.floor(Math.random() * topDbCandidates.length)];
@@ -212,6 +240,7 @@ export const roundService = {
     }
 
     let winningCell: Cell | null = null;
+
     if (winningCellId && winningColor) {
       await cellRepository.update(winningCellId, {
         color: winningColor,
@@ -226,6 +255,17 @@ export const roundService = {
     round.isActive = false;
     round.endedAt = new Date();
     await voteRoundRepository.save(round);
+
+    const roundResultEndsAt = new Date(
+      round.endedAt.getTime() + gameConfig.roundResultDelaySec * 1000,
+    );
+
+    await canvasRepository.update(canvasId, {
+      phase: GamePhase.ROUND_RESULT,
+      phaseStartedAt: round.endedAt,
+      phaseEndsAt: roundResultEndsAt,
+      currentRoundNumber: round.roundNumber,
+    });
 
     await redisClient.del(redisKey);
 
