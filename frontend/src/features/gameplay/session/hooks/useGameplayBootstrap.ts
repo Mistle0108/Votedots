@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { GAME_PHASE, isRoundActivePhase } from "../model/game-phase.types";
 import { sessionApi, type RoundStateResponse } from "../api/session.api";
 import { RoundInfoState, SessionBootstrapResult } from "../model/session.types";
 
@@ -20,12 +21,24 @@ export function useGameplayBootstrap() {
     const { data } = await sessionApi.getCurrentCanvas();
     const { canvas, cells } = data;
 
-    const roundRes = await sessionApi.getActiveRound(canvas.id);
-    const roundState: RoundStateResponse = roundRes.data;
+    let roundState: RoundStateResponse | null = null;
+    let remaining: number | null = null;
+
+    if (isRoundActivePhase(canvas.phase)) {
+      const roundRes = await sessionApi.getActiveRound(canvas.id);
+      roundState = roundRes.data;
+
+      if (roundState.round?.id) {
+        const ticketsRes = await sessionApi.getTickets(roundState.round.id);
+        remaining = ticketsRes.data.remaining;
+      }
+    }
 
     const round: RoundInfoState = {
+      phase: canvas.phase,
       roundId: roundState?.round?.id ?? null,
-      roundNumber: roundState?.round?.roundNumber ?? null,
+      roundNumber:
+        roundState?.round?.roundNumber ?? canvas.currentRoundNumber ?? null,
       roundDurationSec: roundState?.round?.roundDurationSec ?? null,
       totalRounds: roundState?.round?.totalRounds ?? 0,
       formattedGameEndTime: roundState?.round
@@ -34,16 +47,17 @@ export function useGameplayBootstrap() {
       remainingSeconds: roundState?.timer?.remainingSeconds ?? null,
       formattedRemainingTime: roundState?.timer
         ? formatDuration(roundState.timer.remainingSeconds)
-        : null,
-      isRoundExpired: roundState?.timer?.isRoundExpired ?? false,
+        : canvas.phase === GAME_PHASE.GAME_END
+          ? formatDuration(0)
+          : null,
+      isRoundExpired:
+        canvas.phase === GAME_PHASE.ROUND_RESULT ||
+        canvas.phase === GAME_PHASE.GAME_END
+          ? true
+          : (roundState?.timer?.isRoundExpired ?? false),
+      phaseStartedAt: canvas.phaseStartedAt,
+      phaseEndsAt: canvas.phaseEndsAt,
     };
-
-    let remaining: number | null = null;
-
-    if (roundState?.status === "active" && roundState.round?.id) {
-      const ticketsRes = await sessionApi.getTickets(roundState.round.id);
-      remaining = ticketsRes.data.remaining;
-    }
 
     return {
       canvasId: canvas.id,

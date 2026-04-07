@@ -1,9 +1,13 @@
 import api from "@/shared/api/client";
 import type { CanvasCurrentResponse } from "@/features/gameplay/canvas";
 import { voteApi } from "@/features/gameplay/vote/api/vote.api";
+import type { GamePhase } from "../model/game-phase.types";
 
 export interface RoundStateResponse {
   status: "active" | "waiting";
+  canvasPhase: GamePhase;
+  phaseStartedAt: string | null;
+  phaseEndsAt: string | null;
   round: {
     id: number;
     roundNumber: number;

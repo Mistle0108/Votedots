@@ -4,7 +4,8 @@ import { redisClient } from "../../config/redis";
 import { sessionStore } from "../../config/session";
 import { gameConfig } from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
-import { VoteRound } from "../../entities/vote-round.entity";
+import { Canvas } from "../../entities/canvas.entity";
+import { GamePhase } from "../game/game-phase.types";
 
 export type ParticipantStatus = "voting" | "waiting";
 
@@ -38,7 +39,7 @@ export interface ParticipantSummary {
   connected: boolean;
 }
 
-const voteRoundRepository = AppDataSource.getRepository(VoteRound);
+const canvasRepository = AppDataSource.getRepository(Canvas);
 
 class ParticipantSessionService {
   private cleanupTimers = new Map<string, NodeJS.Timeout>();
@@ -83,6 +84,46 @@ class ParticipantSessionService {
       this.buildCanvasSessionKey(canvasId, sessionId),
     );
     return this.parseParticipantState(raw);
+  }
+
+  private async getCanvasPhase(canvasId: number): Promise<GamePhase | null> {
+    const canvas = await canvasRepository.findOne({
+      where: { id: canvasId },
+    });
+
+    return canvas?.phase ?? null;
+  }
+
+  private getDefaultStatusByPhase(phase: GamePhase | null): ParticipantStatus {
+    if (phase === GamePhase.ROUND_ACTIVE) {
+      return "waiting";
+    }
+
+    if (phase === GamePhase.GAME_END) {
+      return "waiting";
+    }
+
+    return "voting";
+  }
+
+  private getRestoredStatusByPhase(
+    phase: GamePhase | null,
+    existingStatus: ParticipantStatus,
+  ): ParticipantStatus {
+    if (phase === GamePhase.ROUND_ACTIVE) {
+      return existingStatus;
+    }
+
+    if (phase === GamePhase.GAME_END) {
+      return "waiting";
+    }
+
+    return "voting";
+  }
+
+  private async getDefaultStatus(canvasId: number): Promise<ParticipantStatus> {
+    const phase = await this.getCanvasPhase(canvasId);
+    return this.getDefaultStatusByPhase(phase);
   }
 
   private clearCleanupTimer(canvasId: number, sessionId: string): void {
@@ -158,14 +199,6 @@ class ParticipantSessionService {
     }
   }
 
-  private async getDefaultStatus(canvasId: number): Promise<ParticipantStatus> {
-    const activeRound = await voteRoundRepository.findOne({
-      where: { canvas: { id: canvasId }, isActive: true },
-    });
-
-    return activeRound ? "waiting" : "voting";
-  }
-
   private async getSessionVoter(
     sessionId: string,
   ): Promise<SessionVoter | null> {
@@ -223,7 +256,10 @@ class ParticipantSessionService {
       !!existing.graceUntil &&
       new Date(existing.graceUntil).getTime() > Date.now();
 
-    const status = existing?.status ?? (await this.getDefaultStatus(canvasId));
+    const canvasPhase = await this.getCanvasPhase(canvasId);
+    const status = existing
+      ? this.getRestoredStatusByPhase(canvasPhase, existing.status)
+      : await this.getDefaultStatus(canvasId);
 
     this.clearCleanupTimer(canvasId, sessionId);
 
@@ -308,9 +344,32 @@ class ParticipantSessionService {
     return affectedCanvasIds;
   }
 
+  async prepareParticipantsForNextRound(canvasId: number): Promise<void> {
+    const sessionIds = await redisClient.sMembers(
+      this.buildCanvasSessionsKey(canvasId),
+    );
+
+    for (const sessionId of sessionIds) {
+      const state = await this.getCanvasParticipation(canvasId, sessionId);
+      if (!state) {
+        continue;
+      }
+
+      await redisClient.hSet(this.buildCanvasSessionKey(canvasId, sessionId), {
+        socketId: state.socketId ?? "",
+        status: "voting",
+        connected: state.connected ? "true" : "false",
+        disconnectedAt: state.disconnectedAt ?? "",
+        graceUntil: state.graceUntil ?? "",
+      });
+    }
+  }
+
   async activateParticipantsForRound(
     canvasId: number,
   ): Promise<{ voterIds: number[] }> {
+    await this.prepareParticipantsForNextRound(canvasId);
+
     const sessionIds = await redisClient.sMembers(
       this.buildCanvasSessionsKey(canvasId),
     );
@@ -320,23 +379,7 @@ class ParticipantSessionService {
 
     for (const sessionId of sessionIds) {
       const state = await this.getCanvasParticipation(canvasId, sessionId);
-      if (!state) {
-        continue;
-      }
-
-      const nextStatus: ParticipantStatus = state.connected
-        ? "voting"
-        : "waiting";
-
-      await redisClient.hSet(this.buildCanvasSessionKey(canvasId, sessionId), {
-        socketId: state.socketId ?? "",
-        status: nextStatus,
-        connected: state.connected ? "true" : "false",
-        disconnectedAt: state.disconnectedAt ?? "",
-        graceUntil: state.graceUntil ?? "",
-      });
-
-      if (!state.connected) {
+      if (!state || state.status !== "voting") {
         continue;
       }
 

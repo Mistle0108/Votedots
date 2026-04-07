@@ -1,3 +1,5 @@
+import type { GamePhase } from "@/features/gameplay/session/model/game-phase.types";
+
 export type CanvasStatus = "playing" | "finished";
 
 export type CellStatus = "idle" | "active" | "painted" | "locked";
@@ -7,6 +9,10 @@ export interface Canvas {
   gridX: number;
   gridY: number;
   status: CanvasStatus;
+  phase: GamePhase;
+  phaseStartedAt: string;
+  phaseEndsAt: string | null;
+  currentRoundNumber: number;
   startedAt: string;
   endedAt: string | null;
   createdAt: string;

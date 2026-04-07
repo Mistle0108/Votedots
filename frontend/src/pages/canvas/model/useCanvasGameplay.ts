@@ -1,11 +1,15 @@
 import { useCallback, useEffect } from "react";
 import { useRoundState, useRoundTimer } from "@/features/gameplay/round";
 import {
-  SessionBootstrapResult,
   useGameSession,
   useGameplaySocket,
   useParticipantsState,
+  type SessionBootstrapResult,
 } from "@/features/gameplay/session";
+import {
+  GAME_PHASE,
+  isRoundActivePhase,
+} from "@/features/gameplay/session/model/game-phase.types";
 import { useVoteTickets } from "@/features/gameplay/vote";
 
 function formatClockTime(date: Date): string {
@@ -31,16 +35,17 @@ export default function useCanvasGameplay({
   onCanvasUpdated,
   onGameEndedCleanup,
   onSessionEnded,
-  onUnauthorized,
   applyVoteUpdate,
   resetVoteState,
 }: UseCanvasGameplayParams) {
   const {
+    phase,
     roundId,
     roundNumber,
     roundDurationSec,
     totalRounds,
     formattedGameEndTime,
+    phaseEndsAt,
     setRoundState,
     applyRoundMeta,
     resetRoundState,
@@ -52,6 +57,7 @@ export default function useCanvasGameplay({
     isRoundExpired,
     setRoundTimerState,
     applyRoundTimer,
+    setPhaseTimerState,
     startRoundTimer,
     expireRoundTimer,
     resetRoundTimer,
@@ -76,22 +82,38 @@ export default function useCanvasGameplay({
       onBootstrapScene(result);
 
       setRoundState({
+        phase: result.round.phase,
         roundId: result.round.roundId,
         roundNumber: result.round.roundNumber,
         roundDurationSec: result.round.roundDurationSec,
         totalRounds: result.round.totalRounds,
         formattedGameEndTime: result.round.formattedGameEndTime,
+        phaseStartedAt: result.round.phaseStartedAt,
+        phaseEndsAt: result.round.phaseEndsAt,
       });
 
-      setRoundTimerState({
-        remainingSeconds: result.round.remainingSeconds,
-        formattedRemainingTime: result.round.formattedRemainingTime,
-        isRoundExpired: result.round.isRoundExpired,
-      });
+      if (isRoundActivePhase(result.round.phase)) {
+        setRoundTimerState({
+          remainingSeconds: result.round.remainingSeconds,
+          formattedRemainingTime: result.round.formattedRemainingTime,
+          isRoundExpired: result.round.isRoundExpired,
+        });
+      } else {
+        setPhaseTimerState(
+          result.round.phaseEndsAt,
+          result.round.isRoundExpired,
+        );
+      }
 
       setRemaining(result.remaining);
     },
-    [onBootstrapScene, setRemaining, setRoundState, setRoundTimerState],
+    [
+      onBootstrapScene,
+      setPhaseTimerState,
+      setRemaining,
+      setRoundState,
+      setRoundTimerState,
+    ],
   );
 
   const {
@@ -103,12 +125,25 @@ export default function useCanvasGameplay({
     markGameEnded,
   } = useGameSession({
     onBootstrap: applyBootstrap,
-    onUnauthorized,
   });
 
   useEffect(() => {
-    initializeSession();
-  }, [initializeSession]);
+    let cancelled = false;
+
+    void initializeSession().then((result) => {
+      if (cancelled || !result) {
+        return;
+      }
+
+      if (result.round.phase === GAME_PHASE.GAME_END) {
+        markGameEnded();
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [initializeSession, markGameEnded]);
 
   useEffect(() => {
     if (!canvasId) {
@@ -118,6 +153,32 @@ export default function useCanvasGameplay({
 
     void refreshParticipants();
   }, [canvasId, clearParticipants, refreshParticipants]);
+
+  useEffect(() => {
+    if (isRoundActivePhase(phase)) {
+      return;
+    }
+
+    setPhaseTimerState(
+      phaseEndsAt,
+      phase === GAME_PHASE.ROUND_RESULT || phase === GAME_PHASE.GAME_END,
+    );
+
+    if (!phaseEndsAt) {
+      return;
+    }
+
+    const timer = window.setInterval(() => {
+      setPhaseTimerState(
+        phaseEndsAt,
+        phase === GAME_PHASE.ROUND_RESULT || phase === GAME_PHASE.GAME_END,
+      );
+    }, 1000);
+
+    return () => {
+      window.clearInterval(timer);
+    };
+  }, [phase, phaseEndsAt, setPhaseTimerState]);
 
   const handleCanvasJoined = useCallback(() => {
     void refreshParticipants();
@@ -130,6 +191,7 @@ export default function useCanvasGameplay({
       totalRounds,
       gameEndAt,
       roundDurationSec,
+      startedAt,
     }: {
       roundId: number;
       roundNumber: number;
@@ -139,16 +201,20 @@ export default function useCanvasGameplay({
       gameEndAt: string;
     }) => {
       setRoundState({
+        phase: GAME_PHASE.ROUND_ACTIVE,
         roundId,
         roundNumber,
         roundDurationSec,
         totalRounds,
         formattedGameEndTime: formatClockTime(new Date(gameEndAt)),
+        phaseStartedAt: startedAt,
+        phaseEndsAt: null,
       });
 
       startRoundTimer(roundDurationSec);
       clearSessionError();
       resetVoteState();
+
       await Promise.all([fetchTickets(roundId), refreshParticipants()]);
     },
     [
@@ -161,11 +227,41 @@ export default function useCanvasGameplay({
     ],
   );
 
-  const handleRoundEnded = useCallback(() => {
-    clearTickets();
-    expireRoundTimer();
-    resetVoteState();
-  }, [clearTickets, expireRoundTimer, resetVoteState]);
+  const handleRoundEnded = useCallback(
+    ({
+      roundId,
+      roundNumber,
+      endedAt,
+    }: {
+      roundId: number;
+      roundNumber: number;
+      endedAt: string;
+    }) => {
+      clearTickets();
+      expireRoundTimer();
+      resetVoteState();
+
+      setRoundState({
+        phase: GAME_PHASE.ROUND_RESULT,
+        roundId,
+        roundNumber,
+        roundDurationSec,
+        totalRounds,
+        formattedGameEndTime,
+        phaseStartedAt: endedAt,
+        phaseEndsAt: null,
+      });
+    },
+    [
+      clearTickets,
+      expireRoundTimer,
+      formattedGameEndTime,
+      resetVoteState,
+      roundDurationSec,
+      setRoundState,
+      totalRounds,
+    ],
+  );
 
   const handleVoteUpdate = useCallback(
     ({ votes }: { votes: Record<string, number> }) => {
@@ -250,16 +346,17 @@ export default function useCanvasGameplay({
   });
 
   const handleVoteSuccess = useCallback(() => {
-    if (roundId) {
+    if (roundId && isRoundActivePhase(phase)) {
       void fetchTickets(roundId);
     }
-  }, [fetchTickets, roundId]);
+  }, [fetchTickets, phase, roundId]);
 
   return {
     loading,
     error,
     gameEnded,
     handleVoteSuccess,
+    phase,
     roundId,
     roundNumber,
     totalRounds,

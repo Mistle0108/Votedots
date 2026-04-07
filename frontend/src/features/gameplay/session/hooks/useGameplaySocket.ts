@@ -54,10 +54,6 @@ export function useGameplaySocket({
     }
 
     return () => {
-      if (canvasId) {
-        socket.emit("leave:canvas", canvasId);
-      }
-
       socket.off("canvas:joined", onCanvasJoined);
       socket.off("round:started", onRoundStarted);
       socket.off("round:ended", onRoundEnded);

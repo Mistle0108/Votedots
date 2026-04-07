@@ -1,6 +1,8 @@
 import type { Cell } from "@/features/gameplay/canvas";
+import type { GamePhase } from "./game-phase.types";
 
 export interface RoundInfoState {
+  phase: GamePhase;
   roundId: number | null;
   roundNumber: number | null;
   roundDurationSec: number | null;
@@ -9,6 +11,8 @@ export interface RoundInfoState {
   remainingSeconds: number | null;
   formattedRemainingTime: string | null;
   isRoundExpired: boolean;
+  phaseStartedAt: string | null;
+  phaseEndsAt: string | null;
 }
 
 export interface VoteSessionState {
