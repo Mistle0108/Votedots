@@ -8,7 +8,9 @@ export const canvasController = {
     try {
       const io = req.app.get("io") as Server;
       const canvas = await canvasService.create(io);
-      return res.status(201).json({ message: "캔버스가 생성됐어요", canvas });
+      return res
+        .status(201)
+        .json({ message: "캔버스가 생성되었습니다.", canvas });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
     }
@@ -18,7 +20,9 @@ export const canvasController = {
     try {
       const canvas = await canvasService.getCurrent();
       if (!canvas) {
-        return res.status(404).json({ message: "진행 중인 캔버스가 없어요" });
+        return res
+          .status(404)
+          .json({ message: "진행 중인 캔버스가 없습니다." });
       }
 
       const cells = await canvasService.getCells(canvas.id);
@@ -26,6 +30,10 @@ export const canvasController = {
         canvas,
         cells,
         roundDurationSec: gameConfig.roundDurationSec,
+        totalRounds: gameConfig.totalRounds,
+        roundStartWaitSec: gameConfig.roundStartWaitSec,
+        roundResultDelaySec: gameConfig.roundResultDelaySec,
+        gameEndWaitSec: gameConfig.gameEndWaitSec,
       });
     } catch (err) {
       return res.status(500).json({ message: String(err) });
@@ -37,7 +45,7 @@ export const canvasController = {
       const result = await canvasService.getCurrentParticipantCount();
       return res.json(result);
     } catch (err) {
-      if (String(err).includes("진행 중인 캔버스가 없어요")) {
+      if (String(err).includes("진행 중인 캔버스가 없습니다.")) {
         return res.status(404).json({ message: String(err) });
       }
 
@@ -50,7 +58,7 @@ export const canvasController = {
       const result = await canvasService.getCurrentParticipantList();
       return res.json(result);
     } catch (err) {
-      if (String(err).includes("진행 중인 캔버스가 없어요")) {
+      if (String(err).includes("진행 중인 캔버스가 없습니다.")) {
         return res.status(404).json({ message: String(err) });
       }
 

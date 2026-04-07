@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import type { Cell } from "@/features/gameplay/canvas";
+import {
+  GAME_PHASE,
+  type GamePhase,
+} from "@/features/gameplay/session/model/game-phase.types";
 import { Button } from "@/shared/ui/button";
 import { voteApi } from "../api/vote.api";
 import {
@@ -8,12 +12,17 @@ import {
   SLOT_COUNT,
   STORAGE_KEYS,
 } from "../model/vote.constants";
-import { buildVotePopupEntries, loadLastVotedColor, loadSlotColors } from "../model/vote.utils";
+import {
+  buildVotePopupEntries,
+  loadLastVotedColor,
+  loadSlotColors,
+} from "../model/vote.utils";
 import ColorPalette from "./ColorPalette";
 
 interface Props {
   canvasId: number;
   roundId: number | null;
+  phase: GamePhase;
   isRoundExpired: boolean;
   selectedCell: Cell;
   votes: Record<string, number>;
@@ -24,9 +33,43 @@ interface Props {
   onClose: () => void;
 }
 
+function getPhaseBlockedMessage(phase: GamePhase): string {
+  switch (phase) {
+    case GAME_PHASE.ROUND_START_WAIT:
+      return "라운드 시작 대기 중에는 투표할 수 없어요.";
+    case GAME_PHASE.ROUND_RESULT:
+      return "결과 집계 중에는 투표할 수 없어요.";
+    case GAME_PHASE.GAME_END:
+      return "게임이 종료되어 투표할 수 없어요.";
+    case GAME_PHASE.ROUND_ACTIVE:
+      return "";
+  }
+}
+
+function getButtonLabel(
+  phase: GamePhase,
+  isRoundExpired: boolean,
+  loading: boolean,
+): string {
+  if (phase !== GAME_PHASE.ROUND_ACTIVE) {
+    return "투표 불가";
+  }
+
+  if (isRoundExpired) {
+    return "투표 마감";
+  }
+
+  if (loading) {
+    return "투표 중...";
+  }
+
+  return "투표하기";
+}
+
 export default function VotePopup({
   canvasId,
   roundId,
+  phase,
   isRoundExpired,
   selectedCell,
   votes,
@@ -39,7 +82,9 @@ export default function VotePopup({
   const [color, setColor] = useState(() => loadLastVotedColor());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [slotColors, setSlotColors] = useState<string[]>(() => loadSlotColors());
+  const [slotColors, setSlotColors] = useState<string[]>(() =>
+    loadSlotColors(),
+  );
   const [slotCursor, setSlotCursor] = useState(0);
   const [pos, setPos] = useState(position);
 
@@ -49,13 +94,12 @@ export default function VotePopup({
 
   const voteEntries = buildVotePopupEntries(votes, selectedCell.id, cells);
   const maxCount = voteEntries[0]?.count ?? 1;
-  const isVoteDisabled = !roundId || loading || isRoundExpired;
+  const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
+  const phaseBlockedMessage = getPhaseBlockedMessage(phase);
+  const isVoteDisabled =
+    !roundId || !isVotingPhase || loading || isRoundExpired;
 
-  const buttonLabel = isRoundExpired
-    ? "투표 마감"
-    : loading
-      ? "투표 중..."
-      : "투표하기";
+  const buttonLabel = getButtonLabel(phase, isRoundExpired, loading);
 
   const handleColorChange = (nextColor: string) => {
     setColor(nextColor);
@@ -91,8 +135,13 @@ export default function VotePopup({
       return;
     }
 
+    if (!isVotingPhase) {
+      setError(phaseBlockedMessage);
+      return;
+    }
+
     if (isRoundExpired) {
-      setError("이 라운드 투표가 마감되었습니다.");
+      setError("현재 라운드의 투표가 마감되었어요.");
       return;
     }
 
@@ -169,7 +218,10 @@ export default function VotePopup({
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (popupRef.current && !popupRef.current.contains(event.target as Node)) {
+      if (
+        popupRef.current &&
+        !popupRef.current.contains(event.target as Node)
+      ) {
         onClose();
       }
     };
@@ -210,14 +262,12 @@ export default function VotePopup({
   }, []);
 
   useEffect(() => {
-    if (isRoundExpired) {
+    if (!isVotingPhase || isRoundExpired) {
       setLoading(false);
-      setError("");
-      return;
     }
 
     setError("");
-  }, [isRoundExpired]);
+  }, [isRoundExpired, isVotingPhase]);
 
   return (
     <div
@@ -270,7 +320,7 @@ export default function VotePopup({
       <div className="flex flex-col gap-3 p-4">
         {voteEntries.length > 0 && (
           <div>
-            <p className="mb-2 text-xs font-medium">득표 현황</p>
+            <p className="mb-2 text-xs font-medium">실시간 현황</p>
             <div className="flex max-h-[72px] flex-col gap-1 overflow-y-auto">
               {voteEntries.map(({ color: entryColor, count }) => (
                 <button
@@ -316,13 +366,20 @@ export default function VotePopup({
           onSlotSelect={handleSlotSelect}
         />
 
-        {error && !isRoundExpired && (
-          <p className="text-sm text-red-500">{error}</p>
-        )}
-
-        <Button type="button" className="w-full" disabled={isVoteDisabled} onClick={handleSubmit}>
+        <Button
+          type="button"
+          className="w-full"
+          disabled={isVoteDisabled}
+          onClick={handleSubmit}
+        >
           {buttonLabel}
         </Button>
+
+        {!isVotingPhase && (
+          <p className="text-sm text-gray-500">{phaseBlockedMessage}</p>
+        )}
+
+        {error && <p className="text-sm text-red-500">{error}</p>}
       </div>
     </div>
   );

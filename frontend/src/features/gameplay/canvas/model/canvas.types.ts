@@ -37,6 +37,11 @@ export interface Cell {
 export interface CanvasCurrentResponse {
   canvas: Canvas;
   cells: Cell[];
+  roundDurationSec: number;
+  totalRounds: number;
+  roundStartWaitSec: number;
+  roundResultDelaySec: number;
+  gameEndWaitSec: number;
 }
 
 export interface Viewport {

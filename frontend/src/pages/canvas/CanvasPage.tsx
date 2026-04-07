@@ -21,7 +21,7 @@ export default function CanvasPage() {
   );
 
   const handleSessionEnded = useCallback(() => {
-    window.alert("세션이 종료되었습니다. 다시 로그인해주세요.");
+    window.alert("세션이 종료되었습니다. 다시 로그인해 주세요.");
     navigate("/login", { replace: true });
   }, [navigate]);
 
@@ -46,6 +46,7 @@ export default function CanvasPage() {
     popupOpen,
     popupPos,
     canvasId,
+    phase,
     roundId,
     isRoundExpired,
     selectedCell,
@@ -113,6 +114,7 @@ export default function CanvasPage() {
         <VotePopup
           canvasId={canvasId}
           roundId={roundId}
+          phase={phase}
           isRoundExpired={isRoundExpired}
           selectedCell={selectedCell}
           votes={votes}
@@ -130,6 +132,7 @@ export default function CanvasPage() {
       >
         {canvasId && (
           <VotePanel
+            phase={phase}
             roundNumber={roundNumber}
             totalRounds={totalRounds}
             formattedGameEndTime={formattedGameEndTime}

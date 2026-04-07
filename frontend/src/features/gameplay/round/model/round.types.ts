@@ -1,3 +1,5 @@
+import type { GamePhase } from "@/features/gameplay/session/model/game-phase.types";
+
 export type RoundStatus = "active" | "waiting";
 
 export interface RoundInfo {
@@ -25,6 +27,7 @@ export interface RoundStateResponse {
 }
 
 export interface RoundInfoProps {
+  phase: GamePhase;
   roundNumber: number | null;
   totalRounds: number;
   formattedGameEndTime: string | null;

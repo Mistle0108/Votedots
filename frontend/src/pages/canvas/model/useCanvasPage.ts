@@ -110,6 +110,7 @@ export default function useCanvasPage({
     popupOpen,
     popupPos,
     canvasId,
+    phase: gameplay.phase,
     roundId: gameplay.roundId,
     isRoundExpired: gameplay.isRoundExpired,
     selectedCell,
