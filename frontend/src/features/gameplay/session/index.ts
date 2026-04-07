@@ -10,5 +10,6 @@ export { default as ErrorScreen } from "./components/ErrorScreen";
 export { default as GameEndedScreen } from "./components/GameEndedScreen";
 export { default as ParticipantPanel } from "./components/ParticipantPanel";
 
+export * from "./model/game-phase.types";
 export * from "./model/session.types";
 export * from "./model/socket.types";

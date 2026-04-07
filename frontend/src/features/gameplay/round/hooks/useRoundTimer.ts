@@ -2,10 +2,7 @@ import { useCallback, useState } from "react";
 import { formatDuration } from "@/features/gameplay/round/model/round.formatters";
 import type { RoundTimer } from "@/features/gameplay/round/model/round.types";
 
-type RoundTimerState = Pick<
-  RoundTimer,
-  "remainingSeconds" | "isRoundExpired"
->;
+type RoundTimerState = Pick<RoundTimer, "remainingSeconds" | "isRoundExpired">;
 
 interface RoundTimerStateValue {
   remainingSeconds: number | null;
@@ -37,13 +34,41 @@ export default function useRoundTimer() {
     [setRoundTimerState],
   );
 
-  const startRoundTimer = useCallback((roundDurationSec: number) => {
-    setRoundTimerState({
-      remainingSeconds: roundDurationSec,
-      formattedRemainingTime: formatDuration(roundDurationSec),
-      isRoundExpired: false,
-    });
-  }, [setRoundTimerState]);
+  const setPhaseTimerState = useCallback(
+    (phaseEndsAt: string | null, expired: boolean) => {
+      if (!phaseEndsAt) {
+        setRoundTimerState({
+          remainingSeconds: null,
+          formattedRemainingTime: null,
+          isRoundExpired: expired,
+        });
+        return;
+      }
+
+      const remaining = Math.max(
+        0,
+        Math.ceil((new Date(phaseEndsAt).getTime() - Date.now()) / 1000),
+      );
+
+      setRoundTimerState({
+        remainingSeconds: remaining,
+        formattedRemainingTime: formatDuration(remaining),
+        isRoundExpired: expired || remaining === 0,
+      });
+    },
+    [setRoundTimerState],
+  );
+
+  const startRoundTimer = useCallback(
+    (roundDurationSec: number) => {
+      setRoundTimerState({
+        remainingSeconds: roundDurationSec,
+        formattedRemainingTime: formatDuration(roundDurationSec),
+        isRoundExpired: false,
+      });
+    },
+    [setRoundTimerState],
+  );
 
   const expireRoundTimer = useCallback(() => {
     setRoundTimerState({
@@ -67,6 +92,7 @@ export default function useRoundTimer() {
     isRoundExpired,
     setRoundTimerState,
     applyRoundTimer,
+    setPhaseTimerState,
     startRoundTimer,
     expireRoundTimer,
     resetRoundTimer,

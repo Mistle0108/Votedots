@@ -1,10 +1,10 @@
 export const gameConfig = {
-  roundStartWaitSec: 3,
+  roundStartWaitSec: 5,
   roundDurationSec: 20,
   totalRounds: 10,
   votesPerRound: 3,
   roundResultDelaySec: 3,
-  gameEndWaitSec: 3,
+  gameEndWaitSec: 5,
   participantGracePeriodSec: 15,
   get totalDurationSec() {
     return (
