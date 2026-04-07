@@ -42,33 +42,31 @@ export default function RoundInfo({
   }, [remainingSeconds, roundDurationSec, enableProgressTransition]);
 
   return (
-    <div className="flex flex-col gap-3">
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">라운드</p>
-        <p className="text-sm text-gray-500">
-          {roundNumber ? `${roundNumber}/${totalRounds}` : "-"}
-        </p>
-      </div>
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3">
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="font-medium">라운드</span>
+          <span className="text-gray-500">
+            {roundNumber ? `${roundNumber}/${totalRounds}` : "-"}
+          </span>
+        </div>
 
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">투표자</p>
-        <p className="text-sm text-gray-500">
-          {votingParticipantCount !== null
-            ? `${votingParticipantCount}명`
-            : "-"}
-        </p>
-      </div>
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span className="font-medium">투표자</span>
+          <span className="text-gray-500">
+            {votingParticipantCount !== null
+              ? `${votingParticipantCount}명`
+              : "-"}
+          </span>
+        </div>
 
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">게임 종료</p>
-        <p className="text-sm text-gray-500">{formattedGameEndTime ?? "-"}</p>
-      </div>
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm font-medium">남은 시간</span>
+          <span className="text-2xl font-bold leading-none text-red-500">
+            {formattedRemainingTime ?? "-"}
+          </span>
+        </div>
 
-      <div className="flex flex-col gap-1.5">
-        <p className="text-sm font-medium">타이머</p>
-        <p className="text-base font-bold text-red-500">
-          {formattedRemainingTime ?? "-"}
-        </p>
         <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
           <div
             className={`h-full rounded-full bg-red-500 ${
@@ -80,6 +78,12 @@ export default function RoundInfo({
           />
         </div>
       </div>
+
+      <div className="flex items-center justify-between gap-3 text-sm">
+        <span className="font-medium text-gray-600">게임 종료</span>
+        <span className="text-gray-500">{formattedGameEndTime ?? "-"}</span>
+      </div>
     </div>
   );
+
 }

@@ -65,7 +65,7 @@ export default function VotePanel({
   });
 
   return (
-    <div className="flex h-full flex-col gap-5 overflow-y-auto p-4">
+    <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <h2 className="text-lg font-bold">VoteDots</h2>
 
       <RoundInfo
