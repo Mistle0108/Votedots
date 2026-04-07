@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CanvasStage,
@@ -11,13 +11,25 @@ import {
   LoadingScreen,
 } from "@/features/gameplay/session";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
+import { Button } from "@/shared/ui/button";
 import useCanvasPage from "./model/useCanvasPage";
 
 export default function CanvasPage() {
   const navigate = useNavigate();
+  const [unauthorizedMessage, setUnauthorizedMessage] = useState<string | null>(
+    null,
+  );
 
   const handleSessionEnded = useCallback(() => {
     window.alert("세션이 종료되었습니다. 다시 로그인해주세요.");
+    navigate("/login", { replace: true });
+  }, [navigate]);
+
+  const handleUnauthorized = useCallback((message: string) => {
+    setUnauthorizedMessage(message);
+  }, []);
+
+  const handleMoveToLogin = useCallback(() => {
     navigate("/login", { replace: true });
   }, [navigate]);
 
@@ -59,10 +71,22 @@ export default function CanvasPage() {
     navigateToCoordinate,
   } = useCanvasPage({
     onSessionEnded: handleSessionEnded,
+    onUnauthorized: handleUnauthorized,
   });
 
   if (loading) {
     return <LoadingScreen />;
+  }
+
+  if (unauthorizedMessage) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-white">
+        <div className="flex w-full max-w-sm flex-col items-center gap-4 rounded-lg border border-gray-200 p-6 text-center">
+          <p className="text-sm text-gray-700">{unauthorizedMessage}</p>
+          <Button onClick={handleMoveToLogin}>확인</Button>
+        </div>
+      </div>
+    );
   }
 
   if (error) {

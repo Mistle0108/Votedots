@@ -20,6 +20,7 @@ interface UseCanvasGameplayParams {
   onCanvasUpdated: (payload: { cellId: number; color: string }) => void;
   onGameEndedCleanup: () => void;
   onSessionEnded: () => void;
+  onUnauthorized: (message: string) => void;
   applyVoteUpdate: (votes: Record<string, number>) => void;
   resetVoteState: () => void;
 }
@@ -30,6 +31,7 @@ export default function useCanvasGameplay({
   onCanvasUpdated,
   onGameEndedCleanup,
   onSessionEnded,
+  onUnauthorized,
   applyVoteUpdate,
   resetVoteState,
 }: UseCanvasGameplayParams) {
@@ -101,6 +103,7 @@ export default function useCanvasGameplay({
     markGameEnded,
   } = useGameSession({
     onBootstrap: applyBootstrap,
+    onUnauthorized,
   });
 
   useEffect(() => {

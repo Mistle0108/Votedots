@@ -5,6 +5,7 @@ import { Button } from "@/shared/ui/button";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -15,7 +16,7 @@ export default function LoginPage() {
 
     try {
       await authApi.login({ username, password });
-      navigate("/canvas");
+      navigate("/play", { replace: true });
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const axiosErr = err as { response: { data: { message: string } } };
