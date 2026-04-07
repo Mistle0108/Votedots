@@ -17,7 +17,7 @@ export const router = createBrowserRouter([
     element: <RegisterPage />,
   },
   {
-    path: "/canvas",
+    path: "/play",
     element: <CanvasPage />,
   },
 ]);

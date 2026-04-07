@@ -6,9 +6,13 @@ import useCanvasScene from "./useCanvasScene";
 
 interface UseCanvasPageParams {
   onSessionEnded: () => void;
+  onUnauthorized: () => void;
 }
 
-export default function useCanvasPage({ onSessionEnded }: UseCanvasPageParams) {
+export default function useCanvasPage({
+  onSessionEnded,
+  onUnauthorized,
+}: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
 
   const {
@@ -79,6 +83,7 @@ export default function useCanvasPage({ onSessionEnded }: UseCanvasPageParams) {
     onCanvasUpdated: handleCanvasUpdated,
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
+    onUnauthorized,
     applyVoteUpdate,
     resetVoteState,
   });

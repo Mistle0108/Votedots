@@ -1,13 +1,22 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import { Button } from "@/shared/ui/button";
 
+interface LoginLocationState {
+  message?: string;
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const locationState = location.state as LoginLocationState | null;
+
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+
+  const redirectMessage = locationState?.message ?? "";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -15,7 +24,7 @@ export default function LoginPage() {
 
     try {
       await authApi.login({ username, password });
-      navigate("/canvas");
+      navigate("/play", { replace: true });
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const axiosErr = err as { response: { data: { message: string } } };
@@ -30,6 +39,10 @@ export default function LoginPage() {
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex w-full max-w-sm flex-col gap-6">
         <h1 className="text-center text-2xl font-bold">VoteDots</h1>
+
+        {redirectMessage && (
+          <p className="text-center text-sm text-gray-600">{redirectMessage}</p>
+        )}
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">

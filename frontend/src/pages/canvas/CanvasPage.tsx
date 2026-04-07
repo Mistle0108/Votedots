@@ -21,6 +21,13 @@ export default function CanvasPage() {
     navigate("/login", { replace: true });
   }, [navigate]);
 
+  const handleUnauthorized = useCallback(() => {
+    navigate("/login", {
+      replace: true,
+      state: { message: "로그인이 필요합니다." },
+    });
+  }, [navigate]);
+
   const {
     canvasRef,
     containerRef,
@@ -59,6 +66,7 @@ export default function CanvasPage() {
     navigateToCoordinate,
   } = useCanvasPage({
     onSessionEnded: handleSessionEnded,
+    onUnauthorized: handleUnauthorized,
   });
 
   if (loading) {
