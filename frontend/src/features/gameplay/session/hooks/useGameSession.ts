@@ -42,8 +42,22 @@ export function useGameSession({
         const result = await bootstrap();
         onBootstrap(result);
         return result;
-      } catch {
-        setError("진행중인 캔버스가 없어요");
+      } catch (err) {
+        if (axios.isAxiosError(err)) {
+          const status = err.response?.status;
+
+          if (status === 401) {
+            onUnauthorized("로그인이 필요합니다.");
+            return null;
+          }
+
+          if (status === 404) {
+            setError("진행중인 캔버스가 없어요");
+            return null;
+          }
+        }
+
+        setError("캔버스 정보를 불러오는 중 오류가 발생했어요");
         return null;
       }
     } finally {
