@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   getRoundProgressPercent,
   type RoundInfoProps,
@@ -13,33 +12,10 @@ export default function RoundInfo({
   roundDurationSec,
   votingParticipantCount,
 }: RoundInfoProps) {
-  const [enableProgressTransition, setEnableProgressTransition] =
-    useState(false);
   const progressPercent = getRoundProgressPercent(
     remainingSeconds,
     roundDurationSec,
   );
-
-  useEffect(() => {
-    const isInitialSync =
-      remainingSeconds !== null &&
-      roundDurationSec !== null &&
-      (remainingSeconds === roundDurationSec || !enableProgressTransition);
-
-    if (!isInitialSync) return;
-
-    setEnableProgressTransition(false);
-
-    const frame1 = requestAnimationFrame(() => {
-      const frame2 = requestAnimationFrame(() => {
-        setEnableProgressTransition(true);
-      });
-
-      return () => cancelAnimationFrame(frame2);
-    });
-
-    return () => cancelAnimationFrame(frame1);
-  }, [remainingSeconds, roundDurationSec, enableProgressTransition]);
 
   return (
     <div className="flex flex-col gap-4">
@@ -68,10 +44,7 @@ export default function RoundInfo({
 
         <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
           <div
-            className={`h-full rounded-full bg-red-500 ${enableProgressTransition
-                ? "transition-[width] duration-1000 linear"
-                : ""
-              }`}
+            className="h-full rounded-full bg-red-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -83,5 +56,4 @@ export default function RoundInfo({
       </div>
     </div>
   );
-
 }
