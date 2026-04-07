@@ -20,7 +20,7 @@ interface UseCanvasGameplayParams {
   onCanvasUpdated: (payload: { cellId: number; color: string }) => void;
   onGameEndedCleanup: () => void;
   onSessionEnded: () => void;
-  onUnauthorized: () => void;
+  onUnauthorized: (message: string) => void;
   applyVoteUpdate: (votes: Record<string, number>) => void;
   resetVoteState: () => void;
 }

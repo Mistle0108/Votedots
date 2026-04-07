@@ -6,7 +6,7 @@ import useCanvasScene from "./useCanvasScene";
 
 interface UseCanvasPageParams {
   onSessionEnded: () => void;
-  onUnauthorized: () => void;
+  onUnauthorized: (message: string) => void;
 }
 
 export default function useCanvasPage({
