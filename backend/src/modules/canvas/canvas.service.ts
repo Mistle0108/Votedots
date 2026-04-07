@@ -18,6 +18,22 @@ const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const GRID_X = parseInt(process.env.GRID_SIZE_X ?? "25", 10);
 const GRID_Y = parseInt(process.env.GRID_SIZE_Y ?? "25", 10);
 
+function logPhaseChange(params: {
+  canvasId: number;
+  phase: GamePhase;
+  roundNumber: number;
+  phaseStartedAt: Date;
+  phaseEndsAt: Date | null;
+  reason: string;
+}): void {
+  const { canvasId, phase, roundNumber, phaseStartedAt, phaseEndsAt, reason } =
+    params;
+
+  console.log(
+    `[phase] ${reason} | 캔버스=${canvasId} 단계=${phase} 라운드=${roundNumber} 시작=${phaseStartedAt.toISOString()} 종료=${phaseEndsAt?.toISOString() ?? "null"}`,
+  );
+}
+
 export const canvasService = {
   async create(io: Server): Promise<Canvas> {
     const existing = await canvasRepository.findOne({
@@ -45,6 +61,15 @@ export const canvasService = {
     });
 
     await canvasRepository.save(canvas);
+
+    logPhaseChange({
+      canvasId: canvas.id,
+      phase: GamePhase.ROUND_START_WAIT,
+      roundNumber: 1,
+      phaseStartedAt: now,
+      phaseEndsAt,
+      reason: "캔버스 생성",
+    });
 
     const cells: Partial<Cell>[] = [];
     for (let y = 0; y < GRID_Y; y++) {
@@ -141,6 +166,15 @@ export const canvasService = {
       );
 
       for (const canvasId of canvasIds) {
+        logPhaseChange({
+          canvasId,
+          phase: GamePhase.GAME_END,
+          roundNumber: 0,
+          phaseStartedAt: now,
+          phaseEndsAt: now,
+          reason: "서버 복구 중 이전 캔버스 종료 처리",
+        });
+
         await voteRoundRepository.update(
           { canvas: { id: canvasId }, isActive: true },
           {

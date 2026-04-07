@@ -26,6 +26,22 @@ function getGameEndAt(roundStartedAt: Date, currentRound: number): Date {
   );
 }
 
+function logPhaseChange(params: {
+  canvasId: number;
+  phase: GamePhase;
+  roundNumber: number;
+  phaseStartedAt: Date;
+  phaseEndsAt: Date | null;
+  reason: string;
+}): void {
+  const { canvasId, phase, roundNumber, phaseStartedAt, phaseEndsAt, reason } =
+    params;
+
+  console.log(
+    `[phase] ${reason} | 캔버스=${canvasId} 단계=${phase} 라운드=${roundNumber} 시작=${phaseStartedAt.toISOString()} 종료=${phaseEndsAt?.toISOString() ?? "null"}`,
+  );
+}
+
 function clearScheduledTimer(canvasId: number): void {
   const timer = activeTimers.get(canvasId);
 
@@ -63,6 +79,11 @@ function scheduleTimer(
   activeTimers.set(canvasId, timer);
 }
 
+async function createNextCanvas(io: Server): Promise<void> {
+  const { canvasService } = await import("../canvas/canvas.service");
+  await canvasService.create(io);
+}
+
 async function transitionToRoundStartWait(
   io: Server,
   canvasId: number,
@@ -78,6 +99,15 @@ async function transitionToRoundStartWait(
     phaseStartedAt,
     phaseEndsAt,
     currentRoundNumber: roundNumber,
+  });
+
+  logPhaseChange({
+    canvasId,
+    phase: GamePhase.ROUND_START_WAIT,
+    roundNumber,
+    phaseStartedAt,
+    phaseEndsAt,
+    reason: "라운드 시작 대기 전환",
   });
 
   scheduleTimer(
@@ -108,10 +138,30 @@ async function transitionToGameEnd(
     endedAt: phaseStartedAt,
   });
 
+  logPhaseChange({
+    canvasId,
+    phase: GamePhase.GAME_END,
+    roundNumber,
+    phaseStartedAt,
+    phaseEndsAt,
+    reason: "게임 종료 전환",
+  });
+
   scheduleTimer(
     canvasId,
     () => {
-      io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
+      void (async () => {
+        io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
+
+        try {
+          await createNextCanvas(io);
+        } catch (err) {
+          console.error(
+            `[game-timer] failed to create next canvas after game end (previousCanvasId=${canvasId}):`,
+            err,
+          );
+        }
+      })();
     },
     gameConfig.gameEndWaitSec * 1000,
   );

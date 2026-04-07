@@ -41,6 +41,22 @@ interface RoundStateResponse {
   };
 }
 
+function logPhaseChange(params: {
+  canvasId: number;
+  phase: GamePhase;
+  roundNumber: number;
+  phaseStartedAt: Date;
+  phaseEndsAt: Date | null;
+  reason: string;
+}): void {
+  const { canvasId, phase, roundNumber, phaseStartedAt, phaseEndsAt, reason } =
+    params;
+
+  console.log(
+    `[phase] ${reason} | 캔버스=${canvasId} 단계=${phase} 라운드=${roundNumber} 시작=${phaseStartedAt.toISOString()} 종료=${phaseEndsAt?.toISOString() ?? "null"}`,
+  );
+}
+
 function getActiveGameEndAt(roundStartedAt: Date, roundNumber: number): Date {
   const remainingRoundsIncludingCurrent =
     gameConfig.totalRounds - roundNumber + 1;
@@ -106,6 +122,15 @@ export const roundService = {
       phaseStartedAt: roundStartedAt,
       phaseEndsAt: roundEndsAt,
       currentRoundNumber: nextRoundNumber,
+    });
+
+    logPhaseChange({
+      canvasId,
+      phase: GamePhase.ROUND_ACTIVE,
+      roundNumber: nextRoundNumber,
+      phaseStartedAt: roundStartedAt,
+      phaseEndsAt: roundEndsAt,
+      reason: "라운드 시작",
     });
 
     const { voterIds } =
@@ -265,6 +290,15 @@ export const roundService = {
       phaseStartedAt: round.endedAt,
       phaseEndsAt: roundResultEndsAt,
       currentRoundNumber: round.roundNumber,
+    });
+
+    logPhaseChange({
+      canvasId,
+      phase: GamePhase.ROUND_RESULT,
+      roundNumber: round.roundNumber,
+      phaseStartedAt: round.endedAt,
+      phaseEndsAt: roundResultEndsAt,
+      reason: "라운드 결과 전환",
     });
 
     await redisClient.del(redisKey);
