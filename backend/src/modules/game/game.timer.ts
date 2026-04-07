@@ -1,17 +1,17 @@
 import { Server } from "socket.io";
+import { gameConfig } from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { roundService } from "../round/round.service";
-import { gameConfig } from "../../config/game.config";
+import { GamePhase } from "./game-phase.types";
 
-// canvasId별 라운드 종료 타이머 핸들 관리
+const canvasRepository = AppDataSource.getRepository(Canvas);
+
+// Manage the next scheduled phase transition per canvas.
 const activeTimers = new Map<number, NodeJS.Timeout>();
 
-// canvasId별 timer:update broadcast interval 관리
+// Manage round timer broadcast intervals per canvas.
 const activeBroadcasts = new Map<number, NodeJS.Timeout>();
-
-// 라운드 종료 후 다음 라운드 시작 전 마감 상태 유지 시간(초)
-const ROUND_RESULT_DELAY_SEC = 10;
 
 function getGameEndAt(roundStartedAt: Date, currentRound: number): Date {
   const remainingRoundsIncludingCurrent =
@@ -26,146 +26,244 @@ function getGameEndAt(roundStartedAt: Date, currentRound: number): Date {
   );
 }
 
+function clearScheduledTimer(canvasId: number): void {
+  const timer = activeTimers.get(canvasId);
+
+  if (!timer) {
+    return;
+  }
+
+  clearTimeout(timer);
+  activeTimers.delete(canvasId);
+}
+
+function clearBroadcastInterval(canvasId: number): void {
+  const interval = activeBroadcasts.get(canvasId);
+
+  if (!interval) {
+    return;
+  }
+
+  clearInterval(interval);
+  activeBroadcasts.delete(canvasId);
+}
+
+function scheduleTimer(
+  canvasId: number,
+  callback: () => void,
+  delayMs: number,
+): void {
+  clearScheduledTimer(canvasId);
+
+  const timer = setTimeout(() => {
+    activeTimers.delete(canvasId);
+    callback();
+  }, delayMs);
+
+  activeTimers.set(canvasId, timer);
+}
+
+async function transitionToRoundStartWait(
+  io: Server,
+  canvasId: number,
+  roundNumber: number,
+): Promise<void> {
+  const phaseStartedAt = new Date();
+  const phaseEndsAt = new Date(
+    phaseStartedAt.getTime() + gameConfig.roundStartWaitSec * 1000,
+  );
+
+  await canvasRepository.update(canvasId, {
+    phase: GamePhase.ROUND_START_WAIT,
+    phaseStartedAt,
+    phaseEndsAt,
+    currentRoundNumber: roundNumber,
+  });
+
+  scheduleTimer(
+    canvasId,
+    () => {
+      void runRound(io, canvasId, roundNumber);
+    },
+    gameConfig.roundStartWaitSec * 1000,
+  );
+}
+
+async function transitionToGameEnd(
+  io: Server,
+  canvasId: number,
+  roundNumber: number,
+): Promise<void> {
+  const phaseStartedAt = new Date();
+  const phaseEndsAt = new Date(
+    phaseStartedAt.getTime() + gameConfig.gameEndWaitSec * 1000,
+  );
+
+  await canvasRepository.update(canvasId, {
+    status: CanvasStatus.FINISHED,
+    phase: GamePhase.GAME_END,
+    phaseStartedAt,
+    phaseEndsAt,
+    currentRoundNumber: roundNumber,
+    endedAt: phaseStartedAt,
+  });
+
+  scheduleTimer(
+    canvasId,
+    () => {
+      io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
+    },
+    gameConfig.gameEndWaitSec * 1000,
+  );
+}
+
+async function runRound(
+  io: Server,
+  canvasId: number,
+  expectedRoundNumber: number,
+): Promise<void> {
+  if (expectedRoundNumber > gameConfig.totalRounds) {
+    await transitionToGameEnd(io, canvasId, gameConfig.totalRounds);
+    return;
+  }
+
+  let round;
+
+  try {
+    round = await roundService.startRound(canvasId, io);
+  } catch (err) {
+    console.error(
+      `[game-timer] failed to start round (canvasId=${canvasId}, round=${expectedRoundNumber}):`,
+      err,
+    );
+    clearScheduledTimer(canvasId);
+    clearBroadcastInterval(canvasId);
+    return;
+  }
+
+  const gameEndAt = getGameEndAt(round.startedAt, round.roundNumber);
+
+  const broadcastTimerUpdate = (
+    remainingSecondsOverride?: number,
+    isRoundExpiredOverride?: boolean,
+  ) => {
+    const elapsed = Math.floor((Date.now() - round.startedAt.getTime()) / 1000);
+
+    const remainingSeconds =
+      remainingSecondsOverride ??
+      Math.max(0, gameConfig.roundDurationSec - elapsed);
+
+    const isRoundExpired = isRoundExpiredOverride ?? remainingSeconds === 0;
+
+    io.to(`canvas:${canvasId}`).emit("timer:update", {
+      roundId: round.id,
+      roundNumber: round.roundNumber,
+      remainingSeconds,
+      isRoundExpired,
+      roundDurationSec: gameConfig.roundDurationSec,
+      totalRounds: gameConfig.totalRounds,
+      gameEndAt: gameEndAt.toISOString(),
+    });
+  };
+
+  broadcastTimerUpdate();
+
+  const broadcastInterval = setInterval(() => {
+    broadcastTimerUpdate();
+  }, 1000);
+
+  activeBroadcasts.set(canvasId, broadcastInterval);
+
+  scheduleTimer(
+    canvasId,
+    () => {
+      void (async () => {
+        clearBroadcastInterval(canvasId);
+        broadcastTimerUpdate(0, true);
+
+        try {
+          await roundService.endRound(canvasId, round.id, io);
+        } catch (err) {
+          console.error(
+            `[game-timer] failed to end round (canvasId=${canvasId}, roundId=${round.id}):`,
+            err,
+          );
+          clearScheduledTimer(canvasId);
+          return;
+        }
+
+        if (round.roundNumber >= gameConfig.totalRounds) {
+          scheduleTimer(
+            canvasId,
+            () => {
+              void transitionToGameEnd(io, canvasId, round.roundNumber);
+            },
+            gameConfig.roundResultDelaySec * 1000,
+          );
+
+          return;
+        }
+
+        scheduleTimer(
+          canvasId,
+          () => {
+            void transitionToRoundStartWait(
+              io,
+              canvasId,
+              round.roundNumber + 1,
+            );
+          },
+          gameConfig.roundResultDelaySec * 1000,
+        );
+      })();
+    },
+    gameConfig.roundDurationSec * 1000,
+  );
+}
+
 export async function startGameTimer(
   io: Server,
   canvasId: number,
 ): Promise<void> {
   if (activeTimers.has(canvasId)) {
-    console.log(`[타이머] canvasId=${canvasId} 이미 실행 중`);
+    console.log(`[game-timer] already running for canvasId=${canvasId}`);
     return;
   }
 
-  const canvasRepository = AppDataSource.getRepository(Canvas);
-  const canvas = await canvasRepository.findOne({ where: { id: canvasId } });
+  const canvas = await canvasRepository.findOne({
+    where: { id: canvasId },
+  });
+
   if (!canvas) {
-    throw new Error(`캔버스를 찾을 수 없습니다. (id=${canvasId})`);
+    throw new Error(`Canvas was not found. (id=${canvasId})`);
   }
 
-  async function runRound(currentRound: number): Promise<void> {
-    if (currentRound > gameConfig.totalRounds) {
-      await endGame(io, canvasId);
-      return;
-    }
+  const initialRoundNumber =
+    canvas.currentRoundNumber > 0 ? canvas.currentRoundNumber : 1;
 
-    let round;
-    try {
-      round = await roundService.startRound(canvasId, io);
-    } catch (err) {
-      console.error(`[타이머] 라운드 시작 실패 (canvasId=${canvasId}):`, err);
-      activeTimers.delete(canvasId);
-      return;
-    }
-
-    console.log(
-      `[타이머] 라운드 ${round.roundNumber} 시작 (canvasId=${canvasId})`,
+  if (canvas.phase === GamePhase.ROUND_START_WAIT) {
+    const delayMs = Math.max(
+      0,
+      (canvas.phaseEndsAt?.getTime() ?? Date.now()) - Date.now(),
     );
 
-    const gameEndAt = getGameEndAt(round.startedAt, round.roundNumber);
+    scheduleTimer(
+      canvasId,
+      () => {
+        void runRound(io, canvasId, initialRoundNumber);
+      },
+      delayMs,
+    );
 
-    const broadcastTimerUpdate = (
-      remainingSecondsOverride?: number,
-      isRoundExpiredOverride?: boolean,
-    ) => {
-      const elapsed = Math.floor(
-        (Date.now() - round.startedAt.getTime()) / 1000,
-      );
-
-      const remainingSeconds =
-        remainingSecondsOverride ??
-        Math.max(0, gameConfig.roundDurationSec - elapsed);
-
-      const isRoundExpired = isRoundExpiredOverride ?? remainingSeconds === 0;
-
-      io.to(`canvas:${canvasId}`).emit("timer:update", {
-        roundId: round.id,
-        roundNumber: round.roundNumber,
-        remainingSeconds,
-        isRoundExpired,
-        roundDurationSec: gameConfig.roundDurationSec,
-        totalRounds: gameConfig.totalRounds,
-        gameEndAt: gameEndAt.toISOString(),
-      });
-    };
-
-    broadcastTimerUpdate();
-
-    const broadcastInterval = setInterval(() => {
-      broadcastTimerUpdate();
-    }, 1000);
-    activeBroadcasts.set(canvasId, broadcastInterval);
-
-    const timer = setTimeout(async () => {
-      const runningBroadcast = activeBroadcasts.get(canvasId);
-      if (runningBroadcast) {
-        clearInterval(runningBroadcast);
-        activeBroadcasts.delete(canvasId);
-      }
-
-      // 라운드 종료 직후 마감 상태를 즉시 1회 전송
-      broadcastTimerUpdate(0, true);
-
-      try {
-        await roundService.endRound(canvasId, round.id, io);
-      } catch (err) {
-        console.error(
-          `[타이머] 라운드 종료 실패 (canvasId=${canvasId}, roundId=${round.id}):`,
-          err,
-        );
-        activeTimers.delete(canvasId);
-        return;
-      }
-
-      console.log(
-        `[타이머] 라운드 ${round.roundNumber} 종료 (canvasId=${canvasId})`,
-      );
-
-      const delayTimer = setTimeout(() => {
-        activeTimers.delete(canvasId);
-        runRound(currentRound + 1);
-      }, gameConfig.roundResultDelaySec * 1000);
-
-      activeTimers.set(canvasId, delayTimer);
-    }, gameConfig.roundDurationSec * 1000);
-
-    activeTimers.set(canvasId, timer);
+    return;
   }
 
-  runRound(1);
+  await transitionToRoundStartWait(io, canvasId, initialRoundNumber);
 }
 
 export function stopGameTimer(canvasId: number): void {
-  const timer = activeTimers.get(canvasId);
-  if (timer) {
-    clearTimeout(timer);
-    activeTimers.delete(canvasId);
-  }
+  clearScheduledTimer(canvasId);
+  clearBroadcastInterval(canvasId);
 
-  const broadcastInterval = activeBroadcasts.get(canvasId);
-  if (broadcastInterval) {
-    clearInterval(broadcastInterval);
-    activeBroadcasts.delete(canvasId);
-  }
-
-  console.log(`[타이머] canvasId=${canvasId} 타이머 중지`);
-}
-
-async function endGame(io: Server, canvasId: number): Promise<void> {
-  const canvasRepository = AppDataSource.getRepository(Canvas);
-
-  await canvasRepository.update(canvasId, {
-    status: CanvasStatus.FINISHED,
-    endedAt: new Date(),
-  });
-
-  activeTimers.delete(canvasId);
-
-  const broadcastInterval = activeBroadcasts.get(canvasId);
-  if (broadcastInterval) {
-    clearInterval(broadcastInterval);
-    activeBroadcasts.delete(canvasId);
-  }
-
-  console.log(`[타이머] 게임 종료 (canvasId=${canvasId})`);
-
-  io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
+  console.log(`[game-timer] stopped for canvasId=${canvasId}`);
 }
