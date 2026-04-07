@@ -43,7 +43,7 @@ export default function RoundInfo({
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-2 rounded-lg border border-gray-200 p-3">
+      <div className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3">
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="font-medium">라운드</span>
           <span className="text-gray-500">
@@ -60,8 +60,7 @@ export default function RoundInfo({
           </span>
         </div>
 
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm font-medium">남은 시간</span>
+        <div className="flex justify-center">
           <span className="text-2xl font-bold leading-none text-red-500">
             {formattedRemainingTime ?? "-"}
           </span>
@@ -69,19 +68,18 @@ export default function RoundInfo({
 
         <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
           <div
-            className={`h-full rounded-full bg-red-500 ${
-              enableProgressTransition
+            className={`h-full rounded-full bg-red-500 ${enableProgressTransition
                 ? "transition-[width] duration-1000 linear"
                 : ""
-            }`}
+              }`}
             style={{ width: `${progressPercent}%` }}
           />
         </div>
-      </div>
 
-      <div className="flex items-center justify-between gap-3 text-sm">
-        <span className="font-medium text-gray-600">게임 종료</span>
-        <span className="text-gray-500">{formattedGameEndTime ?? "-"}</span>
+        <div className="mt-3 flex items-center justify-between gap-3 text-sm">
+          <span className="font-medium text-gray-600">게임 종료</span>
+          <span className="text-gray-500">{formattedGameEndTime ?? "-"}</span>
+        </div>
       </div>
     </div>
   );

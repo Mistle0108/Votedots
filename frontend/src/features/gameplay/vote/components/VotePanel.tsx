@@ -78,16 +78,15 @@ export default function VotePanel({
         votingParticipantCount={votingParticipantCount}
       />
 
-      <div className="flex flex-col gap-1">
+      <div className="flex min-h-2 items-center justify-between gap-3">
         <p className="text-sm font-medium">남은 투표권</p>
         <div className="flex gap-1">
           {remaining !== null ? (
             Array.from({ length: VOTES_PER_ROUND }).map((_, index) => (
               <span
                 key={index}
-                className={`text-lg ${
-                  index < usedCount ? "text-gray-300" : "text-blue-500"
-                }`}
+                className={`text-lg ${index < usedCount ? "text-gray-300" : "text-blue-500"
+                  }`}
               >
                 ●
               </span>
