@@ -16,10 +16,46 @@ function formatDuration(seconds: number): string {
   return `${minutes}:${String(secs).padStart(2, "0")}`;
 }
 
+function getRemainingSeconds(phaseEndsAt: string | null): number | null {
+  if (!phaseEndsAt) {
+    return null;
+  }
+
+  return Math.max(
+    0,
+    Math.ceil((new Date(phaseEndsAt).getTime() - Date.now()) / 1000),
+  );
+}
+
+function getPhaseDurationSeconds(
+  phaseStartedAt: string | null,
+  phaseEndsAt: string | null,
+): number | null {
+  if (!phaseStartedAt || !phaseEndsAt) {
+    return null;
+  }
+
+  return Math.max(
+    0,
+    Math.ceil(
+      (new Date(phaseEndsAt).getTime() - new Date(phaseStartedAt).getTime()) /
+        1000,
+    ),
+  );
+}
+
 export function useGameplayBootstrap() {
   const bootstrap = useCallback(async (): Promise<SessionBootstrapResult> => {
     const { data } = await sessionApi.getCurrentCanvas();
-    const { canvas, cells } = data;
+    const {
+      canvas,
+      cells,
+      roundDurationSec,
+      totalRounds,
+      roundStartWaitSec,
+      roundResultDelaySec,
+      gameEndWaitSec,
+    } = data;
 
     let roundState: RoundStateResponse | null = null;
     let remaining: number | null = null;
@@ -34,21 +70,33 @@ export function useGameplayBootstrap() {
       }
     }
 
+    const phaseRemainingSeconds = getRemainingSeconds(canvas.phaseEndsAt);
+    const phaseDurationSeconds = getPhaseDurationSeconds(
+      canvas.phaseStartedAt,
+      canvas.phaseEndsAt,
+    );
+
+    const resolvedRemainingSeconds =
+      roundState?.timer?.remainingSeconds ?? phaseRemainingSeconds;
+
     const round: RoundInfoState = {
       phase: canvas.phase,
       roundId: roundState?.round?.id ?? null,
       roundNumber:
         roundState?.round?.roundNumber ?? canvas.currentRoundNumber ?? null,
-      roundDurationSec: roundState?.round?.roundDurationSec ?? null,
-      totalRounds: roundState?.round?.totalRounds ?? 0,
+      roundDurationSec:
+        roundState?.round?.roundDurationSec ??
+        phaseDurationSeconds ??
+        roundDurationSec ??
+        null,
+      totalRounds: roundState?.round?.totalRounds ?? totalRounds,
       formattedGameEndTime: roundState?.round
         ? formatClockTime(new Date(roundState.round.gameEndAt))
         : null,
-      remainingSeconds: roundState?.timer?.remainingSeconds ?? null,
-      formattedRemainingTime: roundState?.timer
-        ? formatDuration(roundState.timer.remainingSeconds)
-        : canvas.phase === GAME_PHASE.GAME_END
-          ? formatDuration(0)
+      remainingSeconds: resolvedRemainingSeconds,
+      formattedRemainingTime:
+        resolvedRemainingSeconds !== null
+          ? formatDuration(resolvedRemainingSeconds)
           : null,
       isRoundExpired:
         canvas.phase === GAME_PHASE.ROUND_RESULT ||
@@ -66,6 +114,11 @@ export function useGameplayBootstrap() {
       cells,
       round,
       remaining,
+      phaseTiming: {
+        roundStartWaitSec,
+        roundResultDelaySec,
+        gameEndWaitSec,
+      },
     };
   }, []);
 

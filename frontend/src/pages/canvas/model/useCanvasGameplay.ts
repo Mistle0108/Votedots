@@ -1,10 +1,11 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useRoundState, useRoundTimer } from "@/features/gameplay/round";
 import {
   useGameSession,
   useGameplaySocket,
   useParticipantsState,
   type SessionBootstrapResult,
+  type PhaseTimingState,
 } from "@/features/gameplay/session";
 import {
   GAME_PHASE,
@@ -28,6 +29,12 @@ interface UseCanvasGameplayParams {
   applyVoteUpdate: (votes: Record<string, number>) => void;
   resetVoteState: () => void;
 }
+
+const DEFAULT_PHASE_TIMING: PhaseTimingState = {
+  roundStartWaitSec: 0,
+  roundResultDelaySec: 0,
+  gameEndWaitSec: 0,
+};
 
 export default function useCanvasGameplay({
   canvasId,
@@ -59,9 +66,20 @@ export default function useCanvasGameplay({
     applyRoundTimer,
     setPhaseTimerState,
     startRoundTimer,
-    expireRoundTimer,
     resetRoundTimer,
   } = useRoundTimer();
+
+  const phaseTimingRef = useRef<PhaseTimingState>(DEFAULT_PHASE_TIMING);
+  const localPhaseTransitionTimerRef = useRef<number | null>(null);
+
+  const clearLocalPhaseTransitionTimer = useCallback(() => {
+    if (localPhaseTransitionTimerRef.current === null) {
+      return;
+    }
+
+    window.clearTimeout(localPhaseTransitionTimerRef.current);
+    localPhaseTransitionTimerRef.current = null;
+  }, []);
 
   const { remaining, setRemaining, fetchTickets, clearTickets } =
     useVoteTickets();
@@ -79,6 +97,8 @@ export default function useCanvasGameplay({
 
   const applyBootstrap = useCallback(
     (result: SessionBootstrapResult) => {
+      phaseTimingRef.current = result.phaseTiming;
+
       onBootstrapScene(result);
 
       setRoundState({
@@ -126,6 +146,12 @@ export default function useCanvasGameplay({
   } = useGameSession({
     onBootstrap: applyBootstrap,
   });
+
+  useEffect(() => {
+    return () => {
+      clearLocalPhaseTransitionTimer();
+    };
+  }, [clearLocalPhaseTransitionTimer]);
 
   useEffect(() => {
     let cancelled = false;
@@ -180,6 +206,78 @@ export default function useCanvasGameplay({
     };
   }, [phase, phaseEndsAt, setPhaseTimerState]);
 
+  useEffect(() => {
+    clearLocalPhaseTransitionTimer();
+
+    if (
+      phase !== GAME_PHASE.ROUND_RESULT ||
+      !phaseEndsAt ||
+      roundNumber === null
+    ) {
+      return;
+    }
+
+    const delayMs = Math.max(0, new Date(phaseEndsAt).getTime() - Date.now());
+
+    localPhaseTransitionTimerRef.current = window.setTimeout(() => {
+      localPhaseTransitionTimerRef.current = null;
+
+      if (roundNumber >= totalRounds) {
+        const gameEndStartedAt = phaseEndsAt;
+        const gameEndEndsAt = new Date(
+          new Date(gameEndStartedAt).getTime() +
+            phaseTimingRef.current.gameEndWaitSec * 1000,
+        ).toISOString();
+
+        setRoundState({
+          phase: GAME_PHASE.GAME_END,
+          roundId: null,
+          roundNumber,
+          roundDurationSec: phaseTimingRef.current.gameEndWaitSec,
+          totalRounds,
+          formattedGameEndTime,
+          phaseStartedAt: gameEndStartedAt,
+          phaseEndsAt: gameEndEndsAt,
+        });
+
+        setPhaseTimerState(gameEndEndsAt, true);
+        return;
+      }
+
+      const waitStartedAt = phaseEndsAt;
+      const waitEndsAt = new Date(
+        new Date(waitStartedAt).getTime() +
+          phaseTimingRef.current.roundStartWaitSec * 1000,
+      ).toISOString();
+
+      setRoundState({
+        phase: GAME_PHASE.ROUND_START_WAIT,
+        roundId: null,
+        roundNumber: roundNumber + 1,
+        roundDurationSec: phaseTimingRef.current.roundStartWaitSec,
+        totalRounds,
+        formattedGameEndTime,
+        phaseStartedAt: waitStartedAt,
+        phaseEndsAt: waitEndsAt,
+      });
+
+      setPhaseTimerState(waitEndsAt, false);
+    }, delayMs);
+
+    return () => {
+      clearLocalPhaseTransitionTimer();
+    };
+  }, [
+    clearLocalPhaseTransitionTimer,
+    formattedGameEndTime,
+    phase,
+    phaseEndsAt,
+    roundNumber,
+    setPhaseTimerState,
+    setRoundState,
+    totalRounds,
+  ]);
+
   const handleCanvasJoined = useCallback(() => {
     void refreshParticipants();
   }, [refreshParticipants]);
@@ -200,6 +298,8 @@ export default function useCanvasGameplay({
       totalRounds: number;
       gameEndAt: string;
     }) => {
+      clearLocalPhaseTransitionTimer();
+
       setRoundState({
         phase: GAME_PHASE.ROUND_ACTIVE,
         roundId,
@@ -218,6 +318,7 @@ export default function useCanvasGameplay({
       await Promise.all([fetchTickets(roundId), refreshParticipants()]);
     },
     [
+      clearLocalPhaseTransitionTimer,
       clearSessionError,
       fetchTickets,
       refreshParticipants,
@@ -237,27 +338,34 @@ export default function useCanvasGameplay({
       roundNumber: number;
       endedAt: string;
     }) => {
+      clearLocalPhaseTransitionTimer();
       clearTickets();
-      expireRoundTimer();
       resetVoteState();
+
+      const resultEndsAt = new Date(
+        new Date(endedAt).getTime() +
+          phaseTimingRef.current.roundResultDelaySec * 1000,
+      ).toISOString();
 
       setRoundState({
         phase: GAME_PHASE.ROUND_RESULT,
         roundId,
         roundNumber,
-        roundDurationSec,
+        roundDurationSec: phaseTimingRef.current.roundResultDelaySec,
         totalRounds,
         formattedGameEndTime,
         phaseStartedAt: endedAt,
-        phaseEndsAt: null,
+        phaseEndsAt: resultEndsAt,
       });
+
+      setPhaseTimerState(resultEndsAt, true);
     },
     [
+      clearLocalPhaseTransitionTimer,
       clearTickets,
-      expireRoundTimer,
       formattedGameEndTime,
       resetVoteState,
-      roundDurationSec,
+      setPhaseTimerState,
       setRoundState,
       totalRounds,
     ],
@@ -299,6 +407,7 @@ export default function useCanvasGameplay({
   );
 
   const handleSessionEnded = useCallback(() => {
+    clearLocalPhaseTransitionTimer();
     clearTickets();
     clearParticipants();
     resetRoundState();
@@ -306,6 +415,7 @@ export default function useCanvasGameplay({
     resetVoteState();
     onSessionEnded();
   }, [
+    clearLocalPhaseTransitionTimer,
     clearParticipants,
     clearTickets,
     onSessionEnded,
@@ -315,6 +425,7 @@ export default function useCanvasGameplay({
   ]);
 
   const handleGameEnded = useCallback(() => {
+    clearLocalPhaseTransitionTimer();
     markGameEnded();
     clearTickets();
     clearParticipants();
@@ -323,6 +434,7 @@ export default function useCanvasGameplay({
     resetRoundTimer();
     resetVoteState();
   }, [
+    clearLocalPhaseTransitionTimer,
     clearParticipants,
     clearTickets,
     markGameEnded,

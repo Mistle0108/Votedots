@@ -4,12 +4,17 @@ import { RoundInfo } from "@/features/gameplay/round";
 import { ParticipantPanel } from "@/features/gameplay/session";
 import type { ParticipantItem } from "@/features/gameplay/session/api/session.api";
 import {
+  GAME_PHASE,
+  type GamePhase,
+} from "@/features/gameplay/session/model/game-phase.types";
+import {
   MAX_VOTE_PANEL_ENTRIES,
   VOTES_PER_ROUND,
 } from "../model/vote.constants";
 import { buildVotePanelEntries } from "../model/vote.utils";
 
 interface Props {
+  phase: GamePhase;
   roundNumber: number | null;
   totalRounds: number;
   formattedGameEndTime: string | null;
@@ -35,6 +40,7 @@ interface Props {
 }
 
 export default function VotePanel({
+  phase,
   roundNumber,
   totalRounds,
   formattedGameEndTime,
@@ -63,12 +69,14 @@ export default function VotePanel({
   const slots = Array.from({ length: MAX_VOTE_PANEL_ENTRIES }, (_, index) => {
     return voteEntries[index] ?? null;
   });
+  const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <h2 className="text-lg font-bold">VoteDots</h2>
 
       <RoundInfo
+        phase={phase}
         roundNumber={roundNumber}
         totalRounds={totalRounds}
         formattedGameEndTime={formattedGameEndTime}
@@ -81,12 +89,13 @@ export default function VotePanel({
       <div className="flex min-h-2 items-center justify-between gap-3">
         <p className="text-sm font-medium">남은 투표권</p>
         <div className="flex gap-1">
-          {remaining !== null ? (
+          {isVotingPhase && remaining !== null ? (
             Array.from({ length: VOTES_PER_ROUND }).map((_, index) => (
               <span
                 key={index}
-                className={`text-lg ${index < usedCount ? "text-gray-300" : "text-blue-500"
-                  }`}
+                className={`text-lg ${
+                  index < usedCount ? "text-gray-300" : "text-blue-500"
+                }`}
               >
                 ●
               </span>

@@ -15,6 +15,12 @@ export interface RoundInfoState {
   phaseEndsAt: string | null;
 }
 
+export interface PhaseTimingState {
+  roundStartWaitSec: number;
+  roundResultDelaySec: number;
+  gameEndWaitSec: number;
+}
+
 export interface VoteSessionState {
   votes: Record<string, number>;
   remaining: number | null;
@@ -45,4 +51,5 @@ export interface SessionBootstrapResult {
   cells: Cell[];
   round: RoundInfoState;
   remaining: number | null;
+  phaseTiming: PhaseTimingState;
 }
