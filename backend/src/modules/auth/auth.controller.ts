@@ -38,8 +38,8 @@ export const authController = {
         return res.status(400).json({ message: "모든 항목을 입력해주세요" });
       }
 
-      const voter = await authService.register(username, password, nickname);
-      return res.status(201).json({ message: "회원가입이 완료됐어요", voter });
+      await authService.register(username, password, nickname);
+      return res.status(201).json({ message: "회원가입이 완료됐어요" });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
     }
@@ -78,10 +78,7 @@ export const authController = {
         await authSessionService.destroySession(previousSessionId);
       }
 
-      return res.json({
-        message: "로그인 성공",
-        voter: { uuid: voter.uuid, nickname: voter.nickname },
-      });
+      return res.json({ message: "로그인 성공" });
     } catch (err) {
       return res.status(401).json({ message: String(err) });
     }
@@ -101,13 +98,19 @@ export const authController = {
       res.clearCookie("connect.sid");
       return res.json({ message: "로그아웃 됐어요" });
     } catch (err) {
-      return res
-        .status(500)
-        .json({ message: "로그아웃 중 오류가 발생했어요" });
+      return res.status(500).json({ message: "로그아웃 중 오류가 발생했어요" });
     }
   },
 
   async me(req: Request, res: Response) {
-    return res.json({ voter: req.session.voter });
+    const voter = req.session.voter!;
+
+    return res.json({
+      voter: {
+        uuid: voter.uuid,
+        nickname: voter.nickname,
+        role: voter.role,
+      },
+    });
   },
 };
