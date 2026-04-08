@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { RESTART_TIME } from "@/features/gameplay/canvas";
-import { sessionApi } from "../api/session.api";
 import { SessionBootstrapResult } from "../model/session.types";
 import { useGameplayBootstrap } from "./useGameplayBootstrap";
 
@@ -34,12 +33,7 @@ export function useGameSession({ onBootstrap }: UseGameSessionParams) {
   useEffect(() => {
     if (!gameEnded) return;
 
-    const timer = setTimeout(async () => {
-      try {
-        await sessionApi.createCanvas();
-      } catch (err) {
-        console.error("캔버스 생성 실패:", err);
-      }
+    const timer = setTimeout(() => {
       window.location.reload();
     }, RESTART_TIME * 1000);
 
