@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { voteApi } from "@/features/gameplay/vote";
 import { GAME_PHASE, isRoundActivePhase } from "../model/game-phase.types";
 import { sessionApi, type RoundStateResponse } from "../api/session.api";
 import { RoundInfoState, SessionBootstrapResult } from "../model/session.types";
@@ -59,14 +60,20 @@ export function useGameplayBootstrap() {
 
     let roundState: RoundStateResponse | null = null;
     let remaining: number | null = null;
+    let votes: Record<string, number> = {};
 
     if (isRoundActivePhase(canvas.phase)) {
       const roundRes = await sessionApi.getActiveRound(canvas.id);
       roundState = roundRes.data;
 
       if (roundState.round?.id) {
-        const ticketsRes = await sessionApi.getTickets(roundState.round.id);
+        const [ticketsRes, voteStatusRes] = await Promise.all([
+          sessionApi.getTickets(roundState.round.id),
+          sessionApi.getVoteStatus(roundState.round.id),
+        ]);
+
         remaining = ticketsRes.data.remaining;
+        votes = voteStatusRes.data.status;
       }
     }
 
@@ -113,6 +120,7 @@ export function useGameplayBootstrap() {
       gridY: canvas.gridY,
       cells,
       round,
+      votes,
       remaining,
       phaseTiming: {
         roundStartWaitSec,

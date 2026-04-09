@@ -51,6 +51,8 @@ export const sessionApi = {
 
   getTickets: (roundId: number) => voteApi.getTickets(roundId),
 
+  getVoteStatus: (roundId: number) => voteApi.getStatus(roundId),
+
   getCurrentParticipantCount: () =>
     api.get<ParticipantCountResponse>("/canvas/current/participants/count"),
 
