@@ -42,6 +42,7 @@ export default function useCanvasGameplay({
   onCanvasUpdated,
   onGameEndedCleanup,
   onSessionEnded,
+  onUnauthorized,
   applyVoteUpdate,
   resetVoteState,
 }: UseCanvasGameplayParams) {
@@ -147,6 +148,7 @@ export default function useCanvasGameplay({
     markGameEnded,
   } = useGameSession({
     onBootstrap: applyBootstrap,
+    onUnauthorized,
   });
 
   useEffect(() => {
@@ -228,7 +230,7 @@ export default function useCanvasGameplay({
         const gameEndStartedAt = phaseEndsAt;
         const gameEndEndsAt = new Date(
           new Date(gameEndStartedAt).getTime() +
-          phaseTimingRef.current.gameEndWaitSec * 1000,
+            phaseTimingRef.current.gameEndWaitSec * 1000,
         ).toISOString();
 
         setRoundState({
@@ -249,7 +251,7 @@ export default function useCanvasGameplay({
       const waitStartedAt = phaseEndsAt;
       const waitEndsAt = new Date(
         new Date(waitStartedAt).getTime() +
-        phaseTimingRef.current.roundStartWaitSec * 1000,
+          phaseTimingRef.current.roundStartWaitSec * 1000,
       ).toISOString();
 
       setRoundState({
@@ -346,7 +348,7 @@ export default function useCanvasGameplay({
 
       const resultEndsAt = new Date(
         new Date(endedAt).getTime() +
-        phaseTimingRef.current.roundResultDelaySec * 1000,
+          phaseTimingRef.current.roundResultDelaySec * 1000,
       ).toISOString();
 
       setRoundState({
