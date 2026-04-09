@@ -281,6 +281,17 @@ export async function connectWithRetry(
 
       startDbHealthMonitor(io);
       await runStartupRecoveryOnce(io);
+
+      const canvasToResume =
+        await canvasService.getCanvasToResumeAfterReconnect();
+
+      if (canvasToResume) {
+        const { startGameTimer } = await import("../modules/game/game.timer");
+        await startGameTimer(io, canvasToResume.id);
+        console.log(
+          `[db] resumed game timer for canvasId=${canvasToResume.id} after reconnection`,
+        );
+      }
     } catch (error) {
       connectionState.status = "reconnecting";
       connectionState.lastError = formatError(error);

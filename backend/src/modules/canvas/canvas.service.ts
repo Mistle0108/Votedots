@@ -187,4 +187,22 @@ export const canvasService = {
 
     return this.create(io);
   },
+  async getCanvasToResumeAfterReconnect(): Promise<Canvas | null> {
+    const currentCanvas = await canvasRepository.findOne({
+      where: { status: CanvasStatus.PLAYING },
+      order: { startedAt: "DESC" },
+    });
+
+    if (currentCanvas) {
+      return currentCanvas;
+    }
+
+    return canvasRepository.findOne({
+      where: {
+        status: CanvasStatus.FINISHED,
+        phase: GamePhase.GAME_END,
+      },
+      order: { phaseStartedAt: "DESC" },
+    });
+  },
 };
