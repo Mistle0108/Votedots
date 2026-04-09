@@ -10,6 +10,8 @@ import {
   participantSessionService,
   type ParticipantSummary,
 } from "../participant/participant-session.service";
+import { InsertResult } from "typeorm";
+
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -17,6 +19,7 @@ const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 
 const GRID_X = parseInt(process.env.GRID_SIZE_X ?? "25", 10);
 const GRID_Y = parseInt(process.env.GRID_SIZE_Y ?? "25", 10);
+const CELL_INSERT_CHUNK_SIZE = 1000;
 
 function logPhaseChange(params: {
   canvasId: number;
@@ -71,11 +74,18 @@ export const canvasService = {
       reason: "캔버스 생성",
     });
 
-    const cells: Partial<Cell>[] = [];
+    const cells: Array<{
+      canvas: { id: number };
+      x: number;
+      y: number;
+      color: null;
+      status: CellStatus;
+    }> = [];
+
     for (let y = 0; y < GRID_Y; y++) {
       for (let x = 0; x < GRID_X; x++) {
         cells.push({
-          canvas,
+          canvas: { id: canvas.id },
           x,
           y,
           color: null,
@@ -84,7 +94,19 @@ export const canvasService = {
       }
     }
 
-    await cellRepository.save(cells as Cell[]);
+    // 여기서 시작
+    const cellInsertStartedAt = performance.now();
+
+    for (let index = 0; index < cells.length; index += CELL_INSERT_CHUNK_SIZE) {
+      const chunk = cells.slice(index, index + CELL_INSERT_CHUNK_SIZE);
+      await cellRepository.insert(chunk);
+    }
+
+    // 여기서 종료 로그
+    console.log(
+      `[perf] canvas cells insert | canvasId=${canvas.id} count=${cells.length} ms=${(performance.now() - cellInsertStartedAt).toFixed(2)}`,
+    );
+
     await startGameTimer(io, canvas.id);
 
     return canvas;

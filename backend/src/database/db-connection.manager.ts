@@ -1,6 +1,7 @@
 import { Server } from "socket.io";
 import { canvasService } from "../modules/canvas/canvas.service";
 import { AppDataSource } from "./data-source";
+import { Canvas } from "../entities/canvas.entity";
 
 export type DbConnectionStatus =
   | "idle"
@@ -101,18 +102,20 @@ async function destroyDataSourceSafely(): Promise<void> {
   }
 }
 
-async function runStartupRecoveryOnce(io: Server): Promise<void> {
+async function runStartupRecoveryOnce(io: Server): Promise<Canvas | null> {
   if (connectionState.startupRecoveryAttempted) {
-    return;
+    return null;
   }
 
   connectionState.startupRecoveryAttempted = true;
 
   try {
-    await canvasService.recoverOnStartup(io);
+    const recoveredCanvas = await canvasService.recoverOnStartup(io);
     console.log("[db] startup canvas recovery completed");
+    return recoveredCanvas;
   } catch (error) {
     console.error("[db] startup canvas recovery failed:", error);
+    return null;
   }
 }
 
@@ -280,17 +283,24 @@ export async function connectWithRetry(
       console.log("[db] connected successfully");
 
       startDbHealthMonitor(io);
-      await runStartupRecoveryOnce(io);
 
-      const canvasToResume =
-        await canvasService.getCanvasToResumeAfterReconnect();
+      const recoveredCanvas = await runStartupRecoveryOnce(io);
 
-      if (canvasToResume) {
-        const { startGameTimer } = await import("../modules/game/game.timer");
-        await startGameTimer(io, canvasToResume.id);
+      if (recoveredCanvas) {
         console.log(
-          `[db] resumed game timer for canvasId=${canvasToResume.id} after reconnection`,
+          `[db] startup recovery created canvasId=${recoveredCanvas.id}; skip duplicate timer resume`,
         );
+      } else {
+        const canvasToResume =
+          await canvasService.getCanvasToResumeAfterReconnect();
+
+        if (canvasToResume) {
+          const { startGameTimer } = await import("../modules/game/game.timer");
+          await startGameTimer(io, canvasToResume.id);
+          console.log(
+            `[db] resumed game timer for canvasId=${canvasToResume.id} after reconnection`,
+          );
+        }
       }
     } catch (error) {
       connectionState.status = "reconnecting";
