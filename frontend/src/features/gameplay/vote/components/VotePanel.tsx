@@ -1,7 +1,7 @@
 import type { Cell, Viewport } from "@/features/gameplay/canvas";
 import { CoordinateNavigator, MiniMap } from "@/features/gameplay/canvas";
 import { RoundInfo } from "@/features/gameplay/round";
-import { ParticipantPanel } from "@/features/gameplay/session";
+import { MyInfoCard, ParticipantPanel } from "@/features/gameplay/session";
 import type { ParticipantItem } from "@/features/gameplay/session/api/session.api";
 import {
   GAME_PHASE,
@@ -73,7 +73,10 @@ export default function VotePanel({
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
-      <h2 className="text-lg font-bold">VoteDots</h2>
+      <div className="flex flex-col gap-2">
+        <h3 className="text-lg font">VoteDots</h3>
+        <MyInfoCard participants={participants} />
+      </div>
 
       <RoundInfo
         phase={phase}
@@ -93,9 +96,8 @@ export default function VotePanel({
             Array.from({ length: VOTES_PER_ROUND }).map((_, index) => (
               <span
                 key={index}
-                className={`text-lg ${
-                  index < usedCount ? "text-gray-300" : "text-blue-500"
-                }`}
+                className={`text-lg ${index < usedCount ? "text-gray-300" : "text-blue-500"
+                  }`}
               >
                 ●
               </span>
