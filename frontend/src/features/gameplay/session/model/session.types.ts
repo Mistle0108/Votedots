@@ -50,6 +50,7 @@ export interface SessionBootstrapResult {
   gridY: number;
   cells: Cell[];
   round: RoundInfoState;
+  votes: Record<string, number>;
   remaining: number | null;
   phaseTiming: PhaseTimingState;
 }
