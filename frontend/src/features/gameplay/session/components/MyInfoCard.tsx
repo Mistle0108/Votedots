@@ -17,7 +17,7 @@ function getStatusLabel(status?: "voting" | "waiting") {
   }
 
   return {
-    text: "⌛",
+    text: "대기자",
     className: "text-gray-500",
   };
 }
