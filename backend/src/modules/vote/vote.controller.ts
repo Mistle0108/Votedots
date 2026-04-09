@@ -15,14 +15,12 @@ export const voteController = {
       }
 
       if (!canvasId || !roundId || !cellId || !color) {
-        return res
-          .status(400)
-          .json({
-            message: "캔버스 ID, 라운드 ID, 셀 ID, 색상을 모두 입력해주세요",
-          });
+        return res.status(400).json({
+          message: "캔버스 ID, 라운드 ID, 셀 ID, 색상을 모두 입력해주세요",
+        });
       }
 
-      const vote = await voteService.submit(
+      await voteService.submit(
         voterId,
         sessionId,
         canvasId,
@@ -32,7 +30,7 @@ export const voteController = {
         io,
       );
 
-      return res.status(201).json({ message: "투표가 완료됐어요", vote });
+      return res.status(201).json({ message: "투표가 완료됐어요" });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
     }

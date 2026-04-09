@@ -12,8 +12,8 @@ export const roundController = {
         return res.status(400).json({ message: "올바르지 않은 캔버스 ID예요" });
       }
 
-      const round = await roundService.startRound(canvasId, io);
-      return res.status(201).json({ message: "라운드가 시작됐어요", round });
+      await roundService.startRound(canvasId, io);
+      return res.status(201).json({ message: "라운드가 시작됐어요" });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
     }
@@ -29,8 +29,8 @@ export const roundController = {
         return res.status(400).json({ message: "올바르지 않은 ID예요" });
       }
 
-      const round = await roundService.endRound(canvasId, roundId, io);
-      return res.json({ message: "라운드가 종료됐어요", round });
+      await roundService.endRound(canvasId, roundId, io);
+      return res.json({ message: "라운드가 종료됐어요" });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
     }

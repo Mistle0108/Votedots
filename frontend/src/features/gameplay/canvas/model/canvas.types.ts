@@ -15,11 +15,6 @@ export interface Canvas {
   currentRoundNumber: number;
   startedAt: string;
   endedAt: string | null;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: number | null;
-  updatedBy: number | null;
-  roundDurationSec: number | null;
 }
 
 export interface Cell {
@@ -28,10 +23,6 @@ export interface Cell {
   y: number;
   color: string | null;
   status: CellStatus;
-  createdAt: string;
-  updatedAt: string;
-  createdBy: number | null;
-  updatedBy: number | null;
 }
 
 export interface CanvasCurrentResponse {

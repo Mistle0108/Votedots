@@ -6,7 +6,7 @@ export const authApi = {
     api.post<{ message: string }>("/auth/register", data),
 
   login: (data: LoginRequest) =>
-    api.post<{ message: string; voter: Voter }>("/auth/login", data),
+    api.post<{ message: string }>("/auth/login", data),
 
   logout: () => api.post<{ message: string }>("/auth/logout"),
 

@@ -27,7 +27,6 @@ export interface RoundStateResponse {
 }
 
 export interface ParticipantCountResponse {
-  canvasId: number;
   count: number;
 }
 
@@ -35,15 +34,12 @@ export type ParticipantStatus = "voting" | "waiting";
 
 export interface ParticipantItem {
   sessionId: string;
-  voterId: number;
   voterUuid: string;
   nickname: string;
   status: ParticipantStatus;
-  connected: boolean;
 }
 
 export interface ParticipantListResponse {
-  canvasId: number;
   participants: ParticipantItem[];
 }
 
