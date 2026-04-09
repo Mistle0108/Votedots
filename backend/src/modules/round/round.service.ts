@@ -20,6 +20,7 @@ const voteRepository = AppDataSource.getRepository(Vote);
 const voterRepository = AppDataSource.getRepository(Voter);
 
 const VOTES_PER_ROUND = gameConfig.votesPerRound;
+const VOTE_TICKET_INSERT_CHUNK_SIZE = 1000;
 
 interface RoundStateResponse {
   status: "active" | "waiting";
@@ -63,10 +64,10 @@ function getActiveGameEndAt(roundStartedAt: Date, roundNumber: number): Date {
 
   return new Date(
     roundStartedAt.getTime() +
-      remainingRoundsIncludingCurrent * gameConfig.roundDurationSec * 1000 +
-      Math.max(0, remainingRoundsIncludingCurrent - 1) *
-        gameConfig.roundResultDelaySec *
-        1000,
+    remainingRoundsIncludingCurrent * gameConfig.roundDurationSec * 1000 +
+    Math.max(0, remainingRoundsIncludingCurrent - 1) *
+    gameConfig.roundResultDelaySec *
+    1000,
   );
 }
 
@@ -75,9 +76,9 @@ function getWaitingGameEndAt(roundEndedAt: Date, roundNumber: number): Date {
 
   return new Date(
     roundEndedAt.getTime() +
-      gameConfig.roundResultDelaySec * 1000 +
-      futureRounds * gameConfig.roundDurationSec * 1000 +
-      Math.max(0, futureRounds - 1) * gameConfig.roundResultDelaySec * 1000,
+    gameConfig.roundResultDelaySec * 1000 +
+    futureRounds * gameConfig.roundDurationSec * 1000 +
+    Math.max(0, futureRounds - 1) * gameConfig.roundResultDelaySec * 1000,
   );
 }
 
@@ -141,21 +142,38 @@ export const roundService = {
         ? await voterRepository.findBy({ id: In(voterIds) })
         : [];
 
-    const tickets: Partial<VoteTicket>[] = [];
+        const tickets: Array<{
+      round: { id: number };
+      voter: { id: number };
+      isUsed: boolean;
+    }> = [];
 
     for (const voter of voters) {
       for (let i = 0; i < VOTES_PER_ROUND; i++) {
         tickets.push({
-          round,
-          voter,
+          round: { id: round.id },
+          voter: { id: voter.id },
           isUsed: false,
         });
       }
     }
+    
+    // 여기서 시작
+    const ticketInsertStartedAt = performance.now();
 
-    if (tickets.length > 0) {
-      await voteTicketRepository.save(tickets as VoteTicket[]);
+    for (
+      let index = 0;
+      index < tickets.length;
+      index += VOTE_TICKET_INSERT_CHUNK_SIZE
+    ) {
+      const chunk = tickets.slice(index, index + VOTE_TICKET_INSERT_CHUNK_SIZE);
+      await voteTicketRepository.insert(chunk);
     }
+
+    // 여기서 종료 로그
+    console.log(
+      `[perf] vote tickets insert | roundId=${round.id} voterCount=${voters.length} ticketCount=${tickets.length} ms=${(performance.now() - ticketInsertStartedAt).toFixed(2)}`,
+    );
 
     if (io) {
       const gameEndAt = getActiveGameEndAt(round.startedAt, round.roundNumber);
@@ -310,11 +328,11 @@ export const roundService = {
         endedAt: round.endedAt,
         winningCell: winningCell
           ? {
-              id: winningCell.id,
-              x: winningCell.x,
-              y: winningCell.y,
-              color: winningCell.color,
-            }
+            id: winningCell.id,
+            x: winningCell.x,
+            y: winningCell.y,
+            color: winningCell.color,
+          }
           : null,
       });
 
@@ -345,7 +363,7 @@ export const roundService = {
       const remainingSeconds = Math.max(
         0,
         gameConfig.roundDurationSec -
-          Math.floor((now.getTime() - activeRound.startedAt.getTime()) / 1000),
+        Math.floor((now.getTime() - activeRound.startedAt.getTime()) / 1000),
       );
 
       const gameEndAt = getActiveGameEndAt(
