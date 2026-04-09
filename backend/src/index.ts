@@ -5,6 +5,10 @@ import { Server } from "socket.io";
 import cors from "cors";
 import * as dotenv from "dotenv";
 import { AppDataSource } from "./database/data-source";
+import {
+  connectWithRetry,
+  getDbConnectionState,
+} from "./database/db-connection.manager";
 import { sessionMiddleware } from "./config/session";
 import { redisClient } from "./config/redis";
 import { initSocket } from "./socket/socket";
@@ -13,7 +17,6 @@ import authRouter from "./modules/auth/auth.router";
 import canvasRouter from "./modules/canvas/canvas.router";
 import roundRouter from "./modules/round/round.router";
 import voteRouter from "./modules/vote/vote.router";
-import { canvasService } from "./modules/canvas/canvas.service";
 
 dotenv.config();
 
@@ -38,13 +41,6 @@ app.use(
 app.use(express.json());
 app.use(sessionMiddleware);
 
-AppDataSource.initialize()
-  .then(async () => {
-    console.log("DB 연결 성공");
-    await canvasService.recoverOnStartup(io);
-  })
-  .catch((err) => console.error("DB 연결 실패:", err));
-
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
@@ -60,11 +56,29 @@ app.get("/health/redis", async (_req, res) => {
 });
 
 app.get("/health/db", async (_req, res) => {
+  const connection = getDbConnectionState();
+
+  if (!AppDataSource.isInitialized) {
+    return res.status(503).json({
+      status: "error",
+      message: connection.lastError ?? "DB is not connected",
+      connection,
+    });
+  }
+
   try {
     await AppDataSource.query("SELECT 1");
-    res.json({ status: "ok" });
+
+    return res.json({
+      status: "ok",
+      connection: getDbConnectionState(),
+    });
   } catch (err) {
-    res.status(500).json({ status: "error", message: String(err) });
+    return res.status(503).json({
+      status: "error",
+      message: String(err),
+      connection: getDbConnectionState(),
+    });
   }
 });
 
@@ -75,6 +89,8 @@ app.use("/auth", authRouter);
 app.use("/canvas", canvasRouter);
 app.use("/canvas/:canvasId/rounds", roundRouter);
 app.use("/vote", voteRouter);
+
+void connectWithRetry(io, "server startup");
 
 const PORT = process.env.PORT ?? 4000;
 server.listen(PORT, () => {
