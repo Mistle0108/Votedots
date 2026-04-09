@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { authApi } from "@/features/auth";
 import { RESTART_TIME } from "@/features/gameplay/canvas";
 import { SessionBootstrapResult } from "../model/session.types";
 import { useGameplayBootstrap } from "./useGameplayBootstrap";
 
 interface UseGameSessionParams {
   onBootstrap: (result: SessionBootstrapResult) => void;
+  onUnauthorized: (message: string) => void;
 }
 
 const BOOTSTRAP_RETRY_DELAY_MS = 2000;
@@ -12,6 +14,8 @@ const BOOTSTRAP_RETRY_MAX_MS = 30000;
 
 const GAME_RESTART_PENDING_KEY = "game-restart-pending";
 const GAME_RESTART_STARTED_AT_KEY = "game-restart-started-at";
+
+let unauthorizedRedirectHandled = false;
 
 function getErrorStatus(error: unknown): number | null {
   if (
@@ -131,7 +135,10 @@ function getRestartElapsedMs(): number {
   return Date.now() - startedAt;
 }
 
-export function useGameSession({ onBootstrap }: UseGameSessionParams) {
+export function useGameSession({
+  onBootstrap,
+  onUnauthorized,
+}: UseGameSessionParams) {
   const { bootstrap } = useGameplayBootstrap();
 
   const [loading, setLoading] = useState(true);
@@ -162,42 +169,65 @@ export function useGameSession({ onBootstrap }: UseGameSessionParams) {
       }
 
       try {
-        const result = await bootstrap();
-        onBootstrap(result);
-        setError(null);
-        setRetryNonce(0);
-        serviceAlertShownRef.current = false;
-        clearRestartPending();
-        return result;
-      } catch (error) {
-        if (isRestartPending() && isRetryableBootstrapError(error)) {
-          const elapsedMs = getRestartElapsedMs();
+        try {
+          await authApi.me();
+          unauthorizedRedirectHandled = false;
+        } catch (error) {
+          const status = getErrorStatus(error);
 
-          if (elapsedMs < BOOTSTRAP_RETRY_MAX_MS) {
-            setError("새 게임을 준비 중입니다. 잠시만 기다려주세요.");
-            setRetryNonce((prev) => prev + 1);
+          setRetryNonce(0);
+          clearRestartPending();
+
+          if (status === 401) {
+            if (!unauthorizedRedirectHandled) {
+              unauthorizedRedirectHandled = true;
+              onUnauthorized("로그인이 필요합니다.");
+            }
             return null;
           }
 
-          setError(
-            "서비스가 원활하지 않습니다. 잠시 후 다시 이용해 주시기 바랍니다.",
-          );
-          setRetryNonce(0);
-          showServiceUnavailableAlert();
+          setError("로그인 상태를 확인하지 못했습니다.");
           return null;
         }
 
-        setError("진행 중인 캔버스를 불러오지 못했습니다");
-        setRetryNonce(0);
-        clearRestartPending();
-        return null;
+        try {
+          const result = await bootstrap();
+          onBootstrap(result);
+          setError(null);
+          setRetryNonce(0);
+          serviceAlertShownRef.current = false;
+          clearRestartPending();
+          return result;
+        } catch (error) {
+          if (isRestartPending() && isRetryableBootstrapError(error)) {
+            const elapsedMs = getRestartElapsedMs();
+
+            if (elapsedMs < BOOTSTRAP_RETRY_MAX_MS) {
+              setError("새 게임을 준비 중입니다. 잠시만 기다려주세요.");
+              setRetryNonce((prev) => prev + 1);
+              return null;
+            }
+
+            setError(
+              "서비스가 원활하지 않습니다. 잠시 후 다시 이용해 주시기 바랍니다.",
+            );
+            setRetryNonce(0);
+            showServiceUnavailableAlert();
+            return null;
+          }
+
+          setError("진행 중인 캔버스를 불러오지 못했습니다");
+          setRetryNonce(0);
+          clearRestartPending();
+          return null;
+        }
       } finally {
         if (!silent) {
           setLoading(false);
         }
       }
     },
-    [bootstrap, onBootstrap, showServiceUnavailableAlert],
+    [bootstrap, onBootstrap, onUnauthorized, showServiceUnavailableAlert],
   );
 
   useEffect(() => {
@@ -230,6 +260,7 @@ export function useGameSession({ onBootstrap }: UseGameSessionParams) {
     setError(null);
     setRetryNonce(0);
     serviceAlertShownRef.current = false;
+    unauthorizedRedirectHandled = false;
     clearRestartPending();
   }, []);
 
