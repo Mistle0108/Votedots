@@ -1,15 +1,20 @@
 import { Request, Response } from "express";
 import { Server } from "socket.io";
-import { getGameConfigSnapshot } from "../../config/game.config";
+import { getCanvasGameConfigSnapshot } from "../../config/game.config";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell } from "../../entities/cell.entity";
 import { canvasService } from "./canvas.service";
+
+interface CreateCanvasRequestBody {
+  profileKey?: string;
+}
 
 function serializeCanvas(canvas: Canvas) {
   return {
     id: canvas.id,
     gridX: canvas.gridX,
     gridY: canvas.gridY,
+    configProfileKey: canvas.configProfileKey,
     status: canvas.status,
     phase: canvas.phase,
     phaseStartedAt: canvas.phaseStartedAt,
@@ -34,8 +39,17 @@ export const canvasController = {
   async create(req: Request, res: Response) {
     try {
       const io = req.app.get("io") as Server;
-      await canvasService.create(io);
-      return res.status(201).json({ message: "캔버스가 생성되었습니다." });
+      const body = req.body as CreateCanvasRequestBody | undefined;
+      const profileKey =
+        typeof body?.profileKey === "string" ? body.profileKey : undefined;
+
+      const canvas = await canvasService.create(io, { profileKey });
+
+      return res.status(201).json({
+        message: "캔버스가 생성되었습니다.",
+        canvasId: canvas.id,
+        profileKey: canvas.configProfileKey,
+      });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
     }
@@ -54,7 +68,7 @@ export const canvasController = {
       return res.json({
         canvas: serializeCanvas(canvas),
         cells: cells.map(serializeCell),
-        gameConfig: getGameConfigSnapshot(),
+        gameConfig: getCanvasGameConfigSnapshot(canvas),
       });
     } catch (err) {
       return res.status(500).json({ message: String(err) });

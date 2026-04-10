@@ -9,6 +9,7 @@ export interface Canvas {
   id: number;
   gridX: number;
   gridY: number;
+  configProfileKey: string;
   status: CanvasStatus;
   phase: GamePhase;
   phaseStartedAt: string;

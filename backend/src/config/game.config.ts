@@ -35,6 +35,20 @@ export interface GameConfigUpdate {
   board?: Partial<GameBoardConfig>;
 }
 
+export interface GameConfigProfileSummary {
+  key: string;
+  snapshot: GameConfigSnapshot;
+}
+
+export interface CanvasGameConfigSource {
+  gridX?: number | null;
+  gridY?: number | null;
+  configProfileKey?: string | null;
+  configSnapshot?: unknown;
+}
+
+const DEFAULT_PROFILE_KEY = "default";
+
 function readPositiveIntegerEnv(name: string, fallback: number): number {
   const value = parseInt(String(process.env[name] ?? ""), 10);
   return Number.isInteger(value) && value > 0 ? value : fallback;
@@ -45,75 +59,253 @@ function readNonNegativeIntegerEnv(name: string, fallback: number): number {
   return Number.isInteger(value) && value >= 0 ? value : fallback;
 }
 
+function cloneGameConfigSnapshot(
+  config: GameConfigSnapshot,
+): GameConfigSnapshot {
+  return {
+    phases: { ...config.phases },
+    rules: { ...config.rules },
+    board: { ...config.board },
+  };
+}
+
+function mergeGameConfig(
+  base: GameConfigSnapshot,
+  update?: GameConfigUpdate,
+): GameConfigSnapshot {
+  if (!update) {
+    return cloneGameConfigSnapshot(base);
+  }
+
+  return {
+    phases: {
+      ...base.phases,
+      ...update.phases,
+    },
+    rules: {
+      ...base.rules,
+      ...update.rules,
+    },
+    board: {
+      ...base.board,
+      ...update.board,
+    },
+  };
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function isNumberRecord(
+  value: unknown,
+  keys: string[],
+  { allowZero = true }: { allowZero?: boolean } = {},
+): boolean {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return keys.every((key) => {
+    const field = value[key];
+    return (
+      typeof field === "number" &&
+      Number.isFinite(field) &&
+      (allowZero ? field >= 0 : field > 0)
+    );
+  });
+}
+
+function isGameConfigSnapshot(value: unknown): value is GameConfigSnapshot {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  return (
+    isNumberRecord(
+      value.phases,
+      [
+        "introPhaseSec",
+        "roundStartWaitSec",
+        "roundDurationSec",
+        "roundResultDelaySec",
+        "gameEndWaitSec",
+        "restartDelaySec",
+      ],
+      { allowZero: true },
+    ) &&
+    isNumberRecord(
+      value.rules,
+      ["totalRounds", "votesPerRound", "participantGracePeriodSec"],
+      { allowZero: false },
+    ) &&
+    isNumberRecord(value.board, ["gridSizeX", "gridSizeY", "cellSize"], {
+      allowZero: false,
+    })
+  );
+}
+
 const overrides: GameConfigUpdate = {};
 
-function resolvePhases(): GamePhaseConfig {
+function resolveEnvPhases(): GamePhaseConfig {
   return {
-    introPhaseSec:
-      overrides.phases?.introPhaseSec ??
-      readNonNegativeIntegerEnv("INTRO_PHASE_SEC", 0),
-    roundStartWaitSec:
-      overrides.phases?.roundStartWaitSec ??
-      readNonNegativeIntegerEnv("ROUND_START_WAIT_SEC", 5),
-    roundDurationSec:
-      overrides.phases?.roundDurationSec ??
-      readPositiveIntegerEnv("ROUND_DURATION_SEC", 20),
-    roundResultDelaySec:
-      overrides.phases?.roundResultDelaySec ??
-      readNonNegativeIntegerEnv("ROUND_RESULT_DELAY_SEC", 3),
-    gameEndWaitSec:
-      overrides.phases?.gameEndWaitSec ??
-      readNonNegativeIntegerEnv("GAME_END_WAIT_SEC", 5),
-    restartDelaySec:
-      overrides.phases?.restartDelaySec ??
-      readNonNegativeIntegerEnv("RESTART_DELAY_SEC", 3),
+    introPhaseSec: readNonNegativeIntegerEnv("INTRO_PHASE_SEC", 0),
+    roundStartWaitSec: readNonNegativeIntegerEnv("ROUND_START_WAIT_SEC", 5),
+    roundDurationSec: readPositiveIntegerEnv("ROUND_DURATION_SEC", 20),
+    roundResultDelaySec: readNonNegativeIntegerEnv("ROUND_RESULT_DELAY_SEC", 3),
+    gameEndWaitSec: readNonNegativeIntegerEnv("GAME_END_WAIT_SEC", 5),
+    restartDelaySec: readNonNegativeIntegerEnv("RESTART_DELAY_SEC", 3),
   };
 }
 
-function resolveRules(): GameRuleConfig {
+function resolveEnvRules(): GameRuleConfig {
   return {
-    totalRounds:
-      overrides.rules?.totalRounds ??
-      readPositiveIntegerEnv("TOTAL_ROUNDS", 10),
-    votesPerRound:
-      overrides.rules?.votesPerRound ??
-      readPositiveIntegerEnv("VOTES_PER_ROUND", 3),
-    participantGracePeriodSec:
-      overrides.rules?.participantGracePeriodSec ??
-      readNonNegativeIntegerEnv("PARTICIPANT_GRACE_PERIOD_SEC", 15),
+    totalRounds: readPositiveIntegerEnv("TOTAL_ROUNDS", 10),
+    votesPerRound: readPositiveIntegerEnv("VOTES_PER_ROUND", 3),
+    participantGracePeriodSec: readNonNegativeIntegerEnv(
+      "PARTICIPANT_GRACE_PERIOD_SEC",
+      15,
+    ),
   };
 }
 
-function resolveBoard(): GameBoardConfig {
+function resolveEnvBoard(): GameBoardConfig {
   return {
-    gridSizeX:
-      overrides.board?.gridSizeX ?? readPositiveIntegerEnv("GRID_SIZE_X", 25),
-    gridSizeY:
-      overrides.board?.gridSizeY ?? readPositiveIntegerEnv("GRID_SIZE_Y", 25),
-    cellSize:
-      overrides.board?.cellSize ?? readPositiveIntegerEnv("CELL_SIZE", 8),
+    gridSizeX: readPositiveIntegerEnv("GRID_SIZE_X", 25),
+    gridSizeY: readPositiveIntegerEnv("GRID_SIZE_Y", 25),
+    cellSize: readPositiveIntegerEnv("CELL_SIZE", 8),
   };
 }
 
-function resolveGameConfig(): GameConfigSnapshot {
+function resolveEnvGameConfig(): GameConfigSnapshot {
   return {
-    phases: resolvePhases(),
-    rules: resolveRules(),
-    board: resolveBoard(),
+    phases: resolveEnvPhases(),
+    rules: resolveEnvRules(),
+    board: resolveEnvBoard(),
+  };
+}
+
+const GAME_CONFIG_PROFILES: Record<string, GameConfigUpdate> = {
+  default: {},
+  config1: {
+    phases: {
+      roundStartWaitSec: 0,
+      roundDurationSec: 180,
+      roundResultDelaySec: 60,
+      gameEndWaitSec: 600,
+      restartDelaySec: 30,
+    },
+    rules: {
+      totalRounds: 25,
+      votesPerRound: 3,
+    },
+    board: {
+      gridSizeX: 50,
+      gridSizeY: 50,
+      cellSize: 8,
+    },
+  },
+  config2: {
+    phases: {
+      roundStartWaitSec: 0,
+      roundDurationSec: 120,
+      roundResultDelaySec: 30,
+      gameEndWaitSec: 300,
+      restartDelaySec: 30,
+    },
+    rules: {
+      totalRounds: 20,
+      votesPerRound: 2,
+    },
+    board: {
+      gridSizeX: 40,
+      gridSizeY: 40,
+      cellSize: 10,
+    },
+  },
+};
+
+export function getGameConfigProfileKeys(): string[] {
+  return Object.keys(GAME_CONFIG_PROFILES);
+}
+
+export function hasGameConfigProfile(profileKey: string): boolean {
+  return Object.prototype.hasOwnProperty.call(GAME_CONFIG_PROFILES, profileKey);
+}
+
+function getDefaultProfileKey(): string {
+  const configured = String(
+    process.env.DEFAULT_GAME_CONFIG_PROFILE_KEY ?? DEFAULT_PROFILE_KEY,
+  ).trim();
+
+  if (configured && hasGameConfigProfile(configured)) {
+    return configured;
+  }
+
+  return DEFAULT_PROFILE_KEY;
+}
+
+export function resolveGameConfigProfileKey(
+  profileKey?: string | null,
+): string {
+  const requested = profileKey?.trim();
+
+  if (requested) {
+    if (!hasGameConfigProfile(requested)) {
+      throw new Error(
+        `Unknown game config profile: ${requested}. Available profiles: ${getGameConfigProfileKeys().join(", ")}`,
+      );
+    }
+
+    return requested;
+  }
+
+  return getDefaultProfileKey();
+}
+
+function resolveGameConfig(profileKey?: string | null): GameConfigSnapshot {
+  const resolvedProfileKey = resolveGameConfigProfileKey(profileKey);
+  const envConfig = resolveEnvGameConfig();
+  const profileConfig = GAME_CONFIG_PROFILES[resolvedProfileKey];
+
+  return mergeGameConfig(mergeGameConfig(envConfig, profileConfig), overrides);
+}
+
+function normalizeBoardSnapshot(
+  baseSnapshot: GameConfigSnapshot,
+  source?: CanvasGameConfigSource | null,
+): GameConfigSnapshot {
+  if (!source) {
+    return baseSnapshot;
+  }
+
+  return {
+    ...baseSnapshot,
+    board: {
+      ...baseSnapshot.board,
+      gridSizeX:
+        typeof source.gridX === "number" && source.gridX > 0
+          ? source.gridX
+          : baseSnapshot.board.gridSizeX,
+      gridSizeY:
+        typeof source.gridY === "number" && source.gridY > 0
+          ? source.gridY
+          : baseSnapshot.board.gridSizeY,
+    },
   };
 }
 
 export const gameConfig = {
   get phases(): GamePhaseConfig {
-    return resolvePhases();
+    return resolveGameConfig().phases;
   },
 
   get rules(): GameRuleConfig {
-    return resolveRules();
+    return resolveGameConfig().rules;
   },
 
   get board(): GameBoardConfig {
-    return resolveBoard();
+    return resolveGameConfig().board;
   },
 
   get introPhaseSec(): number {
@@ -176,8 +368,53 @@ export const gameConfig = {
   },
 };
 
-export function getGameConfigSnapshot(): GameConfigSnapshot {
-  return resolveGameConfig();
+export function getGameConfigSnapshot(
+  profileKey?: string | null,
+): GameConfigSnapshot {
+  return resolveGameConfig(profileKey);
+}
+
+export function createCanvasGameConfig(profileKey?: string | null): {
+  profileKey: string;
+  snapshot: GameConfigSnapshot;
+} {
+  const resolvedProfileKey = resolveGameConfigProfileKey(profileKey);
+
+  return {
+    profileKey: resolvedProfileKey,
+    snapshot: getGameConfigSnapshot(resolvedProfileKey),
+  };
+}
+
+export function getCanvasGameConfigSnapshot(
+  source?: CanvasGameConfigSource | null,
+): GameConfigSnapshot {
+  const profileKey = source?.configProfileKey?.trim();
+
+  let baseSnapshot: GameConfigSnapshot;
+
+  try {
+    baseSnapshot = getGameConfigSnapshot(profileKey);
+  } catch {
+    baseSnapshot = getGameConfigSnapshot();
+  }
+
+  if (!source) {
+    return baseSnapshot;
+  }
+
+  if (!isGameConfigSnapshot(source.configSnapshot)) {
+    return normalizeBoardSnapshot(baseSnapshot, source);
+  }
+
+  return normalizeBoardSnapshot(source.configSnapshot, source);
+}
+
+export function getGameConfigProfiles(): GameConfigProfileSummary[] {
+  return getGameConfigProfileKeys().map((key) => ({
+    key,
+    snapshot: getGameConfigSnapshot(key),
+  }));
 }
 
 export function updateGameConfig(config: GameConfigUpdate): void {

@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { gameConfig } from "../../config/game.config";
+import { createCanvasGameConfig } from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
@@ -14,6 +14,10 @@ import {
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
+
+interface CreateCanvasOptions {
+  profileKey?: string | null;
+}
 
 function logPhaseChange(params: {
   canvasId: number;
@@ -32,7 +36,7 @@ function logPhaseChange(params: {
 }
 
 export const canvasService = {
-  async create(io: Server): Promise<Canvas> {
+  async create(io: Server, options: CreateCanvasOptions = {}): Promise<Canvas> {
     const existing = await canvasRepository.findOne({
       where: { status: CanvasStatus.PLAYING },
     });
@@ -41,17 +45,21 @@ export const canvasService = {
       throw new Error("A canvas is already in progress.");
     }
 
-    const gridSizeX = gameConfig.board.gridSizeX;
-    const gridSizeY = gameConfig.board.gridSizeY;
+    const { profileKey, snapshot } = createCanvasGameConfig(options.profileKey);
+
+    const gridSizeX = snapshot.board.gridSizeX;
+    const gridSizeY = snapshot.board.gridSizeY;
 
     const now = new Date();
     const phaseEndsAt = new Date(
-      now.getTime() + gameConfig.roundStartWaitSec * 1000,
+      now.getTime() + snapshot.phases.roundStartWaitSec * 1000,
     );
 
     const canvas = canvasRepository.create({
       gridX: gridSizeX,
       gridY: gridSizeY,
+      configProfileKey: profileKey,
+      configSnapshot: snapshot,
       status: CanvasStatus.PLAYING,
       phase: GamePhase.ROUND_START_WAIT,
       phaseStartedAt: now,
@@ -68,7 +76,7 @@ export const canvasService = {
       roundNumber: 1,
       phaseStartedAt: now,
       phaseEndsAt,
-      reason: "캔버스 생성",
+      reason: `캔버스 생성(profile=${profileKey})`,
     });
 
     const cells: Partial<Cell>[] = [];

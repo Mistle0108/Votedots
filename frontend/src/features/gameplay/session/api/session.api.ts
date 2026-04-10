@@ -43,6 +43,10 @@ export interface ParticipantListResponse {
   participants: ParticipantItem[];
 }
 
+export interface CreateCanvasRequest {
+  profileKey?: string;
+}
+
 export const sessionApi = {
   getCurrentCanvas: () => api.get<CanvasCurrentResponse>("/canvas/current"),
 
@@ -59,7 +63,7 @@ export const sessionApi = {
   getCurrentParticipantList: () =>
     api.get<ParticipantListResponse>("/canvas/current/participants"),
 
-  createCanvas: () => api.post("/canvas"),
+  createCanvas: (payload?: CreateCanvasRequest) => api.post("/canvas", payload),
 };
 
 export type { CanvasCurrentResponse };
