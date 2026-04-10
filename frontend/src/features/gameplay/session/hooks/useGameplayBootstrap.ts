@@ -46,6 +46,35 @@ function getPhaseDurationSeconds(
   );
 }
 
+function getFallbackPhaseDuration(
+  phase: string,
+  phaseDurationSeconds: number | null,
+  introPhaseSec: number,
+  roundStartWaitSec: number,
+  roundDurationSec: number,
+  roundResultDelaySec: number,
+  gameEndWaitSec: number,
+): number | null {
+  if (phaseDurationSeconds !== null) {
+    return phaseDurationSeconds;
+  }
+
+  switch (phase) {
+    case GAME_PHASE.INTRO:
+      return introPhaseSec;
+    case GAME_PHASE.ROUND_START_WAIT:
+      return roundStartWaitSec;
+    case GAME_PHASE.ROUND_ACTIVE:
+      return roundDurationSec;
+    case GAME_PHASE.ROUND_RESULT:
+      return roundResultDelaySec;
+    case GAME_PHASE.GAME_END:
+      return gameEndWaitSec;
+    default:
+      return null;
+  }
+}
+
 export function useGameplayBootstrap() {
   const bootstrap = useCallback(async (): Promise<SessionBootstrapResult> => {
     const { data } = await sessionApi.getCurrentCanvas();
@@ -82,15 +111,24 @@ export function useGameplayBootstrap() {
     const resolvedRemainingSeconds =
       roundState?.timer?.remainingSeconds ?? phaseRemainingSeconds;
 
+    const resolvedRoundDurationSec =
+      roundState?.round?.roundDurationSec ??
+      getFallbackPhaseDuration(
+        canvas.phase,
+        phaseDurationSeconds,
+        phases.introPhaseSec,
+        phases.roundStartWaitSec,
+        phases.roundDurationSec,
+        phases.roundResultDelaySec,
+        phases.gameEndWaitSec,
+      );
+
     const round: RoundInfoState = {
       phase: canvas.phase,
       roundId: roundState?.round?.id ?? null,
       roundNumber:
         roundState?.round?.roundNumber ?? canvas.currentRoundNumber ?? null,
-      roundDurationSec:
-        roundState?.round?.roundDurationSec ??
-        phaseDurationSeconds ??
-        phases.roundDurationSec,
+      roundDurationSec: resolvedRoundDurationSec,
       totalRounds: roundState?.round?.totalRounds ?? rules.totalRounds,
       formattedGameEndTime: roundState?.round
         ? formatClockTime(new Date(roundState.round.gameEndAt))
@@ -118,6 +156,7 @@ export function useGameplayBootstrap() {
       votes,
       remaining,
       phaseTiming: {
+        introPhaseSec: phases.introPhaseSec,
         roundStartWaitSec: phases.roundStartWaitSec,
         roundResultDelaySec: phases.roundResultDelaySec,
         gameEndWaitSec: phases.gameEndWaitSec,

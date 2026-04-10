@@ -22,6 +22,7 @@ const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 interface CreateCanvasOptions {
   profileKey?: string | null;
 }
+
 const CELL_INSERT_CHUNK_SIZE = 1000;
 
 function logPhaseChange(params: {
@@ -57,7 +58,7 @@ export const canvasService = {
 
     const now = new Date();
     const phaseEndsAt = new Date(
-      now.getTime() + snapshot.phases.roundStartWaitSec * 1000,
+      now.getTime() + snapshot.phases.introPhaseSec * 1000,
     );
 
     const canvas = canvasRepository.create({
@@ -66,7 +67,7 @@ export const canvasService = {
       configProfileKey: profileKey,
       configSnapshot: snapshot,
       status: CanvasStatus.PLAYING,
-      phase: GamePhase.ROUND_START_WAIT,
+      phase: GamePhase.INTRO,
       phaseStartedAt: now,
       phaseEndsAt,
       currentRoundNumber: 1,
@@ -77,7 +78,7 @@ export const canvasService = {
 
     logPhaseChange({
       canvasId: canvas.id,
-      phase: GamePhase.ROUND_START_WAIT,
+      phase: GamePhase.INTRO,
       roundNumber: 1,
       phaseStartedAt: now,
       phaseEndsAt,
@@ -88,7 +89,7 @@ export const canvasService = {
     const outlineCellSet = buildOutlineCellSet(outlineTemplate);
 
     console.log(
-      `[canvas] selected outline template | canvasId=${canvas.id} canvasSize=${gridSizeX}x${gridSizeY} template=${outlineTemplate?.id ?? "none"}`,
+      `[canvas] outline template selected | canvasId=${canvas.id} profile=${profileKey} size=${gridSizeX}x${gridSizeY} templateId=${outlineTemplate?.id ?? "none"} templateName=${outlineTemplate?.name ?? "none"} outlineCellCount=${outlineCellSet.size}`,
     );
 
     const cells: Array<{
@@ -113,14 +114,10 @@ export const canvasService = {
       }
     }
 
-    // const cellInsertStartedAt = performance.now();
-
     for (let index = 0; index < cells.length; index += CELL_INSERT_CHUNK_SIZE) {
       const chunk = cells.slice(index, index + CELL_INSERT_CHUNK_SIZE);
       await cellRepository.insert(chunk);
     }
-
-    // console.log(`[perf] canvas cells insert | canvasId=${canvas.id} count=${cells.length} ms=${(performance.now() - cellInsertStartedAt).toFixed(2)}`,);
 
     await startGameTimer(io, canvas.id);
 
@@ -224,6 +221,7 @@ export const canvasService = {
 
     return this.create(io);
   },
+
   async getCanvasToResumeAfterReconnect(): Promise<Canvas | null> {
     const currentCanvas = await canvasRepository.findOne({
       where: { status: CanvasStatus.PLAYING },

@@ -35,6 +35,8 @@ interface Props {
 
 function getPhaseBlockedMessage(phase: GamePhase): string {
   switch (phase) {
+    case GAME_PHASE.INTRO:
+      return "게임 시작 안내 중에는 투표할 수 없어요.";
     case GAME_PHASE.ROUND_START_WAIT:
       return "라운드 시작 대기 중에는 투표할 수 없어요.";
     case GAME_PHASE.ROUND_RESULT:
