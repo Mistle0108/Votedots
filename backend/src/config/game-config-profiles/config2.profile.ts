@@ -17,6 +17,6 @@ export const config2GameConfigProfile: GameConfigUpdate = {
   board: {
     gridSizeX: 40,
     gridSizeY: 40,
-    cellSize: 10,
+    cellSize: 30,
   },
 };
