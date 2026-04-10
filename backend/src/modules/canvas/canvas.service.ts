@@ -99,8 +99,8 @@ export const canvasService = {
       status: CellStatus;
     }> = [];
 
-    for (let y = 0; y < gridSizeX; y++) {
-      for (let x = 0; x < gridSizeY; x++) {
+    for (let y = 0; y < gridSizeY; y++) {
+      for (let x = 0; x < gridSizeX; x++) {
         const isOutlineCell = outlineCellSet.has(`${x}:${y}`);
 
         cells.push({
