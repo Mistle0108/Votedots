@@ -1,51 +1,26 @@
 import * as dotenv from "dotenv";
+import { GAME_CONFIG_PROFILES } from "./game-config-profiles";
+import type {
+  CanvasGameConfigSource,
+  GameBoardConfig,
+  GameConfigProfileSummary,
+  GameConfigSnapshot,
+  GameConfigUpdate,
+  GamePhaseConfig,
+  GameRuleConfig,
+} from "./game-config.types";
 
 dotenv.config();
 
-export interface GamePhaseConfig {
-  introPhaseSec: number;
-  roundStartWaitSec: number;
-  roundDurationSec: number;
-  roundResultDelaySec: number;
-  gameEndWaitSec: number;
-  restartDelaySec: number;
-}
-
-export interface GameRuleConfig {
-  totalRounds: number;
-  votesPerRound: number;
-  participantGracePeriodSec: number;
-}
-
-export interface GameBoardConfig {
-  gridSizeX: number;
-  gridSizeY: number;
-  cellSize: number;
-}
-
-export interface GameConfigSnapshot {
-  phases: GamePhaseConfig;
-  rules: GameRuleConfig;
-  board: GameBoardConfig;
-}
-
-export interface GameConfigUpdate {
-  phases?: Partial<GamePhaseConfig>;
-  rules?: Partial<GameRuleConfig>;
-  board?: Partial<GameBoardConfig>;
-}
-
-export interface GameConfigProfileSummary {
-  key: string;
-  snapshot: GameConfigSnapshot;
-}
-
-export interface CanvasGameConfigSource {
-  gridX?: number | null;
-  gridY?: number | null;
-  configProfileKey?: string | null;
-  configSnapshot?: unknown;
-}
+export type {
+  CanvasGameConfigSource,
+  GameBoardConfig,
+  GameConfigProfileSummary,
+  GameConfigSnapshot,
+  GameConfigUpdate,
+  GamePhaseConfig,
+  GameRuleConfig,
+} from "./game-config.types";
 
 const DEFAULT_PROFILE_KEY = "default";
 
@@ -184,46 +159,6 @@ function resolveEnvGameConfig(): GameConfigSnapshot {
     board: resolveEnvBoard(),
   };
 }
-
-const GAME_CONFIG_PROFILES: Record<string, GameConfigUpdate> = {
-  default: {},
-  config1: {
-    phases: {
-      roundStartWaitSec: 0,
-      roundDurationSec: 180,
-      roundResultDelaySec: 60,
-      gameEndWaitSec: 600,
-      restartDelaySec: 30,
-    },
-    rules: {
-      totalRounds: 25,
-      votesPerRound: 3,
-    },
-    board: {
-      gridSizeX: 50,
-      gridSizeY: 50,
-      cellSize: 8,
-    },
-  },
-  config2: {
-    phases: {
-      roundStartWaitSec: 0,
-      roundDurationSec: 120,
-      roundResultDelaySec: 30,
-      gameEndWaitSec: 300,
-      restartDelaySec: 30,
-    },
-    rules: {
-      totalRounds: 20,
-      votesPerRound: 2,
-    },
-    board: {
-      gridSizeX: 40,
-      gridSizeY: 40,
-      cellSize: 10,
-    },
-  },
-};
 
 export function getGameConfigProfileKeys(): string[] {
   return Object.keys(GAME_CONFIG_PROFILES);
