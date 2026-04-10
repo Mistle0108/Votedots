@@ -10,8 +10,10 @@ import {
   participantSessionService,
   type ParticipantSummary,
 } from "../participant/participant-session.service";
-import { InsertResult } from "typeorm";
-
+import {
+  buildOutlineCellSet,
+  pickRandomOutlineTemplate,
+} from "./template/outline-template.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -74,38 +76,43 @@ export const canvasService = {
       reason: "캔버스 생성",
     });
 
+    const outlineTemplate = pickRandomOutlineTemplate(GRID_X, GRID_Y);
+    const outlineCellSet = buildOutlineCellSet(outlineTemplate);
+
+    console.log(
+      `[canvas] selected outline template | canvasId=${canvas.id} canvasSize=${GRID_X}x${GRID_Y} template=${outlineTemplate?.id ?? "none"}`,
+    );
+
     const cells: Array<{
       canvas: { id: number };
       x: number;
       y: number;
-      color: null;
+      color: string | null;
       status: CellStatus;
     }> = [];
 
     for (let y = 0; y < GRID_Y; y++) {
       for (let x = 0; x < GRID_X; x++) {
+        const isOutlineCell = outlineCellSet.has(`${x}:${y}`);
+
         cells.push({
           canvas: { id: canvas.id },
           x,
           y,
-          color: null,
+          color: isOutlineCell ? "#000000" : null,
           status: CellStatus.IDLE,
         });
       }
     }
 
-    // 여기서 시작
-    const cellInsertStartedAt = performance.now();
+    // const cellInsertStartedAt = performance.now();
 
     for (let index = 0; index < cells.length; index += CELL_INSERT_CHUNK_SIZE) {
       const chunk = cells.slice(index, index + CELL_INSERT_CHUNK_SIZE);
       await cellRepository.insert(chunk);
     }
 
-    // 여기서 종료 로그
-    console.log(
-      `[perf] canvas cells insert | canvasId=${canvas.id} count=${cells.length} ms=${(performance.now() - cellInsertStartedAt).toFixed(2)}`,
-    );
+    // console.log(`[perf] canvas cells insert | canvasId=${canvas.id} count=${cells.length} ms=${(performance.now() - cellInsertStartedAt).toFixed(2)}`,);
 
     await startGameTimer(io, canvas.id);
 
