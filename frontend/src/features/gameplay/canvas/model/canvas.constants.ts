@@ -1,7 +1,4 @@
-export const CELL_SIZE = parseInt(import.meta.env.VITE_CELL_SIZE ?? "8", 10);
-
 export const PANEL_WIDTH = 280;
-export const RESTART_TIME = 3;
 export const MINIMAP_SIZE = 220;
 
 export const CHECKER_LIGHT = "#6f6f6f";

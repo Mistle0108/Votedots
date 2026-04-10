@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { voteApi } from "@/features/gameplay/vote";
+import { setGameConfig } from "@/shared/config/game-config";
 import { GAME_PHASE, isRoundActivePhase } from "../model/game-phase.types";
 import { sessionApi, type RoundStateResponse } from "../api/session.api";
 import { RoundInfoState, SessionBootstrapResult } from "../model/session.types";
@@ -48,15 +49,10 @@ function getPhaseDurationSeconds(
 export function useGameplayBootstrap() {
   const bootstrap = useCallback(async (): Promise<SessionBootstrapResult> => {
     const { data } = await sessionApi.getCurrentCanvas();
-    const {
-      canvas,
-      cells,
-      roundDurationSec,
-      totalRounds,
-      roundStartWaitSec,
-      roundResultDelaySec,
-      gameEndWaitSec,
-    } = data;
+    const { canvas, cells, gameConfig } = data;
+    const { phases, rules } = gameConfig;
+
+    setGameConfig(gameConfig);
 
     let roundState: RoundStateResponse | null = null;
     let remaining: number | null = null;
@@ -68,8 +64,8 @@ export function useGameplayBootstrap() {
 
       if (roundState.round?.id) {
         const [ticketsRes, voteStatusRes] = await Promise.all([
-          sessionApi.getTickets(roundState.round.id),
-          sessionApi.getVoteStatus(roundState.round.id),
+          voteApi.getTickets(roundState.round.id),
+          voteApi.getStatus(roundState.round.id),
         ]);
 
         remaining = ticketsRes.data.remaining;
@@ -94,9 +90,8 @@ export function useGameplayBootstrap() {
       roundDurationSec:
         roundState?.round?.roundDurationSec ??
         phaseDurationSeconds ??
-        roundDurationSec ??
-        null,
-      totalRounds: roundState?.round?.totalRounds ?? totalRounds,
+        phases.roundDurationSec,
+      totalRounds: roundState?.round?.totalRounds ?? rules.totalRounds,
       formattedGameEndTime: roundState?.round
         ? formatClockTime(new Date(roundState.round.gameEndAt))
         : null,
@@ -123,10 +118,11 @@ export function useGameplayBootstrap() {
       votes,
       remaining,
       phaseTiming: {
-        roundStartWaitSec,
-        roundResultDelaySec,
-        gameEndWaitSec,
+        roundStartWaitSec: phases.roundStartWaitSec,
+        roundResultDelaySec: phases.roundResultDelaySec,
+        gameEndWaitSec: phases.gameEndWaitSec,
       },
+      gameConfig,
     };
   }, []);
 

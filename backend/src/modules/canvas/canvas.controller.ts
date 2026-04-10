@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { Server } from "socket.io";
-import { gameConfig } from "../../config/game.config";
+import { getGameConfigSnapshot } from "../../config/game.config";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell } from "../../entities/cell.entity";
 import { canvasService } from "./canvas.service";
@@ -54,11 +54,7 @@ export const canvasController = {
       return res.json({
         canvas: serializeCanvas(canvas),
         cells: cells.map(serializeCell),
-        roundDurationSec: gameConfig.roundDurationSec,
-        totalRounds: gameConfig.totalRounds,
-        roundStartWaitSec: gameConfig.roundStartWaitSec,
-        roundResultDelaySec: gameConfig.roundResultDelaySec,
-        gameEndWaitSec: gameConfig.gameEndWaitSec,
+        gameConfig: getGameConfigSnapshot(),
       });
     } catch (err) {
       return res.status(500).json({ message: String(err) });
