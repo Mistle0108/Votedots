@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authApi } from "@/features/auth";
-import { RESTART_TIME } from "@/features/gameplay/canvas";
 import { SessionBootstrapResult } from "../model/session.types";
 import { useGameplayBootstrap } from "./useGameplayBootstrap";
 
@@ -147,6 +146,7 @@ export function useGameSession({
   const [retryNonce, setRetryNonce] = useState(0);
 
   const serviceAlertShownRef = useRef(false);
+  const restartDelaySecRef = useRef(3);
 
   const showServiceUnavailableAlert = useCallback(() => {
     if (serviceAlertShownRef.current) {
@@ -192,6 +192,7 @@ export function useGameSession({
 
         try {
           const result = await bootstrap();
+          restartDelaySecRef.current = result.gameConfig.phases.restartDelaySec;
           onBootstrap(result);
           setError(null);
           setRetryNonce(0);
@@ -247,7 +248,7 @@ export function useGameSession({
 
     const timer = setTimeout(() => {
       window.location.reload();
-    }, RESTART_TIME * 1000);
+    }, restartDelaySecRef.current * 1000);
 
     return () => clearTimeout(timer);
   }, [gameEnded]);

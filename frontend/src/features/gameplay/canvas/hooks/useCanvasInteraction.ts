@@ -1,5 +1,5 @@
 import { useRef, type RefObject } from "react";
-import { CELL_SIZE } from "../model/canvas.constants";
+import { getGameConfig } from "@/shared/config/game-config";
 import { Cell } from "../model/canvas.types";
 
 interface UseCanvasInteractionParams {
@@ -59,9 +59,11 @@ export function useCanvasInteraction({
     const canvas = canvasRef.current;
     if (!canvas) return;
 
+    const cellSize = getGameConfig().board.cellSize;
+
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((event.clientX - rect.left) / CELL_SIZE);
-    const y = Math.floor((event.clientY - rect.top) / CELL_SIZE);
+    const x = Math.floor((event.clientX - rect.left) / cellSize);
+    const y = Math.floor((event.clientY - rect.top) / cellSize);
 
     const cell = cells.find(
       (candidate) => candidate.x === x && candidate.y === y,
@@ -72,8 +74,8 @@ export function useCanvasInteraction({
     onSelectCell(cell);
     onResetPreviewColor();
     onOpenPopup({
-      x: rect.left + (cell.x + 2) * CELL_SIZE,
-      y: rect.top + (cell.y - 1.5) * CELL_SIZE,
+      x: rect.left + (cell.x + 2) * cellSize,
+      y: rect.top + (cell.y - 1.5) * cellSize,
     });
   };
 

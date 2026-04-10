@@ -1,5 +1,5 @@
 import { useCallback, type RefObject } from "react";
-import { CELL_SIZE } from "../model/canvas.constants";
+import { getGameConfig } from "@/shared/config/game-config";
 
 interface UseCanvasNavigationParams {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -19,8 +19,10 @@ export function useCanvasNavigation({
 
       if (!container || !canvas) return;
 
-      const targetX = x * CELL_SIZE + CELL_SIZE / 2;
-      const targetY = y * CELL_SIZE + CELL_SIZE / 2;
+      const cellSize = getGameConfig().board.cellSize;
+
+      const targetX = x * cellSize + cellSize / 2;
+      const targetY = y * cellSize + cellSize / 2;
 
       const nextScrollLeft =
         canvas.offsetLeft + targetX - container.clientWidth / 2;

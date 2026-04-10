@@ -7,10 +7,8 @@ import {
   GAME_PHASE,
   type GamePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
-import {
-  MAX_VOTE_PANEL_ENTRIES,
-  VOTES_PER_ROUND,
-} from "../model/vote.constants";
+import { getGameConfig } from "@/shared/config/game-config";
+import { MAX_VOTE_PANEL_ENTRIES } from "../model/vote.constants";
 import { buildVotePanelEntries } from "../model/vote.utils";
 
 interface Props {
@@ -60,12 +58,14 @@ export default function VotePanel({
   viewport,
   onNavigateToCoordinate,
 }: Props) {
+  const votesPerRound = getGameConfig().rules.votesPerRound;
   const voteEntries = buildVotePanelEntries(votes, cells).slice(
     0,
     MAX_VOTE_PANEL_ENTRIES,
   );
   const maxCount = voteEntries[0]?.totalCount ?? 1;
-  const usedCount = remaining !== null ? VOTES_PER_ROUND - remaining : 0;
+  const usedCount =
+    remaining !== null ? Math.max(0, votesPerRound - remaining) : 0;
   const slots = Array.from({ length: MAX_VOTE_PANEL_ENTRIES }, (_, index) => {
     return voteEntries[index] ?? null;
   });
@@ -93,11 +93,10 @@ export default function VotePanel({
         <p className="text-sm font-medium">남은 투표권</p>
         <div className="flex gap-1">
           {isVotingPhase && remaining !== null ? (
-            Array.from({ length: VOTES_PER_ROUND }).map((_, index) => (
+            Array.from({ length: votesPerRound }).map((_, index) => (
               <span
                 key={index}
-                className={`text-lg ${index < usedCount ? "text-gray-300" : "text-blue-500"
-                  }`}
+                className={`text-lg ${index < usedCount ? "text-gray-300" : "text-blue-500"}`}
               >
                 ●
               </span>

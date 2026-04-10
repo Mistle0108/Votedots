@@ -3,6 +3,7 @@ import { BaseEntity } from "./base.entity";
 import { Cell } from "./cell.entity";
 import { VoteRound } from "./vote-round.entity";
 import { GamePhase } from "../modules/game/game-phase.types";
+import type { GameConfigSnapshot } from "../config/game.config";
 
 export enum CanvasStatus {
   PLAYING = "playing",
@@ -16,6 +17,19 @@ export class Canvas extends BaseEntity {
 
   @Column({ type: "smallint", default: 10 })
   gridY!: number;
+
+  @Column({
+    type: "varchar",
+    length: 64,
+    default: "default",
+  })
+  configProfileKey!: string;
+
+  @Column({
+    type: "jsonb",
+    default: () => "'{}'::jsonb",
+  })
+  configSnapshot!: GameConfigSnapshot;
 
   @Column({
     type: "varchar",

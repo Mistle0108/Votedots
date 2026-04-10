@@ -1,4 +1,5 @@
 import type { Cell } from "@/features/gameplay/canvas";
+import type { GameConfig } from "@/shared/config/game-config";
 import type { GamePhase } from "./game-phase.types";
 
 export interface RoundInfoState {
@@ -53,4 +54,5 @@ export interface SessionBootstrapResult {
   votes: Record<string, number>;
   remaining: number | null;
   phaseTiming: PhaseTimingState;
+  gameConfig: GameConfig;
 }

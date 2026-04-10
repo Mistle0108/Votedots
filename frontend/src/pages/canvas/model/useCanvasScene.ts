@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Cell,
-  CELL_SIZE,
   useCanvasInteraction,
   useCanvasNavigation,
   useCanvasRenderer,
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
+import { getGameConfig } from "@/shared/config/game-config";
 
 interface UseCanvasSceneParams {
   previewColorRef: React.RefObject<string | null>;
@@ -66,8 +66,10 @@ export default function useCanvasScene({
       return;
     }
 
-    canvas.width = gridX * CELL_SIZE;
-    canvas.height = gridY * CELL_SIZE;
+    const cellSize = getGameConfig().board.cellSize;
+
+    canvas.width = gridX * cellSize;
+    canvas.height = gridY * cellSize;
     setCanvasReady(true);
   }, [canvasId, gridX, gridY]);
 

@@ -1,5 +1,8 @@
 import { Server } from "socket.io";
-import { gameConfig } from "../../config/game.config";
+import {
+  getCanvasGameConfigSnapshot,
+  type GameConfigSnapshot,
+} from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
@@ -15,15 +18,19 @@ const activeTimers = new Map<number, NodeJS.Timeout>();
 // Manage round timer broadcast intervals per canvas.
 const activeBroadcasts = new Map<number, NodeJS.Timeout>();
 
-function getGameEndAt(roundStartedAt: Date, currentRound: number): Date {
+function getGameEndAt(
+  config: GameConfigSnapshot,
+  roundStartedAt: Date,
+  currentRound: number,
+): Date {
   const remainingRoundsIncludingCurrent =
-    gameConfig.totalRounds - currentRound + 1;
+    config.rules.totalRounds - currentRound + 1;
 
   return new Date(
     roundStartedAt.getTime() +
-      remainingRoundsIncludingCurrent * gameConfig.roundDurationSec * 1000 +
+      remainingRoundsIncludingCurrent * config.phases.roundDurationSec * 1000 +
       Math.max(0, remainingRoundsIncludingCurrent - 1) *
-        gameConfig.roundResultDelaySec *
+        config.phases.roundResultDelaySec *
         1000,
   );
 }
@@ -86,9 +93,24 @@ function scheduleTimer(
   activeTimers.set(canvasId, timer);
 }
 
-async function createNextCanvas(io: Server): Promise<void> {
+async function getCanvasOrThrow(canvasId: number): Promise<Canvas> {
+  const canvas = await canvasRepository.findOne({
+    where: { id: canvasId },
+  });
+
+  if (!canvas) {
+    throw new Error(`Canvas was not found. (id=${canvasId})`);
+  }
+
+  return canvas;
+}
+
+async function createNextCanvas(
+  io: Server,
+  profileKey?: string | null,
+): Promise<void> {
   const { canvasService } = await import("../canvas/canvas.service");
-  await canvasService.create(io);
+  await canvasService.create(io, { profileKey });
 }
 
 async function transitionToRoundStartWait(
@@ -96,9 +118,12 @@ async function transitionToRoundStartWait(
   canvasId: number,
   roundNumber: number,
 ): Promise<void> {
+  const canvas = await getCanvasOrThrow(canvasId);
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+
   const phaseStartedAt = new Date();
   const phaseEndsAt = new Date(
-    phaseStartedAt.getTime() + gameConfig.roundStartWaitSec * 1000,
+    phaseStartedAt.getTime() + canvasGameConfig.phases.roundStartWaitSec * 1000,
   );
 
   await canvasRepository.update(canvasId, {
@@ -122,7 +147,7 @@ async function transitionToRoundStartWait(
     () => {
       void runRound(io, canvasId, roundNumber);
     },
-    gameConfig.roundStartWaitSec * 1000,
+    canvasGameConfig.phases.roundStartWaitSec * 1000,
   );
 }
 
@@ -131,9 +156,12 @@ async function transitionToGameEnd(
   canvasId: number,
   roundNumber: number,
 ): Promise<void> {
+  const canvas = await getCanvasOrThrow(canvasId);
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+
   const phaseStartedAt = new Date();
   const phaseEndsAt = new Date(
-    phaseStartedAt.getTime() + gameConfig.gameEndWaitSec * 1000,
+    phaseStartedAt.getTime() + canvasGameConfig.phases.gameEndWaitSec * 1000,
   );
 
   await canvasRepository.update(canvasId, {
@@ -172,7 +200,11 @@ function scheduleGameEnd(
         io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
 
         try {
-          await createNextCanvas(io);
+          const finishedCanvas = await canvasRepository.findOne({
+            where: { id: canvasId },
+          });
+
+          await createNextCanvas(io, finishedCanvas?.configProfileKey);
         } catch (err) {
           console.error(
             `[game-timer] failed to create next canvas after game end (previousCanvasId=${canvasId}, round=${roundNumber}):`,
@@ -187,15 +219,20 @@ function scheduleGameEnd(
 
 function startRoundBroadcast(
   io: Server,
-  canvasId: number,
+  canvas: Canvas,
   round: VoteRound,
 ): (
   remainingSecondsOverride?: number,
   isRoundExpiredOverride?: boolean,
 ) => void {
-  clearBroadcastInterval(canvasId);
+  clearBroadcastInterval(canvas.id);
 
-  const gameEndAt = getGameEndAt(round.startedAt, round.roundNumber);
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+  const gameEndAt = getGameEndAt(
+    canvasGameConfig,
+    round.startedAt,
+    round.roundNumber,
+  );
 
   const broadcastTimerUpdate = (
     remainingSecondsOverride?: number,
@@ -205,17 +242,17 @@ function startRoundBroadcast(
 
     const remainingSeconds =
       remainingSecondsOverride ??
-      Math.max(0, gameConfig.roundDurationSec - elapsed);
+      Math.max(0, canvasGameConfig.phases.roundDurationSec - elapsed);
 
     const isRoundExpired = isRoundExpiredOverride ?? remainingSeconds === 0;
 
-    io.to(`canvas:${canvasId}`).emit("timer:update", {
+    io.to(`canvas:${canvas.id}`).emit("timer:update", {
       roundId: round.id,
       roundNumber: round.roundNumber,
       remainingSeconds,
       isRoundExpired,
-      roundDurationSec: gameConfig.roundDurationSec,
-      totalRounds: gameConfig.totalRounds,
+      roundDurationSec: canvasGameConfig.phases.roundDurationSec,
+      totalRounds: canvasGameConfig.rules.totalRounds,
       gameEndAt: gameEndAt.toISOString(),
     });
   };
@@ -226,58 +263,59 @@ function startRoundBroadcast(
     broadcastTimerUpdate();
   }, 1000);
 
-  activeBroadcasts.set(canvasId, broadcastInterval);
+  activeBroadcasts.set(canvas.id, broadcastInterval);
 
   return broadcastTimerUpdate;
 }
 
 function scheduleRoundCompletion(
   io: Server,
-  canvasId: number,
+  canvas: Canvas,
   round: VoteRound,
   roundEndsAt: Date,
 ): void {
-  const broadcastTimerUpdate = startRoundBroadcast(io, canvasId, round);
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+  const broadcastTimerUpdate = startRoundBroadcast(io, canvas, round);
   const delayMs = Math.max(0, roundEndsAt.getTime() - Date.now());
 
   scheduleTimer(
-    canvasId,
+    canvas.id,
     () => {
       void (async () => {
-        clearBroadcastInterval(canvasId);
+        clearBroadcastInterval(canvas.id);
         broadcastTimerUpdate(0, true);
 
         try {
-          await roundService.endRound(canvasId, round.id, io);
+          await roundService.endRound(canvas.id, round.id, io);
         } catch (err) {
           console.error(
-            `[game-timer] failed to end round (canvasId=${canvasId}, roundId=${round.id}):`,
+            `[game-timer] failed to end round (canvasId=${canvas.id}, roundId=${round.id}):`,
             err,
           );
-          clearScheduledTimer(canvasId);
+          clearScheduledTimer(canvas.id);
           return;
         }
 
         scheduleTimer(
-          canvasId,
+          canvas.id,
           () => {
             void (async () => {
               try {
                 await transitionAfterRoundResult(
                   io,
-                  canvasId,
+                  canvas.id,
                   round.roundNumber,
                 );
               } catch (error) {
                 console.error(
-                  `[game-timer] failed to transition after round result (canvasId=${canvasId}, round=${round.roundNumber}):`,
+                  `[game-timer] failed to transition after round result (canvasId=${canvas.id}, round=${round.roundNumber}):`,
                   error,
                 );
-                clearScheduledTimer(canvasId);
+                clearScheduledTimer(canvas.id);
               }
             })();
           },
-          gameConfig.roundResultDelaySec * 1000,
+          canvasGameConfig.phases.roundResultDelaySec * 1000,
         );
       })();
     },
@@ -290,7 +328,10 @@ async function transitionAfterRoundResult(
   canvasId: number,
   roundNumber: number,
 ): Promise<void> {
-  if (roundNumber >= gameConfig.totalRounds) {
+  const canvas = await getCanvasOrThrow(canvasId);
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+
+  if (roundNumber >= canvasGameConfig.rules.totalRounds) {
     await transitionToGameEnd(io, canvasId, roundNumber);
     return;
   }
@@ -300,15 +341,17 @@ async function transitionAfterRoundResult(
 
 async function resumeRoundStartWaitFromBoundary(
   io: Server,
-  canvasId: number,
+  canvas: Canvas,
   nextRoundNumber: number,
   waitStartedAt: Date,
 ): Promise<void> {
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+
   const waitEndsAt = new Date(
-    waitStartedAt.getTime() + gameConfig.roundStartWaitSec * 1000,
+    waitStartedAt.getTime() + canvasGameConfig.phases.roundStartWaitSec * 1000,
   );
 
-  await canvasRepository.update(canvasId, {
+  await canvasRepository.update(canvas.id, {
     phase: GamePhase.ROUND_START_WAIT,
     phaseStartedAt: waitStartedAt,
     phaseEndsAt: waitEndsAt,
@@ -316,7 +359,7 @@ async function resumeRoundStartWaitFromBoundary(
   });
 
   logPhaseChange({
-    canvasId,
+    canvasId: canvas.id,
     phase: GamePhase.ROUND_START_WAIT,
     roundNumber: nextRoundNumber,
     phaseStartedAt: waitStartedAt,
@@ -327,14 +370,14 @@ async function resumeRoundStartWaitFromBoundary(
   const delayMs = Math.max(0, waitEndsAt.getTime() - Date.now());
 
   if (delayMs === 0) {
-    await runRound(io, canvasId, nextRoundNumber);
+    await runRound(io, canvas.id, nextRoundNumber);
     return;
   }
 
   scheduleTimer(
-    canvasId,
+    canvas.id,
     () => {
-      void runRound(io, canvasId, nextRoundNumber);
+      void runRound(io, canvas.id, nextRoundNumber);
     },
     delayMs,
   );
@@ -342,15 +385,17 @@ async function resumeRoundStartWaitFromBoundary(
 
 async function resumeGameEndFromBoundary(
   io: Server,
-  canvasId: number,
+  canvas: Canvas,
   roundNumber: number,
   gameEndStartedAt: Date,
 ): Promise<void> {
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+
   const gameEndEndsAt = new Date(
-    gameEndStartedAt.getTime() + gameConfig.gameEndWaitSec * 1000,
+    gameEndStartedAt.getTime() + canvasGameConfig.phases.gameEndWaitSec * 1000,
   );
 
-  await canvasRepository.update(canvasId, {
+  await canvasRepository.update(canvas.id, {
     status: CanvasStatus.FINISHED,
     phase: GamePhase.GAME_END,
     phaseStartedAt: gameEndStartedAt,
@@ -360,7 +405,7 @@ async function resumeGameEndFromBoundary(
   });
 
   logPhaseChange({
-    canvasId,
+    canvasId: canvas.id,
     phase: GamePhase.GAME_END,
     roundNumber,
     phaseStartedAt: gameEndStartedAt,
@@ -369,20 +414,20 @@ async function resumeGameEndFromBoundary(
   });
 
   if (gameEndEndsAt.getTime() <= Date.now()) {
-    io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
+    io.to(`canvas:${canvas.id}`).emit("game:ended", { canvasId: canvas.id });
 
     try {
-      await createNextCanvas(io);
+      await createNextCanvas(io, canvas.configProfileKey);
     } catch (error) {
       console.error(
-        `[game-timer] failed to create next canvas after elapsed game-end resume (previousCanvasId=${canvasId}):`,
+        `[game-timer] failed to create next canvas after elapsed game-end resume (previousCanvasId=${canvas.id}):`,
         error,
       );
     }
     return;
   }
 
-  scheduleGameEnd(io, canvasId, roundNumber, gameEndEndsAt);
+  scheduleGameEnd(io, canvas.id, roundNumber, gameEndEndsAt);
 }
 
 async function runRound(
@@ -390,8 +435,11 @@ async function runRound(
   canvasId: number,
   expectedRoundNumber: number,
 ): Promise<void> {
-  if (expectedRoundNumber > gameConfig.totalRounds) {
-    await transitionToGameEnd(io, canvasId, gameConfig.totalRounds);
+  const canvas = await getCanvasOrThrow(canvasId);
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+
+  if (expectedRoundNumber > canvasGameConfig.rules.totalRounds) {
+    await transitionToGameEnd(io, canvasId, canvasGameConfig.rules.totalRounds);
     return;
   }
 
@@ -409,13 +457,15 @@ async function runRound(
   }
 
   const roundEndsAt = new Date(
-    round.startedAt.getTime() + gameConfig.roundDurationSec * 1000,
+    round.startedAt.getTime() + canvasGameConfig.phases.roundDurationSec * 1000,
   );
 
-  scheduleRoundCompletion(io, canvasId, round, roundEndsAt);
+  scheduleRoundCompletion(io, canvas, round, roundEndsAt);
 }
 
 async function resumeRoundActive(io: Server, canvas: Canvas): Promise<void> {
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+
   const activeRound = await roundRepository.findOne({
     where: { canvas: { id: canvas.id }, isActive: true },
     order: { roundNumber: "DESC" },
@@ -426,8 +476,12 @@ async function resumeRoundActive(io: Server, canvas: Canvas): Promise<void> {
       `[game-timer] active phase without active round detected (canvasId=${canvas.id})`,
     );
 
-    if (canvas.currentRoundNumber >= gameConfig.totalRounds) {
-      await transitionToGameEnd(io, canvas.id, gameConfig.totalRounds);
+    if (canvas.currentRoundNumber >= canvasGameConfig.rules.totalRounds) {
+      await transitionToGameEnd(
+        io,
+        canvas.id,
+        canvasGameConfig.rules.totalRounds,
+      );
       return;
     }
 
@@ -440,7 +494,8 @@ async function resumeRoundActive(io: Server, canvas: Canvas): Promise<void> {
   }
 
   const roundEndsAt = new Date(
-    activeRound.startedAt.getTime() + gameConfig.roundDurationSec * 1000,
+    activeRound.startedAt.getTime() +
+      canvasGameConfig.phases.roundDurationSec * 1000,
   );
 
   if (roundEndsAt.getTime() <= Date.now()) {
@@ -448,7 +503,7 @@ async function resumeRoundActive(io: Server, canvas: Canvas): Promise<void> {
       `[game-timer] active round already expired, ending immediately (canvasId=${canvas.id}, roundId=${activeRound.id})`,
     );
 
-    startRoundBroadcast(io, canvas.id, activeRound);
+    startRoundBroadcast(io, canvas, activeRound);
     clearBroadcastInterval(canvas.id);
 
     try {
@@ -480,14 +535,16 @@ async function resumeRoundActive(io: Server, canvas: Canvas): Promise<void> {
           }
         })();
       },
-      gameConfig.roundResultDelaySec * 1000,
+      canvasGameConfig.phases.roundResultDelaySec * 1000,
     );
     return;
   }
 
-  scheduleRoundCompletion(io, canvas.id, activeRound, roundEndsAt);
+  scheduleRoundCompletion(io, canvas, activeRound, roundEndsAt);
 }
+
 async function resumeRoundResult(io: Server, canvas: Canvas): Promise<void> {
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
   const roundNumber = canvas.currentRoundNumber;
   const resultEndsAt = canvas.phaseEndsAt;
 
@@ -526,27 +583,29 @@ async function resumeRoundResult(io: Server, canvas: Canvas): Promise<void> {
     return;
   }
 
-  if (roundNumber >= gameConfig.totalRounds) {
-    await resumeGameEndFromBoundary(io, canvas.id, roundNumber, resultEndsAt);
+  if (roundNumber >= canvasGameConfig.rules.totalRounds) {
+    await resumeGameEndFromBoundary(io, canvas, roundNumber, resultEndsAt);
     return;
   }
 
   await resumeRoundStartWaitFromBoundary(
     io,
-    canvas.id,
+    canvas,
     roundNumber + 1,
     resultEndsAt,
   );
 }
 
 async function resumeGameEnd(io: Server, canvas: Canvas): Promise<void> {
-  const roundNumber = canvas.currentRoundNumber || gameConfig.totalRounds;
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+  const roundNumber =
+    canvas.currentRoundNumber || canvasGameConfig.rules.totalRounds;
 
   if (!canvas.phaseEndsAt) {
     io.to(`canvas:${canvas.id}`).emit("game:ended", { canvasId: canvas.id });
 
     try {
-      await createNextCanvas(io);
+      await createNextCanvas(io, canvas.configProfileKey);
     } catch (error) {
       console.error(
         `[game-timer] failed to create next canvas during immediate game-end resume (previousCanvasId=${canvas.id}):`,
@@ -560,7 +619,7 @@ async function resumeGameEnd(io: Server, canvas: Canvas): Promise<void> {
     io.to(`canvas:${canvas.id}`).emit("game:ended", { canvasId: canvas.id });
 
     try {
-      await createNextCanvas(io);
+      await createNextCanvas(io, canvas.configProfileKey);
     } catch (error) {
       console.error(
         `[game-timer] failed to create next canvas after elapsed game-end resume (previousCanvasId=${canvas.id}):`,

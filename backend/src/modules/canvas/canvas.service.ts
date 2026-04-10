@@ -1,5 +1,5 @@
 import { Server } from "socket.io";
-import { gameConfig } from "../../config/game.config";
+import { createCanvasGameConfig } from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
@@ -19,8 +19,9 @@ const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 
-const GRID_X = parseInt(process.env.GRID_SIZE_X ?? "25", 10);
-const GRID_Y = parseInt(process.env.GRID_SIZE_Y ?? "25", 10);
+interface CreateCanvasOptions {
+  profileKey?: string | null;
+}
 const CELL_INSERT_CHUNK_SIZE = 1000;
 
 function logPhaseChange(params: {
@@ -40,7 +41,7 @@ function logPhaseChange(params: {
 }
 
 export const canvasService = {
-  async create(io: Server): Promise<Canvas> {
+  async create(io: Server, options: CreateCanvasOptions = {}): Promise<Canvas> {
     const existing = await canvasRepository.findOne({
       where: { status: CanvasStatus.PLAYING },
     });
@@ -49,14 +50,21 @@ export const canvasService = {
       throw new Error("A canvas is already in progress.");
     }
 
+    const { profileKey, snapshot } = createCanvasGameConfig(options.profileKey);
+
+    const gridSizeX = snapshot.board.gridSizeX;
+    const gridSizeY = snapshot.board.gridSizeY;
+
     const now = new Date();
     const phaseEndsAt = new Date(
-      now.getTime() + gameConfig.roundStartWaitSec * 1000,
+      now.getTime() + snapshot.phases.roundStartWaitSec * 1000,
     );
 
     const canvas = canvasRepository.create({
-      gridX: GRID_X,
-      gridY: GRID_Y,
+      gridX: gridSizeX,
+      gridY: gridSizeY,
+      configProfileKey: profileKey,
+      configSnapshot: snapshot,
       status: CanvasStatus.PLAYING,
       phase: GamePhase.ROUND_START_WAIT,
       phaseStartedAt: now,
@@ -73,14 +81,14 @@ export const canvasService = {
       roundNumber: 1,
       phaseStartedAt: now,
       phaseEndsAt,
-      reason: "캔버스 생성",
+      reason: `캔버스 생성(profile=${profileKey})`,
     });
 
-    const outlineTemplate = pickRandomOutlineTemplate(GRID_X, GRID_Y);
+    const outlineTemplate = pickRandomOutlineTemplate(gridSizeX, gridSizeY);
     const outlineCellSet = buildOutlineCellSet(outlineTemplate);
 
     console.log(
-      `[canvas] selected outline template | canvasId=${canvas.id} canvasSize=${GRID_X}x${GRID_Y} template=${outlineTemplate?.id ?? "none"}`,
+      `[canvas] selected outline template | canvasId=${canvas.id} canvasSize=${gridSizeX}x${gridSizeY} template=${outlineTemplate?.id ?? "none"}`,
     );
 
     const cells: Array<{
@@ -91,8 +99,8 @@ export const canvasService = {
       status: CellStatus;
     }> = [];
 
-    for (let y = 0; y < GRID_Y; y++) {
-      for (let x = 0; x < GRID_X; x++) {
+    for (let y = 0; y < gridSizeY; y++) {
+      for (let x = 0; x < gridSizeX; x++) {
         const isOutlineCell = outlineCellSet.has(`${x}:${y}`);
 
         cells.push({

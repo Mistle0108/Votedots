@@ -1,4 +1,5 @@
 import type { GamePhase } from "@/features/gameplay/session/model/game-phase.types";
+import type { GameConfig } from "@/shared/config/game-config";
 
 export type CanvasStatus = "playing" | "finished";
 
@@ -8,6 +9,7 @@ export interface Canvas {
   id: number;
   gridX: number;
   gridY: number;
+  configProfileKey: string;
   status: CanvasStatus;
   phase: GamePhase;
   phaseStartedAt: string;
@@ -28,11 +30,7 @@ export interface Cell {
 export interface CanvasCurrentResponse {
   canvas: Canvas;
   cells: Cell[];
-  roundDurationSec: number;
-  totalRounds: number;
-  roundStartWaitSec: number;
-  roundResultDelaySec: number;
-  gameEndWaitSec: number;
+  gameConfig: GameConfig;
 }
 
 export interface Viewport {
