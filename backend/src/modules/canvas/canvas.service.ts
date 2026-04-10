@@ -10,6 +10,10 @@ import {
   participantSessionService,
   type ParticipantSummary,
 } from "../participant/participant-session.service";
+import {
+  buildOutlineCellSet,
+  pickRandomOutlineTemplate,
+} from "./template/outline-template.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -18,6 +22,7 @@ const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 interface CreateCanvasOptions {
   profileKey?: string | null;
 }
+const CELL_INSERT_CHUNK_SIZE = 1000;
 
 function logPhaseChange(params: {
   canvasId: number;
@@ -79,20 +84,44 @@ export const canvasService = {
       reason: `캔버스 생성(profile=${profileKey})`,
     });
 
-    const cells: Partial<Cell>[] = [];
-    for (let y = 0; y < gridSizeY; y++) {
-      for (let x = 0; x < gridSizeX; x++) {
+    const outlineTemplate = pickRandomOutlineTemplate(gridSizeX, gridSizeY);
+    const outlineCellSet = buildOutlineCellSet(outlineTemplate);
+
+    console.log(
+      `[canvas] selected outline template | canvasId=${canvas.id} canvasSize=${gridSizeX}x${gridSizeY} template=${outlineTemplate?.id ?? "none"}`,
+    );
+
+    const cells: Array<{
+      canvas: { id: number };
+      x: number;
+      y: number;
+      color: string | null;
+      status: CellStatus;
+    }> = [];
+
+    for (let y = 0; y < gridSizeX; y++) {
+      for (let x = 0; x < gridSizeY; x++) {
+        const isOutlineCell = outlineCellSet.has(`${x}:${y}`);
+
         cells.push({
-          canvas,
+          canvas: { id: canvas.id },
           x,
           y,
-          color: null,
+          color: isOutlineCell ? "#000000" : null,
           status: CellStatus.IDLE,
         });
       }
     }
 
-    await cellRepository.save(cells as Cell[]);
+    // const cellInsertStartedAt = performance.now();
+
+    for (let index = 0; index < cells.length; index += CELL_INSERT_CHUNK_SIZE) {
+      const chunk = cells.slice(index, index + CELL_INSERT_CHUNK_SIZE);
+      await cellRepository.insert(chunk);
+    }
+
+    // console.log(`[perf] canvas cells insert | canvasId=${canvas.id} count=${cells.length} ms=${(performance.now() - cellInsertStartedAt).toFixed(2)}`,);
+
     await startGameTimer(io, canvas.id);
 
     return canvas;
@@ -195,7 +224,6 @@ export const canvasService = {
 
     return this.create(io);
   },
-
   async getCanvasToResumeAfterReconnect(): Promise<Canvas | null> {
     const currentCanvas = await canvasRepository.findOne({
       where: { status: CanvasStatus.PLAYING },
