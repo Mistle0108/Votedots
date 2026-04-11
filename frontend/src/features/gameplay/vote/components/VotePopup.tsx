@@ -68,7 +68,7 @@ function getButtonLabel(
   return "투표하기";
 }
 
-function isInteractiveElement(target: EventTarget | null): boolean {
+function isTextInputElement(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) {
     return false;
   }
@@ -79,8 +79,6 @@ function isInteractiveElement(target: EventTarget | null): boolean {
     tagName === "INPUT" ||
     tagName === "TEXTAREA" ||
     tagName === "SELECT" ||
-    tagName === "BUTTON" ||
-    tagName === "A" ||
     target.isContentEditable
   );
 }
@@ -299,17 +297,21 @@ export default function VotePopup({
     setError("");
   }, [isRoundExpired, isVotingPhase]);
 
-  useEffect(() => {
+    useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.code !== "Space" || event.repeat) {
+      if (event.code !== "Space") {
         return;
       }
 
-      if (isInteractiveElement(event.target)) {
+      if (isTextInputElement(event.target)) {
         return;
       }
 
-      event.preventDefault();
+      event.preventDefault(); // 변경: 모달이 열려 있으면 스페이스 기본 스크롤 차단
+
+      if (event.repeat) {
+        return;
+      }
 
       if (isVoteDisabled) {
         return;
@@ -324,6 +326,7 @@ export default function VotePopup({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [handleSubmit, isVoteDisabled]);
+
 
   return (
     <div
@@ -344,11 +347,11 @@ export default function VotePopup({
               selectedCell.color
                 ? { backgroundColor: selectedCell.color }
                 : {
-                    backgroundColor: "#f9fafb",
-                    backgroundImage: CHECKER_PATTERN,
-                    backgroundPosition: "0 0, 4px 4px",
-                    backgroundSize: "8px 8px",
-                  }
+                  backgroundColor: "#f9fafb",
+                  backgroundImage: CHECKER_PATTERN,
+                  backgroundPosition: "0 0, 4px 4px",
+                  backgroundSize: "8px 8px",
+                }
             }
             onClick={(event) => {
               event.stopPropagation();
