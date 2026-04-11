@@ -1,5 +1,7 @@
 import { Server } from "socket.io";
+import { getCanvasGameConfigSnapshot } from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
+import { Canvas } from "../../entities/canvas.entity";
 import { Vote } from "../../entities/vote.entity";
 import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
@@ -11,8 +13,106 @@ const voteRepository = AppDataSource.getRepository(Vote);
 const voteTicketRepository = AppDataSource.getRepository(VoteTicket);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const cellRepository = AppDataSource.getRepository(Cell);
+const canvasRepository = AppDataSource.getRepository(Canvas);
+
+interface EnsureCurrentRoundTicketsResult {
+  roundId: number | null;
+  issued: boolean;
+}
+
+function getIssuedVotersKey(roundId: number): string {
+  return `vote:round:${roundId}:issued-voters`;
+}
 
 export const voteService = {
+  async registerIssuedVoters(
+    roundId: number,
+    voterIds: number[],
+  ): Promise<void> {
+    if (voterIds.length === 0) {
+      return;
+    }
+
+    await redisClient.sAdd(getIssuedVotersKey(roundId), voterIds.map(String));
+  },
+
+  async clearIssuedVoters(roundId: number): Promise<void> {
+    await redisClient.del(getIssuedVotersKey(roundId));
+  },
+
+  async ensureCurrentRoundTicketsForParticipant(
+    canvasId: number,
+    voterId: number,
+  ): Promise<EnsureCurrentRoundTicketsResult> {
+    const round = await voteRoundRepository.findOne({
+      where: { canvas: { id: canvasId }, isActive: true },
+    });
+
+    if (!round) {
+      return { roundId: null, issued: false };
+    }
+
+    const canvas = await canvasRepository.findOne({
+      where: { id: canvasId },
+    });
+
+    if (!canvas) {
+      return { roundId: round.id, issued: false };
+    }
+
+    const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+    const roundEndsAt = new Date(
+      round.startedAt.getTime() +
+        canvasGameConfig.phases.roundDurationSec * 1000,
+    );
+
+    if (roundEndsAt.getTime() <= Date.now()) {
+      return { roundId: round.id, issued: false };
+    }
+
+    const issuedVotersKey = getIssuedVotersKey(round.id);
+
+    const existingTicketCount = await voteTicketRepository.count({
+      where: {
+        round: { id: round.id },
+        voter: { id: voterId },
+      },
+    });
+
+    if (existingTicketCount > 0) {
+      await redisClient.sAdd(issuedVotersKey, String(voterId));
+      return { roundId: round.id, issued: false };
+    }
+
+    const addedCount = await redisClient.sAdd(issuedVotersKey, String(voterId));
+
+    if (addedCount === 0) {
+      return { roundId: round.id, issued: false };
+    }
+
+    try {
+      const tickets = Array.from(
+        { length: canvasGameConfig.rules.votesPerRound },
+        () => ({
+          round: { id: round.id },
+          voter: { id: voterId },
+          isUsed: false,
+        }),
+      );
+
+      if (tickets.length > 0) {
+        await voteTicketRepository.insert(tickets);
+      }
+
+      return { roundId: round.id, issued: true };
+    } catch (error) {
+      await redisClient.sRem(issuedVotersKey, String(voterId));
+      throw new Error(
+        `현재 라운드 투표권 지급 중 오류가 발생했어요: ${String(error)}`,
+      );
+    }
+  },
+
   async submit(
     voterId: number,
     sessionId: string,

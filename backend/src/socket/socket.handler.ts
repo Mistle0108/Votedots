@@ -1,5 +1,6 @@
 import { Server, Socket } from "socket.io";
 import { participantSessionService } from "../modules/participant/participant-session.service";
+import { voteService } from "../modules/vote/vote.service"; // 추가: 중간 입장자 현재 라운드 티켓 지급
 
 export function registerHandlers(socket: Socket, io: Server): void {
   socket.on("join:canvas", async (canvasIdValue: number | string) => {
@@ -25,6 +26,13 @@ export function registerHandlers(socket: Socket, io: Server): void {
         socket.id,
         io,
       );
+
+      if (typeof socket.voterId === "number") {
+        await voteService.ensureCurrentRoundTicketsForParticipant(
+          canvasId,
+          socket.voterId,
+        );
+      }
 
       const room = `canvas:${canvasId}`;
       socket.join(room);
