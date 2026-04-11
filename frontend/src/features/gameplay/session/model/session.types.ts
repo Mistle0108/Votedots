@@ -17,6 +17,7 @@ export interface RoundInfoState {
 }
 
 export interface PhaseTimingState {
+  introPhaseSec: number;
   roundStartWaitSec: number;
   roundResultDelaySec: number;
   gameEndWaitSec: number;

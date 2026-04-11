@@ -1,4 +1,5 @@
 export enum GamePhase {
+  INTRO = "intro",
   ROUND_START_WAIT = "round_start_wait",
   ROUND_ACTIVE = "round_active",
   ROUND_RESULT = "round_result",

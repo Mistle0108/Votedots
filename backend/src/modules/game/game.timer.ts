@@ -151,6 +151,13 @@ async function transitionToRoundStartWait(
   );
 }
 
+async function transitionFromIntro(
+  io: Server,
+  canvasId: number,
+): Promise<void> {
+  await transitionToRoundStartWait(io, canvasId, 1);
+}
+
 async function transitionToGameEnd(
   io: Server,
   canvasId: number,
@@ -337,6 +344,30 @@ async function transitionAfterRoundResult(
   }
 
   await transitionToRoundStartWait(io, canvasId, roundNumber + 1);
+}
+
+async function resumeIntro(io: Server, canvas: Canvas): Promise<void> {
+  const phaseEndsAt = canvas.phaseEndsAt;
+
+  if (!phaseEndsAt) {
+    await transitionFromIntro(io, canvas.id);
+    return;
+  }
+
+  const delayMs = Math.max(0, phaseEndsAt.getTime() - Date.now());
+
+  if (delayMs === 0) {
+    await transitionFromIntro(io, canvas.id);
+    return;
+  }
+
+  scheduleTimer(
+    canvas.id,
+    () => {
+      void transitionFromIntro(io, canvas.id);
+    },
+    delayMs,
+  );
 }
 
 async function resumeRoundStartWaitFromBoundary(
@@ -636,11 +667,24 @@ async function resumeCanvasPhase(io: Server, canvas: Canvas): Promise<void> {
   clearCanvasTimers(canvas.id);
 
   switch (canvas.phase) {
+    case GamePhase.INTRO:
+      await resumeIntro(io, canvas);
+      return;
+
     case GamePhase.ROUND_START_WAIT: {
       const delayMs = Math.max(
         0,
         (canvas.phaseEndsAt?.getTime() ?? Date.now()) - Date.now(),
       );
+
+      if (delayMs === 0) {
+        await runRound(
+          io,
+          canvas.id,
+          canvas.currentRoundNumber > 0 ? canvas.currentRoundNumber : 1,
+        );
+        return;
+      }
 
       scheduleTimer(
         canvas.id,

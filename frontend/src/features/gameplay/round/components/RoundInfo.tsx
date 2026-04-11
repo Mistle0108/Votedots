@@ -9,6 +9,8 @@ import {
 
 function getPhaseLabel(phase: GamePhase): string {
   switch (phase) {
+    case GAME_PHASE.INTRO:
+      return "게임 시작 안내";
     case GAME_PHASE.ROUND_START_WAIT:
       return "라운드 시작 대기";
     case GAME_PHASE.ROUND_ACTIVE:

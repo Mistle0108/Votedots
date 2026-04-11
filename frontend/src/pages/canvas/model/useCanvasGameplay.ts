@@ -31,6 +31,7 @@ interface UseCanvasGameplayParams {
 }
 
 const DEFAULT_PHASE_TIMING: PhaseTimingState = {
+  introPhaseSec: 0,
   roundStartWaitSec: 0,
   roundResultDelaySec: 0,
   gameEndWaitSec: 0,
@@ -213,11 +214,42 @@ export default function useCanvasGameplay({
   useEffect(() => {
     clearLocalPhaseTransitionTimer();
 
-    if (
-      phase !== GAME_PHASE.ROUND_RESULT ||
-      !phaseEndsAt ||
-      roundNumber === null
-    ) {
+    if (!phaseEndsAt || roundNumber === null) {
+      return;
+    }
+
+    if (phase === GAME_PHASE.INTRO) {
+      const delayMs = Math.max(0, new Date(phaseEndsAt).getTime() - Date.now());
+
+      localPhaseTransitionTimerRef.current = window.setTimeout(() => {
+        localPhaseTransitionTimerRef.current = null;
+
+        const waitStartedAt = phaseEndsAt;
+        const waitEndsAt = new Date(
+          new Date(waitStartedAt).getTime() +
+            phaseTimingRef.current.roundStartWaitSec * 1000,
+        ).toISOString();
+
+        setRoundState({
+          phase: GAME_PHASE.ROUND_START_WAIT,
+          roundId: null,
+          roundNumber: 1,
+          roundDurationSec: phaseTimingRef.current.roundStartWaitSec,
+          totalRounds,
+          formattedGameEndTime,
+          phaseStartedAt: waitStartedAt,
+          phaseEndsAt: waitEndsAt,
+        });
+
+        setPhaseTimerState(waitEndsAt, false);
+      }, delayMs);
+
+      return () => {
+        clearLocalPhaseTransitionTimer();
+      };
+    }
+
+    if (phase !== GAME_PHASE.ROUND_RESULT) {
       return;
     }
 
