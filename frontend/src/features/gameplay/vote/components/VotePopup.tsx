@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Cell } from "@/features/gameplay/canvas";
 import {
   GAME_PHASE,
@@ -68,6 +68,23 @@ function getButtonLabel(
   return "투표하기";
 }
 
+function isInteractiveElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tagName = target.tagName;
+
+  return (
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    tagName === "SELECT" ||
+    tagName === "BUTTON" ||
+    tagName === "A" ||
+    target.isContentEditable
+  );
+}
+
 export default function VotePopup({
   canvasId,
   roundId,
@@ -132,7 +149,7 @@ export default function VotePopup({
     handleColorChange(slotColor);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!roundId) {
       return;
     }
@@ -175,7 +192,18 @@ export default function VotePopup({
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    roundId,
+    isVotingPhase,
+    phaseBlockedMessage,
+    isRoundExpired,
+    color,
+    canvasId,
+    selectedCell.id,
+    onColorChange,
+    onVoteSuccess,
+    onClose,
+  ]);
 
   const handleDragStart = (event: React.MouseEvent) => {
     isDragging.current = true;
@@ -270,6 +298,32 @@ export default function VotePopup({
 
     setError("");
   }, [isRoundExpired, isVotingPhase]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Space" || event.repeat) {
+        return;
+      }
+
+      if (isInteractiveElement(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+
+      if (isVoteDisabled) {
+        return;
+      }
+
+      void handleSubmit();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleSubmit, isVoteDisabled]);
 
   return (
     <div
