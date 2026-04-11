@@ -316,7 +316,11 @@ export default function useCanvasGameplay({
 
   const handleCanvasJoined = useCallback(() => {
     void refreshParticipants();
-  }, [refreshParticipants]);
+
+    if (roundId && isRoundActivePhase(phase)) {
+      void fetchTickets(roundId);
+    }
+  }, [fetchTickets, phase, refreshParticipants, roundId]);
 
   const handleRoundStarted = useCallback(
     async ({

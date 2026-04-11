@@ -14,6 +14,7 @@ import { Vote } from "../../entities/vote.entity";
 import { Voter } from "../../entities/voter.entity";
 import { GamePhase } from "../game/game-phase.types";
 import { participantSessionService } from "../participant/participant-session.service";
+import { voteService } from "../vote/vote.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -186,6 +187,11 @@ export const roundService = {
       `[perf] vote tickets insert | roundId=${round.id} voterCount=${voters.length} ticketCount=${tickets.length} ms=${(performance.now() - ticketInsertStartedAt).toFixed(2)}`,
     );
 
+    await voteService.registerIssuedVoters(
+      round.id,
+      voters.map((voter) => voter.id),
+    );
+
     if (io) {
       const gameEndAt = getActiveGameEndAt(
         canvasGameConfig,
@@ -344,6 +350,7 @@ export const roundService = {
     });
 
     await redisClient.del(redisKey);
+    await voteService.clearIssuedVoters(round.id);
 
     if (io) {
       io.to(`canvas:${canvasId}`).emit("round:ended", {

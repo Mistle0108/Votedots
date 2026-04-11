@@ -95,10 +95,6 @@ class ParticipantSessionService {
   }
 
   private getDefaultStatusByPhase(phase: GamePhase | null): ParticipantStatus {
-    if (phase === GamePhase.ROUND_ACTIVE) {
-      return "waiting";
-    }
-
     if (phase === GamePhase.GAME_END) {
       return "waiting";
     }
@@ -110,15 +106,15 @@ class ParticipantSessionService {
     phase: GamePhase | null,
     existingStatus: ParticipantStatus,
   ): ParticipantStatus {
-    if (phase === GamePhase.ROUND_ACTIVE) {
-      return existingStatus;
-    }
-
     if (phase === GamePhase.GAME_END) {
       return "waiting";
     }
 
-    return "voting";
+    if (phase === GamePhase.ROUND_ACTIVE) {
+      return "voting";
+    }
+
+    return existingStatus === "waiting" ? "voting" : existingStatus;
   }
 
   private async getDefaultStatus(canvasId: number): Promise<ParticipantStatus> {
