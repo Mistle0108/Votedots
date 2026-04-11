@@ -39,6 +39,7 @@ export default function CanvasPage() {
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
+    handleWheel,
     popupOpen,
     popupPos,
     canvasId,
@@ -66,6 +67,7 @@ export default function CanvasPage() {
     gridY,
     viewport,
     navigateToCoordinate,
+    resetCanvasZoom,
   } = useCanvasPage({
     onSessionEnded: handleSessionEnded,
     onUnauthorized: handleUnauthorized,
@@ -87,10 +89,26 @@ export default function CanvasPage() {
     <div className="flex h-screen w-full">
       <CanvasStage
         containerRef={containerRef}
+        overlay={
+          <button
+            type="button"
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-50"
+            aria-label="초기 줌 비율로 복귀"
+            title="초기 줌 비율로 복귀"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation();
+              resetCanvasZoom();
+            }}
+          >
+            ⟲
+          </button>
+        }
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        onWheel={handleWheel}
       >
         <CanvasSurface canvasRef={canvasRef} />
       </CanvasStage>

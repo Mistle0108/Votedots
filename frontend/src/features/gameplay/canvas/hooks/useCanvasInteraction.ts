@@ -1,11 +1,12 @@
 import { useRef, type RefObject } from "react";
-import { getGameConfig } from "@/shared/config/game-config";
 import { Cell } from "../model/canvas.types";
 
 interface UseCanvasInteractionParams {
   containerRef: RefObject<HTMLDivElement | null>;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   cells: Cell[];
+  gridX: number;
+  gridY: number;
   onSelectCell: (cell: Cell) => void;
   onResetPreviewColor: () => void;
   onOpenPopup: (position: { x: number; y: number }) => void;
@@ -15,6 +16,8 @@ export function useCanvasInteraction({
   containerRef,
   canvasRef,
   cells,
+  gridX,
+  gridY,
   onSelectCell,
   onResetPreviewColor,
   onOpenPopup,
@@ -57,13 +60,14 @@ export function useCanvasInteraction({
     if (hasPanned.current) return;
 
     const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const cellSize = getGameConfig().board.cellSize;
+    if (!canvas || gridX === 0 || gridY === 0) return;
 
     const rect = canvas.getBoundingClientRect();
-    const x = Math.floor((event.clientX - rect.left) / cellSize);
-    const y = Math.floor((event.clientY - rect.top) / cellSize);
+    const cellWidth = rect.width / gridX;
+    const cellHeight = rect.height / gridY;
+
+    const x = Math.floor((event.clientX - rect.left) / cellWidth);
+    const y = Math.floor((event.clientY - rect.top) / cellHeight);
 
     const cell = cells.find(
       (candidate) => candidate.x === x && candidate.y === y,
@@ -74,8 +78,8 @@ export function useCanvasInteraction({
     onSelectCell(cell);
     onResetPreviewColor();
     onOpenPopup({
-      x: rect.left + (cell.x + 2) * cellSize,
-      y: rect.top + (cell.y - 1.5) * cellSize,
+      x: rect.left + (cell.x + 2) * cellWidth,
+      y: rect.top + (cell.y - 1.5) * cellHeight,
     });
   };
 

@@ -7,19 +7,23 @@ import {
 interface CanvasStageProps {
   containerRef: RefObject<HTMLDivElement | null>;
   children: ReactNode;
+  overlay?: ReactNode;
   onMouseDown: (event: React.MouseEvent) => void;
   onMouseMove: (event: React.MouseEvent) => void;
   onMouseUp: (event: React.MouseEvent) => void;
   onMouseLeave: () => void;
+  onWheel: (event: React.WheelEvent) => void;
 }
 
 export default function CanvasStage({
   containerRef,
   children,
+  overlay,
   onMouseDown,
   onMouseMove,
   onMouseUp,
   onMouseLeave,
+  onWheel,
 }: CanvasStageProps) {
   return (
     <div
@@ -32,7 +36,10 @@ export default function CanvasStage({
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
+      onWheel={onWheel}
     >
+      {overlay && <div className="absolute left-4 top-4 z-10">{overlay}</div>}
+
       <div
         ref={containerRef}
         className="h-full w-full overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
