@@ -27,9 +27,8 @@ export default function CanvasStage({
 }: CanvasStageProps) {
   return (
     <div
-      className="relative overflow-hidden cursor-grab active:cursor-grabbing"
+      className="relative min-w-0 flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
       style={{
-        width: `calc(100% - ${PANEL_WIDTH}px)`,
         backgroundColor: CANVAS_BACKGROUND_COLOR,
       }}
       onMouseDown={onMouseDown}
@@ -44,7 +43,16 @@ export default function CanvasStage({
         ref={containerRef}
         className="h-full w-full overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
       >
-        <div className="min-h-full min-w-full">{children}</div>
+        <div
+          className="flex min-h-full min-w-full items-center justify-center px-10 py-8" // 변경: 캔버스 외곽의 내부 검은 여백 추가
+          style={{
+            width: "max-content",
+            minWidth: "100%",
+            minHeight: "100%",
+          }}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
