@@ -1,8 +1,5 @@
 import type { ReactNode, RefObject } from "react";
-import {
-  CANVAS_BACKGROUND_COLOR,
-  PANEL_WIDTH,
-} from "../model/canvas.constants";
+import { CANVAS_BACKGROUND_COLOR } from "../model/canvas.constants";
 
 interface CanvasStageProps {
   containerRef: RefObject<HTMLDivElement | null>;
