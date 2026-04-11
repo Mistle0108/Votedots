@@ -43,6 +43,7 @@ export default function useCanvasPage({
     selectedCell,
     viewport,
     navigateToCoordinate,
+    resetCanvasZoom,
     setCanvasId,
     setGridX,
     setGridY,
@@ -51,6 +52,7 @@ export default function useCanvasPage({
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
+    handleWheel,
     handleCanvasUpdated,
     clearSelectedCell,
   } = useCanvasScene({
@@ -107,6 +109,7 @@ export default function useCanvasPage({
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
+    handleWheel,
     popupOpen,
     popupPos,
     canvasId,
@@ -135,5 +138,6 @@ export default function useCanvasPage({
     gridY,
     viewport,
     navigateToCoordinate,
+    resetCanvasZoom,
   };
 }

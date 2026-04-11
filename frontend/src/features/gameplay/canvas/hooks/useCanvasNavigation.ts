@@ -1,15 +1,18 @@
 import { useCallback, type RefObject } from "react";
-import { getGameConfig } from "@/shared/config/game-config";
 
 interface UseCanvasNavigationParams {
   containerRef: RefObject<HTMLDivElement | null>;
   canvasRef: RefObject<HTMLCanvasElement | null>;
+  gridX: number;
+  gridY: number;
   updateViewport: () => void;
 }
 
 export function useCanvasNavigation({
   containerRef,
   canvasRef,
+  gridX,
+  gridY,
   updateViewport,
 }: UseCanvasNavigationParams) {
   const navigateToCoordinate = useCallback(
@@ -17,12 +20,13 @@ export function useCanvasNavigation({
       const container = containerRef.current;
       const canvas = canvasRef.current;
 
-      if (!container || !canvas) return;
+      if (!container || !canvas || gridX === 0 || gridY === 0) return;
 
-      const cellSize = getGameConfig().board.cellSize;
+      const cellWidth = canvas.offsetWidth / gridX;
+      const cellHeight = canvas.offsetHeight / gridY;
 
-      const targetX = x * cellSize + cellSize / 2;
-      const targetY = y * cellSize + cellSize / 2;
+      const targetX = x * cellWidth + cellWidth / 2;
+      const targetY = y * cellHeight + cellHeight / 2;
 
       const nextScrollLeft =
         canvas.offsetLeft + targetX - container.clientWidth / 2;
@@ -48,7 +52,7 @@ export function useCanvasNavigation({
         updateViewport();
       });
     },
-    [canvasRef, containerRef, updateViewport],
+    [canvasRef, containerRef, gridX, gridY, updateViewport],
   );
 
   return {

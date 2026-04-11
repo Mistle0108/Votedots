@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Cell } from "@/features/gameplay/canvas";
 import {
   GAME_PHASE,
@@ -68,6 +68,21 @@ function getButtonLabel(
   return "투표하기";
 }
 
+function isTextInputElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tagName = target.tagName;
+
+  return (
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    tagName === "SELECT" ||
+    target.isContentEditable
+  );
+}
+
 export default function VotePopup({
   canvasId,
   roundId,
@@ -132,7 +147,7 @@ export default function VotePopup({
     handleColorChange(slotColor);
   };
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     if (!roundId) {
       return;
     }
@@ -175,7 +190,18 @@ export default function VotePopup({
     } finally {
       setLoading(false);
     }
-  };
+  }, [
+    roundId,
+    isVotingPhase,
+    phaseBlockedMessage,
+    isRoundExpired,
+    color,
+    canvasId,
+    selectedCell.id,
+    onColorChange,
+    onVoteSuccess,
+    onClose,
+  ]);
 
   const handleDragStart = (event: React.MouseEvent) => {
     isDragging.current = true;
@@ -271,6 +297,37 @@ export default function VotePopup({
     setError("");
   }, [isRoundExpired, isVotingPhase]);
 
+    useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.code !== "Space") {
+        return;
+      }
+
+      if (isTextInputElement(event.target)) {
+        return;
+      }
+
+      event.preventDefault(); // 변경: 모달이 열려 있으면 스페이스 기본 스크롤 차단
+
+      if (event.repeat) {
+        return;
+      }
+
+      if (isVoteDisabled) {
+        return;
+      }
+
+      void handleSubmit();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [handleSubmit, isVoteDisabled]);
+
+
   return (
     <div
       ref={popupRef}
@@ -290,11 +347,11 @@ export default function VotePopup({
               selectedCell.color
                 ? { backgroundColor: selectedCell.color }
                 : {
-                    backgroundColor: "#f9fafb",
-                    backgroundImage: CHECKER_PATTERN,
-                    backgroundPosition: "0 0, 4px 4px",
-                    backgroundSize: "8px 8px",
-                  }
+                  backgroundColor: "#f9fafb",
+                  backgroundImage: CHECKER_PATTERN,
+                  backgroundPosition: "0 0, 4px 4px",
+                  backgroundSize: "8px 8px",
+                }
             }
             onClick={(event) => {
               event.stopPropagation();

@@ -29,12 +29,17 @@ export function calculateViewport({
 
   const canvasLeft = canvas.offsetLeft;
   const canvasTop = canvas.offsetTop;
+  const renderedCanvasWidth = canvas.offsetWidth;
+  const renderedCanvasHeight = canvas.offsetHeight;
 
   const canvasVisibleLeft = Math.max(0, visibleLeft - canvasLeft);
   const canvasVisibleTop = Math.max(0, visibleTop - canvasTop);
-  const canvasVisibleRight = Math.min(canvas.width, visibleRight - canvasLeft);
+  const canvasVisibleRight = Math.min(
+    renderedCanvasWidth,
+    visibleRight - canvasLeft,
+  );
   const canvasVisibleBottom = Math.min(
-    canvas.height,
+    renderedCanvasHeight,
     visibleBottom - canvasTop,
   );
 
@@ -43,19 +48,19 @@ export function calculateViewport({
 
   const nextWidth = Math.min(
     minimapWidth,
-    (visibleWidth / canvas.width) * minimapWidth,
+    (visibleWidth / renderedCanvasWidth) * minimapWidth,
   );
   const nextHeight = Math.min(
     minimapHeight,
-    (visibleHeight / canvas.height) * minimapHeight,
+    (visibleHeight / renderedCanvasHeight) * minimapHeight,
   );
 
   const nextLeft = Math.min(
-    Math.max(0, (canvasVisibleLeft / canvas.width) * minimapWidth),
+    Math.max(0, (canvasVisibleLeft / renderedCanvasWidth) * minimapWidth),
     Math.max(0, minimapWidth - nextWidth),
   );
   const nextTop = Math.min(
-    Math.max(0, (canvasVisibleTop / canvas.height) * minimapHeight),
+    Math.max(0, (canvasVisibleTop / renderedCanvasHeight) * minimapHeight),
     Math.max(0, minimapHeight - nextHeight),
   );
 
