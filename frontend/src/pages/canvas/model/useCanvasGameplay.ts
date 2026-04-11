@@ -165,16 +165,12 @@ export default function useCanvasGameplay({
       if (cancelled || !result) {
         return;
       }
-
-      if (result.round.phase === GAME_PHASE.GAME_END) {
-        markGameEnded();
-      }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [initializeSession, markGameEnded]);
+  }, [initializeSession]);
 
   useEffect(() => {
     if (!canvasId) {
@@ -182,8 +178,13 @@ export default function useCanvasGameplay({
       return;
     }
 
+    if (phase === GAME_PHASE.GAME_END) {
+      clearParticipants();
+      return;
+    }
+
     void refreshParticipants();
-  }, [canvasId, clearParticipants, refreshParticipants]);
+  }, [canvasId, clearParticipants, phase, refreshParticipants]);
 
   useEffect(() => {
     if (isRoundActivePhase(phase)) {
