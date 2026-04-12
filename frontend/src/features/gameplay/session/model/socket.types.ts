@@ -27,6 +27,19 @@ export interface CanvasUpdatedPayload {
   color: string;
 }
 
+// 추가: 여러 셀을 한 번에 반영하기 위한 batch item
+export interface CanvasBatchUpdatedCellPayload {
+  cellId: number;
+  x: number;
+  y: number;
+  color: string;
+}
+
+// 추가: 라운드 종료 후 여러 셀을 한 번에 반영하는 batch payload
+export interface CanvasBatchUpdatedPayload {
+  updates: CanvasBatchUpdatedCellPayload[];
+}
+
 export interface VoteUpdatePayload {
   roundId: number;
   cellId: number;

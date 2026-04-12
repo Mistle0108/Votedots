@@ -54,6 +54,7 @@ export default function useCanvasPage({
     handleMouseLeave,
     handleWheel,
     handleCanvasUpdated,
+    handleCanvasBatchUpdated, // 추가: batch canvas update handler
     clearSelectedCell,
   } = useCanvasScene({
     previewColorRef,
@@ -83,6 +84,7 @@ export default function useCanvasPage({
     canvasId,
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
+    onCanvasBatchUpdated: handleCanvasBatchUpdated, // 추가: batch update를 gameplay socket에 연결
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
     onUnauthorized,
