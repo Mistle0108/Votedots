@@ -7,6 +7,7 @@ import {
   type SessionBootstrapResult,
   type PhaseTimingState,
 } from "@/features/gameplay/session";
+import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types"; // 추가: batch payload 타입 사용
 import {
   GAME_PHASE,
   isRoundActivePhase,
@@ -23,6 +24,7 @@ interface UseCanvasGameplayParams {
   canvasId: number | null;
   onBootstrapScene: (result: SessionBootstrapResult) => void;
   onCanvasUpdated: (payload: { cellId: number; color: string }) => void;
+  onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void; // 변경: 실제 socket payload 타입과 맞춤
   onGameEndedCleanup: () => void;
   onSessionEnded: () => void;
   onUnauthorized: (message: string) => void;
@@ -41,6 +43,7 @@ export default function useCanvasGameplay({
   canvasId,
   onBootstrapScene,
   onCanvasUpdated,
+  onCanvasBatchUpdated, // 추가: batch canvas update handler 수신
   onGameEndedCleanup,
   onSessionEnded,
   onUnauthorized,
@@ -491,6 +494,7 @@ export default function useCanvasGameplay({
     onRoundStarted: handleRoundStarted,
     onRoundEnded: handleRoundEnded,
     onCanvasUpdated,
+    onCanvasBatchUpdated, // 추가: batch update 이벤트 연결
     onVoteUpdate: handleVoteUpdate,
     onTimerUpdate: handleTimerUpdate,
     onParticipantsUpdated: handleParticipantsUpdated,

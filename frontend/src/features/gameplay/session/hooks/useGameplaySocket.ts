@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import socket from "@/shared/lib/socket";
 import {
+  CanvasBatchUpdatedPayload, // 추가: batch canvas update payload 타입
   CanvasJoinedPayload,
   CanvasUpdatedPayload,
   ParticipantsUpdatedPayload,
@@ -17,6 +18,7 @@ interface UseGameplaySocketParams {
   onRoundStarted: (payload: RoundStartedPayload) => void;
   onRoundEnded: (payload: RoundEndedPayload) => void;
   onCanvasUpdated: (payload: CanvasUpdatedPayload) => void;
+  onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void; // 추가: batch update 핸들러
   onVoteUpdate: (payload: VoteUpdatePayload) => void;
   onTimerUpdate: (payload: TimerUpdatePayload) => void;
   onParticipantsUpdated: (payload: ParticipantsUpdatedPayload) => void;
@@ -30,6 +32,7 @@ export function useGameplaySocket({
   onRoundStarted,
   onRoundEnded,
   onCanvasUpdated,
+  onCanvasBatchUpdated, // 추가: batch update 핸들러 주입
   onVoteUpdate,
   onTimerUpdate,
   onParticipantsUpdated,
@@ -41,6 +44,7 @@ export function useGameplaySocket({
     socket.on("round:started", onRoundStarted);
     socket.on("round:ended", onRoundEnded);
     socket.on("canvas:updated", onCanvasUpdated);
+    socket.on("canvas:batch-updated", onCanvasBatchUpdated); // 추가: batch update 이벤트 구독
     socket.on("vote:update", onVoteUpdate);
     socket.on("timer:update", onTimerUpdate);
     socket.on("participants:updated", onParticipantsUpdated);
@@ -58,6 +62,7 @@ export function useGameplaySocket({
       socket.off("round:started", onRoundStarted);
       socket.off("round:ended", onRoundEnded);
       socket.off("canvas:updated", onCanvasUpdated);
+      socket.off("canvas:batch-updated", onCanvasBatchUpdated); // 추가: batch update 이벤트 해제
       socket.off("vote:update", onVoteUpdate);
       socket.off("timer:update", onTimerUpdate);
       socket.off("participants:updated", onParticipantsUpdated);
@@ -68,6 +73,7 @@ export function useGameplaySocket({
     };
   }, [
     canvasId,
+    onCanvasBatchUpdated, // 추가: effect dependency
     onCanvasJoined,
     onCanvasUpdated,
     onGameEnded,

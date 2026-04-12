@@ -319,23 +319,11 @@ export const roundService = {
       });
     }
 
-    const representativeResolvedCell =
-      resolvedCells.length > 0
-        ? resolvedCells
-            .slice(1)
-            .reduce(
-              (best, current) =>
-                current.totalVotes > best.totalVotes ? current : best,
-              resolvedCells[0],
-            )
-        : null; // 추가: 다음 batch issue 전까지 기존 payload 호환용 대표 셀
-
-    let representativeUpdatedCell: Cell | null = null;
     let updatedCells: Cell[] = [];
 
     if (resolvedCells.length > 0) {
       const cellsToUpdate = await cellRepository.findBy({
-        id: In(resolvedCells.map((cell) => cell.cellId)), // 변경: 투표된 모든 칸 조회
+        id: In(resolvedCells.map((cell) => cell.cellId)), // 유지: 투표된 모든 칸 조회
       });
 
       const resolvedCellMap = new Map(
@@ -349,19 +337,12 @@ export const roundService = {
           continue;
         }
 
-        cell.color = resolvedCell.color; // 변경: 각 칸의 최다 득표 색 반영
+        cell.color = resolvedCell.color;
         cell.status = CellStatus.PAINTED;
       }
 
       if (cellsToUpdate.length > 0) {
-        updatedCells = await cellRepository.save(cellsToUpdate); // 변경: 여러 칸 한 번에 저장
-      }
-
-      if (representativeResolvedCell) {
-        representativeUpdatedCell =
-          updatedCells.find(
-            (cell) => cell.id === representativeResolvedCell.cellId,
-          ) ?? null;
+        updatedCells = await cellRepository.save(cellsToUpdate);
       }
     }
 
@@ -398,24 +379,17 @@ export const roundService = {
         roundId: round.id,
         roundNumber: round.roundNumber,
         endedAt: round.endedAt,
-        winningCell: representativeUpdatedCell
-          ? {
-              id: representativeUpdatedCell.id,
-              x: representativeUpdatedCell.x,
-              y: representativeUpdatedCell.y,
-              color: representativeUpdatedCell.color,
-            }
-          : null, // 변경: 임시로 대표 셀만 유지, 다음 이슈에서 batch 결과로 교체
+        winningCell: null, // 변경: 단일 당선 셀 개념 제거, batch update로 대체
       });
 
-      if (representativeUpdatedCell) {
-        io.to(`canvas:${canvasId}`).emit("canvas:updated", {
-          cellId: representativeUpdatedCell.id,
-          x: representativeUpdatedCell.x,
-          y: representativeUpdatedCell.y,
-          color: representativeUpdatedCell.color,
-        }); // 변경: 다음 이슈 전까지 기존 단일 업데이트 호환 유지
-      }
+      io.to(`canvas:${canvasId}`).emit("canvas:batch-updated", {
+        updates: updatedCells.map((cell) => ({
+          cellId: cell.id,
+          x: cell.x,
+          y: cell.y,
+          color: cell.color ?? "#000000", // 추가: batch payload에 여러 셀 반영 결과 포함
+        })),
+      });
     }
 
     return round;

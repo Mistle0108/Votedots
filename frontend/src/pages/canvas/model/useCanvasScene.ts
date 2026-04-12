@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   Cell,
   useCanvasInteraction,
@@ -6,6 +12,7 @@ import {
   useCanvasRenderer,
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
+import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types"; // 추가: batch canvas update payload
 import { getGameConfig } from "@/shared/config/game-config";
 
 interface UseCanvasSceneParams {
@@ -233,10 +240,14 @@ export default function useCanvasScene({
 
       pendingZoomAdjustmentRef.current = {
         contentX:
-          (container.scrollLeft + container.clientWidth / 2 - canvas.offsetLeft) /
+          (container.scrollLeft +
+            container.clientWidth / 2 -
+            canvas.offsetLeft) /
           currentZoom,
         contentY:
-          (container.scrollTop + container.clientHeight / 2 - canvas.offsetTop) /
+          (container.scrollTop +
+            container.clientHeight / 2 -
+            canvas.offsetTop) /
           currentZoom,
         viewportOffsetX: container.clientWidth / 2,
         viewportOffsetY: container.clientHeight / 2,
@@ -315,6 +326,54 @@ export default function useCanvasScene({
     [closePopup, isRoundExpiredRef, updateCells],
   );
 
+  const handleCanvasBatchUpdated = useCallback(
+    ({ updates }: CanvasBatchUpdatedPayload) => {
+      if (updates.length === 0) {
+        return;
+      }
+
+      const updateMap = new Map(
+        updates.map((update) => [update.cellId, update]),
+      ); // 추가: 셀 id 기준으로 batch update lookup 생성
+
+      updateCells((prev) =>
+        prev.map((cell) => {
+          const nextUpdate = updateMap.get(cell.id);
+
+          if (!nextUpdate) {
+            return cell;
+          }
+
+          return {
+            ...cell,
+            color: nextUpdate.color,
+            status: "painted",
+          };
+        }),
+      );
+
+      if (selectedCellRef.current) {
+        const selectedUpdate = updateMap.get(selectedCellRef.current.id);
+
+        if (selectedUpdate) {
+          const nextSelectedCell: Cell = {
+            ...selectedCellRef.current,
+            color: selectedUpdate.color,
+            status: "painted",
+          };
+
+          setSelectedCell(nextSelectedCell);
+          selectedCellRef.current = nextSelectedCell;
+
+          if (!isRoundExpiredRef.current) {
+            closePopup();
+          }
+        }
+      }
+    },
+    [closePopup, isRoundExpiredRef, updateCells],
+  );
+
   const clearSelectedCell = useCallback(() => {
     setSelectedCell(null);
     selectedCellRef.current = null;
@@ -339,8 +398,9 @@ export default function useCanvasScene({
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
-    handleWheel,
+    handleWheel, // 추가: CanvasPage에서 사용하는 wheel zoom 핸들러 반환
     handleCanvasUpdated,
+    handleCanvasBatchUpdated, // 유지: 여러 셀을 한 번에 반영하는 batch handler 노출
     clearSelectedCell,
   };
 }
