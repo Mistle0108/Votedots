@@ -45,6 +45,14 @@ interface RoundStateResponse {
   };
 }
 
+interface ResolvedRoundCell {
+  cellId: number;
+  color: string;
+  totalVotes: number;
+  topColorVoteCount: number;
+  wasColorTie: boolean;
+}
+
 function logPhaseChange(params: {
   canvasId: number;
   phase: GamePhase;
@@ -236,92 +244,125 @@ export const roundService = {
     const redisKey = `vote:round:${roundId}`;
     const voteData = await redisClient.hGetAll(redisKey);
 
-    let winningCellId: number | null = null;
-    let winningColor: string | null = null;
-    let maxVotes = 0;
+    const voteBuckets = new Map<number, Map<string, number>>(); // 추가: 칸별 색상 득표 집계
 
-    const candidates: { cellId: number; color: string; count: number }[] = [];
+    const addVoteBucket = (cellId: number, color: string, count: number) => {
+      const colorBuckets = voteBuckets.get(cellId) ?? new Map<string, number>();
+
+      colorBuckets.set(color, (colorBuckets.get(color) ?? 0) + count);
+      voteBuckets.set(cellId, colorBuckets);
+    };
 
     for (const [key, value] of Object.entries(voteData)) {
-      const [cellId, color] = key.split(":");
+      const [cellIdValue, color] = key.split(":");
+      const cellId = parseInt(cellIdValue, 10);
       const count = parseInt(value, 10);
 
-      candidates.push({ cellId: parseInt(cellId, 10), color, count });
-
-      if (count > maxVotes) {
-        maxVotes = count;
+      if (
+        !Number.isFinite(cellId) ||
+        !color ||
+        !Number.isFinite(count) ||
+        count <= 0
+      ) {
+        continue;
       }
+
+      addVoteBucket(cellId, color, count);
     }
 
-    const topCandidates = candidates.filter((candidate) => {
-      return candidate.count === maxVotes;
-    });
-
-    if (topCandidates.length > 0) {
-      const winner =
-        topCandidates[Math.floor(Math.random() * topCandidates.length)];
-      winningCellId = winner.cellId;
-      winningColor = winner.color;
-    }
-
-    if (candidates.length === 0) {
+    if (voteBuckets.size === 0) {
       const votes = await voteRepository.find({
         where: { round: { id: roundId } },
         relations: ["cell"],
       });
 
-      const countMap = new Map<
-        string,
-        { cellId: number; color: string; count: number }
-      >();
-
       for (const vote of votes) {
-        const key = `${vote.cell.id}:${vote.color}`;
-        const existing = countMap.get(key);
-
-        if (existing) {
-          existing.count += 1;
-        } else {
-          countMap.set(key, {
-            cellId: vote.cell.id,
-            color: vote.color,
-            count: 1,
-          });
-        }
-      }
-
-      let max = 0;
-      const dbCandidates = Array.from(countMap.values());
-
-      for (const candidate of dbCandidates) {
-        if (candidate.count > max) {
-          max = candidate.count;
-        }
-      }
-
-      const topDbCandidates = dbCandidates.filter((candidate) => {
-        return candidate.count === max;
-      });
-
-      if (topDbCandidates.length > 0) {
-        const winner =
-          topDbCandidates[Math.floor(Math.random() * topDbCandidates.length)];
-        winningCellId = winner.cellId;
-        winningColor = winner.color;
+        addVoteBucket(vote.cell.id, vote.color, 1); // 추가: Redis 집계가 비어 있으면 DB 기준 fallback
       }
     }
 
-    let winningCell: Cell | null = null;
+    const resolvedCells: ResolvedRoundCell[] = []; // 추가: 이번 라운드에 반영될 모든 칸
 
-    if (winningCellId && winningColor) {
-      await cellRepository.update(winningCellId, {
-        color: winningColor,
-        status: CellStatus.PAINTED,
+    for (const [cellId, colorBuckets] of voteBuckets.entries()) {
+      let totalVotes = 0;
+      let maxColorVotes = 0;
+      const topColors: string[] = [];
+
+      for (const [color, count] of colorBuckets.entries()) {
+        totalVotes += count;
+
+        if (count > maxColorVotes) {
+          maxColorVotes = count;
+          topColors.length = 0;
+          topColors.push(color);
+          continue;
+        }
+
+        if (count === maxColorVotes) {
+          topColors.push(color);
+        }
+      }
+
+      if (topColors.length === 0) {
+        continue;
+      }
+
+      const selectedColor =
+        topColors[Math.floor(Math.random() * topColors.length)];
+
+      resolvedCells.push({
+        cellId,
+        color: selectedColor,
+        totalVotes,
+        topColorVoteCount: maxColorVotes,
+        wasColorTie: topColors.length > 1,
+      });
+    }
+
+    const representativeResolvedCell =
+      resolvedCells.length > 0
+        ? resolvedCells
+            .slice(1)
+            .reduce(
+              (best, current) =>
+                current.totalVotes > best.totalVotes ? current : best,
+              resolvedCells[0],
+            )
+        : null; // 추가: 다음 batch issue 전까지 기존 payload 호환용 대표 셀
+
+    let representativeUpdatedCell: Cell | null = null;
+    let updatedCells: Cell[] = [];
+
+    if (resolvedCells.length > 0) {
+      const cellsToUpdate = await cellRepository.findBy({
+        id: In(resolvedCells.map((cell) => cell.cellId)), // 변경: 투표된 모든 칸 조회
       });
 
-      winningCell = await cellRepository.findOne({
-        where: { id: winningCellId },
-      });
+      const resolvedCellMap = new Map(
+        resolvedCells.map((cell) => [cell.cellId, cell]),
+      );
+
+      for (const cell of cellsToUpdate) {
+        const resolvedCell = resolvedCellMap.get(cell.id);
+
+        if (!resolvedCell) {
+          continue;
+        }
+
+        cell.color = resolvedCell.color; // 변경: 각 칸의 최다 득표 색 반영
+        cell.status = CellStatus.PAINTED;
+      }
+
+      if (cellsToUpdate.length > 0) {
+        updatedCells = await cellRepository.save(cellsToUpdate); // 변경: 여러 칸 한 번에 저장
+      }
+
+      if (representativeResolvedCell) {
+        representativeUpdatedCell =
+          updatedCells.find(
+            (cell) => cell.id === representativeResolvedCell.cellId,
+          ) ?? null;
+      }
     }
 
     round.isActive = false;
@@ -357,23 +398,23 @@ export const roundService = {
         roundId: round.id,
         roundNumber: round.roundNumber,
         endedAt: round.endedAt,
-        winningCell: winningCell
+        winningCell: representativeUpdatedCell
           ? {
-              id: winningCell.id,
-              x: winningCell.x,
-              y: winningCell.y,
-              color: winningCell.color,
+              id: representativeUpdatedCell.id,
+              x: representativeUpdatedCell.x,
+              y: representativeUpdatedCell.y,
+              color: representativeUpdatedCell.color,
             }
-          : null,
+          : null, // 변경: 임시로 대표 셀만 유지, 다음 이슈에서 batch 결과로 교체
       });
 
-      if (winningCell) {
+      if (representativeUpdatedCell) {
         io.to(`canvas:${canvasId}`).emit("canvas:updated", {
-          cellId: winningCell.id,
-          x: winningCell.x,
-          y: winningCell.y,
-          color: winningCell.color,
-        });
+          cellId: representativeUpdatedCell.id,
+          x: representativeUpdatedCell.x,
+          y: representativeUpdatedCell.y,
+          color: representativeUpdatedCell.color,
+        }); // 변경: 다음 이슈 전까지 기존 단일 업데이트 호환 유지
       }
     }
 
