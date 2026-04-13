@@ -14,6 +14,7 @@ import { Vote } from "../../entities/vote.entity";
 import { Voter } from "../../entities/voter.entity";
 import { GamePhase } from "../game/game-phase.types";
 import { participantSessionService } from "../participant/participant-session.service";
+import { summaryService } from "../summary/summary.service"; // 추가: 라운드 summary 저장 서비스
 import { voteService } from "../vote/vote.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
@@ -371,6 +372,8 @@ export const roundService = {
       reason: "라운드 결과 전환",
     });
 
+    await summaryService.saveRoundSummary(canvasId, round.id); // 추가: 라운드 종료 시점 summary snapshot 저장
+
     await redisClient.del(redisKey);
     await voteService.clearIssuedVoters(round.id);
 
@@ -379,7 +382,6 @@ export const roundService = {
         roundId: round.id,
         roundNumber: round.roundNumber,
         endedAt: round.endedAt,
-        winningCell: null, // 변경: 단일 당선 셀 개념 제거, batch update로 대체
       });
 
       io.to(`canvas:${canvasId}`).emit("canvas:batch-updated", {
