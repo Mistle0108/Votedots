@@ -17,7 +17,6 @@ export interface RoundEndedPayload {
   roundId: number;
   roundNumber: number;
   endedAt: string;
-  winningCell: { id: number; x: number; y: number; color: string } | null;
 }
 
 export interface CanvasUpdatedPayload {

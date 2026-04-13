@@ -7,6 +7,7 @@ import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { roundService } from "../round/round.service";
+import { summaryService } from "../summary/summary.service"; // 추가: 게임 summary 저장 서비스
 import { GamePhase } from "./game-phase.types";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
@@ -188,6 +189,7 @@ async function transitionToGameEnd(
     phaseEndsAt,
     reason: "game end transition",
   });
+  await summaryService.saveGameSummary(canvasId); // 추가: GAME_END 진입 시점 종합 통계 snapshot 저장
 
   scheduleGameEnd(io, canvasId, roundNumber, phaseEndsAt);
 }
