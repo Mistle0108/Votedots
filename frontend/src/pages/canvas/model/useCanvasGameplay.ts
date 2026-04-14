@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useRoundState, useRoundTimer } from "@/features/gameplay/round";
 import {
+  sessionApi,
   useGameSession,
   useGameplaySocket,
   useParticipantsState,
   type SessionBootstrapResult,
   type PhaseTimingState,
 } from "@/features/gameplay/session";
-import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types"; // 추가: batch payload 타입 사용
+import type {
+  CanvasBatchUpdatedPayload,
+  GameSummaryReadyPayload,
+  RoundSummaryReadyPayload,
+} from "@/features/gameplay/session/model/socket.types";
 import {
   GAME_PHASE,
   isRoundActivePhase,
@@ -231,7 +236,7 @@ export default function useCanvasGameplay({
         const waitStartedAt = phaseEndsAt;
         const waitEndsAt = new Date(
           new Date(waitStartedAt).getTime() +
-            phaseTimingRef.current.roundStartWaitSec * 1000,
+          phaseTimingRef.current.roundStartWaitSec * 1000,
         ).toISOString();
 
         setRoundState({
@@ -266,7 +271,7 @@ export default function useCanvasGameplay({
         const gameEndStartedAt = phaseEndsAt;
         const gameEndEndsAt = new Date(
           new Date(gameEndStartedAt).getTime() +
-            phaseTimingRef.current.gameEndWaitSec * 1000,
+          phaseTimingRef.current.gameEndWaitSec * 1000,
         ).toISOString();
 
         setRoundState({
@@ -287,7 +292,7 @@ export default function useCanvasGameplay({
       const waitStartedAt = phaseEndsAt;
       const waitEndsAt = new Date(
         new Date(waitStartedAt).getTime() +
-          phaseTimingRef.current.roundStartWaitSec * 1000,
+        phaseTimingRef.current.roundStartWaitSec * 1000,
       ).toISOString();
 
       setRoundState({
@@ -388,7 +393,7 @@ export default function useCanvasGameplay({
 
       const resultEndsAt = new Date(
         new Date(endedAt).getTime() +
-          phaseTimingRef.current.roundResultDelaySec * 1000,
+        phaseTimingRef.current.roundResultDelaySec * 1000,
       ).toISOString();
 
       setRoundState({
@@ -414,6 +419,41 @@ export default function useCanvasGameplay({
       totalRounds,
     ],
   );
+
+  const requestRoundSummary = useCallback(
+    async (targetCanvasId: number, targetRoundId: number) => {
+      await sessionApi.getRoundSummary(targetCanvasId, targetRoundId);
+    },
+    [],
+  );
+
+  const handleRoundSummaryReady = useCallback(
+    ({ canvasId: readyCanvasId, roundId: readyRoundId }: RoundSummaryReadyPayload) => {
+      if (!canvasId || canvasId !== readyCanvasId) {
+        return;
+      }
+
+      void requestRoundSummary(readyCanvasId, readyRoundId);
+    },
+    [canvasId, requestRoundSummary],
+  );
+
+
+  const requestGameSummary = useCallback(async (targetCanvasId: number) => {
+    await sessionApi.getGameSummary(targetCanvasId);
+  }, []);
+
+  const handleGameSummaryReady = useCallback(
+    ({ canvasId: readyCanvasId }: GameSummaryReadyPayload) => {
+      if (!canvasId || canvasId !== readyCanvasId) {
+        return;
+      }
+
+      void requestGameSummary(readyCanvasId);
+    },
+    [canvasId, requestGameSummary],
+  );
+
 
   const handleVoteUpdate = useCallback(
     ({ votes }: { votes: Record<string, number> }) => {
@@ -493,8 +533,10 @@ export default function useCanvasGameplay({
     onCanvasJoined: handleCanvasJoined,
     onRoundStarted: handleRoundStarted,
     onRoundEnded: handleRoundEnded,
+    onRoundSummaryReady: handleRoundSummaryReady,
+    onGameSummaryReady: handleGameSummaryReady,
     onCanvasUpdated,
-    onCanvasBatchUpdated, // 추가: batch update 이벤트 연결
+    onCanvasBatchUpdated,
     onVoteUpdate: handleVoteUpdate,
     onTimerUpdate: handleTimerUpdate,
     onParticipantsUpdated: handleParticipantsUpdated,

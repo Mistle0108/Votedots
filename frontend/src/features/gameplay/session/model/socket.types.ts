@@ -64,3 +64,15 @@ export interface ParticipantsUpdatedPayload {
 export interface SessionEndedPayload {
   reason?: string;
 }
+
+export interface RoundSummaryReadyPayload {
+  canvasId: number;
+  roundId: number;
+  roundNumber: number;
+  summaryId: number;
+}
+
+export interface GameSummaryReadyPayload {
+  canvasId: number;
+  summaryId: number;
+}
