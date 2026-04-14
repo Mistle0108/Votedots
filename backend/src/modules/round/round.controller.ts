@@ -89,12 +89,16 @@ export const roundController = {
       const roundId = parseInt(String(req.params["roundId"]));
 
       if (isNaN(canvasId) || isNaN(roundId)) {
-        return res.status(400).json({ message: "존재하지 않는 캔버스 또는 라운드입니다." });
+        return res
+          .status(400)
+          .json({ message: "존재하지 않는 캔버스 또는 라운드입니다." });
       }
 
       const summary = await summaryService.getRoundSummary(canvasId, roundId);
 
-      return res.json(serializeRoundSummary(summary));
+      return res.json({
+        data: serializeRoundSummary(summary),
+      });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
     }

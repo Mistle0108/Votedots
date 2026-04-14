@@ -158,10 +158,11 @@ export const canvasController = {
 
       const summary = await summaryService.getGameSummary(canvasId);
 
-      return res.json(serializeGameSummary(summary));
+      return res.json({
+        data: serializeGameSummary(summary),
+      });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
     }
   },
-
 };

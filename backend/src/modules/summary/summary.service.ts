@@ -160,7 +160,7 @@ export const summaryService = {
     });
 
     if (!round) {
-      throw new Error("Round was not found.");
+      throw new Error("해당 캔버스에 속한 라운드가 존재하지 않습니다.");
     }
 
     const canvas = await canvasRepository.findOne({
@@ -168,7 +168,7 @@ export const summaryService = {
     });
 
     if (!canvas) {
-      throw new Error("Canvas was not found.");
+      throw new Error("캔버스가 존재하지 않습니다.");
     }
 
     const [votes, totalCellCount, currentPaintedCellCount] = await Promise.all([
@@ -269,7 +269,7 @@ export const summaryService = {
     });
 
     if (!canvas) {
-      throw new Error("Canvas was not found.");
+      throw new Error("캔버스가 존재하지 않습니다.");
     }
 
     const [votes, tickets, rounds, cells, existingSummary] = await Promise.all([
