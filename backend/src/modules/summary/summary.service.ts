@@ -106,6 +106,51 @@ function countRandomResolvedCellsFromVotes(votes: Vote[]): number {
 }
 
 export const summaryService = {
+  async getRoundSummary(
+    canvasId: number,
+    roundId: number,
+  ): Promise<RoundSummary> {
+    const round = await voteRoundRepository.findOne({
+      where: { id: roundId, canvas: { id: canvasId } },
+    });
+
+    if (!round) {
+      throw new Error("해당 캔버스에 속한 라운드가 존재하지 않습니다.");
+    }
+
+    const summary = await roundSummaryRepository.findOne({
+      where: { canvas: { id: canvasId }, round: { id: roundId } },
+      relations: ["canvas", "round"],
+    });
+
+    if (!summary) {
+      throw new Error("라운드 summary가 존재하지 않습니다.");
+    }
+
+    return summary;
+  },
+
+  async getGameSummary(canvasId: number): Promise<GameSummary> {
+    const canvas = await canvasRepository.findOne({
+      where: { id: canvasId },
+    });
+
+    if (!canvas) {
+      throw new Error("캔버스가 존재하지 않습니다.");
+    }
+
+    const summary = await gameSummaryRepository.findOne({
+      where: { canvas: { id: canvasId } },
+      relations: ["canvas"],
+    });
+
+    if (!summary) {
+      throw new Error("게임 summary가 존재하지 않습니다.");
+    }
+
+    return summary;
+  },
+
   async saveRoundSummary(
     canvasId: number,
     roundId: number,

@@ -16,5 +16,7 @@ router.get(
     authMiddleware,
     canvasController.getCurrentParticipantList,
 );
+router.get("/:canvasId/summary", authMiddleware, canvasController.getSummary);
+
 
 export default router;
