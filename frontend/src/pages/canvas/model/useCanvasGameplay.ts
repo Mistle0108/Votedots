@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRoundState, useRoundTimer } from "@/features/gameplay/round";
 import {
   sessionApi,
@@ -8,6 +8,10 @@ import {
   type SessionBootstrapResult,
   type PhaseTimingState,
 } from "@/features/gameplay/session";
+import type {
+  GameSummaryData,
+  RoundSummaryData,
+} from "@/features/gameplay/session/api/session.api";
 import type {
   CanvasBatchUpdatedPayload,
   GameSummaryReadyPayload,
@@ -29,7 +33,9 @@ interface UseCanvasGameplayParams {
   canvasId: number | null;
   onBootstrapScene: (result: SessionBootstrapResult) => void;
   onCanvasUpdated: (payload: { cellId: number; color: string }) => void;
-  onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void; // 변경: 실제 socket payload 타입과 맞춤
+  onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void;
+  onOpenRoundSummaryModal: (summary: RoundSummaryData) => void;
+  onOpenGameSummaryModal: (summary: GameSummaryData) => void;
   onGameEndedCleanup: () => void;
   onSessionEnded: () => void;
   onUnauthorized: (message: string) => void;
@@ -48,7 +54,9 @@ export default function useCanvasGameplay({
   canvasId,
   onBootstrapScene,
   onCanvasUpdated,
-  onCanvasBatchUpdated, // 추가: batch canvas update handler 수신
+  onCanvasBatchUpdated,
+  onOpenRoundSummaryModal,
+  onOpenGameSummaryModal,
   onGameEndedCleanup,
   onSessionEnded,
   onUnauthorized,
@@ -81,6 +89,10 @@ export default function useCanvasGameplay({
 
   const phaseTimingRef = useRef<PhaseTimingState>(DEFAULT_PHASE_TIMING);
   const localPhaseTransitionTimerRef = useRef<number | null>(null);
+  const [roundSummary, setRoundSummary] = useState(null as RoundSummaryData | null);
+  const [gameSummary, setGameSummary] = useState(null as GameSummaryData | null);
+  const [roundSummaryLoading, setRoundSummaryLoading] = useState(false);
+  const [gameSummaryLoading, setGameSummaryLoading] = useState(false);
 
   const clearLocalPhaseTransitionTimer = useCallback(() => {
     if (localPhaseTransitionTimerRef.current === null) {
@@ -104,6 +116,63 @@ export default function useCanvasGameplay({
     applyParticipantCount,
     clearParticipants,
   } = useParticipantsState();
+
+  const requestGameSummary = useCallback(
+    async (targetCanvasId: number) => {
+      setGameSummaryLoading(true);
+
+      try {
+        const response = await sessionApi.getGameSummary(targetCanvasId);
+
+        const nextSummary = response.data.data;
+
+        setGameSummary(nextSummary);
+        onOpenGameSummaryModal(nextSummary);
+      } catch (error) {
+        console.error("[summary] failed to load game summary:", error);
+      } finally {
+        setGameSummaryLoading(false);
+      }
+    },
+    [onOpenGameSummaryModal],
+  );
+
+  const handleGameSummaryReady = useCallback(
+    (payload: GameSummaryReadyPayload) => {
+      const readyCanvasId = payload.canvasId;
+
+      if (!canvasId || canvasId !== readyCanvasId) {
+        return;
+      }
+
+      setGameSummaryLoading(true);
+      void requestGameSummary(readyCanvasId);
+    },
+    [canvasId, requestGameSummary],
+  );
+
+  const requestRoundSummary = useCallback(
+    async (targetCanvasId: number, targetRoundId: number) => {
+      setRoundSummaryLoading(true);
+
+      try {
+        const response = await sessionApi.getRoundSummary(
+          targetCanvasId,
+          targetRoundId,
+        );
+
+        const nextSummary = response.data.data;
+
+        setRoundSummary(nextSummary);
+        onOpenRoundSummaryModal(nextSummary);
+      } catch (error) {
+        console.error("[summary] failed to load round summary:", error);
+      } finally {
+        setRoundSummaryLoading(false);
+      }
+    },
+    [onOpenRoundSummaryModal],
+  );
 
   const applyBootstrap = useCallback(
     (result: SessionBootstrapResult) => {
@@ -137,10 +206,23 @@ export default function useCanvasGameplay({
 
       applyVoteUpdate(result.votes);
       setRemaining(result.remaining);
+
+      if (
+        result.round.phase === GAME_PHASE.ROUND_RESULT &&
+        result.round.roundId !== null
+      ) {
+        void requestRoundSummary(result.canvasId, result.round.roundId);
+      }
+
+      if (result.round.phase === GAME_PHASE.GAME_END) {
+        void requestGameSummary(result.canvasId);
+      }
     },
     [
       applyVoteUpdate,
       onBootstrapScene,
+      requestGameSummary,
+      requestRoundSummary,
       setPhaseTimerState,
       setRemaining,
       setRoundState,
@@ -348,6 +430,10 @@ export default function useCanvasGameplay({
       gameEndAt: string;
     }) => {
       clearLocalPhaseTransitionTimer();
+      setRoundSummary(null);
+      setGameSummary(null);
+      setRoundSummaryLoading(false);
+      setGameSummaryLoading(false);
 
       setRoundState({
         phase: GAME_PHASE.ROUND_ACTIVE,
@@ -390,6 +476,8 @@ export default function useCanvasGameplay({
       clearLocalPhaseTransitionTimer();
       clearTickets();
       resetVoteState();
+      setRoundSummary(null);
+      setRoundSummaryLoading(true);
 
       const resultEndsAt = new Date(
         new Date(endedAt).getTime() +
@@ -420,15 +508,11 @@ export default function useCanvasGameplay({
     ],
   );
 
-  const requestRoundSummary = useCallback(
-    async (targetCanvasId: number, targetRoundId: number) => {
-      await sessionApi.getRoundSummary(targetCanvasId, targetRoundId);
-    },
-    [],
-  );
-
   const handleRoundSummaryReady = useCallback(
-    ({ canvasId: readyCanvasId, roundId: readyRoundId }: RoundSummaryReadyPayload) => {
+    (payload: RoundSummaryReadyPayload) => {
+      const readyCanvasId = payload.canvasId;
+      const readyRoundId = payload.roundId;
+
       if (!canvasId || canvasId !== readyCanvasId) {
         return;
       }
@@ -438,22 +522,27 @@ export default function useCanvasGameplay({
     [canvasId, requestRoundSummary],
   );
 
-
-  const requestGameSummary = useCallback(async (targetCanvasId: number) => {
-    await sessionApi.getGameSummary(targetCanvasId);
-  }, []);
-
-  const handleGameSummaryReady = useCallback(
-    ({ canvasId: readyCanvasId }: GameSummaryReadyPayload) => {
-      if (!canvasId || canvasId !== readyCanvasId) {
-        return;
-      }
-
-      void requestGameSummary(readyCanvasId);
-    },
-    [canvasId, requestGameSummary],
-  );
-
+  const handleSessionEnded = useCallback(() => {
+    clearLocalPhaseTransitionTimer();
+    clearTickets();
+    clearParticipants();
+    resetRoundState();
+    resetRoundTimer();
+    resetVoteState();
+    setRoundSummary(null);
+    setGameSummary(null);
+    setRoundSummaryLoading(false);
+    setGameSummaryLoading(false);
+    onSessionEnded();
+  }, [
+    clearLocalPhaseTransitionTimer,
+    clearParticipants,
+    clearTickets,
+    onSessionEnded,
+    resetRoundState,
+    resetRoundTimer,
+    resetVoteState,
+  ]);
 
   const handleVoteUpdate = useCallback(
     ({ votes }: { votes: Record<string, number> }) => {
@@ -490,24 +579,6 @@ export default function useCanvasGameplay({
     [applyParticipantCount, refreshParticipants],
   );
 
-  const handleSessionEnded = useCallback(() => {
-    clearLocalPhaseTransitionTimer();
-    clearTickets();
-    clearParticipants();
-    resetRoundState();
-    resetRoundTimer();
-    resetVoteState();
-    onSessionEnded();
-  }, [
-    clearLocalPhaseTransitionTimer,
-    clearParticipants,
-    clearTickets,
-    onSessionEnded,
-    resetRoundState,
-    resetRoundTimer,
-    resetVoteState,
-  ]);
-
   const handleGameEnded = useCallback(() => {
     clearLocalPhaseTransitionTimer();
     markGameEnded();
@@ -517,6 +588,10 @@ export default function useCanvasGameplay({
     resetRoundState();
     resetRoundTimer();
     resetVoteState();
+    setRoundSummary(null);
+    setGameSummary(null);
+    setRoundSummaryLoading(false);
+    setGameSummaryLoading(false);
   }, [
     clearLocalPhaseTransitionTimer,
     clearParticipants,
@@ -572,6 +647,10 @@ export default function useCanvasGameplay({
     participants,
     participantLoading,
     participantError,
+    roundSummary,
+    gameSummary,
+    roundSummaryLoading,
+    gameSummaryLoading,
     isRoundExpiredRefValue: isRoundExpired,
   };
 }

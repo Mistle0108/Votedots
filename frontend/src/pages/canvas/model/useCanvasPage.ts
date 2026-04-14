@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useVotePopup, useVoteState } from "@/features/gameplay/vote";
+import type { GameSummaryData, RoundSummaryData } from "@/features/gameplay/session/api/session.api";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
@@ -14,6 +15,9 @@ export default function useCanvasPage({
   onUnauthorized,
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
+
+  const [roundSummaryModal, setRoundSummaryModal] = useState<RoundSummaryData | null>(null);
+  const [gameSummaryModal, setGameSummaryModal] = useState<GameSummaryData | null>(null);
 
   const {
     popupOpen,
@@ -80,11 +84,35 @@ export default function useCanvasPage({
     clearSelectedCell();
   }, [clearSelectedCell]);
 
+  const handleOpenRoundSummaryModal = useCallback(
+    (summary: RoundSummaryData) => {
+      setRoundSummaryModal(summary);
+    },
+    [],
+  );
+
+  const handleOpenGameSummaryModal = useCallback(
+    (summary: GameSummaryData) => {
+      setGameSummaryModal(summary);
+    },
+    [],
+  );
+
+  const handleCloseRoundSummaryModal = useCallback(() => {
+    setRoundSummaryModal(null);
+  }, []);
+
+  const handleCloseGameSummaryModal = useCallback(() => {
+    setGameSummaryModal(null);
+  }, []);
+
   const gameplay = useCanvasGameplay({
     canvasId,
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
-    onCanvasBatchUpdated: handleCanvasBatchUpdated, // 추가: batch update를 gameplay socket에 연결
+    onCanvasBatchUpdated: handleCanvasBatchUpdated,
+    onOpenRoundSummaryModal: handleOpenRoundSummaryModal,
+    onOpenGameSummaryModal: handleOpenGameSummaryModal,
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
     onUnauthorized,
@@ -136,6 +164,10 @@ export default function useCanvasPage({
     participants: gameplay.participants,
     participantLoading: gameplay.participantLoading,
     participantError: gameplay.participantError,
+    roundSummaryModal,
+    gameSummaryModal,
+    handleCloseRoundSummaryModal,
+    handleCloseGameSummaryModal,
     gridX,
     gridY,
     viewport,
