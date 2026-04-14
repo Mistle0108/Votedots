@@ -136,6 +136,7 @@ export default function useCanvasPage({
     participants: gameplay.participants,
     participantLoading: gameplay.participantLoading,
     participantError: gameplay.participantError,
+    gameConfig: gameplay.gameConfig,
     gridX,
     gridY,
     viewport,

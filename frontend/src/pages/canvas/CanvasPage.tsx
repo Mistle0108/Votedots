@@ -1,20 +1,23 @@
-import { useCallback } from "react";
+import { useCallback, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CanvasStage,
   CanvasSurface,
   PANEL_WIDTH,
 } from "@/features/gameplay/canvas";
+import { IntroGuideModal } from "@/features/gameplay/intro"; // 추가: INTRO 안내 모달
 import {
   ErrorScreen,
   GameEndedScreen,
   LoadingScreen,
 } from "@/features/gameplay/session";
+import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types"; // 추가: INTRO phase 판별
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
 import useCanvasPage from "./model/useCanvasPage";
 
 export default function CanvasPage() {
   const navigate = useNavigate();
+  const [introModalDismissed, setIntroModalDismissed] = useState(false); // 추가: INTRO 중 사용자가 닫은 상태 보관
 
   const handleSessionEnded = useCallback(() => {
     window.alert("세션이 종료되었습니다. 다시 로그인해 주세요.");
@@ -63,6 +66,7 @@ export default function CanvasPage() {
     participants,
     participantLoading,
     participantError,
+    gameConfig,
     gridX,
     gridY,
     viewport,
@@ -72,6 +76,16 @@ export default function CanvasPage() {
     onSessionEnded: handleSessionEnded,
     onUnauthorized: handleUnauthorized,
   });
+
+  if (phase !== GAME_PHASE.INTRO && introModalDismissed) {
+    setIntroModalDismissed(false); // 추가: INTRO이 끝났다가 다음 게임 INTRO이 오면 다시 모달 표시
+  }
+
+  useEffect(() => {
+    if (phase !== GAME_PHASE.INTRO) {
+      setIntroModalDismissed(false); // 변경: INTRO이 아닐 때 닫힘 상태 초기화
+    }
+  }, [phase]);
 
   if (loading) {
     return <LoadingScreen />;
@@ -112,6 +126,21 @@ export default function CanvasPage() {
       >
         <CanvasSurface canvasRef={canvasRef} />
       </CanvasStage>
+
+      <IntroGuideModal
+        open={
+          phase === GAME_PHASE.INTRO &&
+          !introModalDismissed &&
+          !!gameConfig &&
+          cells.length > 0
+        } // 추가: INTRO phase에서만 전체 캔버스 안내 모달 표시
+        cells={cells}
+        gridX={gridX}
+        gridY={gridY}
+        gameConfig={gameConfig!}
+        formattedGameEndTime={formattedGameEndTime}
+        onClose={() => setIntroModalDismissed(true)}
+      />
 
       {popupOpen && selectedCell && canvasId && (
         <VotePopup

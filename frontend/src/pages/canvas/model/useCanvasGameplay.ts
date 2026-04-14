@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRoundState, useRoundTimer } from "@/features/gameplay/round";
 import {
   useGameSession,
@@ -12,6 +12,7 @@ import {
   GAME_PHASE,
   isRoundActivePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
+import type { GameConfig } from "@/shared/config/game-config";
 import { useVoteTickets } from "@/features/gameplay/vote";
 
 function formatClockTime(date: Date): string {
@@ -76,6 +77,7 @@ export default function useCanvasGameplay({
 
   const phaseTimingRef = useRef<PhaseTimingState>(DEFAULT_PHASE_TIMING);
   const localPhaseTransitionTimerRef = useRef<number | null>(null);
+  const [gameConfig, setGameConfigState] = useState<GameConfig | null>(null); // 추가: bootstrap된 현재 게임 설정 보관
 
   const clearLocalPhaseTransitionTimer = useCallback(() => {
     if (localPhaseTransitionTimerRef.current === null) {
@@ -103,6 +105,7 @@ export default function useCanvasGameplay({
   const applyBootstrap = useCallback(
     (result: SessionBootstrapResult) => {
       phaseTimingRef.current = result.phaseTiming;
+      setGameConfigState(result.gameConfig); // 추가: INTRO 모달에서 현재 게임 설정을 바로 쓸 수 있게 저장
 
       onBootstrapScene(result);
 
@@ -530,6 +533,7 @@ export default function useCanvasGameplay({
     participants,
     participantLoading,
     participantError,
+    gameConfig,
     isRoundExpiredRefValue: isRoundExpired,
   };
 }
