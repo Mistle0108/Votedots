@@ -38,7 +38,7 @@ function toPercent(numerator: number, denominator: number): string {
     return "0.00";
   }
 
-  return ((numerator / denominator) * 100).toFixed(2); // 추가: summary 컬럼 형식에 맞춰 소수점 2자리 문자열 반환
+  return ((numerator / denominator) * 100).toFixed(2);
 }
 
 function buildMostVotedCell(
@@ -67,6 +67,44 @@ function buildMostVotedCell(
   return topCell;
 }
 
+function countRandomResolvedCellsFromVotes(votes: Vote[]): number {
+  const colorBucketsByRoundCell = new Map<string, Map<string, number>>();
+
+  for (const vote of votes) {
+    const roundCellKey = `${vote.round.id}:${vote.cell.id}`;
+    const colorBuckets =
+      colorBucketsByRoundCell.get(roundCellKey) ?? new Map<string, number>();
+
+    colorBuckets.set(vote.color, (colorBuckets.get(vote.color) ?? 0) + 1);
+    colorBucketsByRoundCell.set(roundCellKey, colorBuckets);
+  }
+
+  let randomResolvedCellCount = 0;
+
+  for (const colorBuckets of colorBucketsByRoundCell.values()) {
+    let maxVotes = 0;
+    let maxCountColors = 0;
+
+    for (const voteCount of colorBuckets.values()) {
+      if (voteCount > maxVotes) {
+        maxVotes = voteCount;
+        maxCountColors = 1;
+        continue;
+      }
+
+      if (voteCount === maxVotes) {
+        maxCountColors += 1;
+      }
+    }
+
+    if (maxCountColors > 1) {
+      randomResolvedCellCount += 1;
+    }
+  }
+
+  return randomResolvedCellCount;
+}
+
 export const summaryService = {
   async saveRoundSummary(
     canvasId: number,
@@ -91,7 +129,7 @@ export const summaryService = {
     const [votes, totalCellCount, currentPaintedCellCount] = await Promise.all([
       voteRepository.find({
         where: { round: { id: roundId } },
-        relations: ["cell", "voter"],
+        relations: ["cell", "voter", "round"],
       }),
       cellRepository.count({
         where: { canvas: { id: canvasId } },
@@ -154,7 +192,7 @@ export const summaryService = {
       }
 
       if (maxCountColors > 1) {
-        randomResolvedCellCount += 1; // 추가: 칸 내부 색상 동점으로 랜덤 선택된 경우 집계
+        randomResolvedCellCount += 1;
       }
     }
 
@@ -177,7 +215,7 @@ export const summaryService = {
       randomResolvedCellCount,
     });
 
-    return roundSummaryRepository.save(summary); // 추가: 라운드 종료 시점 snapshot 저장
+    return roundSummaryRepository.save(summary);
   },
 
   async saveGameSummary(canvasId: number): Promise<GameSummary> {
@@ -320,16 +358,7 @@ export const summaryService = {
 
     const totalCellCount = cells.length;
     const emptyCellCount = Math.max(0, totalCellCount - paintedCellCount);
-
-    const roundSummaries = await roundSummaryRepository.find({
-      where: { canvas: { id: canvasId } },
-      order: { roundNumber: "ASC" },
-    });
-
-    const randomResolvedCellCount = roundSummaries.reduce(
-      (sum, summary) => sum + summary.randomResolvedCellCount,
-      0,
-    ); // 추가: 게임 전체 랜덤 추첨 칸 수는 라운드 summary 누적합 사용
+    const randomResolvedCellCount = countRandomResolvedCellsFromVotes(votes);
 
     const nextSummary = gameSummaryRepository.create({
       id: existingSummary?.id,
@@ -366,12 +395,12 @@ export const summaryService = {
           voterId: voter.voterId,
           name: voter.name,
           voteCount: voter.voteCount,
-        })), // 추가: 상위 투표자 목록 저장
+        })),
       participantsJson: Array.from(participantMap.values()).sort((a, b) =>
         a.name.localeCompare(b.name),
-      ), // 추가: 함께한 투표자 목록 저장
+      ),
     });
 
-    return gameSummaryRepository.save(nextSummary); // 추가: 게임 종료 시점 summary upsert
+    return gameSummaryRepository.save(nextSummary);
   },
 };
