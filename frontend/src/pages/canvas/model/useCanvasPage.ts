@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useVotePopup, useVoteState } from "@/features/gameplay/vote";
-import type { GameSummaryData, RoundSummaryData } from "@/features/gameplay/session/api/session.api";
+import type {
+  GameSummaryData,
+  RoundSummaryData,
+} from "@/features/gameplay/session/api/session.api";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
@@ -16,8 +19,10 @@ export default function useCanvasPage({
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
 
-  const [roundSummaryModal, setRoundSummaryModal] = useState<RoundSummaryData | null>(null);
-  const [gameSummaryModal, setGameSummaryModal] = useState<GameSummaryData | null>(null);
+  const [roundSummaryModal, setRoundSummaryModal] =
+    useState<RoundSummaryData | null>(null);
+  const [gameSummaryModal, setGameSummaryModal] =
+    useState<GameSummaryData | null>(null);
 
   const {
     popupOpen,
@@ -91,12 +96,9 @@ export default function useCanvasPage({
     [],
   );
 
-  const handleOpenGameSummaryModal = useCallback(
-    (summary: GameSummaryData) => {
-      setGameSummaryModal(summary);
-    },
-    [],
-  );
+  const handleOpenGameSummaryModal = useCallback((summary: GameSummaryData) => {
+    setGameSummaryModal(summary);
+  }, []);
 
   const handleCloseRoundSummaryModal = useCallback(() => {
     setRoundSummaryModal(null);
@@ -164,6 +166,7 @@ export default function useCanvasPage({
     participants: gameplay.participants,
     participantLoading: gameplay.participantLoading,
     participantError: gameplay.participantError,
+    gameConfig: gameplay.gameConfig,
     roundSummaryModal,
     gameSummaryModal,
     handleCloseRoundSummaryModal,

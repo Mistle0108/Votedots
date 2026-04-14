@@ -21,6 +21,7 @@ import {
   GAME_PHASE,
   isRoundActivePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
+import type { GameConfig } from "@/shared/config/game-config";
 import { useVoteTickets } from "@/features/gameplay/vote";
 
 function formatClockTime(date: Date): string {
@@ -89,8 +90,13 @@ export default function useCanvasGameplay({
 
   const phaseTimingRef = useRef<PhaseTimingState>(DEFAULT_PHASE_TIMING);
   const localPhaseTransitionTimerRef = useRef<number | null>(null);
-  const [roundSummary, setRoundSummary] = useState(null as RoundSummaryData | null);
-  const [gameSummary, setGameSummary] = useState(null as GameSummaryData | null);
+  const [gameConfig, setGameConfigState] = useState<GameConfig | null>(null); // 추가: bootstrap된 현재 게임 설정 보관
+  const [roundSummary, setRoundSummary] = useState(
+    null as RoundSummaryData | null,
+  );
+  const [gameSummary, setGameSummary] = useState(
+    null as GameSummaryData | null,
+  );
   const [roundSummaryLoading, setRoundSummaryLoading] = useState(false);
   const [gameSummaryLoading, setGameSummaryLoading] = useState(false);
 
@@ -177,6 +183,7 @@ export default function useCanvasGameplay({
   const applyBootstrap = useCallback(
     (result: SessionBootstrapResult) => {
       phaseTimingRef.current = result.phaseTiming;
+      setGameConfigState(result.gameConfig); // 추가: INTRO 모달에서 현재 게임 설정을 바로 쓸 수 있게 저장
 
       onBootstrapScene(result);
 
@@ -318,7 +325,7 @@ export default function useCanvasGameplay({
         const waitStartedAt = phaseEndsAt;
         const waitEndsAt = new Date(
           new Date(waitStartedAt).getTime() +
-          phaseTimingRef.current.roundStartWaitSec * 1000,
+            phaseTimingRef.current.roundStartWaitSec * 1000,
         ).toISOString();
 
         setRoundState({
@@ -353,7 +360,7 @@ export default function useCanvasGameplay({
         const gameEndStartedAt = phaseEndsAt;
         const gameEndEndsAt = new Date(
           new Date(gameEndStartedAt).getTime() +
-          phaseTimingRef.current.gameEndWaitSec * 1000,
+            phaseTimingRef.current.gameEndWaitSec * 1000,
         ).toISOString();
 
         setRoundState({
@@ -374,7 +381,7 @@ export default function useCanvasGameplay({
       const waitStartedAt = phaseEndsAt;
       const waitEndsAt = new Date(
         new Date(waitStartedAt).getTime() +
-        phaseTimingRef.current.roundStartWaitSec * 1000,
+          phaseTimingRef.current.roundStartWaitSec * 1000,
       ).toISOString();
 
       setRoundState({
@@ -481,7 +488,7 @@ export default function useCanvasGameplay({
 
       const resultEndsAt = new Date(
         new Date(endedAt).getTime() +
-        phaseTimingRef.current.roundResultDelaySec * 1000,
+          phaseTimingRef.current.roundResultDelaySec * 1000,
       ).toISOString();
 
       setRoundState({
@@ -647,6 +654,7 @@ export default function useCanvasGameplay({
     participants,
     participantLoading,
     participantError,
+    gameConfig,
     roundSummary,
     gameSummary,
     roundSummaryLoading,
