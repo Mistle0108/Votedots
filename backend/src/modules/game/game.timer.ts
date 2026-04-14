@@ -29,10 +29,10 @@ function getGameEndAt(
 
   return new Date(
     roundStartedAt.getTime() +
-      remainingRoundsIncludingCurrent * config.phases.roundDurationSec * 1000 +
-      Math.max(0, remainingRoundsIncludingCurrent - 1) *
-        config.phases.roundResultDelaySec *
-        1000,
+    remainingRoundsIncludingCurrent * config.phases.roundDurationSec * 1000 +
+    Math.max(0, remainingRoundsIncludingCurrent - 1) *
+    config.phases.roundResultDelaySec *
+    1000,
   );
 }
 
@@ -189,7 +189,13 @@ async function transitionToGameEnd(
     phaseEndsAt,
     reason: "game end transition",
   });
-  await summaryService.saveGameSummary(canvasId); // 추가: GAME_END 진입 시점 종합 통계 snapshot 저장
+
+  const gameSummary = await summaryService.saveGameSummary(canvasId);
+
+  io.to(`canvas:${canvasId}`).emit("game-summary:ready", {
+    canvasId,
+    summaryId: gameSummary.id,
+  });
 
   scheduleGameEnd(io, canvasId, roundNumber, phaseEndsAt);
 }
@@ -528,7 +534,7 @@ async function resumeRoundActive(io: Server, canvas: Canvas): Promise<void> {
 
   const roundEndsAt = new Date(
     activeRound.startedAt.getTime() +
-      canvasGameConfig.phases.roundDurationSec * 1000,
+    canvasGameConfig.phases.roundDurationSec * 1000,
   );
 
   if (roundEndsAt.getTime() <= Date.now()) {
