@@ -166,7 +166,8 @@ export default function CanvasPage() {
     return <ErrorScreen message={error} />;
   }
 
-  if (gameEnded) {
+  // test 임시 수정
+  if (gameEnded && !gameSummaryModal) {
     return <GameEndedScreen />;
   }
 
@@ -242,6 +243,7 @@ export default function CanvasPage() {
           />
         )}
       </div>
+
       {roundSummaryModal && (
         <RoundSummaryModal
           summary={roundSummaryModal}
