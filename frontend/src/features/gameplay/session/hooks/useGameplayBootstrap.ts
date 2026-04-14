@@ -83,15 +83,18 @@ export function useGameplayBootstrap() {
 
     setGameConfig(gameConfig);
 
-    let roundState: RoundStateResponse | null = null;
+        let roundState: RoundStateResponse | null = null;
     let remaining: number | null = null;
     let votes: Record<string, number> = {};
 
-    if (isRoundActivePhase(canvas.phase)) {
+    if (
+      isRoundActivePhase(canvas.phase) ||
+      canvas.phase === GAME_PHASE.ROUND_RESULT
+    ) {
       const roundRes = await sessionApi.getActiveRound(canvas.id);
       roundState = roundRes.data;
 
-      if (roundState.round?.id) {
+      if (isRoundActivePhase(canvas.phase) && roundState.round?.id) {
         const [ticketsRes, voteStatusRes] = await Promise.all([
           voteApi.getTickets(roundState.round.id),
           voteApi.getStatus(roundState.round.id),
