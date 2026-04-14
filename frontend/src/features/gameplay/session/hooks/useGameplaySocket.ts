@@ -1,12 +1,14 @@
 import { useEffect } from "react";
 import socket from "@/shared/lib/socket";
 import {
-  CanvasBatchUpdatedPayload, // 추가: batch canvas update payload 타입
+  CanvasBatchUpdatedPayload,
   CanvasJoinedPayload,
   CanvasUpdatedPayload,
+  GameSummaryReadyPayload,
   ParticipantsUpdatedPayload,
   RoundEndedPayload,
   RoundStartedPayload,
+  RoundSummaryReadyPayload,
   SessionEndedPayload,
   TimerUpdatePayload,
   VoteUpdatePayload,
@@ -17,8 +19,10 @@ interface UseGameplaySocketParams {
   onCanvasJoined: (payload: CanvasJoinedPayload) => void;
   onRoundStarted: (payload: RoundStartedPayload) => void;
   onRoundEnded: (payload: RoundEndedPayload) => void;
+  onRoundSummaryReady: (payload: RoundSummaryReadyPayload) => void;
+  onGameSummaryReady: (payload: GameSummaryReadyPayload) => void;
   onCanvasUpdated: (payload: CanvasUpdatedPayload) => void;
-  onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void; // 추가: batch update 핸들러
+  onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void;
   onVoteUpdate: (payload: VoteUpdatePayload) => void;
   onTimerUpdate: (payload: TimerUpdatePayload) => void;
   onParticipantsUpdated: (payload: ParticipantsUpdatedPayload) => void;
@@ -31,8 +35,10 @@ export function useGameplaySocket({
   onCanvasJoined,
   onRoundStarted,
   onRoundEnded,
+  onRoundSummaryReady,
+  onGameSummaryReady,
   onCanvasUpdated,
-  onCanvasBatchUpdated, // 추가: batch update 핸들러 주입
+  onCanvasBatchUpdated,
   onVoteUpdate,
   onTimerUpdate,
   onParticipantsUpdated,
@@ -43,8 +49,10 @@ export function useGameplaySocket({
     socket.on("canvas:joined", onCanvasJoined);
     socket.on("round:started", onRoundStarted);
     socket.on("round:ended", onRoundEnded);
+    socket.on("round-summary:ready", onRoundSummaryReady);
+    socket.on("game-summary:ready", onGameSummaryReady);
     socket.on("canvas:updated", onCanvasUpdated);
-    socket.on("canvas:batch-updated", onCanvasBatchUpdated); // 추가: batch update 이벤트 구독
+    socket.on("canvas:batch-updated", onCanvasBatchUpdated);
     socket.on("vote:update", onVoteUpdate);
     socket.on("timer:update", onTimerUpdate);
     socket.on("participants:updated", onParticipantsUpdated);
@@ -61,8 +69,10 @@ export function useGameplaySocket({
       socket.off("canvas:joined", onCanvasJoined);
       socket.off("round:started", onRoundStarted);
       socket.off("round:ended", onRoundEnded);
+      socket.off("round-summary:ready", onRoundSummaryReady);
+      socket.off("game-summary:ready", onGameSummaryReady);
       socket.off("canvas:updated", onCanvasUpdated);
-      socket.off("canvas:batch-updated", onCanvasBatchUpdated); // 추가: batch update 이벤트 해제
+      socket.off("canvas:batch-updated", onCanvasBatchUpdated);
       socket.off("vote:update", onVoteUpdate);
       socket.off("timer:update", onTimerUpdate);
       socket.off("participants:updated", onParticipantsUpdated);
@@ -73,13 +83,15 @@ export function useGameplaySocket({
     };
   }, [
     canvasId,
-    onCanvasBatchUpdated, // 추가: effect dependency
+    onCanvasBatchUpdated,
     onCanvasJoined,
     onCanvasUpdated,
     onGameEnded,
+    onGameSummaryReady,
     onParticipantsUpdated,
     onRoundEnded,
     onRoundStarted,
+    onRoundSummaryReady,
     onSessionEnded,
     onTimerUpdate,
     onVoteUpdate,
