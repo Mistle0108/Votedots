@@ -7,5 +7,6 @@ const router = Router({ mergeParams: true });
 router.post("/", authMiddleware, roundController.startRound);
 router.post("/:roundId/end", authMiddleware, roundController.endRound);
 router.get("/active", authMiddleware, roundController.getActiveRound);
+router.get("/:roundId/summary", authMiddleware, roundController.getRoundSummary);
 
 export default router;

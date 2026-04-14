@@ -80,10 +80,10 @@ function getActiveGameEndAt(
 
   return new Date(
     roundStartedAt.getTime() +
-      remainingRoundsIncludingCurrent * config.phases.roundDurationSec * 1000 +
-      Math.max(0, remainingRoundsIncludingCurrent - 1) *
-        config.phases.roundResultDelaySec *
-        1000,
+    remainingRoundsIncludingCurrent * config.phases.roundDurationSec * 1000 +
+    Math.max(0, remainingRoundsIncludingCurrent - 1) *
+    config.phases.roundResultDelaySec *
+    1000,
   );
 }
 
@@ -96,9 +96,9 @@ function getWaitingGameEndAt(
 
   return new Date(
     roundEndedAt.getTime() +
-      config.phases.roundResultDelaySec * 1000 +
-      futureRounds * config.phases.roundDurationSec * 1000 +
-      Math.max(0, futureRounds - 1) * config.phases.roundResultDelaySec * 1000,
+    config.phases.roundResultDelaySec * 1000 +
+    futureRounds * config.phases.roundDurationSec * 1000 +
+    Math.max(0, futureRounds - 1) * config.phases.roundResultDelaySec * 1000,
   );
 }
 
@@ -129,7 +129,7 @@ export const roundService = {
     const roundStartedAt = new Date();
     const roundEndsAt = new Date(
       roundStartedAt.getTime() +
-        canvasGameConfig.phases.roundDurationSec * 1000,
+      canvasGameConfig.phases.roundDurationSec * 1000,
     );
 
     const round = voteRoundRepository.create({
@@ -245,7 +245,7 @@ export const roundService = {
     const redisKey = `vote:round:${roundId}`;
     const voteData = await redisClient.hGetAll(redisKey);
 
-    const voteBuckets = new Map<number, Map<string, number>>(); // 추가: 칸별 색상 득표 집계
+    const voteBuckets = new Map<number, Map<string, number>>();
 
     const addVoteBucket = (cellId: number, color: string, count: number) => {
       const colorBuckets = voteBuckets.get(cellId) ?? new Map<string, number>();
@@ -278,11 +278,11 @@ export const roundService = {
       });
 
       for (const vote of votes) {
-        addVoteBucket(vote.cell.id, vote.color, 1); // 추가: Redis 집계가 비어 있으면 DB 기준 fallback
+        addVoteBucket(vote.cell.id, vote.color, 1);
       }
     }
 
-    const resolvedCells: ResolvedRoundCell[] = []; // 추가: 이번 라운드에 반영될 모든 칸
+    const resolvedCells: ResolvedRoundCell[] = [];
 
     for (const [cellId, colorBuckets] of voteBuckets.entries()) {
       let totalVotes = 0;
@@ -324,7 +324,7 @@ export const roundService = {
 
     if (resolvedCells.length > 0) {
       const cellsToUpdate = await cellRepository.findBy({
-        id: In(resolvedCells.map((cell) => cell.cellId)), // 유지: 투표된 모든 칸 조회
+        id: In(resolvedCells.map((cell) => cell.cellId)),
       });
 
       const resolvedCellMap = new Map(
@@ -353,7 +353,7 @@ export const roundService = {
 
     const roundResultEndsAt = new Date(
       round.endedAt.getTime() +
-        canvasGameConfig.phases.roundResultDelaySec * 1000,
+      canvasGameConfig.phases.roundResultDelaySec * 1000,
     );
 
     await canvasRepository.update(canvasId, {
@@ -372,7 +372,7 @@ export const roundService = {
       reason: "라운드 결과 전환",
     });
 
-    await summaryService.saveRoundSummary(canvasId, round.id); // 추가: 라운드 종료 시점 summary snapshot 저장
+    const roundSummary = await summaryService.saveRoundSummary(canvasId, round.id);
 
     await redisClient.del(redisKey);
     await voteService.clearIssuedVoters(round.id);
@@ -389,8 +389,15 @@ export const roundService = {
           cellId: cell.id,
           x: cell.x,
           y: cell.y,
-          color: cell.color ?? "#000000", // 추가: batch payload에 여러 셀 반영 결과 포함
+          color: cell.color ?? "#000000",
         })),
+      });
+
+      io.to(`canvas:${canvasId}`).emit("round-summary:ready", {
+        canvasId,
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        summaryId: roundSummary.id,
       });
     }
 
@@ -418,7 +425,7 @@ export const roundService = {
       const remainingSeconds = Math.max(
         0,
         canvasGameConfig.phases.roundDurationSec -
-          Math.floor((now.getTime() - activeRound.startedAt.getTime()) / 1000),
+        Math.floor((now.getTime() - activeRound.startedAt.getTime()) / 1000),
       );
 
       const gameEndAt = getActiveGameEndAt(
@@ -459,7 +466,7 @@ export const roundService = {
 
     const waitingDeadline = new Date(
       lastRound.endedAt.getTime() +
-        canvasGameConfig.phases.roundResultDelaySec * 1000,
+      canvasGameConfig.phases.roundResultDelaySec * 1000,
     );
 
     if (now >= waitingDeadline) {

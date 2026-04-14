@@ -4,6 +4,8 @@ import { getCanvasGameConfigSnapshot } from "../../config/game.config";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell } from "../../entities/cell.entity";
 import { canvasService } from "./canvas.service";
+import { GameSummary } from "../../entities/game-summary.entity";
+import { summaryService } from "../summary/summary.service";
 
 interface CreateCanvasRequestBody {
   profileKey?: string;
@@ -34,6 +36,44 @@ function serializeCell(cell: Cell) {
     status: cell.status,
   };
 }
+
+// 게임 summary 응답 구조를 명시적으로 고정
+function serializeGameSummary(summary: GameSummary) {
+  return {
+    id: summary.id,
+    canvasId: summary.canvas.id,
+    totalRounds: summary.totalRounds,
+    participantCount: summary.participantCount,
+    issuedTicketCount: summary.issuedTicketCount,
+    totalVotes: summary.totalVotes,
+    ticketUsageRate: summary.ticketUsageRate,
+    totalCellCount: summary.totalCellCount,
+    paintedCellCount: summary.paintedCellCount,
+    emptyCellCount: summary.emptyCellCount,
+    canvasCompletionPercent: summary.canvasCompletionPercent,
+    mostVotedCellId: summary.mostVotedCellId,
+    mostVotedCellX: summary.mostVotedCellX,
+    mostVotedCellY: summary.mostVotedCellY,
+    mostVotedCellVoteCount: summary.mostVotedCellVoteCount,
+    randomResolvedCellCount: summary.randomResolvedCellCount,
+    usedColorCount: summary.usedColorCount,
+    mostSelectedColor: summary.mostSelectedColor,
+    mostSelectedColorVoteCount: summary.mostSelectedColorVoteCount,
+    mostPaintedColor: summary.mostPaintedColor,
+    mostPaintedColorCellCount: summary.mostPaintedColorCellCount,
+    topVoterId: summary.topVoterId,
+    topVoterName: summary.topVoterName,
+    topVoterVoteCount: summary.topVoterVoteCount,
+    hottestRoundId: summary.hottestRoundId,
+    hottestRoundNumber: summary.hottestRoundNumber,
+    hottestRoundVoteCount: summary.hottestRoundVoteCount,
+    topVoters: summary.topVotersJson,
+    participants: summary.participantsJson,
+    createdAt: summary.createdAt,
+    updatedAt: summary.updatedAt,
+  };
+}
+
 
 export const canvasController = {
   async create(req: Request, res: Response) {
@@ -105,6 +145,24 @@ export const canvasController = {
       }
 
       return res.status(500).json({ message: String(err) });
+    }
+  },
+
+  async getSummary(req: Request, res: Response) {
+    try {
+      const canvasId = parseInt(String(req.params["canvasId"]));
+
+      if (isNaN(canvasId)) {
+        return res.status(400).json({ message: "존재하지 않는 캔버스입니다." });
+      }
+
+      const summary = await summaryService.getGameSummary(canvasId);
+
+      return res.json({
+        data: serializeGameSummary(summary),
+      });
+    } catch (err) {
+      return res.status(400).json({ message: String(err) });
     }
   },
 };
