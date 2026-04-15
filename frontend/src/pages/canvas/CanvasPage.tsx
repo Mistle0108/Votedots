@@ -19,6 +19,7 @@ import type {
   RoundSummaryData,
 } from "@/features/gameplay/session/api/session.api";
 
+// to-be
 interface SummaryModalProps {
   title: string;
   onClose: () => void;
@@ -28,12 +29,12 @@ interface SummaryModalProps {
 function SummaryModal({ title, onClose, children }: SummaryModalProps) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-      <div className="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-lg font-bold text-gray-900">{title}</h2>
+      <div className="w-full max-w-[560px] rounded-3xl border border-gray-200 bg-white/95 p-6 shadow-2xl backdrop-blur">
+        <div className="mb-5 flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
+          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
           <button
             type="button"
-            className="rounded-md px-2 py-1 text-sm text-gray-500 hover:bg-gray-100"
+            className="rounded-full px-3 py-1.5 text-sm font-medium text-gray-400 hover:bg-gray-100 hover:text-gray-700"
             onClick={onClose}
           >
             닫기
@@ -52,28 +53,76 @@ function RoundSummaryModal({
   summary: RoundSummaryData;
   onClose: () => void;
 }) {
+  const hasMostVotedCell =
+    summary.mostVotedCellX !== null && summary.mostVotedCellY !== null;
+
+  const progressPercent =
+    summary.totalCellCount > 0
+      ? ((summary.currentPaintedCellCount / summary.totalCellCount) * 100).toFixed(1)
+      : 0;
+
   return (
     <SummaryModal
-      title={`라운드 ${summary.roundNumber} 결과`}
+      title={`${summary.roundNumber} 라운드 결과`}
       onClose={onClose}
     >
-      <div className="flex flex-col gap-2 text-sm text-gray-700">
-        <div className="flex items-center justify-between gap-3">
-          <span>참여자 수</span>
-          <span>{summary.participantCount}명</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>총 투표 수</span>
-          <span>{summary.totalVotes}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>반영 칸 수</span>
-          <span>{summary.paintedCellCount}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>진행률</span>
-          <span>{summary.canvasProgressPercent}%</span>
-        </div>
+      <div className="space-y-5">
+        <section className="space-y-1 text-center">
+          <p className="text-sm text-gray-500">이번 라운드 결과를 정리했어요</p>
+        </section>
+
+        <section className="space-y-3 text-left text-[15px] font-bold leading-7 text-gray-700">
+          <p>
+            {summary.participantCount > 0 ? (
+              <>
+                <span className="text-[22px] text-red-500">
+                  {summary.participantCount}
+                </span>
+                명이 투표에 참여했어요
+              </>
+            ) : (
+              "참여자가 없어요."
+            )}
+          </p>
+          <p>
+            이번 라운드에 총{" "}
+            <span className="text-[22px] text-red-500">{summary.totalVotes}</span>
+            {" "}표를 모았어요.
+          </p>
+          <p>
+            이번 라운드에서 총{" "}
+            <span className="text-[22px] text-red-500">
+              {summary.paintedCellCount}
+            </span>
+            {" "}개를 색칠했어요.
+          </p>
+          <p>
+            캔버스 진행도는 {" "}
+            <span className="text-[22px] text-red-500">{progressPercent}</span>
+            {" "}% 입니다.
+          </p>
+        </section>
+
+        <section className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-sm leading-6 text-gray-700">
+          <p>
+            가장 인기 있던 칸은{" "}
+            <span className="font-bold text-gray-900">
+              {hasMostVotedCell
+                ? `(${summary.mostVotedCellX}, ${summary.mostVotedCellY})`
+                : "없어요"}
+            </span>
+            {hasMostVotedCell ? " 예요." : ""}
+          </p>
+          <p>
+            동점 추첨으로 결정된 칸은{" "}
+            <span className="font-bold text-gray-900">
+              {summary.randomResolvedCellCount > 0
+                ? summary.randomResolvedCellCount
+                : "없어요."}
+            </span>
+            {summary.randomResolvedCellCount > 0 ? "개였어요." : ""}
+          </p>
+        </section>
       </div>
     </SummaryModal>
   );
@@ -95,7 +144,7 @@ function GameSummaryModal({
         </div>
         <div className="flex items-center justify-between gap-3">
           <span>참여자 수</span>
-          <span>{summary.participantCount}명</span>
+          <span>{summary.participantCount} 명</span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <span>총 투표 수</span>
