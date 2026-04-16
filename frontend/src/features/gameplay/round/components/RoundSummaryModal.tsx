@@ -1,0 +1,160 @@
+import type { MouseEvent } from "react";
+import type { RoundSummaryData } from "@/features/gameplay/session/api/session.api";
+
+interface RoundSummaryModalProps {
+  open: boolean;
+  summary: RoundSummaryData | null;
+  snapshot: string | null;
+  position: { x: number; y: number };
+  onClose: () => void;
+  onDragStart: (event: MouseEvent<HTMLDivElement>) => void;
+}
+
+function renderParticipantCopy(count: number) {
+  if (count > 0) {
+    return (
+      <>
+        <span className="text-[22px] text-red-500">{count}</span>
+        명이 투표에 참여했어요
+      </>
+    );
+  }
+
+  return "참여자가 없어요.";
+}
+
+function renderMostVotedCell(summary: RoundSummaryData) {
+  if (
+    summary.mostVotedCellX === null ||
+    summary.mostVotedCellY === null
+  ) {
+    return "없었어요";
+  }
+
+  return `(${summary.mostVotedCellX}, ${summary.mostVotedCellY})`;
+}
+
+export default function RoundSummaryModal({
+  open,
+  summary,
+  snapshot,
+  position,
+  onClose,
+  onDragStart,
+}: RoundSummaryModalProps) {
+  if (!open || !summary) {
+    return null;
+  }
+
+  const progressPercent =
+    summary.totalCellCount > 0
+      ? (
+          (summary.currentPaintedCellCount / summary.totalCellCount) *
+          100
+        ).toFixed(1)
+      : "0.0";
+
+  return (
+    <div
+      className="fixed inset-0 z-50"
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div
+        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[560px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur"
+        style={{ top: position.y, left: position.x }}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div
+          className="relative flex cursor-move items-center justify-center border-b border-gray-100 px-5 py-4"
+          onMouseDown={onDragStart}
+        >
+          <p className="text-center text-base font-semibold text-gray-900">
+            {summary.roundNumber} 라운드 결과
+          </p>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            aria-label="라운드 결과 닫기"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-5">
+            {snapshot && (
+              <div className="mx-auto w-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+                <img
+                  src={snapshot}
+                  alt={`${summary.roundNumber} 라운드 스냅샷`}
+                  className="block w-full bg-white"
+                  draggable={false}
+                />
+              </div>
+            )}
+
+            <section className="space-y-1 text-center">
+              <p className="text-sm text-gray-500">
+                이번 라운드 결과를 정리했어요
+              </p>
+              <p className="text-2xl font-bold text-gray-900">
+                {summary.roundNumber} 라운드 결과
+              </p>
+            </section>
+
+            <section className="space-y-3 text-left text-[15px] font-bold leading-7 text-gray-700">
+              <p>{renderParticipantCopy(summary.participantCount)}</p>
+              <p>
+                이번 라운드 총{" "}
+                <span className="text-[22px] text-red-500">
+                  {summary.totalVotes}
+                </span>
+                표가 모였어요
+              </p>
+              <p>
+                이번 라운드에서{" "}
+                <span className="text-[22px] text-red-500">
+                  {summary.paintedCellCount}
+                </span>
+                개를 색칠했어요
+              </p>
+              <p>
+                캔버스 진행도{" "}
+                <span className="text-[22px] text-red-500">
+                  {progressPercent}
+                </span>
+                %
+              </p>
+            </section>
+
+            <section className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-sm leading-6 text-gray-700">
+              <p>
+                가장 인기 있었던 칸은{" "}
+                <span className="font-bold text-gray-900">
+                  {renderMostVotedCell(summary)}
+                </span>
+                {summary.mostVotedCellX !== null &&
+                summary.mostVotedCellY !== null
+                  ? " 이었어요."
+                  : ""}
+              </p>
+              <p>
+                동점 추첨으로 결정된 칸은{" "}
+                <span className="font-bold text-gray-900">
+                  {summary.randomResolvedCellCount > 0
+                    ? summary.randomResolvedCellCount
+                    : "없어요."}
+                </span>
+                {summary.randomResolvedCellCount > 0 ? "개였어요." : ""}
+              </p>
+            </section>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

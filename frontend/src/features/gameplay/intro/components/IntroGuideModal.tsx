@@ -21,6 +21,16 @@ function buildDescription(config: GameConfig) {
   };
 }
 
+function getDefaultPosition() {
+  const modalWidth = Math.min(720, window.innerWidth - 24);
+  const modalHeight = Math.min(window.innerHeight - 48, 720);
+
+  return {
+    x: Math.max(12, Math.round((window.innerWidth - modalWidth) / 2)),
+    y: Math.max(24, Math.round((window.innerHeight - modalHeight) / 2)),
+  };
+}
+
 export default function IntroGuideModal({
   open,
   cells,
@@ -30,10 +40,7 @@ export default function IntroGuideModal({
   formattedGameEndTime,
   onClose,
 }: Props) {
-  const [position, setPosition] = useState(() => ({
-    x: window.innerWidth / 2 - 260,
-    y: 48,
-  }));
+  const [position, setPosition] = useState(getDefaultPosition);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -45,6 +52,8 @@ export default function IntroGuideModal({
     if (!open) {
       return;
     }
+
+    setPosition(getDefaultPosition());
 
     const handleMouseMove = (event: MouseEvent) => {
       if (!isDraggingRef.current) {
@@ -82,7 +91,7 @@ export default function IntroGuideModal({
     >
       <div
         ref={modalRef}
-        className="pointer-events-auto fixed w-[720px] max-w-[calc(100vw-24px)] rounded-3xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur"
+        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[720px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur"
         style={{ top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
@@ -111,48 +120,49 @@ export default function IntroGuideModal({
             ×
           </button>
         </div>
-        <div className="flex flex-col gap-6 px-7 py-6">
-          <section className="space-y-1 text-center">
-            <p className="text-sm text-gray-700">
+        <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
+          <div className="flex flex-col gap-6">
+            <section className="space-y-1 text-center">
+              <p className="text-sm text-gray-700">
               도트를 색칠해 하나의 캔버스를 완성하세요.
-            </p>
-          </section>
+              </p>
+            </section>
 
-          <div className="mx-auto w-fit space-y-3">
-            <IntroCanvasPreview cells={cells} gridX={gridX} gridY={gridY} />
+            <div className="mx-auto w-fit space-y-3">
+              <IntroCanvasPreview cells={cells} gridX={gridX} gridY={gridY} />
 
-            <div className="space-y-1 text-left text-sm font-bold text-gray-700">
-              <p>
+              <div className="space-y-1 text-left text-sm font-bold text-gray-700">
+                <p>
                 전체 라운드 수 :{" "}
-                <span className="text-[19px]">{description.totalRounds}</span>
-              </p>
-              <p>
+                  <span className="text-[19px]">{description.totalRounds}</span>
+                </p>
+                <p>
                 라운드 소요 시간 :{" "}
-                <span className="text-[19px]">
+                  <span className="text-[19px]">
                   {description.roundDurationSec}초
-                </span>
-              </p>
-              <p>
+                  </span>
+                </p>
+                <p>
                 라운드당 투표권 수 :{" "}
-                <span className="text-[19px]">
+                  <span className="text-[19px]">
                   {description.votesPerRound}개
-                </span>
-              </p>
-              <p>
+                  </span>
+                </p>
+                <p>
                 캔버스 종료 시간 :{" "}
-                <span className="text-[19px]">
-                  {formattedGameEndTime ?? "-"}
-                </span>
-              </p>
+                  <span className="text-[19px]">
+                    {formattedGameEndTime ?? "-"}
+                  </span>
+                </p>
+              </div>
             </div>
-          </div>
 
-          <div className="space-y-5 text-sm leading-6 text-gray-700">
-            <section className="space-y-2">
-              <h3 className="text-center font-semibold text-gray-900">
+            <div className="space-y-5 text-sm leading-6 text-gray-700">
+              <section className="space-y-2">
+                <h3 className="text-center font-semibold text-gray-900">
                 게임 설명
-              </h3>
-              <ul className="space-y-1 text-left">
+                </h3>
+                <ul className="space-y-1 text-left">
                 <li>
                   - 게임은 총{" "}
                   <span className="text-[19px] font-bold text-red-500">
@@ -180,14 +190,14 @@ export default function IntroGuideModal({
                   - 각 칸은 가장 많은 표를 받은 색으로 칠해지며, 동점이면
                   무작위로 결정됩니다.
                 </li>
-              </ul>
-            </section>
+                </ul>
+              </section>
 
-            <section className="space-y-2">
-              <h3 className="text-center font-semibold text-gray-900">
+              <section className="space-y-2">
+                <h3 className="text-center font-semibold text-gray-900">
                 투표 방법
-              </h3>
-              <ul className="space-y-1 text-left">
+                </h3>
+                <ul className="space-y-1 text-left">
                 <li>- 원하는 칸을 선택합니다.</li>
                 <li>
                   - 칠하고 싶은 색을 고른 뒤 ‘투표하기’ 버튼 또는 스페이스바로
@@ -198,8 +208,9 @@ export default function IntroGuideModal({
                   추가할 수 있습니다.
                 </li>
                 <li>- 주의: 한 번 투표한 내용은 변경할 수 없습니다.</li>
-              </ul>
-            </section>
+                </ul>
+              </section>
+            </div>
           </div>
         </div>
       </div>
