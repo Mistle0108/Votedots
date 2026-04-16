@@ -28,7 +28,7 @@ function getDefaultRoundSummaryModalPosition() {
   };
 }
 
-function isRoundSummaryEnabled(phase: GamePhase) {
+function isRoundSummaryPhase(phase: GamePhase) {
   return (
     phase === GAME_PHASE.ROUND_RESULT || phase === GAME_PHASE.ROUND_START_WAIT
   );
@@ -187,18 +187,27 @@ export default function useCanvasPage({
   }, [gameplay.isRoundExpiredRefValue]);
 
   useEffect(() => {
-    if (!isRoundSummaryEnabled(gameplay.phase)) {
+    if (!isRoundSummaryPhase(gameplay.phase)) {
       handleCloseRoundSummaryModal();
     }
   }, [gameplay.phase, handleCloseRoundSummaryModal]);
 
   const handleOpenLatestRoundSummary = useCallback(() => {
-    if (!gameplay.roundSummary || !isRoundSummaryEnabled(gameplay.phase)) {
+    if (
+      !gameplay.roundSummary ||
+      !isRoundSummaryPhase(gameplay.phase) ||
+      !gameplay.isLatestRoundSummaryReady
+    ) {
       return;
     }
 
     handleOpenRoundSummaryModal(gameplay.roundSummary);
-  }, [gameplay.phase, gameplay.roundSummary, handleOpenRoundSummaryModal]);
+  }, [
+    gameplay.isLatestRoundSummaryReady,
+    gameplay.phase,
+    gameplay.roundSummary,
+    handleOpenRoundSummaryModal,
+  ]);
 
   const handlePopupClose = useCallback(() => {
     clearSelectedCell();
@@ -262,6 +271,7 @@ export default function useCanvasPage({
     latestRoundSummary: gameplay.roundSummary,
     latestRoundSnapshot:
       gameplay.latestRoundSnapshot ?? latestStoredRoundSnapshot.snapshot,
-    isLatestRoundSummaryEnabled: isRoundSummaryEnabled(gameplay.phase),
+    isLatestRoundSummaryEnabled:
+      isRoundSummaryPhase(gameplay.phase) && gameplay.isLatestRoundSummaryReady,
   };
 }
