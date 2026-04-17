@@ -5,12 +5,33 @@ import type {
   RoundSummaryData,
 } from "@/features/gameplay/session/api/session.api";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
+import { getLatestRoundSnapshot } from "@/features/gameplay/round/model/roundSnapshot.storage";
+import {
+  GAME_PHASE,
+  type GamePhase,
+} from "@/features/gameplay/session/model/game-phase.types";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
 
 interface UseCanvasPageParams {
   onSessionEnded: () => void;
   onUnauthorized: (message: string) => void;
+}
+
+function getDefaultRoundSummaryModalPosition() {
+  const modalWidth = Math.min(560, window.innerWidth - 24);
+  const modalHeight = Math.min(window.innerHeight - 48, 720);
+
+  return {
+    x: Math.max(12, Math.round((window.innerWidth - modalWidth) / 2)),
+    y: Math.max(24, Math.round((window.innerHeight - modalHeight) / 2)),
+  };
+}
+
+function isRoundSummaryPhase(phase: GamePhase) {
+  return (
+    phase === GAME_PHASE.ROUND_RESULT || phase === GAME_PHASE.ROUND_START_WAIT
+  );
 }
 
 export default function useCanvasPage({
@@ -23,6 +44,11 @@ export default function useCanvasPage({
     useState<RoundSummaryData | null>(null);
   const [gameSummaryModal, setGameSummaryModal] =
     useState<GameSummaryData | null>(null);
+  const [introGuideOpen, setIntroGuideOpen] = useState(false);
+  const [roundSummaryOpen, setRoundSummaryOpen] = useState(false);
+  const [roundSummaryPosition, setRoundSummaryPosition] = useState(
+    getDefaultRoundSummaryModalPosition,
+  );
 
   const {
     popupOpen,
@@ -85,36 +111,81 @@ export default function useCanvasPage({
     [setCanvasId, setGridX, setGridY, updateCells],
   );
 
+  const handleRoundEndedCleanup = useCallback(() => {
+    clearSelectedCell();
+    resetPreviewColor();
+    closePopup();
+  }, [clearSelectedCell, resetPreviewColor, closePopup]);
+
   const handleGameEndedCleanup = useCallback(() => {
     clearSelectedCell();
   }, [clearSelectedCell]);
 
-  const handleOpenRoundSummaryModal = useCallback(
-    (summary: RoundSummaryData) => {
-      setRoundSummaryModal(summary);
-    },
-    [],
-  );
+  const handleOpenRoundSummaryModal = useCallback((summary: RoundSummaryData) => {
+    setRoundSummaryModal(summary);
+
+    if (!roundSummaryOpen) {
+      setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
+    }
+
+    setRoundSummaryOpen(true);
+  }, [roundSummaryOpen]);
 
   const handleOpenGameSummaryModal = useCallback((summary: GameSummaryData) => {
     setGameSummaryModal(summary);
   }, []);
 
   const handleCloseRoundSummaryModal = useCallback(() => {
-    setRoundSummaryModal(null);
+    setRoundSummaryOpen(false);
+    setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
   }, []);
 
   const handleCloseGameSummaryModal = useCallback(() => {
     setGameSummaryModal(null);
   }, []);
 
+  const handleOpenIntroGuide = useCallback(() => {
+    setIntroGuideOpen(true);
+  }, []);
+
+  const handleCloseIntroGuide = useCallback(() => {
+    setIntroGuideOpen(false);
+  }, []);
+
+  const handleRoundSummaryDragStart = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      event.preventDefault();
+
+      const dragOffsetX = event.clientX - roundSummaryPosition.x;
+      const dragOffsetY = event.clientY - roundSummaryPosition.y;
+
+      const handleMouseMove = (moveEvent: MouseEvent) => {
+        setRoundSummaryPosition({
+          x: moveEvent.clientX - dragOffsetX,
+          y: moveEvent.clientY - dragOffsetY,
+        });
+      };
+
+      const handleMouseUp = () => {
+        window.removeEventListener("mousemove", handleMouseMove);
+        window.removeEventListener("mouseup", handleMouseUp);
+      };
+
+      window.addEventListener("mousemove", handleMouseMove);
+      window.addEventListener("mouseup", handleMouseUp);
+    },
+    [roundSummaryPosition.x, roundSummaryPosition.y],
+  );
+
   const gameplay = useCanvasGameplay({
     canvasId,
+    canvasElementRef: canvasRef,
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
     onCanvasBatchUpdated: handleCanvasBatchUpdated,
     onOpenRoundSummaryModal: handleOpenRoundSummaryModal,
     onOpenGameSummaryModal: handleOpenGameSummaryModal,
+    onRoundEndedCleanup: handleRoundEndedCleanup,
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
     onUnauthorized,
@@ -126,10 +197,30 @@ export default function useCanvasPage({
     isRoundExpiredRef.current = gameplay.isRoundExpiredRefValue;
   }, [gameplay.isRoundExpiredRefValue]);
 
+  useEffect(() => {
+    if (!isRoundSummaryPhase(gameplay.phase)) {
+      handleCloseRoundSummaryModal();
+    }
+  }, [gameplay.phase, handleCloseRoundSummaryModal]);
+
+  const handleOpenLatestRoundSummary = useCallback(() => {
+    if (!gameplay.roundSummary || !gameplay.canOpenLatestRoundSummary) {
+      return;
+    }
+
+    handleOpenRoundSummaryModal(gameplay.roundSummary);
+  }, [
+    gameplay.canOpenLatestRoundSummary,
+    gameplay.roundSummary,
+    handleOpenRoundSummaryModal,
+  ]);
+
   const handlePopupClose = useCallback(() => {
     clearSelectedCell();
     closePopup();
   }, [clearSelectedCell, closePopup]);
+
+  const latestStoredRoundSnapshot = getLatestRoundSnapshot();
 
   return {
     canvasRef,
@@ -176,5 +267,16 @@ export default function useCanvasPage({
     viewport,
     navigateToCoordinate,
     resetCanvasZoom,
+    introGuideOpen,
+    handleOpenIntroGuide,
+    handleCloseIntroGuide,
+    roundSummaryOpen,
+    roundSummaryPosition,
+    handleRoundSummaryDragStart,
+    handleOpenLatestRoundSummary,
+    latestRoundSummary: gameplay.roundSummary,
+    latestRoundSnapshot:
+      gameplay.latestRoundSnapshot ?? latestStoredRoundSnapshot.snapshot,
+    isLatestRoundSummaryEnabled: gameplay.canOpenLatestRoundSummary,
   };
 }

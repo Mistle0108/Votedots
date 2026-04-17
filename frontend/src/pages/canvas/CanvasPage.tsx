@@ -1,25 +1,24 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CanvasStage,
   CanvasSurface,
   PANEL_WIDTH,
 } from "@/features/gameplay/canvas";
-import { IntroGuideModal } from "@/features/gameplay/intro"; // 추가: INTRO 안내 모달
+import { IntroGuideModal } from "@/features/gameplay/intro";
+import { RoundPanelList } from "@/features/gameplay/round";
+import RoundSummaryModal from "@/features/gameplay/round/components/RoundSummaryModal";
 import {
   ErrorScreen,
   GameEndedScreen,
   LoadingScreen,
 } from "@/features/gameplay/session";
-import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types"; // 추가: INTRO phase 판별
+import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
+import IntroPanelButton from "@/features/gameplay/intro/components/IntroPanelButton";
 import useCanvasPage from "./model/useCanvasPage";
-import type {
-  GameSummaryData,
-  RoundSummaryData,
-} from "@/features/gameplay/session/api/session.api";
+import type { GameSummaryData } from "@/features/gameplay/session/api/session.api";
 
-// to-be
 interface SummaryModalProps {
   title: string;
   onClose: () => void;
@@ -46,88 +45,6 @@ function SummaryModal({ title, onClose, children }: SummaryModalProps) {
   );
 }
 
-function RoundSummaryModal({
-  summary,
-  onClose,
-}: {
-  summary: RoundSummaryData;
-  onClose: () => void;
-}) {
-  const hasMostVotedCell =
-    summary.mostVotedCellX !== null && summary.mostVotedCellY !== null;
-
-  const progressPercent =
-    summary.totalCellCount > 0
-      ? ((summary.currentPaintedCellCount / summary.totalCellCount) * 100).toFixed(1)
-      : 0;
-
-  return (
-    <SummaryModal
-      title={`${summary.roundNumber} 라운드 결과`}
-      onClose={onClose}
-    >
-      <div className="space-y-5">
-        <section className="space-y-1 text-center">
-          <p className="text-sm text-gray-500">이번 라운드 결과를 정리했어요</p>
-        </section>
-
-        <section className="space-y-3 text-left text-[15px] font-bold leading-7 text-gray-700">
-          <p>
-            {summary.participantCount > 0 ? (
-              <>
-                <span className="text-[22px] text-red-500">
-                  {summary.participantCount}
-                </span>
-                명이 투표에 참여했어요
-              </>
-            ) : (
-              "참여자가 없어요."
-            )}
-          </p>
-          <p>
-            이번 라운드에 총{" "}
-            <span className="text-[22px] text-red-500">{summary.totalVotes}</span>
-            {" "}표를 모았어요.
-          </p>
-          <p>
-            이번 라운드에서 총{" "}
-            <span className="text-[22px] text-red-500">
-              {summary.paintedCellCount}
-            </span>
-            {" "}개를 색칠했어요.
-          </p>
-          <p>
-            캔버스 진행도는 {" "}
-            <span className="text-[22px] text-red-500">{progressPercent}</span>
-            {" "}% 입니다.
-          </p>
-        </section>
-
-        <section className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-sm leading-6 text-gray-700">
-          <p>
-            가장 인기 있던 칸은{" "}
-            <span className="font-bold text-gray-900">
-              {hasMostVotedCell
-                ? `(${summary.mostVotedCellX}, ${summary.mostVotedCellY})`
-                : "없어요"}
-            </span>
-            {hasMostVotedCell ? " 예요." : ""}
-          </p>
-          <p>
-            동점 추첨으로 결정된 칸은{" "}
-            <span className="font-bold text-gray-900">
-              {summary.randomResolvedCellCount > 0
-                ? summary.randomResolvedCellCount
-                : "없어요."}
-            </span>
-            {summary.randomResolvedCellCount > 0 ? "개였어요." : ""}
-          </p>
-        </section>
-      </div>
-    </SummaryModal>
-  );
-}
-
 function GameSummaryModal({
   summary,
   onClose,
@@ -144,7 +61,7 @@ function GameSummaryModal({
         </div>
         <div className="flex items-center justify-between gap-3">
           <span>참여자 수</span>
-          <span>{summary.participantCount} 명</span>
+          <span>{summary.participantCount}명</span>
         </div>
         <div className="flex items-center justify-between gap-3">
           <span>총 투표 수</span>
@@ -220,20 +137,32 @@ export default function CanvasPage() {
     viewport,
     navigateToCoordinate,
     resetCanvasZoom,
+    introGuideOpen,
+    handleOpenIntroGuide,
+    handleCloseIntroGuide,
+    roundSummaryOpen,
+    roundSummaryPosition,
+    handleRoundSummaryDragStart,
+    handleOpenLatestRoundSummary,
+    latestRoundSummary,
+    latestRoundSnapshot,
+    isLatestRoundSummaryEnabled,
   } = useCanvasPage({
     onSessionEnded: handleSessionEnded,
     onUnauthorized: handleUnauthorized,
   });
 
-  if (phase !== GAME_PHASE.INTRO && introModalDismissed) {
-    setIntroModalDismissed(false); // 추가: INTRO이 끝났다가 다음 게임 INTRO이 오면 다시 모달 표시
-  }
-
   useEffect(() => {
-    if (phase !== GAME_PHASE.INTRO) {
-      setIntroModalDismissed(false); // 변경: INTRO이 아닐 때 닫힘 상태 초기화
+    if (phase === GAME_PHASE.INTRO && !introModalDismissed) {
+      handleOpenIntroGuide();
+      return;
     }
-  }, [phase]);
+
+    if (phase !== GAME_PHASE.INTRO) {
+      handleCloseIntroGuide();
+      setIntroModalDismissed(false);
+    }
+  }, [handleCloseIntroGuide, handleOpenIntroGuide, introModalDismissed, phase]);
 
   if (loading) {
     return <LoadingScreen />;
@@ -243,13 +172,39 @@ export default function CanvasPage() {
     return <ErrorScreen message={error} />;
   }
 
-  // test 임시 수정
-  if (gameEnded && !gameSummaryModal) {
+  if (gameEnded) {
     return <GameEndedScreen />;
   }
 
   return (
-    <div className="flex h-screen w-full">
+    <div className="flex h-screen w-full bg-gray-50">
+      <aside className="flex w-[256px] shrink-0 flex-col gap-3 border-r border-gray-200 bg-white px-4 py-5">
+        <IntroPanelButton onClick={handleOpenIntroGuide} />
+
+        <RoundPanelList>
+          <button
+            type="button"
+            className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-4 text-left shadow-sm transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-100 disabled:bg-gray-50 disabled:opacity-60"
+            onClick={handleOpenLatestRoundSummary}
+            disabled={!isLatestRoundSummaryEnabled || !latestRoundSummary}
+          >
+            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">
+              Round
+            </p>
+            <p className="mt-1 text-base font-bold text-gray-900">
+              {latestRoundSummary
+                ? `${latestRoundSummary.roundNumber} 라운드 결과`
+                : "최근 라운드 결과"}
+            </p>
+            <p className="mt-1 text-sm text-gray-500">
+              {isLatestRoundSummaryEnabled && latestRoundSummary
+                ? "클릭하면 최근 라운드 통계 모달을 열 수 있어요."
+                : "ROUND_RESULT 또는 ROUND_START_WAIT 상태에서만 열 수 있어요."}
+            </p>
+          </button>
+        </RoundPanelList>
+      </aside>
+
       <CanvasStage
         containerRef={containerRef}
         overlay={
@@ -275,37 +230,6 @@ export default function CanvasPage() {
       >
         <CanvasSurface canvasRef={canvasRef} />
       </CanvasStage>
-
-      <IntroGuideModal
-        open={
-          phase === GAME_PHASE.INTRO &&
-          !introModalDismissed &&
-          !!gameConfig &&
-          cells.length > 0
-        } // 추가: INTRO phase에서만 전체 캔버스 안내 모달 표시
-        cells={cells}
-        gridX={gridX}
-        gridY={gridY}
-        gameConfig={gameConfig!}
-        formattedGameEndTime={formattedGameEndTime}
-        onClose={() => setIntroModalDismissed(true)}
-      />
-
-      {popupOpen && selectedCell && canvasId && (
-        <VotePopup
-          canvasId={canvasId}
-          roundId={roundId}
-          phase={phase}
-          isRoundExpired={isRoundExpired}
-          selectedCell={selectedCell}
-          votes={votes}
-          cells={cells}
-          position={popupPos}
-          onVoteSuccess={handleVoteSuccess}
-          onColorChange={handleColorChange}
-          onClose={handlePopupClose}
-        />
-      )}
 
       <div
         className="shrink-0 border-l border-gray-200 bg-white"
@@ -336,12 +260,45 @@ export default function CanvasPage() {
         )}
       </div>
 
-      {roundSummaryModal && (
-        <RoundSummaryModal
-          summary={roundSummaryModal}
-          onClose={handleCloseRoundSummaryModal}
+      {introGuideOpen && gameConfig && cells.length > 0 && (
+        <IntroGuideModal
+          open={true}
+          cells={cells}
+          gridX={gridX}
+          gridY={gridY}
+          gameConfig={gameConfig!}
+          formattedGameEndTime={formattedGameEndTime}
+          onClose={() => {
+            setIntroModalDismissed(true);
+            handleCloseIntroGuide();
+          }}
         />
       )}
+
+      {popupOpen && selectedCell && canvasId && (
+        <VotePopup
+          canvasId={canvasId}
+          roundId={roundId}
+          phase={phase}
+          isRoundExpired={isRoundExpired}
+          selectedCell={selectedCell}
+          votes={votes}
+          cells={cells}
+          position={popupPos}
+          onVoteSuccess={handleVoteSuccess}
+          onColorChange={handleColorChange}
+          onClose={handlePopupClose}
+        />
+      )}
+
+      <RoundSummaryModal
+        open={roundSummaryOpen}
+        summary={roundSummaryModal}
+        snapshot={latestRoundSnapshot}
+        position={roundSummaryPosition}
+        onClose={handleCloseRoundSummaryModal}
+        onDragStart={handleRoundSummaryDragStart}
+      />
 
       {gameSummaryModal && (
         <GameSummaryModal

@@ -19,6 +19,8 @@ function getPhaseLabel(phase: GamePhase): string {
       return "라운드 결과 집계 중";
     case GAME_PHASE.GAME_END:
       return "게임 종료";
+    default:
+      return "-";
   }
 }
 
