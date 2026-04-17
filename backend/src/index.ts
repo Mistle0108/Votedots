@@ -12,6 +12,7 @@ import {
 import { sessionMiddleware } from "./config/session";
 import { redisClient } from "./config/redis";
 import { initSocket } from "./socket/socket";
+import { ensureGameHistoryStorageRoot } from "./modules/history/history-storage.service";
 
 import authRouter from "./modules/auth/auth.router";
 import canvasRouter from "./modules/canvas/canvas.router";
@@ -90,9 +91,24 @@ app.use("/canvas", canvasRouter);
 app.use("/canvas/:canvasId/rounds", roundRouter);
 app.use("/vote", voteRouter);
 
-void connectWithRetry(io, "server startup");
+async function startServer() {
+  try {
+    await ensureGameHistoryStorageRoot();
+  } catch (error) {
+    console.error(
+      "[storage] failed to initialize game history storage root:",
+      error,
+    );
+    process.exit(1);
+    return;
+  }
 
-const PORT = process.env.PORT ?? 4000;
-server.listen(PORT, () => {
-  console.log(`서버 실행 중: http://localhost:${PORT}`);
-});
+  void connectWithRetry(io, "server startup");
+
+  const PORT = process.env.PORT ?? 4000;
+  server.listen(PORT, () => {
+    console.log(`서버 실행 중 http://localhost:${PORT}`);
+  });
+}
+
+void startServer();

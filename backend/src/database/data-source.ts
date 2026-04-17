@@ -11,6 +11,8 @@ import { Vote } from "../entities/vote.entity";
 import { GameSummary } from "../entities/game-summary.entity"; // 추가: 게임 집계 엔티티
 import { RoundSummary } from "../entities/round-summary.entity"; // 추가: 라운드 집계 엔티티
 
+import { RoundSnapshot } from "../entities/round-snapshot.entity";
+
 function readNonNegativeIntegerEnv(name: string, fallback: number): number {
   const value = Number(process.env[name]);
 
@@ -33,8 +35,9 @@ export const AppDataSource = new DataSource({
     VoteRound,
     VoteTicket,
     Voter,
-    GameSummary, // 추가: 게임 집계 테이블 매핑
-    RoundSummary, // 추가: 라운드 집계 테이블 매핑
+    GameSummary,
+    RoundSummary,
+    RoundSnapshot,
   ],
   migrations: ["src/database/migrations/*.ts"],
 });
