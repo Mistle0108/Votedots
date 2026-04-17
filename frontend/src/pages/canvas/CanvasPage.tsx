@@ -6,7 +6,7 @@ import {
   PANEL_WIDTH,
 } from "@/features/gameplay/canvas";
 import { IntroGuideModal } from "@/features/gameplay/intro";
-import { RoundPanelList } from "@/features/gameplay/round";
+import { GameHistoryPanel } from "@/features/gameplay/history";
 import RoundSummaryModal from "@/features/gameplay/round/components/RoundSummaryModal";
 import {
   ErrorScreen,
@@ -15,7 +15,6 @@ import {
 } from "@/features/gameplay/session";
 import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
-import IntroPanelButton from "@/features/gameplay/intro/components/IntroPanelButton";
 import useCanvasPage from "./model/useCanvasPage";
 import type { GameSummaryData } from "@/features/gameplay/session/api/session.api";
 
@@ -178,32 +177,12 @@ export default function CanvasPage() {
 
   return (
     <div className="flex h-screen w-full bg-gray-50">
-      <aside className="flex w-[256px] shrink-0 flex-col gap-3 border-r border-gray-200 bg-white px-4 py-5">
-        <IntroPanelButton onClick={handleOpenIntroGuide} />
-
-        <RoundPanelList>
-          <button
-            type="button"
-            className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-4 text-left shadow-sm transition hover:border-gray-300 hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-100 disabled:bg-gray-50 disabled:opacity-60"
-            onClick={handleOpenLatestRoundSummary}
-            disabled={!isLatestRoundSummaryEnabled || !latestRoundSummary}
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">
-              Round
-            </p>
-            <p className="mt-1 text-base font-bold text-gray-900">
-              {latestRoundSummary
-                ? `${latestRoundSummary.roundNumber} 라운드 결과`
-                : "최근 라운드 결과"}
-            </p>
-            <p className="mt-1 text-sm text-gray-500">
-              {isLatestRoundSummaryEnabled && latestRoundSummary
-                ? "클릭하면 최근 라운드 통계 모달을 열 수 있어요."
-                : "ROUND_RESULT 또는 ROUND_START_WAIT 상태에서만 열 수 있어요."}
-            </p>
-          </button>
-        </RoundPanelList>
-      </aside>
+      <GameHistoryPanel
+        onOpenIntroGuide={handleOpenIntroGuide}
+        onOpenLatestRoundSummary={handleOpenLatestRoundSummary}
+        latestRoundSummary={latestRoundSummary}
+        isLatestRoundSummaryEnabled={isLatestRoundSummaryEnabled}
+      />
 
       <CanvasStage
         containerRef={containerRef}
