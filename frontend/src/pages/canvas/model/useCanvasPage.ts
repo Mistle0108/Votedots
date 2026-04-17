@@ -197,18 +197,13 @@ export default function useCanvasPage({
   }, [gameplay.phase, handleCloseRoundSummaryModal]);
 
   const handleOpenLatestRoundSummary = useCallback(() => {
-    if (
-      !gameplay.roundSummary ||
-      !isRoundSummaryPhase(gameplay.phase) ||
-      !gameplay.isLatestRoundSummaryReady
-    ) {
+    if (!gameplay.roundSummary || !gameplay.canOpenLatestRoundSummary) {
       return;
     }
 
     handleOpenRoundSummaryModal(gameplay.roundSummary);
   }, [
-    gameplay.isLatestRoundSummaryReady,
-    gameplay.phase,
+    gameplay.canOpenLatestRoundSummary,
     gameplay.roundSummary,
     handleOpenRoundSummaryModal,
   ]);
@@ -275,7 +270,6 @@ export default function useCanvasPage({
     latestRoundSummary: gameplay.roundSummary,
     latestRoundSnapshot:
       gameplay.latestRoundSnapshot ?? latestStoredRoundSnapshot.snapshot,
-    isLatestRoundSummaryEnabled:
-      isRoundSummaryPhase(gameplay.phase) && gameplay.isLatestRoundSummaryReady,
+    isLatestRoundSummaryEnabled: gameplay.canOpenLatestRoundSummary,
   };
 }

@@ -114,7 +114,8 @@ export default function useCanvasGameplay({
   const [latestRoundSnapshot, setLatestRoundSnapshotState] = useState<string | null>(
     () => getLatestRoundSnapshot().snapshot,
   );
-  const [isLatestRoundSummaryReady, setIsLatestRoundSummaryReady] =
+
+  const [canOpenLatestRoundSummary, setCanOpenLatestRoundSummary] =
     useState(false);
 
   const clearLocalPhaseTransitionTimer = useCallback(() => {
@@ -247,7 +248,7 @@ export default function useCanvasGameplay({
         onOpenRoundSummaryModal(pending.summary);
       }
 
-      setIsLatestRoundSummaryReady(true);
+      setCanOpenLatestRoundSummary(true);
       pendingRoundResultRef.current = null;
 
       if (!saved) {
@@ -515,8 +516,6 @@ export default function useCanvasGameplay({
       clearLocalPhaseTransitionTimer();
       clearSnapshotDelayTimer();
       pendingRoundResultRef.current = null;
-      setIsLatestRoundSummaryReady(false);
-      setRoundSummary(null);
       setGameSummary(null);
       setRoundSummaryLoading(false);
       setGameSummaryLoading(false);
@@ -564,9 +563,8 @@ export default function useCanvasGameplay({
       clearSnapshotDelayTimer();
       clearTickets();
       resetVoteState();
-      setRoundSummary(null);
       setRoundSummaryLoading(true);
-      setIsLatestRoundSummaryReady(false);
+      setCanOpenLatestRoundSummary(false);
       pendingRoundResultRef.current = {
         roundId,
         roundNumber,
@@ -632,7 +630,7 @@ export default function useCanvasGameplay({
           return;
         }
 
-        setIsLatestRoundSummaryReady(true);
+        setCanOpenLatestRoundSummary(true);
       });
     },
     [canvasId, completePendingRoundResult, requestRoundSummary],
@@ -642,7 +640,7 @@ export default function useCanvasGameplay({
     clearLocalPhaseTransitionTimer();
     clearSnapshotDelayTimer();
     pendingRoundResultRef.current = null;
-    setIsLatestRoundSummaryReady(false);
+    setCanOpenLatestRoundSummary(false);
     clearTickets();
     clearParticipants();
     resetRoundState();
@@ -703,7 +701,7 @@ export default function useCanvasGameplay({
     clearLocalPhaseTransitionTimer();
     clearSnapshotDelayTimer();
     pendingRoundResultRef.current = null;
-    setIsLatestRoundSummaryReady(false);
+    setCanOpenLatestRoundSummary(false);
     markGameEnded();
     clearTickets();
     clearParticipants();
@@ -801,7 +799,7 @@ export default function useCanvasGameplay({
     gameConfig,
     roundSummary,
     latestRoundSnapshot,
-    isLatestRoundSummaryReady,
+    canOpenLatestRoundSummary,
     gameSummary,
     roundSummaryLoading,
     gameSummaryLoading,
