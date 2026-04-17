@@ -260,18 +260,20 @@ export default function CanvasPage() {
         )}
       </div>
 
-      <IntroGuideModal
-        open={introGuideOpen && !!gameConfig && cells.length > 0}
-        cells={cells}
-        gridX={gridX}
-        gridY={gridY}
-        gameConfig={gameConfig!}
-        formattedGameEndTime={formattedGameEndTime}
-        onClose={() => {
-          setIntroModalDismissed(true);
-          handleCloseIntroGuide();
-        }}
-      />
+      {introGuideOpen && gameConfig && cells.length > 0 && (
+        <IntroGuideModal
+          open={true}
+          cells={cells}
+          gridX={gridX}
+          gridY={gridY}
+          gameConfig={gameConfig!}
+          formattedGameEndTime={formattedGameEndTime}
+          onClose={() => {
+            setIntroModalDismissed(true);
+            handleCloseIntroGuide();
+          }}
+        />
+      )}
 
       {popupOpen && selectedCell && canvasId && (
         <VotePopup

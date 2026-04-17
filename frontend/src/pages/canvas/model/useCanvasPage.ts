@@ -117,9 +117,13 @@ export default function useCanvasPage({
 
   const handleOpenRoundSummaryModal = useCallback((summary: RoundSummaryData) => {
     setRoundSummaryModal(summary);
+
+    if (!roundSummaryOpen) {
+      setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
+    }
+
     setRoundSummaryOpen(true);
-    setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
-  }, []);
+  }, [roundSummaryOpen]);
 
   const handleOpenGameSummaryModal = useCallback((summary: GameSummaryData) => {
     setGameSummaryModal(summary);
