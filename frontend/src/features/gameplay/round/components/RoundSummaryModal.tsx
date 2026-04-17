@@ -24,10 +24,7 @@ function renderParticipantCopy(count: number) {
 }
 
 function renderMostVotedCell(summary: RoundSummaryData) {
-  if (
-    summary.mostVotedCellX === null ||
-    summary.mostVotedCellY === null
-  ) {
+  if (summary.mostVotedCellX === null || summary.mostVotedCellY === null) {
     return "없었어요";
   }
 
@@ -87,11 +84,12 @@ export default function RoundSummaryModal({
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
           <div className="space-y-5">
             {snapshot && (
-              <div className="mx-auto w-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white">
+              <div className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
                 <img
                   src={snapshot}
                   alt={`${summary.roundNumber} 라운드 스냅샷`}
-                  className="block w-full bg-white"
+                  className="block w-full rounded border border-gray-100 bg-transparent"
+                  style={{ imageRendering: "pixelated" }}
                   draggable={false}
                 />
               </div>

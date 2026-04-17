@@ -61,6 +61,7 @@ export interface RoundSummaryData {
   randomResolvedCellCount: number;
   createdAt: string;
   updatedAt: string;
+  snapshotUrl: string | null;
 }
 
 export interface GameSummaryTopVoter {
@@ -127,7 +128,9 @@ export const sessionApi = {
     api.get<RoundStateResponse>(`/canvas/${canvasId}/rounds/active`),
 
   getRoundSummary: (canvasId: number, roundId: number) =>
-    api.get<RoundSummaryResponse>(`/canvas/${canvasId}/rounds/${roundId}/summary`),
+    api.get<RoundSummaryResponse>(
+      `/canvas/${canvasId}/rounds/${roundId}/summary`,
+    ),
 
   getGameSummary: (canvasId: number) =>
     api.get<GameSummaryResponse>(`/canvas/${canvasId}/summary`),

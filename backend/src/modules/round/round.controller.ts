@@ -1,11 +1,30 @@
 import { Request, Response } from "express";
+import { access } from "node:fs/promises";
 import { Server } from "socket.io";
 import { roundService } from "./round.service";
 import { RoundSummary } from "../../entities/round-summary.entity";
+import { roundSnapshotService } from "../history/round-snapshot.service";
 import { summaryService } from "../summary/summary.service";
 
+function buildRoundSnapshotUrl(
+  req: Request,
+  canvasId: number,
+  roundId: number,
+): string {
+  const relativePath = roundSnapshotService.buildRoundSnapshotApiPath(
+    canvasId,
+    roundId,
+  );
+  const host = req.get("host");
+
+  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+}
+
 // 엔티티를 그대로 노출하지 않고 API 응답 필드를 명시적으로 고정
-function serializeRoundSummary(summary: RoundSummary) {
+function serializeRoundSummary(
+  summary: RoundSummary,
+  snapshotUrl: string | null,
+) {
   return {
     id: summary.id,
     canvasId: summary.canvas.id,
@@ -24,6 +43,7 @@ function serializeRoundSummary(summary: RoundSummary) {
     randomResolvedCellCount: summary.randomResolvedCellCount,
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
+    snapshotUrl,
   };
 }
 
@@ -94,13 +114,48 @@ export const roundController = {
           .json({ message: "존재하지 않는 캔버스 또는 라운드입니다." });
       }
 
-      const summary = await summaryService.getRoundSummary(canvasId, roundId);
+      const [summary, snapshot] = await Promise.all([
+        summaryService.getRoundSummary(canvasId, roundId),
+        roundSnapshotService.findRoundSnapshot(canvasId, roundId),
+      ]);
 
       return res.json({
-        data: serializeRoundSummary(summary),
+        data: serializeRoundSummary(
+          summary,
+          snapshot ? buildRoundSnapshotUrl(req, canvasId, roundId) : null,
+        ),
       });
     } catch (err) {
       return res.status(400).json({ message: String(err) });
+    }
+  },
+
+  async getRoundSnapshot(req: Request, res: Response) {
+    try {
+      const canvasId = parseInt(String(req.params["canvasId"]));
+      const roundId = parseInt(String(req.params["roundId"]));
+
+      if (isNaN(canvasId) || isNaN(roundId)) {
+        return res
+          .status(400)
+          .json({ message: "존재하지 않는 캔버스 또는 라운드입니다." });
+      }
+
+      const snapshot = await roundSnapshotService.getRoundSnapshot(
+        canvasId,
+        roundId,
+      );
+      const absolutePath =
+        roundSnapshotService.resolveRoundSnapshotAbsolutePath(snapshot);
+
+      await access(absolutePath);
+
+      res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+      res.type(snapshot.mimeType);
+
+      return res.sendFile(absolutePath);
+    } catch (err) {
+      return res.status(404).json({ message: String(err) });
     }
   },
 };

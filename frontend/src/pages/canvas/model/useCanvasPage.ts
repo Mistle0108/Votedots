@@ -5,7 +5,6 @@ import type {
   RoundSummaryData,
 } from "@/features/gameplay/session/api/session.api";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
-import { getLatestRoundSnapshot } from "@/features/gameplay/round/model/roundSnapshot.storage";
 import {
   GAME_PHASE,
   type GamePhase,
@@ -121,15 +120,18 @@ export default function useCanvasPage({
     clearSelectedCell();
   }, [clearSelectedCell]);
 
-  const handleOpenRoundSummaryModal = useCallback((summary: RoundSummaryData) => {
-    setRoundSummaryModal(summary);
+  const handleOpenRoundSummaryModal = useCallback(
+    (summary: RoundSummaryData) => {
+      setRoundSummaryModal(summary);
 
-    if (!roundSummaryOpen) {
-      setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
-    }
+      if (!roundSummaryOpen) {
+        setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
+      }
 
-    setRoundSummaryOpen(true);
-  }, [roundSummaryOpen]);
+      setRoundSummaryOpen(true);
+    },
+    [roundSummaryOpen],
+  );
 
   const handleOpenGameSummaryModal = useCallback((summary: GameSummaryData) => {
     setGameSummaryModal(summary);
@@ -179,7 +181,6 @@ export default function useCanvasPage({
 
   const gameplay = useCanvasGameplay({
     canvasId,
-    canvasElementRef: canvasRef,
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
     onCanvasBatchUpdated: handleCanvasBatchUpdated,
@@ -219,8 +220,6 @@ export default function useCanvasPage({
     clearSelectedCell();
     closePopup();
   }, [clearSelectedCell, closePopup]);
-
-  const latestStoredRoundSnapshot = getLatestRoundSnapshot();
 
   return {
     canvasRef,
@@ -275,8 +274,7 @@ export default function useCanvasPage({
     handleRoundSummaryDragStart,
     handleOpenLatestRoundSummary,
     latestRoundSummary: gameplay.roundSummary,
-    latestRoundSnapshot:
-      gameplay.latestRoundSnapshot ?? latestStoredRoundSnapshot.snapshot,
+    latestRoundSnapshot: gameplay.latestRoundSnapshot,
     isLatestRoundSummaryEnabled: gameplay.canOpenLatestRoundSummary,
   };
 }
