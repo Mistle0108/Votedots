@@ -23,11 +23,11 @@ function buildDescription(config: GameConfig) {
 
 function getDefaultPosition() {
   const modalWidth = Math.min(720, window.innerWidth - 24);
-  const modalHeight = Math.min(window.innerHeight - 48, 720);
+  const modalHeight = Math.min(window.innerHeight - 80, 680);
 
   return {
     x: Math.max(12, Math.round((window.innerWidth - modalWidth) / 2)),
-    y: Math.max(24, Math.round((window.innerHeight - modalHeight) / 2)),
+    y: Math.max(12, Math.round((window.innerHeight - modalHeight) / 2)),
   };
 }
 
@@ -89,7 +89,7 @@ export default function IntroGuideModal({
     >
       <div
         ref={modalRef}
-        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[720px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur"
+        className="pointer-events-auto fixed flex max-h-[min(calc(100vh-80px),680px)] w-[720px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur"
         style={{ top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}

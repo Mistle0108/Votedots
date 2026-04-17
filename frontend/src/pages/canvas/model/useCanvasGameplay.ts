@@ -44,6 +44,7 @@ interface UseCanvasGameplayParams {
   onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void;
   onOpenRoundSummaryModal: (summary: RoundSummaryData) => void;
   onOpenGameSummaryModal: (summary: GameSummaryData) => void;
+  onRoundEndedCleanup: () => void;
   onGameEndedCleanup: () => void;
   onSessionEnded: () => void;
   onUnauthorized: (message: string) => void;
@@ -66,6 +67,7 @@ export default function useCanvasGameplay({
   onCanvasBatchUpdated,
   onOpenRoundSummaryModal,
   onOpenGameSummaryModal,
+  onRoundEndedCleanup,
   onGameEndedCleanup,
   onSessionEnded,
   onUnauthorized,
@@ -561,6 +563,7 @@ export default function useCanvasGameplay({
     }) => {
       clearLocalPhaseTransitionTimer();
       clearSnapshotDelayTimer();
+      onRoundEndedCleanup();
       clearTickets();
       resetVoteState();
       setRoundSummaryLoading(true);
@@ -594,6 +597,7 @@ export default function useCanvasGameplay({
     [
       clearLocalPhaseTransitionTimer,
       clearSnapshotDelayTimer,
+      onRoundEndedCleanup,
       clearTickets,
       formattedGameEndTime,
       resetVoteState,

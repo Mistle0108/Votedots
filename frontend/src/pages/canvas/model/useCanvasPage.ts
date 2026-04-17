@@ -111,6 +111,12 @@ export default function useCanvasPage({
     [setCanvasId, setGridX, setGridY, updateCells],
   );
 
+  const handleRoundEndedCleanup = useCallback(() => {
+    clearSelectedCell();
+    resetPreviewColor();
+    closePopup();
+  }, [clearSelectedCell, resetPreviewColor, closePopup]);
+
   const handleGameEndedCleanup = useCallback(() => {
     clearSelectedCell();
   }, [clearSelectedCell]);
@@ -179,6 +185,7 @@ export default function useCanvasPage({
     onCanvasBatchUpdated: handleCanvasBatchUpdated,
     onOpenRoundSummaryModal: handleOpenRoundSummaryModal,
     onOpenGameSummaryModal: handleOpenGameSummaryModal,
+    onRoundEndedCleanup: handleRoundEndedCleanup,
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
     onUnauthorized,
