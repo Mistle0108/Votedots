@@ -1,6 +1,6 @@
 // TO-BE
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { canvasApi } from "@/features/gameplay/canvas";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useChunkLoader } from "@/features/gameplay/canvas/hooks/useChunkLoader";
 import { useVotePopup, useVoteState } from "@/features/gameplay/vote";
 import type {
   GameSummaryData,
@@ -13,9 +13,6 @@ import {
 } from "@/features/gameplay/session/model/game-phase.types";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
-
-const DEFAULT_CHUNK_SIZE = 64;
-const VIEWPORT_PREFETCH_MARGIN = 1;
 
 interface UseCanvasPageParams {
   onSessionEnded: () => void;
@@ -38,54 +35,11 @@ function isRoundSummaryPhase(phase: GamePhase) {
   );
 }
 
-function buildChunkRequest(
-  viewport: { left: number; top: number; width: number; height: number },
-  cellSize: number,
-  gridX: number,
-  gridY: number,
-  chunkSize: number,
-) {
-  const maxX = Math.max(0, gridX - 1);
-  const maxY = Math.max(0, gridY - 1);
-
-  const startCellX = Math.max(0, Math.floor(viewport.left / cellSize));
-  const startCellY = Math.max(0, Math.floor(viewport.top / cellSize));
-  const endCellX = Math.min(
-    maxX,
-    Math.floor((viewport.left + viewport.width) / cellSize),
-  );
-  const endCellY = Math.min(
-    maxY,
-    Math.floor((viewport.top + viewport.height) / cellSize),
-  );
-
-  return {
-    startChunkX: Math.max(
-      0,
-      Math.floor(startCellX / chunkSize) - VIEWPORT_PREFETCH_MARGIN,
-    ),
-    endChunkX: Math.max(
-      0,
-      Math.floor(endCellX / chunkSize) + VIEWPORT_PREFETCH_MARGIN,
-    ),
-    startChunkY: Math.max(
-      0,
-      Math.floor(startCellY / chunkSize) - VIEWPORT_PREFETCH_MARGIN,
-    ),
-    endChunkY: Math.max(
-      0,
-      Math.floor(endCellY / chunkSize) + VIEWPORT_PREFETCH_MARGIN,
-    ),
-    chunkSize,
-  };
-}
-
 export default function useCanvasPage({
   onSessionEnded,
   onUnauthorized,
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
-  const chunkRequestKeyRef = useRef<string | null>(null);
 
   const [roundSummaryModal, setRoundSummaryModal] =
     useState<RoundSummaryData | null>(null);
@@ -161,48 +115,13 @@ export default function useCanvasPage({
     [setCanvasId, setGridX, setGridY, updateCells],
   );
 
-  const chunkRequest = useMemo(() => {
-    if (!canvasId || gridX <= 0 || gridY <= 0 || !viewport) {
-      return null;
-    }
-
-    return buildChunkRequest(viewport, 1, gridX, gridY, DEFAULT_CHUNK_SIZE);
-  }, [canvasId, gridX, gridY, viewport]);
-
-  useEffect(() => {
-    if (!canvasId || !chunkRequest) {
-      return;
-    }
-
-    const requestKey = JSON.stringify(chunkRequest);
-    if (chunkRequestKeyRef.current === requestKey) {
-      return;
-    }
-
-    chunkRequestKeyRef.current = requestKey;
-
-    void canvasApi.getChunks(canvasId, chunkRequest).then(({ data }) => {
-      updateCells((prev) => {
-        const next = [...prev];
-
-        for (const incoming of data.cells) {
-          const index = next.findIndex(
-            (cell) => cell.x === incoming.x && cell.y === incoming.y,
-          );
-
-          if (index === -1) {
-            next.push(incoming);
-            continue;
-          }
-
-          next[index] = incoming;
-        }
-
-        return next;
-      });
-    });
-  }, [canvasId, chunkRequest, updateCells]);
-
+  useChunkLoader({
+    canvasId,
+    gridX,
+    gridY,
+    viewport,
+    updateCells,
+  });
   const handleRoundEndedCleanup = useCallback(() => {
     clearSelectedCell();
     resetPreviewColor();
