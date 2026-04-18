@@ -13,6 +13,7 @@ import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { Vote } from "../../entities/vote.entity";
 import { Voter } from "../../entities/voter.entity";
 import { GamePhase } from "../game/game-phase.types";
+import { roundSnapshotService } from "../history/round-snapshot.service";
 import { participantSessionService } from "../participant/participant-session.service";
 import { summaryService } from "../summary/summary.service"; // 추가: 라운드 summary 저장 서비스
 import { voteService } from "../vote/vote.service";
@@ -80,10 +81,10 @@ function getActiveGameEndAt(
 
   return new Date(
     roundStartedAt.getTime() +
-    remainingRoundsIncludingCurrent * config.phases.roundDurationSec * 1000 +
-    Math.max(0, remainingRoundsIncludingCurrent - 1) *
-    config.phases.roundResultDelaySec *
-    1000,
+      remainingRoundsIncludingCurrent * config.phases.roundDurationSec * 1000 +
+      Math.max(0, remainingRoundsIncludingCurrent - 1) *
+        config.phases.roundResultDelaySec *
+        1000,
   );
 }
 
@@ -96,9 +97,9 @@ function getWaitingGameEndAt(
 
   return new Date(
     roundEndedAt.getTime() +
-    config.phases.roundResultDelaySec * 1000 +
-    futureRounds * config.phases.roundDurationSec * 1000 +
-    Math.max(0, futureRounds - 1) * config.phases.roundResultDelaySec * 1000,
+      config.phases.roundResultDelaySec * 1000 +
+      futureRounds * config.phases.roundDurationSec * 1000 +
+      Math.max(0, futureRounds - 1) * config.phases.roundResultDelaySec * 1000,
   );
 }
 
@@ -129,7 +130,7 @@ export const roundService = {
     const roundStartedAt = new Date();
     const roundEndsAt = new Date(
       roundStartedAt.getTime() +
-      canvasGameConfig.phases.roundDurationSec * 1000,
+        canvasGameConfig.phases.roundDurationSec * 1000,
     );
 
     const round = voteRoundRepository.create({
@@ -353,7 +354,7 @@ export const roundService = {
 
     const roundResultEndsAt = new Date(
       round.endedAt.getTime() +
-      canvasGameConfig.phases.roundResultDelaySec * 1000,
+        canvasGameConfig.phases.roundResultDelaySec * 1000,
     );
 
     await canvasRepository.update(canvasId, {
@@ -372,7 +373,21 @@ export const roundService = {
       reason: "라운드 결과 전환",
     });
 
-    const roundSummary = await summaryService.saveRoundSummary(canvasId, round.id);
+    const roundSummary = await summaryService.saveRoundSummary(
+      canvasId,
+      round.id,
+    );
+
+    try {
+      await roundSnapshotService.saveRoundSnapshot({
+        canvasId,
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        capturedAt: round.endedAt ?? new Date(),
+      });
+    } catch (error) {
+      console.error("[round-snapshot] failed to save round snapshot:", error);
+    }
 
     await redisClient.del(redisKey);
     await voteService.clearIssuedVoters(round.id);
@@ -425,7 +440,7 @@ export const roundService = {
       const remainingSeconds = Math.max(
         0,
         canvasGameConfig.phases.roundDurationSec -
-        Math.floor((now.getTime() - activeRound.startedAt.getTime()) / 1000),
+          Math.floor((now.getTime() - activeRound.startedAt.getTime()) / 1000),
       );
 
       const gameEndAt = getActiveGameEndAt(
@@ -466,7 +481,7 @@ export const roundService = {
 
     const waitingDeadline = new Date(
       lastRound.endedAt.getTime() +
-      canvasGameConfig.phases.roundResultDelaySec * 1000,
+        canvasGameConfig.phases.roundResultDelaySec * 1000,
     );
 
     if (now >= waitingDeadline) {

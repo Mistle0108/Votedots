@@ -32,6 +32,8 @@ services:
       - "4000"
     depends_on:
       - redis
+    volumes:
+      - ../votedots_local_storage:/votedots-storage
     networks:
       - default
       - shared-db-network
