@@ -1,11 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { Cell } from "@/features/gameplay/canvas";
 import type { GameConfig } from "@/shared/config/game-config";
 import IntroCanvasPreview from "./IntroCanvasPreview";
 
 interface Props {
   open: boolean;
-  cells: Cell[];
+  backgroundImageUrl: string | null;
   gridX: number;
   gridY: number;
   gameConfig: GameConfig;
@@ -33,7 +32,7 @@ function getDefaultPosition() {
 
 export default function IntroGuideModal({
   open,
-  cells,
+  backgroundImageUrl,
   gridX,
   gridY,
   gameConfig,
@@ -127,8 +126,11 @@ export default function IntroGuideModal({
             </section>
 
             <div className="mx-auto w-fit space-y-3">
-              <IntroCanvasPreview cells={cells} gridX={gridX} gridY={gridY} />
-
+              <IntroCanvasPreview
+                backgroundImageUrl={backgroundImageUrl}
+                gridX={gridX}
+                gridY={gridY}
+              />
               <div className="space-y-1 text-left text-sm font-bold text-gray-700">
                 <p>
                   전체 라운드 수 :{" "}

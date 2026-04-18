@@ -1,10 +1,7 @@
-import { useEffect, useMemo, useRef } from "react";
-import type { Cell } from "@/features/gameplay/canvas";
-import { renderCanvas } from "@/features/gameplay/canvas/model/canvas.render";
-import { getGameConfig } from "@/shared/config/game-config";
+import { useMemo } from "react";
 
 interface Props {
-  cells: Cell[];
+  backgroundImageUrl: string | null;
   gridX: number;
   gridY: number;
   maxSize?: number;
@@ -13,13 +10,11 @@ interface Props {
 const DEFAULT_PREVIEW_SIZE = 260;
 
 export default function IntroCanvasPreview({
-  cells,
+  backgroundImageUrl,
   gridX,
   gridY,
   maxSize = DEFAULT_PREVIEW_SIZE,
 }: Props) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
   const previewSize = useMemo(() => {
     const longestSide = Math.max(gridX, gridY, 1);
     const scale = maxSize / longestSide;
@@ -30,48 +25,30 @@ export default function IntroCanvasPreview({
     };
   }, [gridX, gridY, maxSize]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || gridX <= 0 || gridY <= 0) {
-      return;
-    }
-
-    const cellSize = getGameConfig().board.cellSize;
-
-    canvas.width = gridX * cellSize; // 추가: 실제 게임 보드와 같은 해상도로 렌더
-    canvas.height = gridY * cellSize;
-
-    const ctx = canvas.getContext("2d");
-    if (!ctx) {
-      return;
-    }
-
-    ctx.imageSmoothingEnabled = false;
-
-    renderCanvas({
-      ctx,
-      canvas,
-      cells,
-      selectedCell: null, // 추가: INTRO 프리뷰는 선택/투표 상태 없이 전체 캔버스만 표시
-      previewColor: null,
-      votingCellIds: new Set(),
-      topColorMap: new Map(),
-      timestamp: 0,
-    });
-  }, [cells, gridX, gridY]);
-
   return (
     <div className="w-fit">
       <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
-        <canvas
-          ref={canvasRef}
-          className="block rounded border border-gray-100 bg-white"
-          style={{
-            width: `${previewSize.width}px`,
-            height: `${previewSize.height}px`,
-            imageRendering: "pixelated",
-          }}
-        />
+        {backgroundImageUrl ? (
+          <img
+            src={backgroundImageUrl}
+            alt="인트로 캔버스 배경"
+            className="block rounded border border-gray-100 bg-white"
+            style={{
+              width: `${previewSize.width}px`,
+              height: `${previewSize.height}px`,
+              imageRendering: "pixelated",
+            }}
+            draggable={false}
+          />
+        ) : (
+          <div
+            className="rounded border border-gray-100 bg-gray-100"
+            style={{
+              width: `${previewSize.width}px`,
+              height: `${previewSize.height}px`,
+            }}
+          />
+        )}
       </div>
     </div>
   );

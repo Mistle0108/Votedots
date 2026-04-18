@@ -17,6 +17,7 @@ function serializeCanvas(canvas: Canvas) {
     gridX: canvas.gridX,
     gridY: canvas.gridY,
     configProfileKey: canvas.configProfileKey,
+    backgroundAssetKey: canvas.backgroundAssetKey,
     status: canvas.status,
     phase: canvas.phase,
     phaseStartedAt: canvas.phaseStartedAt,
@@ -73,7 +74,6 @@ function serializeGameSummary(summary: GameSummary) {
     updatedAt: summary.updatedAt,
   };
 }
-
 
 export const canvasController = {
   async create(req: Request, res: Response) {

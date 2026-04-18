@@ -10,10 +10,7 @@ import {
   participantSessionService,
   type ParticipantSummary,
 } from "../participant/participant-session.service";
-import {
-  buildOutlineCellSet,
-  pickRandomOutlineTemplate,
-} from "./template/outline-template.service";
+import { pickRandomBackgroundTemplate } from "./template/background-template.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -61,11 +58,17 @@ export const canvasService = {
       now.getTime() + snapshot.phases.introPhaseSec * 1000,
     );
 
+    const backgroundTemplate = pickRandomBackgroundTemplate(
+      gridSizeX,
+      gridSizeY,
+    );
+
     const canvas = canvasRepository.create({
       gridX: gridSizeX,
       gridY: gridSizeY,
       configProfileKey: profileKey,
       configSnapshot: snapshot,
+      backgroundAssetKey: backgroundTemplate?.assetKey ?? null,
       status: CanvasStatus.PLAYING,
       phase: GamePhase.INTRO,
       phaseStartedAt: now,
@@ -85,13 +88,6 @@ export const canvasService = {
       reason: `캔버스 생성(profile=${profileKey})`,
     });
 
-    const outlineTemplate = pickRandomOutlineTemplate(gridSizeX, gridSizeY);
-    const outlineCellSet = buildOutlineCellSet(outlineTemplate);
-
-    console.log(
-      `[canvas] outline template selected | canvasId=${canvas.id} profile=${profileKey} size=${gridSizeX}x${gridSizeY} templateId=${outlineTemplate?.id ?? "none"} templateName=${outlineTemplate?.name ?? "none"} outlineCellCount=${outlineCellSet.size}`,
-    );
-
     const cells: Array<{
       canvas: { id: number };
       x: number;
@@ -102,13 +98,11 @@ export const canvasService = {
 
     for (let y = 0; y < gridSizeY; y++) {
       for (let x = 0; x < gridSizeX; x++) {
-        const isOutlineCell = outlineCellSet.has(`${x}:${y}`);
-
         cells.push({
           canvas: { id: canvas.id },
           x,
           y,
-          color: isOutlineCell ? "#000000" : null,
+          color: null,
           status: CellStatus.IDLE,
         });
       }

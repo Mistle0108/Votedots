@@ -50,6 +50,7 @@ export interface SessionBootstrapResult {
   canvasId: number;
   gridX: number;
   gridY: number;
+  backgroundImageUrl: string | null;
   cells: Cell[];
   round: RoundInfoState;
   votes: Record<string, number>;
