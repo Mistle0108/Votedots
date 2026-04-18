@@ -5,19 +5,34 @@ import { Server } from "socket.io";
 import cors from "cors";
 import * as dotenv from "dotenv";
 import { AppDataSource } from "./database/data-source";
+import {
+  connectWithRetry,
+  getDbConnectionState,
+} from "./database/db-connection.manager";
 import { sessionMiddleware } from "./config/session";
 import { redisClient } from "./config/redis";
+import { initSocket } from "./socket/socket";
+import { ensureGameHistoryStorageRoot } from "./modules/history/history-storage.service";
+
 import authRouter from "./modules/auth/auth.router";
+import canvasRouter from "./modules/canvas/canvas.router";
+import roundRouter from "./modules/round/round.router";
+import voteRouter from "./modules/vote/vote.router";
 
 dotenv.config();
 
 const app = express();
+app.set("trust proxy", 1);
+
 const server = http.createServer(app);
 const io = new Server(server, {
-  cors: { origin: process.env.CLIENT_URL ?? "http://localhost:5173" },
+  cors: {
+    origin: process.env.CLIENT_URL ?? "http://localhost:5173",
+    credentials: true,
+    methods: ["GET", "POST"],
+  },
 });
 
-// Front 연결
 app.use(
   cors({
     origin: process.env.CLIENT_URL ?? "http://localhost:5173",
@@ -27,17 +42,10 @@ app.use(
 app.use(express.json());
 app.use(sessionMiddleware);
 
-// TypeORM 연결
-AppDataSource.initialize()
-  .then(() => console.log("DB 연결 성공"))
-  .catch((err) => console.error("DB 연결 실패:", err));
-
-// Health check
 app.get("/health", (_req, res) => {
   res.json({ status: "ok" });
 });
 
-// Redis 연결
 app.get("/health/redis", async (_req, res) => {
   try {
     await redisClient.set("test", "ok");
@@ -48,28 +56,59 @@ app.get("/health/redis", async (_req, res) => {
   }
 });
 
-// DB
 app.get("/health/db", async (_req, res) => {
+  const connection = getDbConnectionState();
+
+  if (!AppDataSource.isInitialized) {
+    return res.status(503).json({
+      status: "error",
+      message: connection.lastError ?? "DB is not connected",
+      connection,
+    });
+  }
+
   try {
     await AppDataSource.query("SELECT 1");
-    res.json({ status: "ok" });
+
+    return res.json({
+      status: "ok",
+      connection: getDbConnectionState(),
+    });
   } catch (err) {
-    res.status(500).json({ status: "error", message: String(err) });
+    return res.status(503).json({
+      status: "error",
+      message: String(err),
+      connection: getDbConnectionState(),
+    });
   }
 });
 
-// Auth Router
+initSocket(io);
+app.set("io", io);
+
 app.use("/auth", authRouter);
+app.use("/canvas", canvasRouter);
+app.use("/canvas/:canvasId/rounds", roundRouter);
+app.use("/vote", voteRouter);
 
-// Socket.io
-io.on("connection", (socket) => {
-  console.log("클라이언트 연결:", socket.id);
-  socket.on("disconnect", () => {
-    console.log("클라이언트 해제:", socket.id);
+async function startServer() {
+  try {
+    await ensureGameHistoryStorageRoot();
+  } catch (error) {
+    console.error(
+      "[storage] failed to initialize game history storage root:",
+      error,
+    );
+    process.exit(1);
+    return;
+  }
+
+  void connectWithRetry(io, "server startup");
+
+  const PORT = process.env.PORT ?? 4000;
+  server.listen(PORT, () => {
+    console.log(`서버 실행 중 http://localhost:${PORT}`);
   });
-});
+}
 
-const PORT = process.env.PORT ?? 5173;
-server.listen(PORT, () => {
-  console.log(`서버 실행 중: http://localhost:${PORT}`);
-});
+void startServer();

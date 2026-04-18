@@ -14,7 +14,7 @@ services:
     volumes:
       - ./backend:/app
       - /app/node_modules
-
+      - ../votedots_local_storage:/votedots-storage
   frontend:
     build:
       context: ./frontend

@@ -1,0 +1,66 @@
+services:
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION}
+    container_name: votedots-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - backend
+    volumes:
+      - certbot-www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    networks:
+      - default
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      args:
+        NODE_VERSION: ${NODE_VERSION}
+    container_name: votedots-backend
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    expose:
+      - "4000"
+    depends_on:
+      - redis
+    volumes:
+      - ../votedots_local_storage:/votedots-storage
+    networks:
+      - default
+      - shared-db-network
+
+  redis:
+    image: redis:${REDIS_VERSION}-alpine
+    container_name: votedots-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - /opt/votedots/data/redis:/data
+    networks:
+      - default
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: votedots-certbot
+    volumes:
+      - certbot-www:/var/www/certbot
+      - letsencrypt:/etc/letsencrypt
+    networks:
+      - default
+
+volumes:
+  certbot-www:
+  letsencrypt:
+
+networks:
+  shared-db-network:
+    external: true
