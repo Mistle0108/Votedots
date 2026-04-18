@@ -5,7 +5,7 @@ import {
   SLOT_COUNT,
   STORAGE_KEYS,
 } from "./vote.constants";
-import type { VotePanelEntry, VotePopupEntry } from "./vote.types";
+import type { VotePanelEntry } from "./vote.types";
 
 export function loadSlotColors(): string[] {
   if (typeof window === "undefined") {
@@ -50,26 +50,33 @@ export function loadLastVotedColor(): string {
   return /^#[0-9a-fA-F]{6}$/.test(saved) ? saved : DEFAULT_VOTE_COLOR;
 }
 
+// TO-BE
 export function buildVotePopupEntries(
   votes: Record<string, number>,
-  selectedCellId: number,
+  x: number,
+  y: number,
   cells: Cell[],
-): VotePopupEntry[] {
-  return Object.entries(votes)
-    .filter(([key]) => key.startsWith(`${selectedCellId}:`))
-    .map(([key, count]) => {
-      const [cellIdStr, color] = key.split(":");
-      const cellId = parseInt(cellIdStr, 10);
-      const cell = cells.find((candidate) => candidate.id === cellId);
+) {
+  const counts = new Map<string, number>();
 
-      return {
-        cellId,
-        x: cell?.x ?? 0,
-        y: cell?.y ?? 0,
-        color,
-        count,
-      };
-    })
+  Object.entries(votes).forEach(([key, count]) => {
+    const [targetX, targetY, color] = key.split(":");
+
+    if (Number(targetX) !== x || Number(targetY) !== y || !color) {
+      return;
+    }
+
+    counts.set(color, count);
+  });
+
+  const selectedCell = cells.find((cell) => cell.x === x && cell.y === y);
+
+  if (selectedCell?.color) {
+    counts.set(selectedCell.color, counts.get(selectedCell.color) ?? 0);
+  }
+
+  return [...counts.entries()]
+    .map(([color, count]) => ({ color, count }))
     .sort((a, b) => b.count - a.count);
 }
 
@@ -79,17 +86,20 @@ export function buildVotePanelEntries(
 ): VotePanelEntry[] {
   return Array.from(
     Object.entries(votes)
-      .reduce<Map<number, VotePanelEntry>>((map, [key, count]) => {
-        const [cellIdStr, color] = key.split(":");
-        const cellId = parseInt(cellIdStr, 10);
-        const cell = cells.find((candidate) => candidate.id === cellId);
-        const existing = map.get(cellId);
+      .reduce<Map<string, VotePanelEntry>>((map, [key, count]) => {
+        const [xStr, yStr, color] = key.split(":");
+        const x = parseInt(xStr, 10);
+        const y = parseInt(yStr, 10);
+        const coordinateKey = `${x}:${y}`;
+        const cell = cells.find(
+          (candidate) => candidate.x === x && candidate.y === y,
+        );
+        const existing = map.get(coordinateKey);
 
         if (!existing) {
-          map.set(cellId, {
-            cellId,
-            x: cell?.x ?? 0,
-            y: cell?.y ?? 0,
+          map.set(coordinateKey, {
+            x: cell?.x ?? x,
+            y: cell?.y ?? y,
             topColor: color,
             topCount: count,
             totalCount: count,

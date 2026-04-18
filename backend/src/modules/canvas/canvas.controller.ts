@@ -30,7 +30,6 @@ function serializeCanvas(canvas: Canvas) {
 
 function serializeCell(cell: Cell) {
   return {
-    id: cell.id,
     x: cell.x,
     y: cell.y,
     color: cell.color,

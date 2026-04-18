@@ -109,7 +109,12 @@ export default function VotePopup({
   const dragOffset = useRef({ x: 0, y: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
 
-  const voteEntries = buildVotePopupEntries(votes, selectedCell.id, cells);
+  const voteEntries = buildVotePopupEntries(
+    votes,
+    selectedCell.x,
+    selectedCell.y,
+    cells,
+  );
   const maxCount = voteEntries[0]?.count ?? 1;
   const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
   const phaseBlockedMessage = getPhaseBlockedMessage(phase);
@@ -171,7 +176,8 @@ export default function VotePopup({
       await voteApi.submit({
         canvasId,
         roundId,
-        cellId: selectedCell.id,
+        x: selectedCell.x,
+        y: selectedCell.y,
         color,
       });
 
@@ -197,7 +203,8 @@ export default function VotePopup({
     isRoundExpired,
     color,
     canvasId,
-    selectedCell.id,
+    selectedCell.x,
+    selectedCell.y,
     onColorChange,
     onVoteSuccess,
     onClose,
@@ -297,7 +304,7 @@ export default function VotePopup({
     setError("");
   }, [isRoundExpired, isVotingPhase]);
 
-    useEffect(() => {
+  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.code !== "Space") {
         return;
@@ -327,7 +334,6 @@ export default function VotePopup({
     };
   }, [handleSubmit, isVoteDisabled]);
 
-
   return (
     <div
       ref={popupRef}
@@ -347,11 +353,11 @@ export default function VotePopup({
               selectedCell.color
                 ? { backgroundColor: selectedCell.color }
                 : {
-                  backgroundColor: "#f9fafb",
-                  backgroundImage: CHECKER_PATTERN,
-                  backgroundPosition: "0 0, 4px 4px",
-                  backgroundSize: "8px 8px",
-                }
+                    backgroundColor: "#f9fafb",
+                    backgroundImage: CHECKER_PATTERN,
+                    backgroundPosition: "0 0, 4px 4px",
+                    backgroundSize: "8px 8px",
+                  }
             }
             onClick={(event) => {
               event.stopPropagation();

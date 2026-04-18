@@ -33,7 +33,7 @@ function formatClockTime(date: Date): string {
 interface UseCanvasGameplayParams {
   canvasId: number | null;
   onBootstrapScene: (result: SessionBootstrapResult) => void;
-  onCanvasUpdated: (payload: { cellId: number; color: string }) => void;
+  onCanvasUpdated: (payload: { x: number; y: number; color: string }) => void;
   onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void;
   onOpenRoundSummaryModal: (summary: RoundSummaryData) => void;
   onOpenGameSummaryModal: (summary: GameSummaryData) => void;
@@ -697,7 +697,7 @@ export default function useCanvasGameplay({
   ]);
 
   const handleCanvasUpdatedWithSnapshot = useCallback(
-    (payload: { cellId: number; color: string }) => {
+    (payload: { x: number; y: number; color: string }) => {
       onCanvasUpdated(payload);
     },
     [onCanvasUpdated],

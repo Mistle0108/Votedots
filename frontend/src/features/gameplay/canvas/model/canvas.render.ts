@@ -8,8 +8,8 @@ interface RenderCanvasParams {
   cells: Cell[];
   selectedCell: Cell | null;
   previewColor: string | null;
-  votingCellIds: Set<number>;
-  topColorMap: Map<number, string>;
+  votingCellIds: Set<string>;
+  topColorMap: Map<string, string>;
   timestamp: number;
 }
 
@@ -33,9 +33,10 @@ export function renderCanvas({
   cells.forEach((cell) => {
     const x = cell.x * cellSize;
     const y = cell.y * cellSize;
-    const isSelected = selectedCell?.id === cell.id;
-    const isVoting = votingCellIds.has(cell.id);
-    const topColor = topColorMap.get(cell.id);
+    const cellKey = `${cell.x}:${cell.y}`;
+    const isSelected = selectedCell?.x === cell.x && selectedCell?.y === cell.y;
+    const isVoting = votingCellIds.has(cellKey);
+    const topColor = topColorMap.get(cellKey);
 
     if (cell.color) {
       ctx.fillStyle = cell.color;
