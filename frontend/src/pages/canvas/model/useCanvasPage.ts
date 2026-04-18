@@ -100,11 +100,16 @@ export default function useCanvasPage({
     closePopup,
   });
 
+  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(
+    null,
+  );
+
   const applyBootstrapScene = useCallback(
     (result: SessionBootstrapResult) => {
       setCanvasId(result.canvasId);
       setGridX(result.gridX);
       setGridY(result.gridY);
+      setBackgroundImageUrl(result.backgroundImageUrl);
       updateCells(result.cells);
     },
     [setCanvasId, setGridX, setGridY, updateCells],
@@ -263,6 +268,7 @@ export default function useCanvasPage({
     handleCloseGameSummaryModal,
     gridX,
     gridY,
+    backgroundImageUrl,
     viewport,
     navigateToCoordinate,
     resetCanvasZoom,

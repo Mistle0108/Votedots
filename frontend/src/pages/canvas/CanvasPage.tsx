@@ -133,6 +133,7 @@ export default function CanvasPage() {
     handleCloseGameSummaryModal,
     gridX,
     gridY,
+    backgroundImageUrl,
     viewport,
     navigateToCoordinate,
     resetCanvasZoom,
@@ -207,7 +208,10 @@ export default function CanvasPage() {
         onMouseLeave={handleMouseLeave}
         onWheel={handleWheel}
       >
-        <CanvasSurface canvasRef={canvasRef} />
+        <CanvasSurface
+          canvasRef={canvasRef}
+          backgroundImageUrl={backgroundImageUrl}
+        />
       </CanvasStage>
 
       <div
@@ -239,10 +243,10 @@ export default function CanvasPage() {
         )}
       </div>
 
-      {introGuideOpen && gameConfig && cells.length > 0 && (
+      {introGuideOpen && gameConfig && (
         <IntroGuideModal
           open={true}
-          cells={cells}
+          backgroundImageUrl={backgroundImageUrl}
           gridX={gridX}
           gridY={gridY}
           gameConfig={gameConfig!}

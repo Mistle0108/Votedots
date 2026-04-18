@@ -1,10 +1,5 @@
 import { getGameConfig } from "@/shared/config/game-config";
-import {
-  CHECKER_DARK,
-  CHECKER_LIGHT,
-  SELECTED_STROKE_COLOR,
-  VOTING_STROKE_COLOR,
-} from "./canvas.constants";
+import { SELECTED_STROKE_COLOR, VOTING_STROKE_COLOR } from "./canvas.constants";
 import { Cell } from "./canvas.types";
 
 interface RenderCanvasParams {
@@ -45,15 +40,6 @@ export function renderCanvas({
     if (cell.color) {
       ctx.fillStyle = cell.color;
       ctx.fillRect(x, y, cellSize, cellSize);
-    } else {
-      const half = cellSize / 2;
-
-      ctx.fillStyle = CHECKER_LIGHT;
-      ctx.fillRect(x, y, cellSize, cellSize);
-
-      ctx.fillStyle = CHECKER_DARK;
-      ctx.fillRect(x, y, half, half);
-      ctx.fillRect(x + half, y + half, half, half);
     }
 
     if (isSelected && previewColor) {
