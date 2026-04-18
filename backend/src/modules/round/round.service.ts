@@ -277,7 +277,7 @@ export const roundService = {
         continue;
       }
 
-      addVoteBucket("${x}:${y}", color, count);
+      addVoteBucket(`${x}:${y}`, color, count);
     }
 
     if (voteBuckets.size === 0) {

@@ -1,6 +1,6 @@
 import type { Cell } from "@/features/gameplay/canvas";
+import type { GamePhase } from "@/features/gameplay/session/model/game-phase.types";
 import type { GameConfig } from "@/shared/config/game-config";
-import type { GamePhase } from "./game-phase.types";
 
 export interface RoundInfoState {
   phase: GamePhase;
@@ -15,7 +15,6 @@ export interface RoundInfoState {
   phaseStartedAt: string | null;
   phaseEndsAt: string | null;
 }
-
 export interface PhaseTimingState {
   introPhaseSec: number;
   roundStartWaitSec: number;
@@ -26,8 +25,8 @@ export interface PhaseTimingState {
 export interface VoteSessionState {
   votes: Record<string, number>;
   remaining: number | null;
-  votingCellIds: Set<number>;
-  topColorMap: Map<number, string>;
+  votingCellIds: Set<string>;
+  topColorMap: Map<string, string>;
 }
 
 export interface CanvasSessionState {

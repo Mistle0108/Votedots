@@ -16,8 +16,19 @@ const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 
+const DEFAULT_CHUNK_SIZE = 64;
+
 interface CreateCanvasOptions {
   profileKey?: string | null;
+}
+
+interface GetChunkCellsParams {
+  canvasId: number;
+  startChunkX: number;
+  endChunkX: number;
+  startChunkY: number;
+  endChunkY: number;
+  chunkSize?: number;
 }
 
 function logPhaseChange(params: {
@@ -222,5 +233,94 @@ export const canvasService = {
       },
       order: { phaseStartedAt: "DESC" },
     });
+  },
+
+  async getChunkCells({
+    canvasId,
+    startChunkX,
+    endChunkX,
+    startChunkY,
+    endChunkY,
+    chunkSize = DEFAULT_CHUNK_SIZE,
+  }: GetChunkCellsParams): Promise<{
+    chunkSize: number;
+    ranges: {
+      startChunkX: number;
+      endChunkX: number;
+      startChunkY: number;
+      endChunkY: number;
+    };
+    bounds: {
+      minCellX: number;
+      maxCellX: number;
+      minCellY: number;
+      maxCellY: number;
+    };
+    cells: Cell[];
+  }> {
+    const canvas = await canvasRepository.findOne({
+      where: { id: canvasId },
+    });
+
+    if (!canvas) {
+      throw new Error("Canvas was not found.");
+    }
+
+    if (
+      startChunkX < 0 ||
+      endChunkX < startChunkX ||
+      startChunkY < 0 ||
+      endChunkY < startChunkY ||
+      chunkSize <= 0
+    ) {
+      throw new Error("잘못된 chunk 범위입니다.");
+    }
+
+    const minCellX = startChunkX * chunkSize;
+    const maxCellX = Math.min(
+      canvas.gridX - 1,
+      (endChunkX + 1) * chunkSize - 1,
+    );
+    const minCellY = startChunkY * chunkSize;
+    const maxCellY = Math.min(
+      canvas.gridY - 1,
+      (endChunkY + 1) * chunkSize - 1,
+    );
+
+    const cells =
+      minCellX > maxCellX || minCellY > maxCellY
+        ? []
+        : await cellRepository
+            .createQueryBuilder("cell")
+            .where("cell.canvas_id = :canvasId", { canvasId })
+            .andWhere("cell.status = :status", { status: CellStatus.PAINTED })
+            .andWhere("cell.x BETWEEN :minCellX AND :maxCellX", {
+              minCellX,
+              maxCellX,
+            })
+            .andWhere("cell.y BETWEEN :minCellY AND :maxCellY", {
+              minCellY,
+              maxCellY,
+            })
+            .orderBy("cell.y", "ASC")
+            .addOrderBy("cell.x", "ASC")
+            .getMany();
+
+    return {
+      chunkSize,
+      ranges: {
+        startChunkX,
+        endChunkX,
+        startChunkY,
+        endChunkY,
+      },
+      bounds: {
+        minCellX,
+        maxCellX,
+        minCellY,
+        maxCellY,
+      },
+      cells,
+    };
   },
 };
