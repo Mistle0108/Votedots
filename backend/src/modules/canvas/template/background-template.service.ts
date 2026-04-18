@@ -13,6 +13,8 @@ export function pickRandomBackgroundTemplate(
     (template) => template.gridX === gridX && template.gridY === gridY,
   );
 
+  console.log("이번에 선택된 템플릿 :::: " + candidates);
+
   if (candidates.length === 0) {
     return null;
   }
