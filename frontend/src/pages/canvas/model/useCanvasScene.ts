@@ -17,12 +17,10 @@ import { getGameConfig } from "@/shared/config/game-config";
 
 interface UseCanvasSceneParams {
   previewColorRef: React.RefObject<string | null>;
-  votingCellIdsRef: React.RefObject<Set<number>>;
-  topColorMapRef: React.RefObject<Map<number, string>>;
-  isRoundExpiredRef: React.RefObject<boolean>;
+  votingCellIdsRef: React.RefObject<Set<string>>;
+  topColorMapRef: React.RefObject<Map<string, string>>;
   resetPreviewColor: () => void;
   openPopup: (position: { x: number; y: number }) => void;
-  closePopup: () => void;
 }
 
 interface ZoomBounds {
@@ -71,10 +69,8 @@ export default function useCanvasScene({
   previewColorRef,
   votingCellIdsRef,
   topColorMapRef,
-  isRoundExpiredRef,
   resetPreviewColor,
   openPopup,
-  closePopup,
 }: UseCanvasSceneParams) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -301,14 +297,34 @@ export default function useCanvasScene({
   );
 
   const handleCanvasUpdated = useCallback(
-    ({ cellId, color }: { cellId: number; color: string }) => {
-      updateCells((prev) =>
-        prev.map((cell) =>
-          cell.id === cellId ? { ...cell, color, status: "painted" } : cell,
-        ),
-      );
+    ({ x, y, color }: { x: number; y: number; color: string }) => {
+      updateCells((prev) => {
+        const index = prev.findIndex((cell) => cell.x === x && cell.y === y);
 
-      if (selectedCellRef.current?.id === cellId) {
+        if (index === -1) {
+          return [
+            ...prev,
+            {
+              x,
+              y,
+              color,
+              status: "painted",
+            } as Cell,
+          ];
+        }
+
+        return prev.map((cell) =>
+          cell.x === x && cell.y === y
+            ? { ...cell, color, status: "painted" }
+            : cell,
+        );
+      });
+
+      if (
+        selectedCellRef.current &&
+        selectedCellRef.current.x === x &&
+        selectedCellRef.current.y === y
+      ) {
         const nextSelectedCell: Cell = {
           ...selectedCellRef.current,
           color,
@@ -317,61 +333,61 @@ export default function useCanvasScene({
 
         setSelectedCell(nextSelectedCell);
         selectedCellRef.current = nextSelectedCell;
-
-        if (!isRoundExpiredRef.current) {
-          closePopup();
-        }
       }
     },
-    [closePopup, isRoundExpiredRef, updateCells],
+    [updateCells],
   );
 
   const handleCanvasBatchUpdated = useCallback(
     ({ updates }: CanvasBatchUpdatedPayload) => {
-      if (updates.length === 0) {
-        return;
-      }
-
-      const updateMap = new Map(
-        updates.map((update) => [update.cellId, update]),
-      ); // 추가: 셀 id 기준으로 batch update lookup 생성
-
-      updateCells((prev) =>
-        prev.map((cell) => {
-          const nextUpdate = updateMap.get(cell.id);
-
-          if (!nextUpdate) {
-            return cell;
-          }
-
-          return {
-            ...cell,
-            color: nextUpdate.color,
-            status: "painted",
-          };
-        }),
+      const colorByCoordinate = new Map(
+        updates.map((update) => [`${update.x}:${update.y}`, update.color]),
       );
 
-      if (selectedCellRef.current) {
-        const selectedUpdate = updateMap.get(selectedCellRef.current.id);
+      updateCells((prev) => {
+        const next = [...prev];
 
-        if (selectedUpdate) {
+        for (const update of updates) {
+          const index = next.findIndex(
+            (cell) => cell.x === update.x && cell.y === update.y,
+          );
+
+          if (index === -1) {
+            next.push({
+              x: update.x,
+              y: update.y,
+              color: update.color,
+              status: "painted",
+            } as Cell);
+            continue;
+          }
+
+          next[index] = {
+            ...next[index],
+            color: update.color,
+            status: "painted",
+          };
+        }
+
+        return next;
+      });
+
+      if (selectedCellRef.current) {
+        const selectedKey = `${selectedCellRef.current.x}:${selectedCellRef.current.y}`;
+
+        if (colorByCoordinate.has(selectedKey)) {
           const nextSelectedCell: Cell = {
             ...selectedCellRef.current,
-            color: selectedUpdate.color,
+            color: colorByCoordinate.get(selectedKey)!,
             status: "painted",
           };
 
           setSelectedCell(nextSelectedCell);
           selectedCellRef.current = nextSelectedCell;
-
-          if (!isRoundExpiredRef.current) {
-            closePopup();
-          }
         }
       }
     },
-    [closePopup, isRoundExpiredRef, updateCells],
+    [updateCells],
   );
 
   const clearSelectedCell = useCallback(() => {

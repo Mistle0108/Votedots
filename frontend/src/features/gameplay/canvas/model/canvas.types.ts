@@ -3,7 +3,7 @@ import type { GameConfig } from "@/shared/config/game-config";
 
 export type CanvasStatus = "playing" | "finished";
 
-export type CellStatus = "idle" | "active" | "painted" | "locked";
+export type CellStatus = "painted" | "idle";
 
 export interface Canvas {
   id: number;
@@ -21,7 +21,6 @@ export interface Canvas {
 }
 
 export interface Cell {
-  id: number;
   x: number;
   y: number;
   color: string | null;

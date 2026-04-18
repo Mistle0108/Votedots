@@ -48,7 +48,8 @@ interface RoundStateResponse {
 }
 
 interface ResolvedRoundCell {
-  cellId: number;
+  x: number;
+  y: number;
   color: string;
   totalVotes: number;
   topColorVoteCount: number;
@@ -246,22 +247,29 @@ export const roundService = {
     const redisKey = `vote:round:${roundId}`;
     const voteData = await redisClient.hGetAll(redisKey);
 
-    const voteBuckets = new Map<number, Map<string, number>>();
+    const voteBuckets = new Map<string, Map<string, number>>();
 
-    const addVoteBucket = (cellId: number, color: string, count: number) => {
-      const colorBuckets = voteBuckets.get(cellId) ?? new Map<string, number>();
+    const addVoteBucket = (
+      coordinateKey: string,
+      color: string,
+      count: number,
+    ) => {
+      const colorBuckets =
+        voteBuckets.get(coordinateKey) ?? new Map<string, number>();
 
       colorBuckets.set(color, (colorBuckets.get(color) ?? 0) + count);
-      voteBuckets.set(cellId, colorBuckets);
+      voteBuckets.set(coordinateKey, colorBuckets);
     };
 
     for (const [key, value] of Object.entries(voteData)) {
-      const [cellIdValue, color] = key.split(":");
-      const cellId = parseInt(cellIdValue, 10);
+      const [xValue, yValue, color] = key.split(":");
+      const x = parseInt(xValue, 10);
+      const y = parseInt(yValue, 10);
       const count = parseInt(value, 10);
 
       if (
-        !Number.isFinite(cellId) ||
+        !Number.isFinite(x) ||
+        !Number.isFinite(y) ||
         !color ||
         !Number.isFinite(count) ||
         count <= 0
@@ -269,23 +277,22 @@ export const roundService = {
         continue;
       }
 
-      addVoteBucket(cellId, color, count);
+      addVoteBucket("${x}:${y}", color, count);
     }
 
     if (voteBuckets.size === 0) {
       const votes = await voteRepository.find({
         where: { round: { id: roundId } },
-        relations: ["cell"],
       });
 
       for (const vote of votes) {
-        addVoteBucket(vote.cell.id, vote.color, 1);
+        addVoteBucket(`${vote.x}:${vote.y}`, vote.color, 1);
       }
     }
 
     const resolvedCells: ResolvedRoundCell[] = [];
 
-    for (const [cellId, colorBuckets] of voteBuckets.entries()) {
+    for (const [coordinateKey, colorBuckets] of voteBuckets.entries()) {
       let totalVotes = 0;
       let maxColorVotes = 0;
       const topColors: string[] = [];
@@ -309,11 +316,16 @@ export const roundService = {
         continue;
       }
 
+      const [xValue, yValue] = coordinateKey.split(":");
+      const x = Number(xValue);
+      const y = Number(yValue);
+
       const selectedColor =
         topColors[Math.floor(Math.random() * topColors.length)];
 
       resolvedCells.push({
-        cellId,
+        x,
+        y,
         color: selectedColor,
         totalVotes,
         topColorVoteCount: maxColorVotes,
@@ -321,31 +333,51 @@ export const roundService = {
       });
     }
 
-    let updatedCells: Cell[] = [];
+    const targetCoordinates = resolvedCells.map((resolvedCell) => ({
+      x: resolvedCell.x,
+      y: resolvedCell.y,
+    }));
 
-    if (resolvedCells.length > 0) {
-      const cellsToUpdate = await cellRepository.findBy({
-        id: In(resolvedCells.map((cell) => cell.cellId)),
-      });
+    const cells = targetCoordinates.length
+      ? await cellRepository.find({
+          where: targetCoordinates.map(({ x, y }) => ({
+            canvas: { id: canvasId },
+            x,
+            y,
+          })),
+        })
+      : [];
 
-      const resolvedCellMap = new Map(
-        resolvedCells.map((cell) => [cell.cellId, cell]),
+    const cellByCoordinate = new Map(
+      cells.map((cell) => [`${cell.x}:${cell.y}`, cell]),
+    );
+
+    const updatedCells: Cell[] = [];
+
+    for (const resolvedCell of resolvedCells) {
+      const coordinateKey = `${resolvedCell.x}:${resolvedCell.y}`;
+      const existingCell = cellByCoordinate.get(coordinateKey);
+
+      if (existingCell) {
+        existingCell.color = resolvedCell.color;
+        existingCell.status = CellStatus.PAINTED;
+        updatedCells.push(existingCell);
+        continue;
+      }
+
+      updatedCells.push(
+        cellRepository.create({
+          canvas: { id: canvasId } as Canvas,
+          x: resolvedCell.x,
+          y: resolvedCell.y,
+          color: resolvedCell.color,
+          status: CellStatus.PAINTED,
+        }),
       );
+    }
 
-      for (const cell of cellsToUpdate) {
-        const resolvedCell = resolvedCellMap.get(cell.id);
-
-        if (!resolvedCell) {
-          continue;
-        }
-
-        cell.color = resolvedCell.color;
-        cell.status = CellStatus.PAINTED;
-      }
-
-      if (cellsToUpdate.length > 0) {
-        updatedCells = await cellRepository.save(cellsToUpdate);
-      }
+    if (updatedCells.length > 0) {
+      await cellRepository.save(updatedCells);
     }
 
     round.isActive = false;
@@ -401,10 +433,9 @@ export const roundService = {
 
       io.to(`canvas:${canvasId}`).emit("canvas:batch-updated", {
         updates: updatedCells.map((cell) => ({
-          cellId: cell.id,
           x: cell.x,
           y: cell.y,
-          color: cell.color ?? "#000000",
+          color: cell.color,
         })),
       });
 

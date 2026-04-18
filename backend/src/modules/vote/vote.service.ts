@@ -112,13 +112,14 @@ export const voteService = {
       );
     }
   },
-
+  // TO-BE
   async submit(
     voterId: number,
     sessionId: string,
     canvasId: number,
     roundId: number,
-    cellId: number,
+    x: number,
+    y: number,
     color: string,
     io?: Server,
   ): Promise<Vote> {
@@ -135,9 +136,15 @@ export const voteService = {
       voterId,
     );
 
-    const cell = await cellRepository.findOne({ where: { id: cellId } });
-    if (!cell) {
-      throw new Error("셀을 찾을 수 없어요");
+    const canvas = await canvasRepository.findOne({
+      where: { id: canvasId },
+    });
+    if (!canvas) {
+      throw new Error("캔버스를 찾을 수 없어요");
+    }
+
+    if (x < 0 || y < 0 || x >= canvas.gridX || y >= canvas.gridY) {
+      throw new Error("유효하지 않은 셀 좌표예요");
     }
 
     const ticket = await voteTicketRepository.findOne({
@@ -159,9 +166,10 @@ export const voteService = {
 
         const newVote = manager.create(Vote, {
           round,
-          cell,
           voter: { id: voterId },
           ticket,
+          x,
+          y,
           color,
         });
 
@@ -173,7 +181,7 @@ export const voteService = {
 
     try {
       const redisKey = `vote:round:${roundId}`;
-      await redisClient.hIncrBy(redisKey, `${cellId}:${color}`, 1);
+      await redisClient.hIncrBy(redisKey, `${x}:${y}:${color}`, 1);
 
       if (io) {
         const voteData = await redisClient.hGetAll(redisKey);
@@ -185,7 +193,8 @@ export const voteService = {
 
         io.to(`canvas:${canvasId}`).emit("vote:update", {
           roundId,
-          cellId,
+          x,
+          y,
           color,
           votes,
         });

@@ -8,8 +8,8 @@ interface UseCanvasRendererParams {
   cellsRef: RefObject<Cell[]>;
   selectedCellRef: RefObject<Cell | null>;
   previewColorRef: RefObject<string | null>;
-  votingCellIdsRef: RefObject<Set<number>>;
-  topColorMapRef: RefObject<Map<number, string>>;
+  votingCellIdsRef: RefObject<Set<string>>;
+  topColorMapRef: RefObject<Map<string, string>>;
 }
 
 export function useCanvasRenderer({

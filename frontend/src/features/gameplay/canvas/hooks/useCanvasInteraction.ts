@@ -66,21 +66,21 @@ export function useCanvasInteraction({
     const cellWidth = rect.width / gridX;
     const cellHeight = rect.height / gridY;
 
-    const x = Math.floor((event.clientX - rect.left) / cellWidth);
-    const y = Math.floor((event.clientY - rect.top) / cellHeight);
+    const targetX = Math.floor((event.clientX - rect.left) / cellWidth);
+    const targetY = Math.floor((event.clientY - rect.top) / cellHeight);
 
-    const cell = cells.find(
-      (candidate) => candidate.x === x && candidate.y === y,
-    );
+    const targetCell =
+      cells.find((cell) => cell.x === targetX && cell.y === targetY) ??
+      ({
+        x: targetX,
+        y: targetY,
+        color: null,
+        status: "idle",
+      } as Cell);
 
-    if (!cell || cell.status === "locked") return;
-
-    onSelectCell(cell);
     onResetPreviewColor();
-    onOpenPopup({
-      x: rect.left + (cell.x + 2) * cellWidth,
-      y: rect.top + (cell.y - 1.5) * cellHeight,
-    });
+    onSelectCell(targetCell);
+    onOpenPopup({ x: event.clientX, y: event.clientY });
   };
 
   const handleMouseLeave = () => {

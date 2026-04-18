@@ -2,13 +2,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 export default function useVoteState() {
   const [votes, setVotes] = useState<Record<string, number>>({});
-  const [votingCellIds, setVotingCellIds] = useState<Set<number>>(new Set());
-  const [topColorMap, setTopColorMap] = useState<Map<number, string>>(
+  const [previewColor, setPreviewColor] = useState<string | null>(null);
+  const [votingCellIds, setVotingCellIds] = useState<Set<string>>(new Set());
+  const [topColorMap, setTopColorMap] = useState<Map<string, string>>(
     new Map(),
   );
 
-  const votingCellIdsRef = useRef<Set<number>>(new Set());
-  const topColorMapRef = useRef<Map<number, string>>(new Map());
+  const previewColorRef = useRef<string | null>(null);
+  const votingCellIdsRef = useRef<Set<string>>(new Set());
+  const topColorMapRef = useRef<Map<string, string>>(new Map());
+
+  useEffect(() => {
+    previewColorRef.current = previewColor;
+  }, [previewColor]);
 
   useEffect(() => {
     votingCellIdsRef.current = votingCellIds;
@@ -18,56 +24,59 @@ export default function useVoteState() {
     topColorMapRef.current = topColorMap;
   }, [topColorMap]);
 
-  const applyVoteUpdate = useCallback(
-    (nextVotes: Record<string, number>) => {
-      setVotes(nextVotes);
+  const handleColorChange = useCallback((color: string | null) => {
+    setPreviewColor(color);
+  }, []);
 
-      const nextVotingCellIds = new Set<number>();
-      const countMap = new Map<number, { color: string; count: number }>();
+  const resetPreviewColor = useCallback(() => {
+    setPreviewColor(null);
+  }, []);
 
-      for (const [key, count] of Object.entries(nextVotes)) {
-        const [cellIdStr, color] = key.split(":");
-        const cellId = parseInt(cellIdStr, 10);
+  const applyVoteUpdate = useCallback((nextVotes: Record<string, number>) => {
+    setVotes(nextVotes);
 
-        nextVotingCellIds.add(cellId);
+    const nextVotingCellIds = new Set<string>();
+    const nextTopColorMap = new Map<string, string>();
+    const topCountMap = new Map<string, number>();
 
-        const existing = countMap.get(cellId);
-        if (!existing || count > existing.count) {
-          countMap.set(cellId, { color, count });
-        }
+    Object.entries(nextVotes).forEach(([key, count]) => {
+      const [xStr, yStr, color] = key.split(":");
+      const x = Number(xStr);
+      const y = Number(yStr);
+
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !color) {
+        return;
       }
 
-      const nextTopColorMap = new Map<number, string>();
-      countMap.forEach(({ color }, cellId) => {
-        nextTopColorMap.set(cellId, color);
-      });
+      const cellKey = `${x}:${y}`;
+      nextVotingCellIds.add(cellKey);
 
-      votingCellIdsRef.current = nextVotingCellIds;
-      topColorMapRef.current = nextTopColorMap;
+      const currentTopCount = topCountMap.get(cellKey) ?? -1;
+      if (count > currentTopCount) {
+        topCountMap.set(cellKey, count);
+        nextTopColorMap.set(cellKey, color);
+      }
+    });
 
-      setVotingCellIds(nextVotingCellIds);
-      setTopColorMap(nextTopColorMap);
-    },
-    [],
-  );
+    setVotingCellIds(nextVotingCellIds);
+    setTopColorMap(nextTopColorMap);
+  }, []);
 
   const resetVoteState = useCallback(() => {
-    const emptyVotingCellIds = new Set<number>();
-    const emptyTopColorMap = new Map<number, string>();
-
     setVotes({});
-    votingCellIdsRef.current = emptyVotingCellIds;
-    topColorMapRef.current = emptyTopColorMap;
-    setVotingCellIds(emptyVotingCellIds);
-    setTopColorMap(emptyTopColorMap);
+    setPreviewColor(null);
+    setVotingCellIds(new Set());
+    setTopColorMap(new Map());
   }, []);
 
   return {
     votes,
-    votingCellIds,
-    topColorMap,
+    previewColor,
+    previewColorRef,
     votingCellIdsRef,
     topColorMapRef,
+    handleColorChange,
+    resetPreviewColor,
     applyVoteUpdate,
     resetVoteState,
   };

@@ -20,8 +20,6 @@ interface CreateCanvasOptions {
   profileKey?: string | null;
 }
 
-const CELL_INSERT_CHUNK_SIZE = 1000;
-
 function logPhaseChange(params: {
   canvasId: number;
   phase: GamePhase;
@@ -88,31 +86,6 @@ export const canvasService = {
       reason: `캔버스 생성(profile=${profileKey})`,
     });
 
-    const cells: Array<{
-      canvas: { id: number };
-      x: number;
-      y: number;
-      color: string | null;
-      status: CellStatus;
-    }> = [];
-
-    for (let y = 0; y < gridSizeY; y++) {
-      for (let x = 0; x < gridSizeX; x++) {
-        cells.push({
-          canvas: { id: canvas.id },
-          x,
-          y,
-          color: null,
-          status: CellStatus.IDLE,
-        });
-      }
-    }
-
-    for (let index = 0; index < cells.length; index += CELL_INSERT_CHUNK_SIZE) {
-      const chunk = cells.slice(index, index + CELL_INSERT_CHUNK_SIZE);
-      await cellRepository.insert(chunk);
-    }
-
     await startGameTimer(io, canvas.id);
 
     return canvas;
@@ -139,7 +112,10 @@ export const canvasService = {
 
   async getCells(canvasId: number): Promise<Cell[]> {
     return cellRepository.find({
-      where: { canvas: { id: canvasId } },
+      where: {
+        canvas: { id: canvasId },
+        status: CellStatus.PAINTED,
+      },
       order: { y: "ASC", x: "ASC" },
     });
   },

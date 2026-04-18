@@ -16,7 +16,6 @@ const roundSummaryRepository = AppDataSource.getRepository(RoundSummary);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
 
 type TopCellAggregate = {
-  cellId: number;
   x: number;
   y: number;
   voteCount: number;
@@ -43,7 +42,7 @@ function toPercent(numerator: number, denominator: number): string {
 
 function buildMostVotedCell(
   cellVoteMap: Map<
-    number,
+    string,
     {
       x: number;
       y: number;
@@ -53,10 +52,9 @@ function buildMostVotedCell(
 ): TopCellAggregate | null {
   let topCell: TopCellAggregate | null = null;
 
-  for (const [cellId, value] of cellVoteMap.entries()) {
+  for (const value of cellVoteMap.values()) {
     if (!topCell || value.voteCount > topCell.voteCount) {
       topCell = {
-        cellId,
         x: value.x,
         y: value.y,
         voteCount: value.voteCount,
@@ -71,7 +69,7 @@ function countRandomResolvedCellsFromVotes(votes: Vote[]): number {
   const colorBucketsByRoundCell = new Map<string, Map<string, number>>();
 
   for (const vote of votes) {
-    const roundCellKey = `${vote.round.id}:${vote.cell.id}`;
+    const roundCellKey = `${vote.round.id}:${vote.x}:${vote.y}`;
     const colorBuckets =
       colorBucketsByRoundCell.get(roundCellKey) ?? new Map<string, number>();
 
@@ -171,51 +169,52 @@ export const summaryService = {
       throw new Error("캔버스가 존재하지 않습니다.");
     }
 
-    const [votes, totalCellCount, currentPaintedCellCount] = await Promise.all([
+    const [votes, currentPaintedCellCount] = await Promise.all([
       voteRepository.find({
         where: { round: { id: roundId } },
-        relations: ["cell", "voter", "round"],
-      }),
-      cellRepository.count({
-        where: { canvas: { id: canvasId } },
+        relations: ["voter", "round"],
       }),
       cellRepository.count({
         where: { canvas: { id: canvasId }, status: CellStatus.PAINTED },
       }),
     ]);
 
+    const totalCellCount = canvas.gridX * canvas.gridY;
+
     const participantIds = new Set<number>();
-    const paintedCellIds = new Set<number>();
+    const paintedCellCoordinates = new Set<string>();
     const cellVoteMap = new Map<
-      number,
+      string,
       {
         x: number;
         y: number;
         voteCount: number;
       }
     >();
-    const colorBucketsByCell = new Map<number, Map<string, number>>();
+    const colorBucketsByCell = new Map<string, Map<string, number>>();
 
     for (const vote of votes) {
       participantIds.add(vote.voter.id);
-      paintedCellIds.add(vote.cell.id);
 
-      const cellAggregate = cellVoteMap.get(vote.cell.id);
+      const cellKey = `${vote.x}:${vote.y}`;
+      paintedCellCoordinates.add(cellKey);
+
+      const cellAggregate = cellVoteMap.get(cellKey);
 
       if (cellAggregate) {
         cellAggregate.voteCount += 1;
       } else {
-        cellVoteMap.set(vote.cell.id, {
-          x: vote.cell.x,
-          y: vote.cell.y,
+        cellVoteMap.set(cellKey, {
+          x: vote.x,
+          y: vote.y,
           voteCount: 1,
         });
       }
 
       const colorBuckets =
-        colorBucketsByCell.get(vote.cell.id) ?? new Map<string, number>();
+        colorBucketsByCell.get(cellKey) ?? new Map<string, number>();
       colorBuckets.set(vote.color, (colorBuckets.get(vote.color) ?? 0) + 1);
-      colorBucketsByCell.set(vote.cell.id, colorBuckets);
+      colorBucketsByCell.set(cellKey, colorBuckets);
     }
 
     let randomResolvedCellCount = 0;
@@ -249,11 +248,11 @@ export const summaryService = {
       roundNumber: round.roundNumber,
       participantCount: participantIds.size,
       totalVotes: votes.length,
-      paintedCellCount: paintedCellIds.size,
+      paintedCellCount: paintedCellCoordinates.size,
       totalCellCount,
       currentPaintedCellCount,
       canvasProgressPercent: toPercent(currentPaintedCellCount, totalCellCount),
-      mostVotedCellId: mostVotedCell?.cellId ?? null,
+      mostVotedCellId: null,
       mostVotedCellX: mostVotedCell?.x ?? null,
       mostVotedCellY: mostVotedCell?.y ?? null,
       mostVotedCellVoteCount: mostVotedCell?.voteCount ?? 0,
@@ -275,7 +274,7 @@ export const summaryService = {
     const [votes, tickets, rounds, cells, existingSummary] = await Promise.all([
       voteRepository.find({
         where: { round: { canvas: { id: canvasId } } },
-        relations: ["cell", "voter", "round"],
+        relations: ["voter", "round"],
       }),
       voteTicketRepository.find({
         where: { round: { canvas: { id: canvasId } } },
@@ -294,7 +293,7 @@ export const summaryService = {
     const participantMap = new Map<number, { voterId: number; name: string }>();
     const voterCountMap = new Map<number, TopVoterAggregate>();
     const cellVoteMap = new Map<
-      number,
+      string,
       { x: number; y: number; voteCount: number }
     >();
     const colorVoteMap = new Map<string, number>();
@@ -320,13 +319,14 @@ export const summaryService = {
         });
       }
 
-      const cellAggregate = cellVoteMap.get(vote.cell.id);
+      const cellKey = `${vote.x}:${vote.y}`;
+      const cellAggregate = cellVoteMap.get(cellKey);
       if (cellAggregate) {
         cellAggregate.voteCount += 1;
       } else {
-        cellVoteMap.set(vote.cell.id, {
-          x: vote.cell.x,
-          y: vote.cell.y,
+        cellVoteMap.set(cellKey, {
+          x: vote.x,
+          y: vote.y,
           voteCount: 1,
         });
       }
@@ -354,14 +354,12 @@ export const summaryService = {
     }
 
     const paintedColorMap = new Map<string, number>();
-    let paintedCellCount = 0;
 
     for (const cell of cells) {
       if (cell.status !== CellStatus.PAINTED || !cell.color) {
         continue;
       }
 
-      paintedCellCount += 1;
       paintedColorMap.set(
         cell.color,
         (paintedColorMap.get(cell.color) ?? 0) + 1,
@@ -402,8 +400,13 @@ export const summaryService = {
     }
 
     const totalCellCount = cells.length;
-    const emptyCellCount = Math.max(0, totalCellCount - paintedCellCount);
+
     const randomResolvedCellCount = countRandomResolvedCellsFromVotes(votes);
+    const paintedCells = cells.filter(
+      (cell) => cell.status === CellStatus.PAINTED,
+    );
+    const paintedCellCount = paintedCells.length;
+    const emptyCellCount = Math.max(0, totalCellCount - paintedCellCount);
 
     const nextSummary = gameSummaryRepository.create({
       id: existingSummary?.id,
@@ -417,7 +420,6 @@ export const summaryService = {
       paintedCellCount,
       emptyCellCount,
       canvasCompletionPercent: toPercent(paintedCellCount, totalCellCount),
-      mostVotedCellId: mostVotedCell?.cellId ?? null,
       mostVotedCellX: mostVotedCell?.x ?? null,
       mostVotedCellY: mostVotedCell?.y ?? null,
       mostVotedCellVoteCount: mostVotedCell?.voteCount ?? 0,

@@ -94,10 +94,8 @@ export default function useCanvasPage({
     previewColorRef,
     votingCellIdsRef,
     topColorMapRef,
-    isRoundExpiredRef,
     resetPreviewColor,
     openPopup,
-    closePopup,
   });
 
   const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(
