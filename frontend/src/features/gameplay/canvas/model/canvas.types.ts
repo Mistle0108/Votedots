@@ -39,3 +39,30 @@ export interface Viewport {
   width: number;
   height: number;
 }
+
+export interface CanvasChunkQuery {
+  startChunkX: number;
+  endChunkX: number;
+  startChunkY: number;
+  endChunkY: number;
+  chunkSize?: number;
+}
+
+export interface CanvasChunkBounds {
+  minCellX: number;
+  maxCellX: number;
+  minCellY: number;
+  maxCellY: number;
+}
+
+export interface CanvasChunkResponse {
+  chunkSize: number;
+  ranges: {
+    startChunkX: number;
+    endChunkX: number;
+    startChunkY: number;
+    endChunkY: number;
+  };
+  bounds: CanvasChunkBounds;
+  cells: Cell[];
+}

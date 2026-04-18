@@ -6,6 +6,7 @@ import { Cell } from "../../entities/cell.entity";
 import { canvasService } from "./canvas.service";
 import { GameSummary } from "../../entities/game-summary.entity";
 import { summaryService } from "../summary/summary.service";
+import type { GetCanvasChunksQuery } from "./dto/get-canvas-chunks.dto";
 
 interface CreateCanvasRequestBody {
   profileKey?: string;
@@ -103,10 +104,9 @@ export const canvasController = {
           .json({ message: "진행 중인 캔버스가 없습니다." });
       }
 
-      const cells = await canvasService.getCells(canvas.id);
       return res.json({
         canvas: serializeCanvas(canvas),
-        cells: cells.map(serializeCell),
+        cells: [],
         gameConfig: getCanvasGameConfigSnapshot(canvas),
       });
     } catch (err) {
@@ -159,6 +159,54 @@ export const canvasController = {
 
       return res.json({
         data: serializeGameSummary(summary),
+      });
+    } catch (err) {
+      return res.status(400).json({ message: String(err) });
+    }
+  },
+
+  async getChunks(req: Request, res: Response) {
+    try {
+      const canvasId = parseInt(String(req.params["canvasId"]), 10);
+      const query = req.query as Partial<
+        Record<keyof GetCanvasChunksQuery, string>
+      >;
+
+      const startChunkX = parseInt(String(query.startChunkX), 10);
+      const endChunkX = parseInt(String(query.endChunkX), 10);
+      const startChunkY = parseInt(String(query.startChunkY), 10);
+      const endChunkY = parseInt(String(query.endChunkY), 10);
+      const chunkSize =
+        query.chunkSize !== undefined
+          ? parseInt(String(query.chunkSize), 10)
+          : undefined;
+
+      if (
+        !Number.isFinite(canvasId) ||
+        !Number.isFinite(startChunkX) ||
+        !Number.isFinite(endChunkX) ||
+        !Number.isFinite(startChunkY) ||
+        !Number.isFinite(endChunkY)
+      ) {
+        return res
+          .status(400)
+          .json({ message: "chunk 조회 파라미터가 올바르지 않습니다." });
+      }
+
+      const result = await canvasService.getChunkCells({
+        canvasId,
+        startChunkX,
+        endChunkX,
+        startChunkY,
+        endChunkY,
+        chunkSize,
+      });
+
+      return res.json({
+        chunkSize: result.chunkSize,
+        ranges: result.ranges,
+        bounds: result.bounds,
+        cells: result.cells.map(serializeCell),
       });
     } catch (err) {
       return res.status(400).json({ message: String(err) });

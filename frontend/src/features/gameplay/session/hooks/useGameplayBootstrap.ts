@@ -79,7 +79,7 @@ function getFallbackPhaseDuration(
 export function useGameplayBootstrap() {
   const bootstrap = useCallback(async (): Promise<SessionBootstrapResult> => {
     const { data } = await sessionApi.getCurrentCanvas();
-    const { canvas, cells, gameConfig } = data;
+    const { canvas, gameConfig } = data;
     const { phases, rules } = gameConfig;
 
     setGameConfig(gameConfig);
@@ -156,7 +156,7 @@ export function useGameplayBootstrap() {
       gridX: canvas.gridX,
       gridY: canvas.gridY,
       backgroundImageUrl: getBackgroundImageUrl(canvas.backgroundAssetKey),
-      cells,
+      cells: [],
       round,
       votes,
       remaining,

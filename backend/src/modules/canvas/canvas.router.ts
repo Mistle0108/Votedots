@@ -4,19 +4,19 @@ import { authMiddleware } from "../../middlewares/auth.middleware";
 
 const router = Router();
 
-router.post("/", authMiddleware, canvasController.create);
+// TO-BE
 router.get("/current", authMiddleware, canvasController.getCurrent);
+router.get("/:canvasId/chunks", authMiddleware, canvasController.getChunks);
 router.get(
-    "/current/participants/count",
-    authMiddleware,
-    canvasController.getCurrentParticipantCount,
+  "/current/participants/count",
+  authMiddleware,
+  canvasController.getCurrentParticipantCount,
 );
 router.get(
-    "/current/participants",
-    authMiddleware,
-    canvasController.getCurrentParticipantList,
+  "/current/participants",
+  authMiddleware,
+  canvasController.getCurrentParticipantList,
 );
 router.get("/:canvasId/summary", authMiddleware, canvasController.getSummary);
-
 
 export default router;
