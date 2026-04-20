@@ -10,6 +10,7 @@ import {
   resolveGameHistoryAbsolutePath,
 } from "./history-storage.service";
 import { roundSnapshotRenderService } from "./round-snapshot-render.service";
+import { findOutlineTemplateByAssetKey } from "../canvas/template/outline-template.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -86,6 +87,10 @@ export const roundSnapshotService = {
       .andWhere("cell.color IS NOT NULL")
       .getMany();
 
+    const outlineTemplate = findOutlineTemplateByAssetKey(
+      canvas.backgroundAssetKey,
+    );
+
     const pngBuffer = roundSnapshotRenderService.renderPngBuffer({
       width: canvas.gridX,
       height: canvas.gridY,
@@ -94,6 +99,7 @@ export const roundSnapshotService = {
         y: cell.y,
         color: cell.color,
       })),
+      outlineCells: outlineTemplate?.cells ?? [],
     });
 
     await ensureRoundSnapshotDirectory({

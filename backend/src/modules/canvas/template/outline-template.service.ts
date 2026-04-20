@@ -20,6 +20,16 @@ export function pickRandomOutlineTemplate(
   return candidates[randomIndex(candidates.length)] ?? null;
 }
 
+export function findOutlineTemplateByAssetKey(
+  assetKey: string | null,
+): OutlineTemplate | null {
+  if (!assetKey) {
+    return null;
+  }
+
+  return OUTLINE_TEMPLATES.find((template) => template.id === assetKey) ?? null;
+}
+
 export function buildOutlineCellSet(
   template: OutlineTemplate | null,
 ): Set<string> {
