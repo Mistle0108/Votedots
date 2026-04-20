@@ -165,8 +165,6 @@ export default function useCanvasScene({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const cellsRef = useRef<Cell[]>([]);
-  const minimapCellsRef = useRef<Cell[]>([]);
   const selectedCellRef = useRef<Cell | null>(null);
   const zoomRef = useRef(1);
   const cameraXRef = useRef(0);
@@ -251,15 +249,11 @@ export default function useCanvasScene({
   const updateCells = useCallback(
     (updater: Cell[] | ((prev: Cell[]) => Cell[])) => {
       if (typeof updater === "function") {
-        setCells((prev) => {
-          const next = updater(prev);
-          cellsRef.current = next;
-          return next;
-        });
-      } else {
-        cellsRef.current = updater;
-        setCells(updater);
+        setCells((prev) => updater(prev));
+        return;
       }
+
+      setCells(updater);
     },
     [],
   );
@@ -267,15 +261,11 @@ export default function useCanvasScene({
   const updateMinimapCells = useCallback(
     (updater: Cell[] | ((prev: Cell[]) => Cell[])) => {
       if (typeof updater === "function") {
-        setMinimapCells((prev) => {
-          const next = updater(prev);
-          minimapCellsRef.current = next;
-          return next;
-        });
-      } else {
-        minimapCellsRef.current = updater;
-        setMinimapCells(updater);
+        setMinimapCells((prev) => updater(prev));
+        return;
       }
+
+      setMinimapCells(updater);
     },
     [],
   );

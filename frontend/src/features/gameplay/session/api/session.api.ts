@@ -1,7 +1,13 @@
 import api from "@/shared/api/client";
-import type { CanvasCurrentResponse } from "@/features/gameplay/canvas";
+import type { Canvas } from "@/features/gameplay/canvas";
 import { voteApi } from "@/features/gameplay/vote/api/vote.api";
+import type { GameConfig } from "@/shared/config/game-config";
 import type { GamePhase } from "../model/game-phase.types";
+
+export interface CanvasCurrentResponse {
+  canvas: Canvas;
+  gameConfig: GameConfig;
+}
 
 export interface RoundStateResponse {
   status: "active" | "waiting";
@@ -147,5 +153,3 @@ export const sessionApi = {
 
   createCanvas: (payload?: CreateCanvasRequest) => api.post("/canvas", payload),
 };
-
-export type { CanvasCurrentResponse };
