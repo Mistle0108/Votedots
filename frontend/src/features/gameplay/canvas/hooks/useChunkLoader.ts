@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { canvasApi } from "../api/canvas.api";
 import { MINIMAP_SIZE } from "../model/canvas.constants";
 import type { Cell, Viewport } from "../model/canvas.types";
@@ -15,6 +15,11 @@ interface ChunkRange {
   chunkSize: number;
 }
 
+interface ChunkCellCoordinate {
+  x: number;
+  y: number;
+}
+
 interface UseChunkLoaderParams {
   canvasId: number | null;
   gridX: number;
@@ -29,6 +34,10 @@ function clamp(value: number, min: number, max: number): number {
 
 function getChunkKey(chunkX: number, chunkY: number): string {
   return `${chunkX}:${chunkY}`;
+}
+
+function getChunkKeyFromCell(x: number, y: number, chunkSize: number): string {
+  return getChunkKey(Math.floor(x / chunkSize), Math.floor(y / chunkSize));
 }
 
 function buildChunkKeys(range: ChunkRange): string[] {
@@ -139,6 +148,33 @@ export function useChunkLoader({
     return buildChunkRange(viewport, gridX, gridY, DEFAULT_CHUNK_SIZE);
   }, [canvasId, gridX, gridY, viewport]);
 
+  const invalidateChunksByCells = useCallback(
+    (cells: ChunkCellCoordinate[], chunkSize = DEFAULT_CHUNK_SIZE) => {
+      if (cells.length === 0) {
+        return;
+      }
+
+      const nextLoadedChunkKeys = new Set(loadedChunkKeysRef.current);
+
+      for (const cell of cells) {
+        if (!Number.isFinite(cell.x) || !Number.isFinite(cell.y)) {
+          continue;
+        }
+
+        if (cell.x < 0 || cell.y < 0) {
+          continue;
+        }
+
+        nextLoadedChunkKeys.delete(
+          getChunkKeyFromCell(cell.x, cell.y, chunkSize),
+        );
+      }
+
+      loadedChunkKeysRef.current = nextLoadedChunkKeys;
+    },
+    [],
+  );
+
   useEffect(() => {
     loadedChunkKeysRef.current = new Set();
 
@@ -228,4 +264,8 @@ export function useChunkLoader({
       }
     };
   }, [canvasId, chunkRange, updateCells]);
+
+  return {
+    invalidateChunksByCells,
+  };
 }

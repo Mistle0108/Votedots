@@ -12,7 +12,7 @@ import {
   useCanvasRenderer,
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
-import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types"; // 추가: batch canvas update payload
+import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import { getGameConfig } from "@/shared/config/game-config";
 
 interface UseCanvasSceneParams {
@@ -76,12 +76,10 @@ function clampZoom(nextZoom: number, bounds: ZoomBounds) {
   return Math.min(bounds.maxZoom, Math.max(bounds.minZoom, nextZoom));
 }
 
-function getNextZoom(
-  currentZoom: number,
-  zoomIn: boolean,
-  bounds: ZoomBounds,
-) {
-  const scaledZoom = zoomIn ? currentZoom * ZOOM_SCALE : currentZoom / ZOOM_SCALE;
+function getNextZoom(currentZoom: number, zoomIn: boolean, bounds: ZoomBounds) {
+  const scaledZoom = zoomIn
+    ? currentZoom * ZOOM_SCALE
+    : currentZoom / ZOOM_SCALE;
   return clampZoom(scaledZoom, bounds);
 }
 
@@ -103,6 +101,59 @@ function clampCamera(
   };
 }
 
+function isCellInsideVisibleBounds(
+  x: number,
+  y: number,
+  bounds: {
+    startCellX: number;
+    endCellX: number;
+    startCellY: number;
+    endCellY: number;
+  } | null,
+) {
+  if (!bounds) {
+    return false;
+  }
+
+  return (
+    x >= bounds.startCellX &&
+    x <= bounds.endCellX &&
+    y >= bounds.startCellY &&
+    y <= bounds.endCellY
+  );
+}
+
+function upsertCells(
+  prev: Cell[],
+  updates: Array<{ x: number; y: number; color: string }>,
+) {
+  const next = [...prev];
+
+  for (const update of updates) {
+    const index = next.findIndex(
+      (cell) => cell.x === update.x && cell.y === update.y,
+    );
+
+    if (index === -1) {
+      next.push({
+        x: update.x,
+        y: update.y,
+        color: update.color,
+        status: "painted",
+      } as Cell);
+      continue;
+    }
+
+    next[index] = {
+      ...next[index],
+      color: update.color,
+      status: "painted",
+    };
+  }
+
+  return next;
+}
+
 export default function useCanvasScene({
   previewColor,
   votingCellIds,
@@ -115,6 +166,7 @@ export default function useCanvasScene({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const cellsRef = useRef<Cell[]>([]);
+  const minimapCellsRef = useRef<Cell[]>([]);
   const selectedCellRef = useRef<Cell | null>(null);
   const zoomRef = useRef(1);
   const cameraXRef = useRef(0);
@@ -124,6 +176,7 @@ export default function useCanvasScene({
   const pendingZoomAdjustmentRef = useRef<PendingZoomAdjustment | null>(null);
 
   const [cells, setCells] = useState<Cell[]>([]);
+  const [minimapCells, setMinimapCells] = useState<Cell[]>([]);
   const [canvasId, setCanvasId] = useState<number | null>(null);
   const [gridX, setGridX] = useState(0);
   const [gridY, setGridY] = useState(0);
@@ -210,6 +263,23 @@ export default function useCanvasScene({
     },
     [],
   );
+
+  const updateMinimapCells = useCallback(
+    (updater: Cell[] | ((prev: Cell[]) => Cell[])) => {
+      if (typeof updater === "function") {
+        setMinimapCells((prev) => {
+          const next = updater(prev);
+          minimapCellsRef.current = next;
+          return next;
+        });
+      } else {
+        minimapCellsRef.current = updater;
+        setMinimapCells(updater);
+      }
+    },
+    [],
+  );
+
   useLayoutEffect(() => {
     const container = containerRef.current;
     const paintCanvas = paintCanvasRef.current;
@@ -448,27 +518,25 @@ export default function useCanvasScene({
 
   const handleCanvasUpdated = useCallback(
     ({ x, y, color }: { x: number; y: number; color: string }) => {
-      updateCells((prev) => {
-        const index = prev.findIndex((cell) => cell.x === x && cell.y === y);
+      updateCells((prev) =>
+        upsertCells(prev, [
+          {
+            x,
+            y,
+            color,
+          },
+        ]),
+      );
 
-        if (index === -1) {
-          return [
-            ...prev,
-            {
-              x,
-              y,
-              color,
-              status: "painted",
-            } as Cell,
-          ];
-        }
-
-        return prev.map((cell) =>
-          cell.x === x && cell.y === y
-            ? { ...cell, color, status: "painted" }
-            : cell,
-        );
-      });
+      updateMinimapCells((prev) =>
+        upsertCells(prev, [
+          {
+            x,
+            y,
+            color,
+          },
+        ]),
+      );
 
       if (
         selectedCellRef.current &&
@@ -485,50 +553,33 @@ export default function useCanvasScene({
         selectedCellRef.current = nextSelectedCell;
       }
     },
-    [updateCells],
+    [updateCells, updateMinimapCells],
   );
 
   const handleCanvasBatchUpdated = useCallback(
     ({ updates }: CanvasBatchUpdatedPayload) => {
-      const colorByCoordinate = new Map(
-        updates.map((update) => [`${update.x}:${update.y}`, update.color]),
+      updateMinimapCells((prev) => upsertCells(prev, updates));
+
+      updateCells((prev) =>
+        upsertCells(
+          prev,
+          updates.filter((update) =>
+            isCellInsideVisibleBounds(update.x, update.y, visibleCellBounds),
+          ),
+        ),
       );
 
-      updateCells((prev) => {
-        const next = [...prev];
-
-        for (const update of updates) {
-          const index = next.findIndex(
-            (cell) => cell.x === update.x && cell.y === update.y,
-          );
-
-          if (index === -1) {
-            next.push({
-              x: update.x,
-              y: update.y,
-              color: update.color,
-              status: "painted",
-            } as Cell);
-            continue;
-          }
-
-          next[index] = {
-            ...next[index],
-            color: update.color,
-            status: "painted",
-          };
-        }
-
-        return next;
-      });
-
       if (selectedCellRef.current) {
-        const selectedKey = `${selectedCellRef.current.x}:${selectedCellRef.current.y}`;
+        const updatedSelectedCell = updates.find(
+          (update) =>
+            update.x === selectedCellRef.current?.x &&
+            update.y === selectedCellRef.current?.y,
+        );
 
-        if (colorByCoordinate.has(selectedKey)) {
+        if (updatedSelectedCell) {
           const nextSelectedCell: Cell = {
             ...selectedCellRef.current,
-            color: colorByCoordinate.get(selectedKey)!,
+            color: updatedSelectedCell.color,
             status: "painted",
           };
 
@@ -537,7 +588,7 @@ export default function useCanvasScene({
         }
       }
     },
-    [updateCells],
+    [updateCells, updateMinimapCells, visibleCellBounds],
   );
 
   const clearSelectedCell = useCallback(() => {
@@ -550,6 +601,7 @@ export default function useCanvasScene({
     canvasRef,
     containerRef,
     cells,
+    minimapCells,
     canvasId,
     gridX,
     gridY,
@@ -564,13 +616,14 @@ export default function useCanvasScene({
     setGridX,
     setGridY,
     updateCells,
+    updateMinimapCells,
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
-    handleWheel, // 추가: CanvasPage에서 사용하는 wheel zoom 핸들러 반환
+    handleWheel,
     handleCanvasUpdated,
-    handleCanvasBatchUpdated, // 유지: 여러 셀을 한 번에 반영하는 batch handler 노출
+    handleCanvasBatchUpdated,
     clearSelectedCell,
   };
 }

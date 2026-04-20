@@ -1,4 +1,3 @@
-// TO-BE
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChunkLoader } from "@/features/gameplay/canvas/hooks/useChunkLoader";
 import { useVotePopup, useVoteState } from "@/features/gameplay/vote";
@@ -11,6 +10,7 @@ import {
   GAME_PHASE,
   type GamePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
+import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
 
@@ -69,6 +69,7 @@ export default function useCanvasPage({
     canvasRef,
     containerRef,
     cells,
+    minimapCells,
     canvasId,
     gridX,
     gridY,
@@ -83,6 +84,7 @@ export default function useCanvasPage({
     setGridX,
     setGridY,
     updateCells,
+    updateMinimapCells,
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
@@ -110,17 +112,26 @@ export default function useCanvasPage({
       setGridY(result.gridY);
       setBackgroundImageUrl(result.backgroundImageUrl);
       updateCells(result.cells);
+      updateMinimapCells(result.cells);
     },
-    [setCanvasId, setGridX, setGridY, updateCells],
+    [setCanvasId, setGridX, setGridY, updateCells, updateMinimapCells],
   );
 
-  useChunkLoader({
+  const { invalidateChunksByCells } = useChunkLoader({
     canvasId,
     gridX,
     gridY,
     viewport,
     updateCells,
   });
+
+  const handleCanvasBatchUpdatedForRoundResult = useCallback(
+    (payload: CanvasBatchUpdatedPayload) => {
+      invalidateChunksByCells(payload.updates);
+      handleCanvasBatchUpdated(payload);
+    },
+    [handleCanvasBatchUpdated, invalidateChunksByCells],
+  );
 
   const handleRoundEndedCleanup = useCallback(() => {
     clearSelectedCell();
@@ -195,7 +206,7 @@ export default function useCanvasPage({
     canvasId,
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
-    onCanvasBatchUpdated: handleCanvasBatchUpdated,
+    onCanvasBatchUpdated: handleCanvasBatchUpdatedForRoundResult,
     onOpenRoundSummaryModal: handleOpenRoundSummaryModal,
     onOpenGameSummaryModal: handleOpenGameSummaryModal,
     onRoundEndedCleanup: handleRoundEndedCleanup,
@@ -258,6 +269,7 @@ export default function useCanvasPage({
     selectedCell,
     votes,
     cells,
+    minimapCells,
     handleVoteSuccess,
     handleColorChange,
     handlePopupClose,
