@@ -91,7 +91,6 @@ export default function CanvasPage() {
     },
     [navigate],
   );
-
   const {
     paintCanvasRef,
     canvasRef,
@@ -113,6 +112,7 @@ export default function CanvasPage() {
     selectedCell,
     votes,
     cells,
+    minimapCells,
     handleVoteSuccess,
     handleColorChange,
     handlePopupClose,
@@ -241,6 +241,7 @@ export default function CanvasPage() {
             votes={votes}
             remaining={remaining}
             cells={cells}
+            minimapCells={minimapCells}
             participants={participants}
             participantLoading={participantLoading}
             participantError={participantError}
