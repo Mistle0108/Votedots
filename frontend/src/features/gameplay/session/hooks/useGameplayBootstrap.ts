@@ -156,7 +156,6 @@ export function useGameplayBootstrap() {
       gridX: canvas.gridX,
       gridY: canvas.gridY,
       backgroundImageUrl: getBackgroundImageUrl(canvas.backgroundAssetKey),
-      cells: [],
       round,
       votes,
       remaining,

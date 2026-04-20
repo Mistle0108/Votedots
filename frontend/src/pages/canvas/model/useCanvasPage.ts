@@ -84,7 +84,6 @@ export default function useCanvasPage({
     setGridX,
     setGridY,
     updateCells,
-    updateMinimapCells,
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
@@ -111,10 +110,8 @@ export default function useCanvasPage({
       setGridX(result.gridX);
       setGridY(result.gridY);
       setBackgroundImageUrl(result.backgroundImageUrl);
-      updateCells(result.cells);
-      updateMinimapCells(result.cells);
     },
-    [setCanvasId, setGridX, setGridY, updateCells, updateMinimapCells],
+    [setCanvasId, setGridX, setGridY],
   );
 
   const { invalidateChunksByCells } = useChunkLoader({

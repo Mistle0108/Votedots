@@ -121,16 +121,6 @@ export const canvasService = {
     });
   },
 
-  async getCells(canvasId: number): Promise<Cell[]> {
-    return cellRepository.find({
-      where: {
-        canvas: { id: canvasId },
-        status: CellStatus.PAINTED,
-      },
-      order: { y: "ASC", x: "ASC" },
-    });
-  },
-
   async getCurrentParticipantCount(): Promise<{
     canvasId: number;
     count: number;
