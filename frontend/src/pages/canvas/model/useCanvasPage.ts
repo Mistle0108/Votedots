@@ -54,22 +54,18 @@ export default function useCanvasPage({
   const {
     popupOpen,
     popupPos,
-    previewColorRef,
+    previewColor,
     openPopup,
     closePopup,
     resetPreviewColor,
     handleColorChange,
   } = useVotePopup();
 
-  const {
-    votes,
-    votingCellIdsRef,
-    topColorMapRef,
-    applyVoteUpdate,
-    resetVoteState,
-  } = useVoteState();
+  const { votes, votingCellIds, topColorMap, applyVoteUpdate, resetVoteState } =
+    useVoteState();
 
   const {
+    paintCanvasRef,
     canvasRef,
     containerRef,
     cells,
@@ -78,6 +74,9 @@ export default function useCanvasPage({
     gridY,
     selectedCell,
     viewport,
+    cameraX,
+    cameraY,
+    zoom,
     navigateToCoordinate,
     resetCanvasZoom,
     setCanvasId,
@@ -93,9 +92,9 @@ export default function useCanvasPage({
     handleCanvasBatchUpdated,
     clearSelectedCell,
   } = useCanvasScene({
-    previewColorRef,
-    votingCellIdsRef,
-    topColorMapRef,
+    previewColor,
+    votingCellIds,
+    topColorMap,
     resetPreviewColor,
     openPopup,
   });
@@ -122,6 +121,7 @@ export default function useCanvasPage({
     viewport,
     updateCells,
   });
+
   const handleRoundEndedCleanup = useCallback(() => {
     clearSelectedCell();
     resetPreviewColor();
@@ -229,11 +229,16 @@ export default function useCanvasPage({
   ]);
 
   const handlePopupClose = useCallback(() => {
-    clearSelectedCell();
     closePopup();
-  }, [clearSelectedCell, closePopup]);
+  }, [closePopup]);
+
+  const handleVoteSuccess = useCallback(() => {
+    clearSelectedCell();
+    gameplay.handleVoteSuccess();
+  }, [clearSelectedCell, gameplay]);
 
   return {
+    paintCanvasRef,
     canvasRef,
     containerRef,
     loading: gameplay.loading,
@@ -253,7 +258,7 @@ export default function useCanvasPage({
     selectedCell,
     votes,
     cells,
-    handleVoteSuccess: gameplay.handleVoteSuccess,
+    handleVoteSuccess,
     handleColorChange,
     handlePopupClose,
     roundNumber: gameplay.roundNumber,
@@ -277,6 +282,9 @@ export default function useCanvasPage({
     gridY,
     backgroundImageUrl,
     viewport,
+    cameraX,
+    cameraY,
+    zoom,
     navigateToCoordinate,
     resetCanvasZoom,
     introGuideOpen,

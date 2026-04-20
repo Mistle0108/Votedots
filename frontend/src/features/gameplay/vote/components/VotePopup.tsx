@@ -252,17 +252,42 @@ export default function VotePopup({
   }, []);
 
   useEffect(() => {
+    let isActivated = false;
+
+    const rafId = window.requestAnimationFrame(() => {
+      isActivated = true;
+    });
+
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        popupRef.current &&
-        !popupRef.current.contains(event.target as Node)
-      ) {
-        onClose();
+      if (!isActivated) {
+        return;
       }
+
+      const target = event.target;
+
+      if (!(target instanceof Element)) {
+        return;
+      }
+
+      if (popupRef.current?.contains(target)) {
+        return;
+      }
+
+      // 메인 보드 canvas, paint canvas, minimap canvas 클릭은
+      // 선택 유지/이동 동작으로 보고 팝업 close 처리하지 않음
+      if (target.closest("canvas")) {
+        return;
+      }
+
+      onClose();
     };
 
-    window.addEventListener("mousedown", handleClickOutside);
-    return () => window.removeEventListener("mousedown", handleClickOutside);
+    window.addEventListener("mousedown", handleClickOutside, true);
+
+    return () => {
+      window.cancelAnimationFrame(rafId);
+      window.removeEventListener("mousedown", handleClickOutside, true);
+    };
   }, [onClose]);
 
   useEffect(() => {

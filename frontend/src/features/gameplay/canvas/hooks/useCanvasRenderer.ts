@@ -1,64 +1,121 @@
-import { useEffect, useRef, type RefObject } from "react";
-import { renderCanvas } from "../model/canvas.render";
-import { Cell } from "../model/canvas.types";
+import { useEffect, type RefObject } from "react";
+import { renderOverlayLayer, renderPaintLayer } from "../model/canvas.render";
+import type { Cell, VisibleCellBounds } from "../model/canvas.types";
 
 interface UseCanvasRendererParams {
+  paintCanvasRef: RefObject<HTMLCanvasElement | null>;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   canvasReady: boolean;
-  cellsRef: RefObject<Cell[]>;
-  selectedCellRef: RefObject<Cell | null>;
-  previewColorRef: RefObject<string | null>;
-  votingCellIdsRef: RefObject<Set<string>>;
-  topColorMapRef: RefObject<Map<string, string>>;
+  cells: Cell[];
+  selectedCell: Cell | null;
+  previewColor: string | null;
+  votingCellIds: Set<string>;
+  topColorMap: Map<string, string>;
+  visibleCellBounds: VisibleCellBounds | null;
+  cameraX: number;
+  cameraY: number;
+  zoom: number;
 }
 
 export function useCanvasRenderer({
+  paintCanvasRef,
   canvasRef,
   canvasReady,
-  cellsRef,
-  selectedCellRef,
-  previewColorRef,
-  votingCellIdsRef,
-  topColorMapRef,
+  cells,
+  selectedCell,
+  previewColor,
+  votingCellIds,
+  topColorMap,
+  visibleCellBounds,
+  cameraX,
+  cameraY,
+  zoom,
 }: UseCanvasRendererParams) {
-  const animationRef = useRef<number>(0);
+  useEffect(() => {
+    if (!canvasReady) {
+      return;
+    }
+
+    const paintCanvas = paintCanvasRef.current;
+    const paintCtx = paintCanvas?.getContext("2d");
+
+    if (!paintCtx) {
+      return;
+    }
+
+    renderPaintLayer({
+      ctx: paintCtx,
+      cells,
+      visibleCellBounds,
+      cameraX,
+      cameraY,
+      zoom,
+    });
+  }, [
+    paintCanvasRef,
+    canvasReady,
+    cells,
+    visibleCellBounds,
+    cameraX,
+    cameraY,
+    zoom,
+  ]);
 
   useEffect(() => {
-    if (!canvasReady) return;
+    if (!canvasReady) {
+      return;
+    }
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+    const overlayCanvas = canvasRef.current;
+    const overlayCtx = overlayCanvas?.getContext("2d");
 
-    const render = (timestamp: number) => {
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
+    if (!overlayCtx) {
+      return;
+    }
 
-      renderCanvas({
-        ctx,
-        canvas,
-        cells: cellsRef.current,
-        selectedCell: selectedCellRef.current,
-        previewColor: previewColorRef.current,
-        votingCellIds: votingCellIdsRef.current,
-        topColorMap: topColorMapRef.current,
+    let frameId = 0;
+
+    const drawOverlay = (timestamp = 0) => {
+      renderOverlayLayer({
+        ctx: overlayCtx,
+        selectedCell,
+        previewColor,
+        votingCellIds,
+        topColorMap,
+        visibleCellBounds,
+        cameraX,
+        cameraY,
+        zoom,
         timestamp,
       });
-
-      animationRef.current = requestAnimationFrame(render);
     };
 
-    animationRef.current = requestAnimationFrame(render);
+    drawOverlay();
+
+    if (votingCellIds.size === 0) {
+      return;
+    }
+
+    const animate = (timestamp: number) => {
+      drawOverlay(timestamp);
+      frameId = requestAnimationFrame(animate);
+    };
+
+    frameId = requestAnimationFrame(animate);
 
     return () => {
-      cancelAnimationFrame(animationRef.current);
+      cancelAnimationFrame(frameId);
     };
   }, [
-    canvasReady,
     canvasRef,
-    cellsRef,
-    previewColorRef,
-    selectedCellRef,
-    topColorMapRef,
-    votingCellIdsRef,
+    canvasReady,
+    selectedCell,
+    previewColor,
+    votingCellIds,
+    topColorMap,
+    visibleCellBounds,
+    cameraX,
+    cameraY,
+    zoom,
   ]);
 }

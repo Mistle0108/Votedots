@@ -93,6 +93,7 @@ export default function CanvasPage() {
   );
 
   const {
+    paintCanvasRef,
     canvasRef,
     containerRef,
     loading,
@@ -135,6 +136,9 @@ export default function CanvasPage() {
     gridY,
     backgroundImageUrl,
     viewport,
+    cameraX,
+    cameraY,
+    zoom,
     navigateToCoordinate,
     resetCanvasZoom,
     introGuideOpen,
@@ -209,8 +213,14 @@ export default function CanvasPage() {
         onWheel={handleWheel}
       >
         <CanvasSurface
+          paintCanvasRef={paintCanvasRef}
           canvasRef={canvasRef}
           backgroundImageUrl={backgroundImageUrl}
+          gridX={gridX}
+          gridY={gridY}
+          cameraX={cameraX}
+          cameraY={cameraY}
+          zoom={zoom}
         />
       </CanvasStage>
 

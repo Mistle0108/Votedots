@@ -1,66 +1,105 @@
 import { useCallback, useEffect, useState, type RefObject } from "react";
-import { calculateViewport } from "../model/viewport";
-import { Viewport } from "../model/canvas.types";
+import {
+  calculateViewport,
+  calculateVisibleCellBounds,
+} from "../model/viewport";
+import type { Viewport, VisibleCellBounds } from "../model/canvas.types";
 
 interface UseCanvasViewportParams {
   containerRef: RefObject<HTMLDivElement | null>;
-  canvasRef: RefObject<HTMLCanvasElement | null>;
   gridX: number;
   gridY: number;
   canvasReady: boolean;
+  cameraX: number;
+  cameraY: number;
+  zoom: number;
 }
 
 export function useCanvasViewport({
   containerRef,
-  canvasRef,
   gridX,
   gridY,
   canvasReady,
+  cameraX,
+  cameraY,
+  zoom,
 }: UseCanvasViewportParams) {
   const [viewport, setViewport] = useState<Viewport | null>(null);
+  const [visibleCellBounds, setVisibleCellBounds] =
+    useState<VisibleCellBounds | null>(null);
 
   const updateViewport = useCallback(() => {
     const container = containerRef.current;
-    const canvas = canvasRef.current;
 
-    if (!container || !canvas) {
+    if (!container || gridX === 0 || gridY === 0 || zoom <= 0) {
       setViewport(null);
+      setVisibleCellBounds(null);
+      return;
+    }
+
+    const viewportWidth = container.clientWidth;
+    const viewportHeight = container.clientHeight;
+
+    if (viewportWidth <= 0 || viewportHeight <= 0) {
+      setViewport(null);
+      setVisibleCellBounds(null);
       return;
     }
 
     setViewport(
       calculateViewport({
-        container,
-        canvas,
         gridX,
         gridY,
+        cameraX,
+        cameraY,
+        zoom,
+        viewportWidth,
+        viewportHeight,
       }),
     );
-  }, [canvasRef, containerRef, gridX, gridY]);
+
+    setVisibleCellBounds(
+      calculateVisibleCellBounds({
+        gridX,
+        gridY,
+        cameraX,
+        cameraY,
+        zoom,
+        viewportWidth,
+        viewportHeight,
+      }),
+    );
+  }, [containerRef, gridX, gridY, cameraX, cameraY, zoom]);
 
   useEffect(() => {
-    if (!canvasReady) return;
+    if (!canvasReady) {
+      setViewport(null);
+      setVisibleCellBounds(null);
+      return;
+    }
 
     const container = containerRef.current;
-    if (!container) return;
 
-    const handleScroll = () => {
-      updateViewport();
-    };
+    if (!container) {
+      return;
+    }
 
     updateViewport();
 
-    container.addEventListener("scroll", handleScroll);
-    window.addEventListener("resize", handleScroll);
+    const observer = new ResizeObserver(() => {
+      updateViewport();
+    });
+
+    observer.observe(container);
 
     return () => {
-      container.removeEventListener("scroll", handleScroll);
-      window.removeEventListener("resize", handleScroll);
+      observer.disconnect();
     };
   }, [canvasReady, containerRef, updateViewport]);
 
   return {
     viewport,
+    visibleCellBounds,
     updateViewport,
   };
 }

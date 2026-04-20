@@ -38,27 +38,18 @@ export default function CanvasStage({
 
       <div
         ref={containerRef}
-        tabIndex={0} // 변경: 캔버스 영역 포커스 가능
-        className="h-full w-full overflow-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden"
+        tabIndex={0}
+        className="relative h-full w-full overflow-hidden"
         onMouseDown={() => {
-          containerRef.current?.focus(); // 변경: 캔버스 클릭 시 포커스 고정
+          containerRef.current?.focus();
         }}
         onKeyDown={(event) => {
           if (event.code === "Space") {
-            event.preventDefault(); // 변경: 캔버스 포커스 상태에서 스페이스 기본 동작 차단
+            event.preventDefault();
           }
         }}
       >
-        <div
-          className="flex min-h-full min-w-full items-center justify-center px-10 py-8"
-          style={{
-            width: "max-content",
-            minWidth: "100%",
-            minHeight: "100%",
-          }}
-        >
-          {children}
-        </div>
+        {children}
       </div>
     </div>
   );
