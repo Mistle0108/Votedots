@@ -1,5 +1,4 @@
 import type { GamePhase } from "@/features/gameplay/session/model/game-phase.types";
-import type { GameConfig } from "@/shared/config/game-config";
 
 export type CanvasStatus = "playing" | "finished";
 
@@ -27,12 +26,6 @@ export interface Cell {
   status: CellStatus;
 }
 
-export interface CanvasCurrentResponse {
-  canvas: Canvas;
-  cells: Cell[];
-  gameConfig: GameConfig;
-}
-
 export interface Viewport {
   left: number;
   top: number;
@@ -46,6 +39,7 @@ export interface VisibleCellBounds {
   startCellY: number;
   endCellY: number;
 }
+
 export interface CanvasChunkQuery {
   startChunkX: number;
   endChunkX: number;

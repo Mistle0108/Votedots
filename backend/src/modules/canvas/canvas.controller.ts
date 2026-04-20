@@ -106,7 +106,6 @@ export const canvasController = {
 
       return res.json({
         canvas: serializeCanvas(canvas),
-        cells: [],
         gameConfig: getCanvasGameConfigSnapshot(canvas),
       });
     } catch (err) {

@@ -1,13 +1,10 @@
-// TO-BE
 import api from "@/shared/api/client";
 import type {
   CanvasChunkQuery,
   CanvasChunkResponse,
-  CanvasCurrentResponse,
 } from "../model/canvas.types";
 
 export const canvasApi = {
-  getCurrent: () => api.get<CanvasCurrentResponse>("/canvas/current"),
   getChunks: (
     canvasId: number,
     params: CanvasChunkQuery,
@@ -19,4 +16,4 @@ export const canvasApi = {
     }),
 };
 
-export type { CanvasChunkQuery, CanvasChunkResponse, CanvasCurrentResponse };
+export type { CanvasChunkQuery, CanvasChunkResponse };
