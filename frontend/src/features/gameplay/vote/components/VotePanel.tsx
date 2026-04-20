@@ -23,7 +23,8 @@ interface Props {
   votes: Record<string, number>;
   remaining: number | null;
   cells: Cell[];
-  minimapCells: Cell[];
+  latestRoundSnapshot: string | null;
+  backgroundImageUrl: string | null;
   participants: ParticipantItem[];
   participantLoading: boolean;
   participantError: string | null;
@@ -50,7 +51,8 @@ export default function VotePanel({
   votes,
   remaining,
   cells,
-  minimapCells,
+  latestRoundSnapshot,
+  backgroundImageUrl,
   participants,
   participantLoading,
   participantError,
@@ -110,14 +112,14 @@ export default function VotePanel({
       </div>
 
       <MiniMap
-        cells={minimapCells}
+        snapshotUrl={latestRoundSnapshot}
+        backgroundImageUrl={backgroundImageUrl}
         gridX={gridX}
         gridY={gridY}
         viewport={viewport}
         selectedCell={selectedCell}
         onNavigate={onNavigateToCoordinate}
       />
-
       <CoordinateNavigator
         gridX={gridX}
         gridY={gridY}
