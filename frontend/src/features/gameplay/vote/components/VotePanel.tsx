@@ -23,6 +23,7 @@ interface Props {
   votes: Record<string, number>;
   remaining: number | null;
   cells: Cell[];
+  minimapCells: Cell[];
   latestRoundSnapshot: string | null;
   backgroundImageUrl: string | null;
   participants: ParticipantItem[];
@@ -51,6 +52,7 @@ export default function VotePanel({
   votes,
   remaining,
   cells,
+  minimapCells,
   latestRoundSnapshot,
   backgroundImageUrl,
   participants,
@@ -110,8 +112,8 @@ export default function VotePanel({
           )}
         </div>
       </div>
-
       <MiniMap
+        cells={minimapCells}
         snapshotUrl={latestRoundSnapshot}
         backgroundImageUrl={backgroundImageUrl}
         gridX={gridX}
