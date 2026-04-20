@@ -112,6 +112,7 @@ export default function CanvasPage() {
     selectedCell,
     votes,
     cells,
+    minimapCells,
     handleVoteSuccess,
     handleColorChange,
     handlePopupClose,
@@ -240,6 +241,7 @@ export default function CanvasPage() {
             votes={votes}
             remaining={remaining}
             cells={cells}
+            minimapCells={minimapCells}
             latestRoundSnapshot={latestRoundSnapshot}
             backgroundImageUrl={backgroundImageUrl}
             participants={participants}

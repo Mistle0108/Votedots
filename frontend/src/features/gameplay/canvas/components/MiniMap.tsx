@@ -8,6 +8,7 @@ const SELECTED_CELL_STROKE = "#f97316";
 const MINIMAP_STROKE_WIDTH = 2;
 
 interface Props {
+  cells: Cell[];
   snapshotUrl: string | null;
   backgroundImageUrl: string | null;
   gridX: number;
@@ -85,6 +86,7 @@ function getClampedMarkerRect(
 }
 
 export default function MiniMap({
+  cells,
   snapshotUrl,
   backgroundImageUrl,
   gridX,
@@ -253,7 +255,7 @@ export default function MiniMap({
 
   return (
     <div className="flex justify-center">
-      <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden">
+      <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-100 p-0 shadow-sm">
         {(snapshotUrl || backgroundImageUrl) && (
           <img
             src={snapshotUrl ?? backgroundImageUrl ?? undefined}
