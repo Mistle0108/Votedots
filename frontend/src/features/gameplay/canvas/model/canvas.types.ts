@@ -40,6 +40,12 @@ export interface Viewport {
   height: number;
 }
 
+export interface VisibleCellBounds {
+  startCellX: number;
+  endCellX: number;
+  startCellY: number;
+  endCellY: number;
+}
 export interface CanvasChunkQuery {
   startChunkX: number;
   endChunkX: number;

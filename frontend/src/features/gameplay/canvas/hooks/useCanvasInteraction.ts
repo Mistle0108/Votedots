@@ -1,23 +1,53 @@
 import { useRef, type RefObject } from "react";
+import { getGameConfig } from "@/shared/config/game-config";
 import { Cell } from "../model/canvas.types";
 
 interface UseCanvasInteractionParams {
-  containerRef: RefObject<HTMLDivElement | null>;
   canvasRef: RefObject<HTMLCanvasElement | null>;
   cells: Cell[];
   gridX: number;
   gridY: number;
+  cameraX: number;
+  cameraY: number;
+  zoom: number;
+  onPan: (dx: number, dy: number) => void;
   onSelectCell: (cell: Cell) => void;
   onResetPreviewColor: () => void;
   onOpenPopup: (position: { x: number; y: number }) => void;
 }
 
+function isInsideCanvas(clientX: number, clientY: number, rect: DOMRect) {
+  return (
+    clientX >= rect.left &&
+    clientX < rect.right &&
+    clientY >= rect.top &&
+    clientY < rect.bottom
+  );
+}
+
+function getWorldCoordinate(
+  clientX: number,
+  clientY: number,
+  rect: DOMRect,
+  cameraX: number,
+  cameraY: number,
+  zoom: number,
+) {
+  return {
+    x: cameraX + (clientX - rect.left) / zoom,
+    y: cameraY + (clientY - rect.top) / zoom,
+  };
+}
+
 export function useCanvasInteraction({
-  containerRef,
   canvasRef,
   cells,
   gridX,
   gridY,
+  cameraX,
+  cameraY,
+  zoom,
+  onPan,
   onSelectCell,
   onResetPreviewColor,
   onOpenPopup,
@@ -37,9 +67,6 @@ export function useCanvasInteraction({
   const handleMouseMove = (event: React.MouseEvent) => {
     if (!isPanning.current) return;
 
-    const container = containerRef.current;
-    if (!container) return;
-
     const dx = event.clientX - lastPos.current.x;
     const dy = event.clientY - lastPos.current.y;
 
@@ -47,8 +74,7 @@ export function useCanvasInteraction({
       hasPanned.current = true;
     }
 
-    container.scrollLeft -= dx;
-    container.scrollTop -= dy;
+    onPan(dx, dy);
     lastPos.current = { x: event.clientX, y: event.clientY };
   };
 
@@ -60,14 +86,27 @@ export function useCanvasInteraction({
     if (hasPanned.current) return;
 
     const canvas = canvasRef.current;
-    if (!canvas || gridX === 0 || gridY === 0) return;
+    if (!canvas || gridX === 0 || gridY === 0 || zoom <= 0) return;
 
     const rect = canvas.getBoundingClientRect();
-    const cellWidth = rect.width / gridX;
-    const cellHeight = rect.height / gridY;
+    if (!isInsideCanvas(event.clientX, event.clientY, rect)) return;
 
-    const targetX = Math.floor((event.clientX - rect.left) / cellWidth);
-    const targetY = Math.floor((event.clientY - rect.top) / cellHeight);
+    const cellSize = getGameConfig().board.cellSize;
+    const worldPoint = getWorldCoordinate(
+      event.clientX,
+      event.clientY,
+      rect,
+      cameraX,
+      cameraY,
+      zoom,
+    );
+
+    const targetX = Math.floor(worldPoint.x / cellSize);
+    const targetY = Math.floor(worldPoint.y / cellSize);
+
+    if (targetX < 0 || targetX >= gridX || targetY < 0 || targetY >= gridY) {
+      return;
+    }
 
     const targetCell =
       cells.find((cell) => cell.x === targetX && cell.y === targetY) ??
