@@ -30,14 +30,6 @@ function renderParticipantCopy(count: number) {
   return "참여자가 없어요.";
 }
 
-function renderMostVotedCell(summary: RoundSummaryData) {
-  if (summary.mostVotedCellX === null || summary.mostVotedCellY === null) {
-    return "없었어요";
-  }
-
-  return `(${summary.mostVotedCellX}, ${summary.mostVotedCellY})`;
-}
-
 export default function RoundSummaryModal({
   open,
   summary,
