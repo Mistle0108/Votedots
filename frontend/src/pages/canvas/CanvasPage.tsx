@@ -5,9 +5,10 @@ import {
   CanvasSurface,
   PANEL_WIDTH,
 } from "@/features/gameplay/canvas";
-import { IntroGuideModal } from "@/features/gameplay/intro";
 import { GameHistoryPanel } from "@/features/gameplay/history";
+import { IntroGuideModal } from "@/features/gameplay/intro";
 import RoundSummaryModal from "@/features/gameplay/round/components/RoundSummaryModal";
+import type { GameSummaryData } from "@/features/gameplay/session/api/session.api";
 import {
   ErrorScreen,
   GameEndedScreen,
@@ -16,7 +17,6 @@ import {
 import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
 import useCanvasPage from "./model/useCanvasPage";
-import type { GameSummaryData } from "@/features/gameplay/session/api/session.api";
 
 interface SummaryModalProps {
   title: string;
@@ -77,7 +77,7 @@ function GameSummaryModal({
 
 export default function CanvasPage() {
   const navigate = useNavigate();
-  const [introModalDismissed, setIntroModalDismissed] = useState(false); // 추가: INTRO 중 사용자가 닫은 상태 보관
+  const [introModalDismissed, setIntroModalDismissed] = useState(false);
 
   const handleSessionEnded = useCallback(() => {
     window.alert("세션이 종료되었습니다. 다시 로그인해 주세요.");
@@ -91,6 +91,7 @@ export default function CanvasPage() {
     },
     [navigate],
   );
+
   const {
     paintCanvasRef,
     canvasRef,
@@ -132,6 +133,8 @@ export default function CanvasPage() {
     gameSummaryModal,
     handleCloseRoundSummaryModal,
     handleCloseGameSummaryModal,
+    handleOpenRoundSummaryModal,
+    handleOpenGameSummaryModal,
     gridX,
     gridY,
     backgroundImageUrl,
@@ -151,6 +154,9 @@ export default function CanvasPage() {
     latestRoundSummary,
     latestRoundSnapshot,
     isLatestRoundSummaryEnabled,
+    historyItems,
+    historyLoading,
+    historyError,
   } = useCanvasPage({
     onSessionEnded: handleSessionEnded,
     onUnauthorized: handleUnauthorized,
@@ -184,9 +190,11 @@ export default function CanvasPage() {
     <div className="flex h-screen w-full bg-gray-50">
       <GameHistoryPanel
         onOpenIntroGuide={handleOpenIntroGuide}
-        onOpenLatestRoundSummary={handleOpenLatestRoundSummary}
-        latestRoundSummary={latestRoundSummary}
-        isLatestRoundSummaryEnabled={isLatestRoundSummaryEnabled}
+        historyItems={historyItems}
+        historyLoading={historyLoading}
+        historyError={historyError}
+        onOpenRoundSummary={handleOpenRoundSummaryModal}
+        onOpenGameSummary={handleOpenGameSummaryModal}
       />
 
       <CanvasStage
@@ -262,7 +270,7 @@ export default function CanvasPage() {
           backgroundImageUrl={backgroundImageUrl}
           gridX={gridX}
           gridY={gridY}
-          gameConfig={gameConfig!}
+          gameConfig={gameConfig}
           formattedGameEndTime={formattedGameEndTime}
           onClose={() => {
             setIntroModalDismissed(true);

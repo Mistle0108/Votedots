@@ -10,6 +10,13 @@ interface RoundSummaryModalProps {
   onDragStart: (event: MouseEvent<HTMLDivElement>) => void;
 }
 
+function hasMostVotedCell(summary: RoundSummaryData) {
+  return (
+    typeof summary.mostVotedCellX === "number" &&
+    typeof summary.mostVotedCellY === "number"
+  );
+}
+
 function renderParticipantCopy(count: number) {
   if (count > 0) {
     return (
@@ -130,16 +137,14 @@ export default function RoundSummaryModal({
             </section>
 
             <section className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-sm leading-6 text-gray-700">
-              <p>
-                가장 인기 있었던 칸은{" "}
-                <span className="font-bold text-gray-900">
-                  {renderMostVotedCell(summary)}
-                </span>
-                {summary.mostVotedCellX !== null &&
-                summary.mostVotedCellY !== null
-                  ? " 이었어요."
-                  : ""}
-              </p>
+              {hasMostVotedCell(summary) ? (
+                <p>
+                  가장 인기 있었던 칸은 ({summary.mostVotedCellX},{" "}
+                  {summary.mostVotedCellY}) 이었어요.
+                </p>
+              ) : (
+                <p>가장 인기 있었던 칸은 없습니다.</p>
+              )}
               <p>
                 동점 추첨으로 결정된 칸은{" "}
                 <span className="font-bold text-gray-900">
