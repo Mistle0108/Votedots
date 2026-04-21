@@ -1,4 +1,4 @@
-import type { MouseEvent } from "react";
+import { useEffect, type MouseEvent } from "react";
 import type { RoundSummaryData } from "@/features/gameplay/session/api/session.api";
 
 interface RoundSummaryModalProps {
@@ -46,6 +46,27 @@ export default function RoundSummaryModal({
   onClose,
   onDragStart,
 }: RoundSummaryModalProps) {
+  useEffect(() => {
+    if (!open || !summary) {
+      return;
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      event.preventDefault();
+      onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, open, summary]);
+
   if (!open || !summary) {
     return null;
   }

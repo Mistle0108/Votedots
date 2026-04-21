@@ -52,6 +52,27 @@ export default function IntroGuideModal({
       return;
     }
 
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") {
+        return;
+      }
+
+      event.preventDefault();
+      onClose();
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [onClose, open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
     const handleMouseMove = (event: MouseEvent) => {
       if (!isDraggingRef.current) {
         return;
