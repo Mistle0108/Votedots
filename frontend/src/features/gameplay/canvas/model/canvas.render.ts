@@ -1,73 +1,213 @@
 import { getGameConfig } from "@/shared/config/game-config";
 import { SELECTED_STROKE_COLOR, VOTING_STROKE_COLOR } from "./canvas.constants";
-import { Cell } from "./canvas.types";
+import type { Cell, VisibleCellBounds } from "./canvas.types";
 
-interface RenderCanvasParams {
+interface RenderPaintLayerParams {
   ctx: CanvasRenderingContext2D;
-  canvas: HTMLCanvasElement;
   cells: Cell[];
+  visibleCellBounds: VisibleCellBounds | null;
+  cameraX: number;
+  cameraY: number;
+  zoom: number;
+}
+interface RenderOverlayLayerParams {
+  ctx: CanvasRenderingContext2D;
   selectedCell: Cell | null;
   previewColor: string | null;
   votingCellIds: Set<string>;
   topColorMap: Map<string, string>;
-  timestamp: number;
+  visibleCellBounds: VisibleCellBounds | null;
+  cameraX: number;
+  cameraY: number;
+  zoom: number;
+  timestamp?: number;
 }
 
-export function renderCanvas({
+function isVisible(
+  x: number,
+  y: number,
+  bounds: VisibleCellBounds | null,
+): boolean {
+  if (!bounds) {
+    return false;
+  }
+
+  return (
+    x >= bounds.startCellX &&
+    x <= bounds.endCellX &&
+    y >= bounds.startCellY &&
+    y <= bounds.endCellY
+  );
+}
+
+function clearCanvas(ctx: CanvasRenderingContext2D) {
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+  ctx.restore();
+}
+
+function getScreenCellRect(
+  cellX: number,
+  cellY: number,
+  cellSize: number,
+  cameraX: number,
+  cameraY: number,
+  zoom: number,
+) {
+  const size = cellSize * zoom;
+
+  return {
+    x: (cellX * cellSize - cameraX) * zoom,
+    y: (cellY * cellSize - cameraY) * zoom,
+    size,
+  };
+}
+
+function getStrokeMetrics(size: number) {
+  const lineWidth = Math.max(2, Math.min(3, size * 0.18));
+  const inset = lineWidth / 2;
+
+  return {
+    inset,
+    strokeSize: Math.max(0, size - lineWidth),
+    lineWidth,
+  };
+}
+
+function isScreenRectVisible(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  size: number,
+) {
+  const rect = ctx.canvas.getBoundingClientRect();
+
+  return x + size > 0 && x < rect.width && y + size > 0 && y < rect.height;
+}
+export function renderPaintLayer({
   ctx,
-  canvas,
   cells,
+  visibleCellBounds,
+  cameraX,
+  cameraY,
+  zoom,
+}: RenderPaintLayerParams) {
+  clearCanvas(ctx);
+
+  if (!visibleCellBounds) {
+    return;
+  }
+
+  const cellSize = getGameConfig().board.cellSize;
+
+  for (const cell of cells) {
+    if (!cell.color || !isVisible(cell.x, cell.y, visibleCellBounds)) {
+      continue;
+    }
+
+    const rect = getScreenCellRect(
+      cell.x,
+      cell.y,
+      cellSize,
+      cameraX,
+      cameraY,
+      zoom,
+    );
+
+    ctx.fillStyle = cell.color;
+    ctx.fillRect(rect.x, rect.y, rect.size, rect.size);
+  }
+}
+
+export function renderOverlayLayer({
+  ctx,
   selectedCell,
   previewColor,
   votingCellIds,
   topColorMap,
-  timestamp,
-}: RenderCanvasParams) {
+  visibleCellBounds,
+  cameraX,
+  cameraY,
+  zoom,
+  timestamp = 0,
+}: RenderOverlayLayerParams) {
+  clearCanvas(ctx);
+
+  if (!visibleCellBounds) {
+    return;
+  }
+
   const cellSize = getGameConfig().board.cellSize;
+  const pulse = (Math.sin(timestamp / 220) + 1) / 2;
+  const overlayAlpha = 0.25 + pulse * 0.35;
+  const dashOffset = -((timestamp / 90) % 8);
+  for (const cellKey of votingCellIds) {
+    const [xValue, yValue] = cellKey.split(":");
+    const x = Number(xValue);
+    const y = Number(yValue);
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+      continue;
+    }
 
-  const alpha = (Math.sin((timestamp / 500) * Math.PI) + 1) / 2;
-  const dashOffset = -(timestamp / 100) % 8;
+    if (!isVisible(x, y, visibleCellBounds)) {
+      continue;
+    }
 
-  cells.forEach((cell) => {
-    const x = cell.x * cellSize;
-    const y = cell.y * cellSize;
-    const cellKey = `${cell.x}:${cell.y}`;
-    const isSelected = selectedCell?.x === cell.x && selectedCell?.y === cell.y;
-    const isVoting = votingCellIds.has(cellKey);
+    const isSelected = selectedCell?.x === x && selectedCell?.y === y;
     const topColor = topColorMap.get(cellKey);
+    const rect = getScreenCellRect(x, y, cellSize, cameraX, cameraY, zoom);
+    const { inset, strokeSize, lineWidth } = getStrokeMetrics(rect.size);
 
-    if (cell.color) {
-      ctx.fillStyle = cell.color;
-      ctx.fillRect(x, y, cellSize, cellSize);
-    }
-
-    if (isSelected && previewColor) {
-      ctx.fillStyle = previewColor;
-      ctx.fillRect(x, y, cellSize, cellSize);
-    } else if (isVoting && topColor && !isSelected) {
-      ctx.fillStyle = topColor;
-      ctx.globalAlpha = alpha * 0.7;
-      ctx.fillRect(x, y, cellSize, cellSize);
-      ctx.globalAlpha = 1;
-    }
-
-    if (isSelected) {
-      ctx.strokeStyle = SELECTED_STROKE_COLOR;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
-    }
-
-    if (isVoting && !isSelected) {
+    if (topColor && !isSelected) {
       ctx.save();
-      ctx.strokeStyle = VOTING_STROKE_COLOR;
-      ctx.lineWidth = 2;
-      ctx.setLineDash([4, 4]);
-      ctx.lineDashOffset = dashOffset;
-      ctx.strokeRect(x + 1, y + 1, cellSize - 2, cellSize - 2);
-      ctx.setLineDash([]);
+      ctx.fillStyle = topColor;
+      ctx.globalAlpha = overlayAlpha;
+      ctx.fillRect(rect.x, rect.y, rect.size, rect.size);
       ctx.restore();
     }
-  });
+
+    if (!isSelected && strokeSize > 0) {
+      ctx.save();
+      ctx.strokeStyle = VOTING_STROKE_COLOR;
+      ctx.lineWidth = lineWidth;
+      ctx.setLineDash(rect.size >= 8 ? [4, 4] : []);
+      ctx.lineDashOffset = rect.size >= 8 ? dashOffset : 0;
+      ctx.strokeRect(rect.x + inset, rect.y + inset, strokeSize, strokeSize);
+      ctx.restore();
+    }
+  }
+
+  if (selectedCell) {
+    const rect = getScreenCellRect(
+      selectedCell.x,
+      selectedCell.y,
+      cellSize,
+      cameraX,
+      cameraY,
+      zoom,
+    );
+    const screenVisible = isScreenRectVisible(ctx, rect.x, rect.y, rect.size);
+
+    if (screenVisible) {
+      const { inset, strokeSize, lineWidth } = getStrokeMetrics(rect.size);
+
+      if (previewColor) {
+        ctx.save();
+        ctx.fillStyle = previewColor;
+        ctx.fillRect(rect.x, rect.y, rect.size, rect.size);
+        ctx.restore();
+      }
+
+      if (strokeSize > 0) {
+        ctx.save();
+        ctx.setLineDash([]);
+        ctx.strokeStyle = SELECTED_STROKE_COLOR;
+        ctx.lineWidth = lineWidth;
+        ctx.strokeRect(rect.x + inset, rect.y + inset, strokeSize, strokeSize);
+        ctx.restore();
+      }
+    }
+  }
 }

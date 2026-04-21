@@ -1,58 +1,87 @@
-import { useCallback, type RefObject } from "react";
+import {
+  useCallback,
+  type Dispatch,
+  type RefObject,
+  type SetStateAction,
+} from "react";
+import { getGameConfig } from "@/shared/config/game-config";
 
 interface UseCanvasNavigationParams {
   containerRef: RefObject<HTMLDivElement | null>;
-  canvasRef: RefObject<HTMLCanvasElement | null>;
   gridX: number;
   gridY: number;
-  updateViewport: () => void;
+  zoom: number;
+  setCameraX: Dispatch<SetStateAction<number>>;
+  setCameraY: Dispatch<SetStateAction<number>>;
+}
+
+interface CoordinateLike {
+  x: number;
+  y: number;
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
+function resolveCoordinate(
+  xOrPoint: number | CoordinateLike,
+  maybeY?: number,
+): CoordinateLike {
+  if (typeof xOrPoint === "number") {
+    return {
+      x: xOrPoint,
+      y: maybeY ?? 0,
+    };
+  }
+
+  return xOrPoint;
 }
 
 export function useCanvasNavigation({
   containerRef,
-  canvasRef,
   gridX,
   gridY,
-  updateViewport,
+  zoom,
+  setCameraX,
+  setCameraY,
 }: UseCanvasNavigationParams) {
   const navigateToCoordinate = useCallback(
-    (x: number, y: number, behavior: ScrollBehavior = "smooth") => {
+    (xOrPoint: number | CoordinateLike, maybeY?: number) => {
       const container = containerRef.current;
-      const canvas = canvasRef.current;
 
-      if (!container || !canvas || gridX === 0 || gridY === 0) return;
+      if (!container || gridX === 0 || gridY === 0 || zoom <= 0) {
+        return;
+      }
 
-      const cellWidth = canvas.offsetWidth / gridX;
-      const cellHeight = canvas.offsetHeight / gridY;
+      const { x, y } = resolveCoordinate(xOrPoint, maybeY);
+      const cellSize = getGameConfig().board.cellSize;
 
-      const targetX = x * cellWidth + cellWidth / 2;
-      const targetY = y * cellHeight + cellHeight / 2;
+      const worldWidth = gridX * cellSize;
+      const worldHeight = gridY * cellSize;
 
-      const nextScrollLeft =
-        canvas.offsetLeft + targetX - container.clientWidth / 2;
-      const nextScrollTop =
-        canvas.offsetTop + targetY - container.clientHeight / 2;
+      const viewportWorldWidth = container.clientWidth / zoom;
+      const viewportWorldHeight = container.clientHeight / zoom;
 
-      const maxScrollLeft = Math.max(
+      const targetWorldCenterX = x * cellSize + cellSize / 2;
+      const targetWorldCenterY = y * cellSize + cellSize / 2;
+
+      const nextCameraX = clamp(
+        targetWorldCenterX - viewportWorldWidth / 2,
         0,
-        container.scrollWidth - container.clientWidth,
+        Math.max(0, worldWidth - viewportWorldWidth),
       );
-      const maxScrollTop = Math.max(
+
+      const nextCameraY = clamp(
+        targetWorldCenterY - viewportWorldHeight / 2,
         0,
-        container.scrollHeight - container.clientHeight,
+        Math.max(0, worldHeight - viewportWorldHeight),
       );
 
-      container.scrollTo({
-        left: Math.min(Math.max(0, nextScrollLeft), maxScrollLeft),
-        top: Math.min(Math.max(0, nextScrollTop), maxScrollTop),
-        behavior,
-      });
-
-      requestAnimationFrame(() => {
-        updateViewport();
-      });
+      setCameraX(nextCameraX);
+      setCameraY(nextCameraY);
     },
-    [canvasRef, containerRef, gridX, gridY, updateViewport],
+    [containerRef, gridX, gridY, zoom, setCameraX, setCameraY],
   );
 
   return {

@@ -2,13 +2,15 @@ import { useEffect, useMemo, useRef } from "react";
 import { Cell, Viewport } from "../model/canvas.types";
 
 const MINIMAP_BOX_SIZE = 220;
-const EMPTY_CELL_COLOR = "#d1d5db";
 const VIEWPORT_STROKE = "#ef4444";
 const VIEWPORT_FILL = "rgba(239, 68, 68, 0.12)";
 const SELECTED_CELL_STROKE = "#f97316";
+const MINIMAP_STROKE_WIDTH = 2;
 
 interface Props {
   cells: Cell[];
+  snapshotUrl: string | null;
+  backgroundImageUrl: string | null;
   gridX: number;
   gridY: number;
   viewport: Viewport | null;
@@ -16,8 +18,77 @@ interface Props {
   onNavigate: (x: number, y: number, behavior?: ScrollBehavior) => void;
 }
 
+function getInsetStrokeRect(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  lineWidth: number,
+  maxWidth: number,
+  maxHeight: number,
+) {
+  const inset = lineWidth / 2;
+
+  const safeX = Math.max(inset, x + inset);
+  const safeY = Math.max(inset, y + inset);
+  const safeRight = Math.min(maxWidth - inset, x + width - inset);
+  const safeBottom = Math.min(maxHeight - inset, y + height - inset);
+
+  return {
+    x: safeX,
+    y: safeY,
+    width: Math.max(0, safeRight - safeX),
+    height: Math.max(0, safeBottom - safeY),
+  };
+}
+
+function getClampedViewportRect(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  maxWidth: number,
+  maxHeight: number,
+) {
+  const safeX = Math.max(0, Math.min(x, maxWidth));
+  const safeY = Math.max(0, Math.min(y, maxHeight));
+  const safeRight = Math.max(0, Math.min(x + width, maxWidth));
+  const safeBottom = Math.max(0, Math.min(y + height, maxHeight));
+
+  return {
+    x: safeX,
+    y: safeY,
+    width: Math.max(0, safeRight - safeX),
+    height: Math.max(0, safeBottom - safeY),
+  };
+}
+
+function getClampedMarkerRect(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  maxWidth: number,
+  maxHeight: number,
+) {
+  const markerSize = Math.max(
+    2,
+    Math.floor(Math.min(Math.max(width, 2), Math.max(height, 2), 4)),
+  );
+  const safeX = Math.min(Math.max(x, 0), Math.max(0, maxWidth - markerSize));
+  const safeY = Math.min(Math.max(y, 0), Math.max(0, maxHeight - markerSize));
+
+  return {
+    x: safeX,
+    y: safeY,
+    size: markerSize,
+  };
+}
+
 export default function MiniMap({
   cells,
+  snapshotUrl,
+  backgroundImageUrl,
   gridX,
   gridY,
   viewport,
@@ -53,49 +124,91 @@ export default function MiniMap({
     const cellWidth = canvas.width / Math.max(gridX, 1);
     const cellHeight = canvas.height / Math.max(gridY, 1);
 
-    for (const cell of cells) {
-      ctx.fillStyle = cell.color ?? EMPTY_CELL_COLOR;
-      ctx.fillRect(
-        cell.x * cellWidth,
-        cell.y * cellHeight,
-        Math.ceil(cellWidth),
-        Math.ceil(cellHeight),
-      );
-    }
-
-    if (selectedCell) {
-      ctx.save();
-      ctx.strokeStyle = SELECTED_CELL_STROKE;
-      ctx.lineWidth = 2;
-      ctx.strokeRect(
-        selectedCell.x * cellWidth,
-        selectedCell.y * cellHeight,
-        Math.max(cellWidth, 1),
-        Math.max(cellHeight, 1),
-      );
-      ctx.restore();
-    }
-
     if (viewport) {
+      const viewportRect = getClampedViewportRect(
+        viewport.left,
+        viewport.top,
+        viewport.width,
+        viewport.height,
+        canvas.width,
+        canvas.height,
+      );
+
       ctx.save();
       ctx.fillStyle = VIEWPORT_FILL;
       ctx.strokeStyle = VIEWPORT_STROKE;
-      ctx.lineWidth = 2;
+      ctx.lineWidth = MINIMAP_STROKE_WIDTH;
       ctx.fillRect(
-        viewport.left,
-        viewport.top,
-        viewport.width,
-        viewport.height,
+        viewportRect.x,
+        viewportRect.y,
+        viewportRect.width,
+        viewportRect.height,
       );
       ctx.strokeRect(
-        viewport.left,
-        viewport.top,
-        viewport.width,
-        viewport.height,
+        viewportRect.x + MINIMAP_STROKE_WIDTH / 2,
+        viewportRect.y + MINIMAP_STROKE_WIDTH / 2,
+        Math.max(0, viewportRect.width - MINIMAP_STROKE_WIDTH),
+        Math.max(0, viewportRect.height - MINIMAP_STROKE_WIDTH),
       );
       ctx.restore();
     }
-  }, [cells, gridX, gridY, minimapDimensions, selectedCell, viewport]);
+
+    if (selectedCell) {
+      const rawX = selectedCell.x * cellWidth;
+      const rawY = selectedCell.y * cellHeight;
+      const rawWidth = Math.max(cellWidth, 1);
+      const rawHeight = Math.max(cellHeight, 1);
+
+      ctx.save();
+      ctx.strokeStyle = SELECTED_CELL_STROKE;
+      ctx.fillStyle = SELECTED_CELL_STROKE;
+      ctx.lineWidth = MINIMAP_STROKE_WIDTH;
+
+      if (rawWidth <= 4 || rawHeight <= 4) {
+        const markerRect = getClampedMarkerRect(
+          rawX,
+          rawY,
+          rawWidth,
+          rawHeight,
+          canvas.width,
+          canvas.height,
+        );
+
+        ctx.fillRect(
+          markerRect.x,
+          markerRect.y,
+          markerRect.size,
+          markerRect.size,
+        );
+      } else {
+        const selectedRect = getInsetStrokeRect(
+          rawX,
+          rawY,
+          rawWidth,
+          rawHeight,
+          MINIMAP_STROKE_WIDTH,
+          canvas.width,
+          canvas.height,
+        );
+
+        ctx.strokeRect(
+          selectedRect.x,
+          selectedRect.y,
+          selectedRect.width,
+          selectedRect.height,
+        );
+      }
+
+      ctx.restore();
+    }
+  }, [
+    gridX,
+    gridY,
+    minimapDimensions.width,
+    minimapDimensions.height,
+    selectedCell,
+    viewport,
+  ]);
 
   const navigateFromPointer = (
     clientX: number,
@@ -142,7 +255,21 @@ export default function MiniMap({
 
   return (
     <div className="flex justify-center">
-      <div className="flex h-[220px] w-full items-center justify-center rounded-lg p-2">
+      <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-100 p-0 shadow-sm">
+        {(snapshotUrl || backgroundImageUrl) && (
+          <img
+            src={snapshotUrl ?? backgroundImageUrl ?? undefined}
+            alt="미니맵 스냅샷"
+            className="pointer-events-none absolute block h-full w-full select-none"
+            style={{
+              width: `${minimapDimensions.width}px`,
+              height: `${minimapDimensions.height}px`,
+              imageRendering: "pixelated",
+            }}
+            draggable={false}
+          />
+        )}
+
         <canvas
           ref={canvasRef}
           onMouseDown={(event) => {
@@ -150,7 +277,7 @@ export default function MiniMap({
             navigateFromPointer(event.clientX, event.clientY, "auto");
           }}
           onDragStart={(event) => event.preventDefault()}
-          className="block cursor-crosshair rounded border border-gray-50 bg-transparent"
+          className="relative z-[1] block cursor-crosshair bg-transparent"
           style={{
             width: `${minimapDimensions.width}px`,
             height: `${minimapDimensions.height}px`,

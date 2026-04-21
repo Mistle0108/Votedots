@@ -26,10 +26,12 @@ export default function useVoteState() {
 
   const handleColorChange = useCallback((color: string | null) => {
     setPreviewColor(color);
+    previewColorRef.current = color;
   }, []);
 
   const resetPreviewColor = useCallback(() => {
     setPreviewColor(null);
+    previewColorRef.current = null;
   }, []);
 
   const applyVoteUpdate = useCallback((nextVotes: Record<string, number>) => {
@@ -60,19 +62,30 @@ export default function useVoteState() {
 
     setVotingCellIds(nextVotingCellIds);
     setTopColorMap(nextTopColorMap);
+    votingCellIdsRef.current = nextVotingCellIds;
+    topColorMapRef.current = nextTopColorMap;
   }, []);
 
   const resetVoteState = useCallback(() => {
+    const emptyVotingCellIds = new Set<string>();
+    const emptyTopColorMap = new Map<string, string>();
+
     setVotes({});
     setPreviewColor(null);
-    setVotingCellIds(new Set());
-    setTopColorMap(new Map());
+    setVotingCellIds(emptyVotingCellIds);
+    setTopColorMap(emptyTopColorMap);
+
+    previewColorRef.current = null;
+    votingCellIdsRef.current = emptyVotingCellIds;
+    topColorMapRef.current = emptyTopColorMap;
   }, []);
 
   return {
     votes,
     previewColor,
     previewColorRef,
+    votingCellIds,
+    topColorMap,
     votingCellIdsRef,
     topColorMapRef,
     handleColorChange,

@@ -12,13 +12,13 @@ import {
   useCanvasRenderer,
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
-import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types"; // 추가: batch canvas update payload
+import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import { getGameConfig } from "@/shared/config/game-config";
 
 interface UseCanvasSceneParams {
-  previewColorRef: React.RefObject<string | null>;
-  votingCellIdsRef: React.RefObject<Set<string>>;
-  topColorMapRef: React.RefObject<Map<string, string>>;
+  previewColor: string | null;
+  votingCellIds: Set<string>;
+  topColorMap: Map<string, string>;
   resetPreviewColor: () => void;
   openPopup: (position: { x: number; y: number }) => void;
 }
@@ -29,28 +29,39 @@ interface ZoomBounds {
 }
 
 interface PendingZoomAdjustment {
-  contentX: number;
-  contentY: number;
+  focusWorldX: number;
+  focusWorldY: number;
   viewportOffsetX: number;
   viewportOffsetY: number;
 }
 
-const ZOOM_STEP = 0.1;
+function getWorldSize(gridX: number, gridY: number) {
+  const cellSize = getGameConfig().board.cellSize;
+
+  return {
+    cellSize,
+    worldWidth: gridX * cellSize,
+    worldHeight: gridY * cellSize,
+  };
+}
+
+const ZOOM_SCALE = 1.1;
 const MAX_ZOOM = 4;
 
 function getZoomBounds(
   container: HTMLDivElement,
-  canvas: HTMLCanvasElement,
+  worldWidth: number,
+  worldHeight: number,
 ): ZoomBounds {
-  if (canvas.width <= 0 || canvas.height <= 0) {
+  if (worldWidth <= 0 || worldHeight <= 0) {
     return {
       minZoom: 1,
       maxZoom: MAX_ZOOM,
     };
   }
 
-  const fitWidthZoom = container.clientWidth / canvas.width;
-  const fitHeightZoom = container.clientHeight / canvas.height;
+  const fitWidthZoom = container.clientWidth / worldWidth;
+  const fitHeightZoom = container.clientHeight / worldHeight;
   const fittedZoom = Math.min(fitWidthZoom, fitHeightZoom);
   const minZoom =
     Number.isFinite(fittedZoom) && fittedZoom > 0 ? fittedZoom : 1;
@@ -65,30 +76,114 @@ function clampZoom(nextZoom: number, bounds: ZoomBounds) {
   return Math.min(bounds.maxZoom, Math.max(bounds.minZoom, nextZoom));
 }
 
+function getNextZoom(currentZoom: number, zoomIn: boolean, bounds: ZoomBounds) {
+  const scaledZoom = zoomIn
+    ? currentZoom * ZOOM_SCALE
+    : currentZoom / ZOOM_SCALE;
+  return clampZoom(scaledZoom, bounds);
+}
+
+function clampCamera(
+  nextCameraX: number,
+  nextCameraY: number,
+  worldWidth: number,
+  worldHeight: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  zoom: number,
+) {
+  const maxCameraX = Math.max(0, worldWidth - viewportWidth / zoom);
+  const maxCameraY = Math.max(0, worldHeight - viewportHeight / zoom);
+
+  return {
+    x: Math.min(Math.max(0, nextCameraX), maxCameraX),
+    y: Math.min(Math.max(0, nextCameraY), maxCameraY),
+  };
+}
+
+function isCellInsideVisibleBounds(
+  x: number,
+  y: number,
+  bounds: {
+    startCellX: number;
+    endCellX: number;
+    startCellY: number;
+    endCellY: number;
+  } | null,
+) {
+  if (!bounds) {
+    return false;
+  }
+
+  return (
+    x >= bounds.startCellX &&
+    x <= bounds.endCellX &&
+    y >= bounds.startCellY &&
+    y <= bounds.endCellY
+  );
+}
+
+function upsertCells(
+  prev: Cell[],
+  updates: Array<{ x: number; y: number; color: string }>,
+) {
+  const next = [...prev];
+
+  for (const update of updates) {
+    const index = next.findIndex(
+      (cell) => cell.x === update.x && cell.y === update.y,
+    );
+
+    if (index === -1) {
+      next.push({
+        x: update.x,
+        y: update.y,
+        color: update.color,
+        status: "painted",
+      } as Cell);
+      continue;
+    }
+
+    next[index] = {
+      ...next[index],
+      color: update.color,
+      status: "painted",
+    };
+  }
+
+  return next;
+}
+
 export default function useCanvasScene({
-  previewColorRef,
-  votingCellIdsRef,
-  topColorMapRef,
+  previewColor,
+  votingCellIds,
+  topColorMap,
   resetPreviewColor,
   openPopup,
 }: UseCanvasSceneParams) {
+  const paintCanvasRef = useRef<HTMLCanvasElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const cellsRef = useRef<Cell[]>([]);
   const selectedCellRef = useRef<Cell | null>(null);
   const zoomRef = useRef(1);
+  const cameraXRef = useRef(0);
+  const cameraYRef = useRef(0);
   const initialZoomRef = useRef(1);
   const sceneKeyRef = useRef<string | null>(null);
   const pendingZoomAdjustmentRef = useRef<PendingZoomAdjustment | null>(null);
 
   const [cells, setCells] = useState<Cell[]>([]);
+  const [minimapCells, setMinimapCells] = useState<Cell[]>([]);
   const [canvasId, setCanvasId] = useState<number | null>(null);
   const [gridX, setGridX] = useState(0);
   const [gridY, setGridY] = useState(0);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
   const [canvasReady, setCanvasReady] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [cameraX, setCameraX] = useState(0);
+  const [cameraY, setCameraY] = useState(0);
+  const [viewportSize, setViewportSize] = useState({ width: 0, height: 0 });
 
   useEffect(() => {
     selectedCellRef.current = selectedCell;
@@ -98,106 +193,203 @@ export default function useCanvasScene({
     zoomRef.current = zoom;
   }, [zoom]);
 
+  useEffect(() => {
+    cameraXRef.current = cameraX;
+  }, [cameraX]);
+
+  useEffect(() => {
+    cameraYRef.current = cameraY;
+  }, [cameraY]);
+
+  useEffect(() => {
+    let frameId = 0;
+    let observer: ResizeObserver | null = null;
+
+    const bindViewportSize = () => {
+      const container = containerRef.current;
+
+      if (!container) {
+        frameId = requestAnimationFrame(bindViewportSize);
+        return;
+      }
+
+      const syncViewportSize = () => {
+        const nextWidth = container.clientWidth;
+        const nextHeight = container.clientHeight;
+
+        setViewportSize((prev) => {
+          if (prev.width === nextWidth && prev.height === nextHeight) {
+            return prev;
+          }
+
+          return {
+            width: nextWidth,
+            height: nextHeight,
+          };
+        });
+      };
+
+      syncViewportSize();
+
+      observer = new ResizeObserver(() => {
+        syncViewportSize();
+      });
+
+      observer.observe(container);
+    };
+
+    bindViewportSize();
+
+    return () => {
+      cancelAnimationFrame(frameId);
+      observer?.disconnect();
+    };
+  }, []);
+
   const updateCells = useCallback(
     (updater: Cell[] | ((prev: Cell[]) => Cell[])) => {
       if (typeof updater === "function") {
-        setCells((prev) => {
-          const next = updater(prev);
-          cellsRef.current = next;
-          return next;
-        });
-      } else {
-        cellsRef.current = updater;
-        setCells(updater);
+        setCells((prev) => updater(prev));
+        return;
       }
+
+      setCells(updater);
+    },
+    [],
+  );
+
+  const updateMinimapCells = useCallback(
+    (updater: Cell[] | ((prev: Cell[]) => Cell[])) => {
+      if (typeof updater === "function") {
+        setMinimapCells((prev) => updater(prev));
+        return;
+      }
+
+      setMinimapCells(updater);
     },
     [],
   );
 
   useLayoutEffect(() => {
+    const container = containerRef.current;
+    const paintCanvas = paintCanvasRef.current;
     const canvas = canvasRef.current;
-    if (!canvas || !canvasId || gridX === 0 || gridY === 0) {
+
+    if (
+      !container ||
+      !paintCanvas ||
+      !canvas ||
+      !canvasId ||
+      gridX === 0 ||
+      gridY === 0
+    ) {
       if (canvasReady) {
         setCanvasReady(false);
       }
       return;
     }
 
-    const cellSize = getGameConfig().board.cellSize;
+    const dpr = window.devicePixelRatio || 1;
+    const viewportWidth = viewportSize.width;
+    const viewportHeight = viewportSize.height;
 
-    canvas.width = gridX * cellSize;
-    canvas.height = gridY * cellSize;
-    canvas.style.width = `${canvas.width * zoom}px`;
-    canvas.style.height = `${canvas.height * zoom}px`;
+    if (viewportWidth <= 0 || viewportHeight <= 0) {
+      if (canvasReady) {
+        setCanvasReady(false);
+      }
+      return;
+    }
+
+    for (const target of [paintCanvas, canvas]) {
+      target.width = Math.floor(viewportWidth * dpr);
+      target.height = Math.floor(viewportHeight * dpr);
+      target.style.width = `${viewportWidth}px`;
+      target.style.height = `${viewportHeight}px`;
+
+      const ctx = target.getContext("2d");
+      ctx?.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
 
     const sceneKey = `${canvasId}:${gridX}:${gridY}`;
     if (sceneKeyRef.current !== sceneKey) {
+      const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+      const bounds = getZoomBounds(container, worldWidth, worldHeight);
+
       sceneKeyRef.current = sceneKey;
-      initialZoomRef.current = zoom;
+      initialZoomRef.current = bounds.minZoom;
+      setZoom(bounds.minZoom);
+      setCameraX(0);
+      setCameraY(0);
     }
 
     if (!canvasReady) {
       setCanvasReady(true);
     }
-  }, [canvasId, gridX, gridY, zoom, canvasReady]);
-
-  const { viewport, updateViewport } = useCanvasViewport({
-    containerRef,
-    canvasRef,
+  }, [
+    canvasId,
     gridX,
     gridY,
     canvasReady,
+    viewportSize.width,
+    viewportSize.height,
+  ]);
+
+  const { viewport, visibleCellBounds } = useCanvasViewport({
+    containerRef,
+    gridX,
+    gridY,
+    canvasReady,
+    cameraX,
+    cameraY,
+    zoom,
   });
 
   useLayoutEffect(() => {
     const container = containerRef.current;
-    const canvas = canvasRef.current;
     const pending = pendingZoomAdjustmentRef.current;
 
-    if (!container || !canvas || !canvasReady || !pending) {
+    if (!container || !canvasReady || !pending || gridX === 0 || gridY === 0) {
       return;
     }
 
-    const nextScrollLeft =
-      canvas.offsetLeft + pending.contentX * zoom - pending.viewportOffsetX;
-    const nextScrollTop =
-      canvas.offsetTop + pending.contentY * zoom - pending.viewportOffsetY;
-
-    const maxScrollLeft = Math.max(
-      0,
-      container.scrollWidth - container.clientWidth,
-    );
-    const maxScrollTop = Math.max(
-      0,
-      container.scrollHeight - container.clientHeight,
+    const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+    const nextCamera = clampCamera(
+      pending.focusWorldX - pending.viewportOffsetX / zoom,
+      pending.focusWorldY - pending.viewportOffsetY / zoom,
+      worldWidth,
+      worldHeight,
+      container.clientWidth,
+      container.clientHeight,
+      zoom,
     );
 
-    container.scrollTo({
-      left: Math.min(Math.max(0, nextScrollLeft), maxScrollLeft),
-      top: Math.min(Math.max(0, nextScrollTop), maxScrollTop),
-      behavior: "auto",
-    });
-
+    setCameraX(nextCamera.x);
+    setCameraY(nextCamera.y);
     pendingZoomAdjustmentRef.current = null;
-    updateViewport();
-  }, [zoom, canvasReady, updateViewport]);
+  }, [zoom, canvasReady, gridX, gridY]);
 
   const { navigateToCoordinate } = useCanvasNavigation({
     containerRef,
-    canvasRef,
     gridX,
     gridY,
-    updateViewport,
+    zoom,
+    setCameraX,
+    setCameraY,
   });
 
   useCanvasRenderer({
+    paintCanvasRef,
     canvasRef,
     canvasReady,
-    cellsRef,
-    selectedCellRef,
-    previewColorRef,
-    votingCellIdsRef,
-    topColorMapRef,
+    cells,
+    selectedCell,
+    previewColor,
+    votingCellIds,
+    topColorMap,
+    visibleCellBounds,
+    cameraX,
+    cameraY,
+    zoom,
   });
 
   const handleSelectCell = useCallback((cell: Cell) => {
@@ -205,13 +397,40 @@ export default function useCanvasScene({
     selectedCellRef.current = cell;
   }, []);
 
+  const handlePan = useCallback(
+    (dx: number, dy: number) => {
+      const container = containerRef.current;
+      if (!container || gridX === 0 || gridY === 0) {
+        return;
+      }
+
+      const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+      const nextCamera = clampCamera(
+        cameraXRef.current - dx / zoomRef.current,
+        cameraYRef.current - dy / zoomRef.current,
+        worldWidth,
+        worldHeight,
+        container.clientWidth,
+        container.clientHeight,
+        zoomRef.current,
+      );
+
+      setCameraX(nextCamera.x);
+      setCameraY(nextCamera.y);
+    },
+    [gridX, gridY],
+  );
+
   const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
     useCanvasInteraction({
-      containerRef,
       canvasRef,
       cells,
       gridX,
       gridY,
+      cameraX,
+      cameraY,
+      zoom,
+      onPan: handlePan,
       onSelectCell: handleSelectCell,
       onResetPreviewColor: resetPreviewColor,
       onOpenPopup: openPopup,
@@ -219,13 +438,13 @@ export default function useCanvasScene({
 
   const resetCanvasZoom = useCallback(() => {
     const container = containerRef.current;
-    const canvas = canvasRef.current;
 
-    if (!container || !canvas || !canvasReady) {
+    if (!container || !canvasReady || gridX === 0 || gridY === 0) {
       return;
     }
 
-    const bounds = getZoomBounds(container, canvas);
+    const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+    const bounds = getZoomBounds(container, worldWidth, worldHeight);
 
     setZoom((currentZoom) => {
       const nextZoom = clampZoom(initialZoomRef.current, bounds);
@@ -235,16 +454,10 @@ export default function useCanvasScene({
       }
 
       pendingZoomAdjustmentRef.current = {
-        contentX:
-          (container.scrollLeft +
-            container.clientWidth / 2 -
-            canvas.offsetLeft) /
-          currentZoom,
-        contentY:
-          (container.scrollTop +
-            container.clientHeight / 2 -
-            canvas.offsetTop) /
-          currentZoom,
+        focusWorldX:
+          cameraXRef.current + container.clientWidth / 2 / currentZoom,
+        focusWorldY:
+          cameraYRef.current + container.clientHeight / 2 / currentZoom,
         viewportOffsetX: container.clientWidth / 2,
         viewportOffsetY: container.clientHeight / 2,
       };
@@ -252,14 +465,13 @@ export default function useCanvasScene({
       zoomRef.current = nextZoom;
       return nextZoom;
     });
-  }, [canvasReady]);
+  }, [canvasReady, gridX, gridY]);
 
   const handleWheel = useCallback(
     (event: React.WheelEvent) => {
       const container = containerRef.current;
-      const canvas = canvasRef.current;
 
-      if (!container || !canvas || !canvasReady) {
+      if (!container || !canvasReady || gridX === 0 || gridY === 0) {
         return;
       }
 
@@ -268,23 +480,21 @@ export default function useCanvasScene({
       const containerRect = container.getBoundingClientRect();
       const pointerOffsetX = event.clientX - containerRect.left;
       const pointerOffsetY = event.clientY - containerRect.top;
-      const zoomDelta = event.deltaY < 0 ? ZOOM_STEP : -ZOOM_STEP;
-      const bounds = getZoomBounds(container, canvas);
+      const zoomIn = event.deltaY < 0;
+
+      const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+      const bounds = getZoomBounds(container, worldWidth, worldHeight);
 
       setZoom((currentZoom) => {
-        const nextZoom = clampZoom(currentZoom + zoomDelta, bounds);
+        const nextZoom = getNextZoom(currentZoom, zoomIn, bounds);
 
         if (nextZoom === currentZoom) {
           return currentZoom;
         }
 
         pendingZoomAdjustmentRef.current = {
-          contentX:
-            (container.scrollLeft + pointerOffsetX - canvas.offsetLeft) /
-            currentZoom,
-          contentY:
-            (container.scrollTop + pointerOffsetY - canvas.offsetTop) /
-            currentZoom,
+          focusWorldX: cameraXRef.current + pointerOffsetX / currentZoom,
+          focusWorldY: cameraYRef.current + pointerOffsetY / currentZoom,
           viewportOffsetX: pointerOffsetX,
           viewportOffsetY: pointerOffsetY,
         };
@@ -293,32 +503,30 @@ export default function useCanvasScene({
         return nextZoom;
       });
     },
-    [canvasReady],
+    [canvasReady, gridX, gridY],
   );
 
   const handleCanvasUpdated = useCallback(
     ({ x, y, color }: { x: number; y: number; color: string }) => {
-      updateCells((prev) => {
-        const index = prev.findIndex((cell) => cell.x === x && cell.y === y);
+      updateCells((prev) =>
+        upsertCells(prev, [
+          {
+            x,
+            y,
+            color,
+          },
+        ]),
+      );
 
-        if (index === -1) {
-          return [
-            ...prev,
-            {
-              x,
-              y,
-              color,
-              status: "painted",
-            } as Cell,
-          ];
-        }
-
-        return prev.map((cell) =>
-          cell.x === x && cell.y === y
-            ? { ...cell, color, status: "painted" }
-            : cell,
-        );
-      });
+      updateMinimapCells((prev) =>
+        upsertCells(prev, [
+          {
+            x,
+            y,
+            color,
+          },
+        ]),
+      );
 
       if (
         selectedCellRef.current &&
@@ -335,50 +543,33 @@ export default function useCanvasScene({
         selectedCellRef.current = nextSelectedCell;
       }
     },
-    [updateCells],
+    [updateCells, updateMinimapCells],
   );
 
   const handleCanvasBatchUpdated = useCallback(
     ({ updates }: CanvasBatchUpdatedPayload) => {
-      const colorByCoordinate = new Map(
-        updates.map((update) => [`${update.x}:${update.y}`, update.color]),
+      updateMinimapCells((prev) => upsertCells(prev, updates));
+
+      updateCells((prev) =>
+        upsertCells(
+          prev,
+          updates.filter((update) =>
+            isCellInsideVisibleBounds(update.x, update.y, visibleCellBounds),
+          ),
+        ),
       );
 
-      updateCells((prev) => {
-        const next = [...prev];
-
-        for (const update of updates) {
-          const index = next.findIndex(
-            (cell) => cell.x === update.x && cell.y === update.y,
-          );
-
-          if (index === -1) {
-            next.push({
-              x: update.x,
-              y: update.y,
-              color: update.color,
-              status: "painted",
-            } as Cell);
-            continue;
-          }
-
-          next[index] = {
-            ...next[index],
-            color: update.color,
-            status: "painted",
-          };
-        }
-
-        return next;
-      });
-
       if (selectedCellRef.current) {
-        const selectedKey = `${selectedCellRef.current.x}:${selectedCellRef.current.y}`;
+        const updatedSelectedCell = updates.find(
+          (update) =>
+            update.x === selectedCellRef.current?.x &&
+            update.y === selectedCellRef.current?.y,
+        );
 
-        if (colorByCoordinate.has(selectedKey)) {
+        if (updatedSelectedCell) {
           const nextSelectedCell: Cell = {
             ...selectedCellRef.current,
-            color: colorByCoordinate.get(selectedKey)!,
+            color: updatedSelectedCell.color,
             status: "painted",
           };
 
@@ -387,7 +578,7 @@ export default function useCanvasScene({
         }
       }
     },
-    [updateCells],
+    [updateCells, updateMinimapCells, visibleCellBounds],
   );
 
   const clearSelectedCell = useCallback(() => {
@@ -396,27 +587,33 @@ export default function useCanvasScene({
   }, []);
 
   return {
+    paintCanvasRef,
     canvasRef,
     containerRef,
     cells,
+    minimapCells,
     canvasId,
     gridX,
     gridY,
     selectedCell,
     viewport,
+    cameraX,
+    cameraY,
+    zoom,
     navigateToCoordinate,
     resetCanvasZoom,
     setCanvasId,
     setGridX,
     setGridY,
     updateCells,
+    updateMinimapCells,
     handleMouseDown,
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
-    handleWheel, // 추가: CanvasPage에서 사용하는 wheel zoom 핸들러 반환
+    handleWheel,
     handleCanvasUpdated,
-    handleCanvasBatchUpdated, // 유지: 여러 셀을 한 번에 반영하는 batch handler 노출
+    handleCanvasBatchUpdated,
     clearSelectedCell,
   };
 }

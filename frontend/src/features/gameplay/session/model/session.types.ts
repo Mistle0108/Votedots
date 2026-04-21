@@ -1,4 +1,3 @@
-import type { Cell } from "@/features/gameplay/canvas";
 import type { GamePhase } from "@/features/gameplay/session/model/game-phase.types";
 import type { GameConfig } from "@/shared/config/game-config";
 
@@ -15,6 +14,7 @@ export interface RoundInfoState {
   phaseStartedAt: string | null;
   phaseEndsAt: string | null;
 }
+
 export interface PhaseTimingState {
   introPhaseSec: number;
   roundStartWaitSec: number;
@@ -29,15 +29,6 @@ export interface VoteSessionState {
   topColorMap: Map<string, string>;
 }
 
-export interface CanvasSessionState {
-  canvasId: number | null;
-  gridX: number;
-  gridY: number;
-  cells: Cell[];
-  selectedCell: Cell | null;
-  previewColor: string | null;
-}
-
 export interface SessionStatusState {
   loading: boolean;
   error: string | null;
@@ -50,7 +41,6 @@ export interface SessionBootstrapResult {
   gridX: number;
   gridY: number;
   backgroundImageUrl: string | null;
-  cells: Cell[];
   round: RoundInfoState;
   votes: Record<string, number>;
   remaining: number | null;
