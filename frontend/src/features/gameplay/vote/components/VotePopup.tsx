@@ -331,6 +331,12 @@ export default function VotePopup({
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+
       if (event.code !== "Space") {
         return;
       }
@@ -357,7 +363,7 @@ export default function VotePopup({
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [handleSubmit, isVoteDisabled]);
+  }, [handleSubmit, isVoteDisabled, onClose]);
 
   return (
     <div
