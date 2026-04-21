@@ -27,7 +27,7 @@ function HistoryTimelineButton({
       <button
         type="button"
         onClick={() => onOpenGameSummary(item.data)}
-        className="h-9 w-full rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
+        className="h-9 w-full shrink-0 rounded-lg border border-amber-200 bg-amber-50 text-xs font-bold text-amber-700 transition hover:border-amber-300 hover:bg-amber-100"
       >
         RESULT
       </button>
@@ -38,7 +38,7 @@ function HistoryTimelineButton({
     <button
       type="button"
       onClick={() => onOpenRoundSummary(item.data)}
-      className="h-9 w-full rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-800 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+      className="h-9 w-full shrink-0 rounded-lg border border-gray-200 bg-white text-xs font-bold text-gray-800 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
     >
       {item.roundNumber}R
     </button>
@@ -58,12 +58,12 @@ export default function GameHistoryPanel({
       <button
         type="button"
         onClick={onOpenIntroGuide}
-        className="h-9 w-full rounded-lg border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
+        className="h-9 w-full shrink-0 rounded-lg border border-blue-200 bg-blue-50 text-xs font-bold text-blue-700 transition hover:border-blue-300 hover:bg-blue-100"
       >
         INTRO
       </button>
 
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
         {historyLoading && (
           <div className="rounded-lg border border-dashed border-gray-200 bg-gray-50 px-1 py-2 text-center text-[10px] font-medium text-gray-400">
             LOAD
@@ -83,7 +83,7 @@ export default function GameHistoryPanel({
         )}
 
         {!historyLoading && !historyError && historyItems.length > 0 && (
-          <div className="flex flex-col gap-1.5">
+          <div className="flex min-h-0 flex-col gap-1.5 pb-1">
             {historyItems.map((item) => (
               <HistoryTimelineButton
                 key={item.id}
