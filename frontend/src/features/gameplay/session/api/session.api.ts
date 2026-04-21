@@ -109,8 +109,12 @@ export interface GameSummaryData {
   hottestRoundId: number | null;
   hottestRoundNumber: number | null;
   hottestRoundVoteCount: number;
+  quietestRoundId: number | null;
+  quietestRoundNumber: number | null;
+  quietestRoundVoteCount: number;
   topVoters: GameSummaryTopVoter[] | null;
   participants: GameSummaryParticipant[] | null;
+  snapshotUrl: string | null;
   createdAt: string;
   updatedAt: string;
 }

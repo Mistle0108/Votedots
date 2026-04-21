@@ -124,6 +124,22 @@ export default function MiniMap({
     const cellWidth = canvas.width / Math.max(gridX, 1);
     const cellHeight = canvas.height / Math.max(gridY, 1);
 
+    if (!snapshotUrl && !backgroundImageUrl) {
+      for (const cell of cells) {
+        if (!cell.color) {
+          continue;
+        }
+
+        ctx.fillStyle = cell.color;
+        ctx.fillRect(
+          cell.x * cellWidth,
+          cell.y * cellHeight,
+          Math.max(cellWidth, 1),
+          Math.max(cellHeight, 1),
+        );
+      }
+    }
+
     if (viewport) {
       const viewportRect = getClampedViewportRect(
         viewport.left,
@@ -202,11 +218,14 @@ export default function MiniMap({
       ctx.restore();
     }
   }, [
+    backgroundImageUrl,
+    cells,
     gridX,
     gridY,
     minimapDimensions.width,
     minimapDimensions.height,
     selectedCell,
+    snapshotUrl,
     viewport,
   ]);
 
