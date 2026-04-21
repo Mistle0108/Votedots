@@ -70,8 +70,6 @@ export default function VotePanel({
     MAX_VOTE_PANEL_ENTRIES,
   );
   const maxCount = voteEntries[0]?.totalCount ?? 1;
-  const usedCount =
-    remaining !== null ? Math.max(0, votesPerRound - remaining) : 0;
   const slots = Array.from({ length: MAX_VOTE_PANEL_ENTRIES }, (_, index) => {
     return voteEntries[index] ?? null;
   });
@@ -97,20 +95,13 @@ export default function VotePanel({
 
       <div className="flex min-h-2 items-center justify-between gap-3">
         <p className="text-sm font-medium">남은 투표권</p>
-        <div className="flex gap-1">
-          {isVotingPhase && remaining !== null ? (
-            Array.from({ length: votesPerRound }).map((_, index) => (
-              <span
-                key={index}
-                className={`text-lg ${index < usedCount ? "text-gray-300" : "text-blue-500"}`}
-              >
-                ●
-              </span>
-            ))
-          ) : (
-            <span className="text-sm text-gray-400">-</span>
-          )}
-        </div>
+        {isVotingPhase && remaining !== null ? (
+          <span className="text-sm font-bold text-blue-600">
+            {remaining}/{votesPerRound}
+          </span>
+        ) : (
+          <span className="text-sm text-gray-400">-</span>
+        )}
       </div>
       <MiniMap
         cells={minimapCells}
