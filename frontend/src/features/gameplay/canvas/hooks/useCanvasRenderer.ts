@@ -39,7 +39,7 @@ export function useCanvasRenderer({
     const paintCanvas = paintCanvasRef.current;
     const paintCtx = paintCanvas?.getContext("2d");
 
-    if (!paintCtx) {
+    if (!paintCanvas || !paintCtx) {
       return;
     }
 
@@ -69,7 +69,7 @@ export function useCanvasRenderer({
     const overlayCanvas = canvasRef.current;
     const overlayCtx = overlayCanvas?.getContext("2d");
 
-    if (!overlayCtx) {
+    if (!overlayCanvas || !overlayCtx) {
       return;
     }
 

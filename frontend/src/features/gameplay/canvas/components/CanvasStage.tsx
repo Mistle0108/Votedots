@@ -32,7 +32,17 @@ export default function CanvasStage({
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
-      onWheel={onWheel}
+      onWheel={(event) => {
+        console.log("[canvas-stage:wheel]", {
+          deltaY: event.deltaY,
+          clientX: event.clientX,
+          clientY: event.clientY,
+          target: event.target,
+          currentTarget: event.currentTarget,
+        });
+
+        onWheel(event);
+      }}
     >
       {overlay && <div className="absolute left-4 top-4 z-10">{overlay}</div>}
 

@@ -47,6 +47,7 @@ function getWorldSize(gridX: number, gridY: number) {
 
 const ZOOM_SCALE = 1.1;
 const MAX_ZOOM = 4;
+const MAX_ZOOM_MULTIPLIER = 4;
 
 function getZoomBounds(
   container: HTMLDivElement,
@@ -68,7 +69,7 @@ function getZoomBounds(
 
   return {
     minZoom,
-    maxZoom: Math.max(MAX_ZOOM, minZoom),
+    maxZoom: Math.max(MAX_ZOOM, minZoom * MAX_ZOOM_MULTIPLIER),
   };
 }
 
@@ -161,9 +162,29 @@ export default function useCanvasScene({
   resetPreviewColor,
   openPopup,
 }: UseCanvasSceneParams) {
-  const paintCanvasRef = useRef<HTMLCanvasElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const paintCanvasElementRef = useRef<HTMLCanvasElement | null>(null);
+  const canvasElementRef = useRef<HTMLCanvasElement | null>(null);
+  const [canvasNodeVersion, setCanvasNodeVersion] = useState(0);
+
+  const paintCanvasRef = useCallback((node: HTMLCanvasElement | null) => {
+    if (paintCanvasElementRef.current === node) {
+      return;
+    }
+
+    paintCanvasElementRef.current = node;
+    setCanvasNodeVersion((prev) => prev + 1);
+  }, []);
+
+  const canvasRef = useCallback((node: HTMLCanvasElement | null) => {
+    if (canvasElementRef.current === node) {
+      return;
+    }
+
+    canvasElementRef.current = node;
+    setCanvasNodeVersion((prev) => prev + 1);
+  }, []);
 
   const selectedCellRef = useRef<Cell | null>(null);
   const zoomRef = useRef(1);
@@ -217,6 +238,11 @@ export default function useCanvasScene({
         const nextWidth = container.clientWidth;
         const nextHeight = container.clientHeight;
 
+        if (nextWidth <= 0 || nextHeight <= 0) {
+          frameId = requestAnimationFrame(syncViewportSize);
+          return;
+        }
+
         setViewportSize((prev) => {
           if (prev.width === nextWidth && prev.height === nextHeight) {
             return prev;
@@ -230,6 +256,7 @@ export default function useCanvasScene({
       };
 
       syncViewportSize();
+      frameId = requestAnimationFrame(syncViewportSize);
 
       observer = new ResizeObserver(() => {
         syncViewportSize();
@@ -272,9 +299,8 @@ export default function useCanvasScene({
 
   useLayoutEffect(() => {
     const container = containerRef.current;
-    const paintCanvas = paintCanvasRef.current;
-    const canvas = canvasRef.current;
-
+    const paintCanvas = paintCanvasElementRef.current;
+    const canvas = canvasElementRef.current;
     if (
       !container ||
       !paintCanvas ||
@@ -286,6 +312,18 @@ export default function useCanvasScene({
       if (canvasReady) {
         setCanvasReady(false);
       }
+
+      if (!canvasId || gridX === 0 || gridY === 0) {
+        sceneKeyRef.current = null;
+        pendingZoomAdjustmentRef.current = null;
+        initialZoomRef.current = 1;
+        zoomRef.current = 1;
+        cameraXRef.current = 0;
+        cameraYRef.current = 0;
+        selectedCellRef.current = null;
+        setSelectedCell(null);
+      }
+
       return;
     }
 
@@ -311,15 +349,23 @@ export default function useCanvasScene({
     }
 
     const sceneKey = `${canvasId}:${gridX}:${gridY}`;
+
     if (sceneKeyRef.current !== sceneKey) {
       const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
       const bounds = getZoomBounds(container, worldWidth, worldHeight);
 
       sceneKeyRef.current = sceneKey;
+      pendingZoomAdjustmentRef.current = null;
       initialZoomRef.current = bounds.minZoom;
+      zoomRef.current = bounds.minZoom;
+      cameraXRef.current = 0;
+      cameraYRef.current = 0;
+      selectedCellRef.current = null;
+
       setZoom(bounds.minZoom);
       setCameraX(0);
       setCameraY(0);
+      setSelectedCell(null);
     }
 
     if (!canvasReady) {
@@ -330,6 +376,7 @@ export default function useCanvasScene({
     gridX,
     gridY,
     canvasReady,
+    canvasNodeVersion,
     viewportSize.width,
     viewportSize.height,
   ]);
@@ -378,8 +425,8 @@ export default function useCanvasScene({
   });
 
   useCanvasRenderer({
-    paintCanvasRef,
-    canvasRef,
+    paintCanvasRef: paintCanvasElementRef,
+    canvasRef: canvasElementRef,
     canvasReady,
     cells,
     selectedCell,
@@ -423,7 +470,7 @@ export default function useCanvasScene({
 
   const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
     useCanvasInteraction({
-      canvasRef,
+      canvasRef: canvasElementRef,
       cells,
       gridX,
       gridY,
@@ -500,10 +547,11 @@ export default function useCanvasScene({
         };
 
         zoomRef.current = nextZoom;
+
         return nextZoom;
       });
     },
-    [canvasReady, gridX, gridY],
+    [canvasId, canvasReady, gridX, gridY, zoom],
   );
 
   const handleCanvasUpdated = useCallback(
