@@ -10,6 +10,8 @@ interface UseCanvasInteractionParams {
   cameraX: number;
   cameraY: number;
   zoom: number;
+  worldOffsetX: number;
+  worldOffsetY: number;
   onPan: (dx: number, dy: number) => void;
   onSelectCell: (cell: Cell) => void;
   onResetPreviewColor: () => void;
@@ -32,10 +34,12 @@ function getWorldCoordinate(
   cameraX: number,
   cameraY: number,
   zoom: number,
+  worldOffsetX: number,
+  worldOffsetY: number,
 ) {
   return {
-    x: cameraX + (clientX - rect.left) / zoom,
-    y: cameraY + (clientY - rect.top) / zoom,
+    x: cameraX + (clientX - rect.left - worldOffsetX) / zoom,
+    y: cameraY + (clientY - rect.top - worldOffsetY) / zoom,
   };
 }
 
@@ -47,6 +51,8 @@ export function useCanvasInteraction({
   cameraX,
   cameraY,
   zoom,
+  worldOffsetX,
+  worldOffsetY,
   onPan,
   onSelectCell,
   onResetPreviewColor,
@@ -99,6 +105,8 @@ export function useCanvasInteraction({
       cameraX,
       cameraY,
       zoom,
+      worldOffsetX,
+      worldOffsetY,
     );
 
     const targetX = Math.floor(worldPoint.x / cellSize);

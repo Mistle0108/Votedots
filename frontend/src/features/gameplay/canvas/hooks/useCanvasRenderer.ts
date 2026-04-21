@@ -15,6 +15,8 @@ interface UseCanvasRendererParams {
   cameraX: number;
   cameraY: number;
   zoom: number;
+  worldOffsetX: number;
+  worldOffsetY: number;
 }
 
 export function useCanvasRenderer({
@@ -30,6 +32,8 @@ export function useCanvasRenderer({
   cameraX,
   cameraY,
   zoom,
+  worldOffsetX,
+  worldOffsetY,
 }: UseCanvasRendererParams) {
   useEffect(() => {
     if (!canvasReady) {
@@ -50,6 +54,8 @@ export function useCanvasRenderer({
       cameraX,
       cameraY,
       zoom,
+      worldOffsetX,
+      worldOffsetY,
     });
   }, [
     paintCanvasRef,
@@ -59,6 +65,8 @@ export function useCanvasRenderer({
     cameraX,
     cameraY,
     zoom,
+    worldOffsetX,
+    worldOffsetY,
   ]);
 
   useEffect(() => {
@@ -86,6 +94,8 @@ export function useCanvasRenderer({
         cameraX,
         cameraY,
         zoom,
+        worldOffsetX,
+        worldOffsetY,
         timestamp,
       });
     };
@@ -117,5 +127,7 @@ export function useCanvasRenderer({
     cameraX,
     cameraY,
     zoom,
+    worldOffsetX,
+    worldOffsetY,
   ]);
 }

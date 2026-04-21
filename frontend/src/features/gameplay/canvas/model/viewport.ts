@@ -12,8 +12,42 @@ interface CalculateViewportParams {
   viewportHeight: number;
 }
 
+interface CalculateWorldScreenOffsetParams {
+  worldWidth: number;
+  worldHeight: number;
+  viewportWidth: number;
+  viewportHeight: number;
+  zoom: number;
+}
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
+}
+
+export function calculateWorldScreenOffset({
+  worldWidth,
+  worldHeight,
+  viewportWidth,
+  viewportHeight,
+  zoom,
+}: CalculateWorldScreenOffsetParams) {
+  if (
+    worldWidth <= 0 ||
+    worldHeight <= 0 ||
+    viewportWidth <= 0 ||
+    viewportHeight <= 0 ||
+    zoom <= 0
+  ) {
+    return {
+      x: 0,
+      y: 0,
+    };
+  }
+
+  return {
+    x: Math.max(0, (viewportWidth - worldWidth * zoom) / 2),
+    y: Math.max(0, (viewportHeight - worldHeight * zoom) / 2),
+  };
 }
 
 export function calculateViewport({

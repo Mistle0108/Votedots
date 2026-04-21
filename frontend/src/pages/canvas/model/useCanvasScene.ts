@@ -12,6 +12,7 @@ import {
   useCanvasRenderer,
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
+import { calculateWorldScreenOffset } from "@/features/gameplay/canvas/model/viewport";
 import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import { getGameConfig } from "@/shared/config/game-config";
 
@@ -48,6 +49,8 @@ function getWorldSize(gridX: number, gridY: number) {
 const ZOOM_SCALE = 1.1;
 const MAX_ZOOM = 4;
 const MAX_ZOOM_MULTIPLIER = 4;
+
+const INITIAL_VIEWPORT_GRID_DIVISIONS = 3;
 
 function getZoomBounds(
   container: HTMLDivElement,
@@ -191,6 +194,8 @@ export default function useCanvasScene({
   const cameraXRef = useRef(0);
   const cameraYRef = useRef(0);
   const initialZoomRef = useRef(1);
+  const initialCameraXRef = useRef(0);
+  const initialCameraYRef = useRef(0);
   const sceneKeyRef = useRef<string | null>(null);
   const pendingZoomAdjustmentRef = useRef<PendingZoomAdjustment | null>(null);
 
@@ -317,6 +322,8 @@ export default function useCanvasScene({
         sceneKeyRef.current = null;
         pendingZoomAdjustmentRef.current = null;
         initialZoomRef.current = 1;
+        initialCameraXRef.current = 0;
+        initialCameraYRef.current = 0;
         zoomRef.current = 1;
         cameraXRef.current = 0;
         cameraYRef.current = 0;
@@ -353,18 +360,33 @@ export default function useCanvasScene({
     if (sceneKeyRef.current !== sceneKey) {
       const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
       const bounds = getZoomBounds(container, worldWidth, worldHeight);
+      const initialZoom = clampZoom(
+        bounds.minZoom * INITIAL_VIEWPORT_GRID_DIVISIONS,
+        bounds,
+      );
+      const initialCamera = clampCamera(
+        (worldWidth - viewportWidth / initialZoom) / 2,
+        (worldHeight - viewportHeight / initialZoom) / 2,
+        worldWidth,
+        worldHeight,
+        viewportWidth,
+        viewportHeight,
+        initialZoom,
+      );
 
       sceneKeyRef.current = sceneKey;
       pendingZoomAdjustmentRef.current = null;
-      initialZoomRef.current = bounds.minZoom;
-      zoomRef.current = bounds.minZoom;
-      cameraXRef.current = 0;
-      cameraYRef.current = 0;
+      initialZoomRef.current = initialZoom;
+      initialCameraXRef.current = initialCamera.x;
+      initialCameraYRef.current = initialCamera.y;
+      zoomRef.current = initialZoom;
+      cameraXRef.current = initialCamera.x;
+      cameraYRef.current = initialCamera.y;
       selectedCellRef.current = null;
 
-      setZoom(bounds.minZoom);
-      setCameraX(0);
-      setCameraY(0);
+      setZoom(initialZoom);
+      setCameraX(initialCamera.x);
+      setCameraY(initialCamera.y);
       setSelectedCell(null);
     }
 
@@ -391,6 +413,15 @@ export default function useCanvasScene({
     zoom,
   });
 
+  const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+  const worldOffset = calculateWorldScreenOffset({
+    worldWidth,
+    worldHeight,
+    viewportWidth: viewportSize.width,
+    viewportHeight: viewportSize.height,
+    zoom,
+  });
+
   useLayoutEffect(() => {
     const container = containerRef.current;
     const pending = pendingZoomAdjustmentRef.current;
@@ -400,9 +431,18 @@ export default function useCanvasScene({
     }
 
     const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+    const nextWorldOffset = calculateWorldScreenOffset({
+      worldWidth,
+      worldHeight,
+      viewportWidth: container.clientWidth,
+      viewportHeight: container.clientHeight,
+      zoom,
+    });
     const nextCamera = clampCamera(
-      pending.focusWorldX - pending.viewportOffsetX / zoom,
-      pending.focusWorldY - pending.viewportOffsetY / zoom,
+      pending.focusWorldX -
+        (pending.viewportOffsetX - nextWorldOffset.x) / zoom,
+      pending.focusWorldY -
+        (pending.viewportOffsetY - nextWorldOffset.y) / zoom,
       worldWidth,
       worldHeight,
       container.clientWidth,
@@ -437,6 +477,8 @@ export default function useCanvasScene({
     cameraX,
     cameraY,
     zoom,
+    worldOffsetX: worldOffset.x,
+    worldOffsetY: worldOffset.y,
   });
 
   const handleSelectCell = useCallback((cell: Cell) => {
@@ -477,6 +519,8 @@ export default function useCanvasScene({
       cameraX,
       cameraY,
       zoom,
+      worldOffsetX: worldOffset.x,
+      worldOffsetY: worldOffset.y,
       onPan: handlePan,
       onSelectCell: handleSelectCell,
       onResetPreviewColor: resetPreviewColor,
@@ -492,26 +536,24 @@ export default function useCanvasScene({
 
     const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
     const bounds = getZoomBounds(container, worldWidth, worldHeight);
+    const nextZoom = clampZoom(initialZoomRef.current, bounds);
+    const nextCamera = clampCamera(
+      initialCameraXRef.current,
+      initialCameraYRef.current,
+      worldWidth,
+      worldHeight,
+      container.clientWidth,
+      container.clientHeight,
+      nextZoom,
+    );
 
-    setZoom((currentZoom) => {
-      const nextZoom = clampZoom(initialZoomRef.current, bounds);
-
-      if (nextZoom === currentZoom) {
-        return currentZoom;
-      }
-
-      pendingZoomAdjustmentRef.current = {
-        focusWorldX:
-          cameraXRef.current + container.clientWidth / 2 / currentZoom,
-        focusWorldY:
-          cameraYRef.current + container.clientHeight / 2 / currentZoom,
-        viewportOffsetX: container.clientWidth / 2,
-        viewportOffsetY: container.clientHeight / 2,
-      };
-
-      zoomRef.current = nextZoom;
-      return nextZoom;
-    });
+    pendingZoomAdjustmentRef.current = null;
+    zoomRef.current = nextZoom;
+    cameraXRef.current = nextCamera.x;
+    cameraYRef.current = nextCamera.y;
+    setZoom(nextZoom);
+    setCameraX(nextCamera.x);
+    setCameraY(nextCamera.y);
   }, [canvasReady, gridX, gridY]);
 
   const handleWheel = useCallback(
@@ -539,9 +581,21 @@ export default function useCanvasScene({
           return currentZoom;
         }
 
+        const currentWorldOffset = calculateWorldScreenOffset({
+          worldWidth,
+          worldHeight,
+          viewportWidth: container.clientWidth,
+          viewportHeight: container.clientHeight,
+          zoom: currentZoom,
+        });
+
         pendingZoomAdjustmentRef.current = {
-          focusWorldX: cameraXRef.current + pointerOffsetX / currentZoom,
-          focusWorldY: cameraYRef.current + pointerOffsetY / currentZoom,
+          focusWorldX:
+            cameraXRef.current +
+            (pointerOffsetX - currentWorldOffset.x) / currentZoom,
+          focusWorldY:
+            cameraYRef.current +
+            (pointerOffsetY - currentWorldOffset.y) / currentZoom,
           viewportOffsetX: pointerOffsetX,
           viewportOffsetY: pointerOffsetY,
         };
@@ -648,6 +702,7 @@ export default function useCanvasScene({
     cameraX,
     cameraY,
     zoom,
+    worldOffset,
     navigateToCoordinate,
     resetCanvasZoom,
     setCanvasId,
