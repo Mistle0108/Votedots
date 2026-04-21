@@ -9,6 +9,8 @@ interface RenderPaintLayerParams {
   cameraX: number;
   cameraY: number;
   zoom: number;
+  worldOffsetX: number;
+  worldOffsetY: number;
 }
 interface RenderOverlayLayerParams {
   ctx: CanvasRenderingContext2D;
@@ -20,6 +22,8 @@ interface RenderOverlayLayerParams {
   cameraX: number;
   cameraY: number;
   zoom: number;
+  worldOffsetX: number;
+  worldOffsetY: number;
   timestamp?: number;
 }
 
@@ -54,12 +58,14 @@ function getScreenCellRect(
   cameraX: number,
   cameraY: number,
   zoom: number,
+  worldOffsetX: number,
+  worldOffsetY: number,
 ) {
   const size = cellSize * zoom;
 
   return {
-    x: (cellX * cellSize - cameraX) * zoom,
-    y: (cellY * cellSize - cameraY) * zoom,
+    x: worldOffsetX + (cellX * cellSize - cameraX) * zoom,
+    y: worldOffsetY + (cellY * cellSize - cameraY) * zoom,
     size,
   };
 }
@@ -92,6 +98,8 @@ export function renderPaintLayer({
   cameraX,
   cameraY,
   zoom,
+  worldOffsetX,
+  worldOffsetY,
 }: RenderPaintLayerParams) {
   clearCanvas(ctx);
 
@@ -113,6 +121,8 @@ export function renderPaintLayer({
       cameraX,
       cameraY,
       zoom,
+      worldOffsetX,
+      worldOffsetY,
     );
 
     ctx.fillStyle = cell.color;
@@ -130,6 +140,8 @@ export function renderOverlayLayer({
   cameraX,
   cameraY,
   zoom,
+  worldOffsetX,
+  worldOffsetY,
   timestamp = 0,
 }: RenderOverlayLayerParams) {
   clearCanvas(ctx);
@@ -157,7 +169,16 @@ export function renderOverlayLayer({
 
     const isSelected = selectedCell?.x === x && selectedCell?.y === y;
     const topColor = topColorMap.get(cellKey);
-    const rect = getScreenCellRect(x, y, cellSize, cameraX, cameraY, zoom);
+    const rect = getScreenCellRect(
+      x,
+      y,
+      cellSize,
+      cameraX,
+      cameraY,
+      zoom,
+      worldOffsetX,
+      worldOffsetY,
+    );
     const { inset, strokeSize, lineWidth } = getStrokeMetrics(rect.size);
 
     if (topColor && !isSelected) {
@@ -187,6 +208,8 @@ export function renderOverlayLayer({
       cameraX,
       cameraY,
       zoom,
+      worldOffsetX,
+      worldOffsetY,
     );
     const screenVisible = isScreenRectVisible(ctx, rect.x, rect.y, rect.size);
 

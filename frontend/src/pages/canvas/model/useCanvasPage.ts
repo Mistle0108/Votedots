@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useChunkLoader } from "@/features/gameplay/canvas/hooks/useChunkLoader";
+import { useCanvasHistory } from "@/features/gameplay/history/hooks/useCanvasHistory";
 import { useVotePopup, useVoteState } from "@/features/gameplay/vote";
 import type {
   GameSummaryData,
@@ -78,6 +79,7 @@ export default function useCanvasPage({
     cameraX,
     cameraY,
     zoom,
+    worldOffset,
     navigateToCoordinate,
     resetCanvasZoom,
     setCanvasId,
@@ -140,6 +142,14 @@ export default function useCanvasPage({
     clearSelectedCell();
   }, [clearSelectedCell]);
 
+  const {
+    historyItems,
+    historyLoading,
+    historyError,
+    addRoundHistoryItem,
+    addGameHistoryItem,
+  } = useCanvasHistory(canvasId);
+
   const handleOpenRoundSummaryModal = useCallback(
     (summary: RoundSummaryData) => {
       setRoundSummaryModal(summary);
@@ -161,6 +171,22 @@ export default function useCanvasPage({
     setRoundSummaryOpen(false);
     setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
   }, []);
+
+  const handleReceiveRoundSummary = useCallback(
+    (summary: RoundSummaryData) => {
+      addRoundHistoryItem(summary);
+      handleOpenRoundSummaryModal(summary);
+    },
+    [addRoundHistoryItem, handleOpenRoundSummaryModal],
+  );
+
+  const handleReceiveGameSummary = useCallback(
+    (summary: GameSummaryData) => {
+      addGameHistoryItem(summary);
+      handleOpenGameSummaryModal(summary);
+    },
+    [addGameHistoryItem, handleOpenGameSummaryModal],
+  );
 
   const handleCloseGameSummaryModal = useCallback(() => {
     setGameSummaryModal(null);
@@ -204,8 +230,8 @@ export default function useCanvasPage({
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
     onCanvasBatchUpdated: handleCanvasBatchUpdatedForRoundResult,
-    onOpenRoundSummaryModal: handleOpenRoundSummaryModal,
-    onOpenGameSummaryModal: handleOpenGameSummaryModal,
+    onOpenRoundSummaryModal: handleReceiveRoundSummary,
+    onOpenGameSummaryModal: handleReceiveGameSummary,
     onRoundEndedCleanup: handleRoundEndedCleanup,
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
@@ -287,6 +313,8 @@ export default function useCanvasPage({
     gameSummaryModal,
     handleCloseRoundSummaryModal,
     handleCloseGameSummaryModal,
+    handleOpenRoundSummaryModal,
+    handleOpenGameSummaryModal,
     gridX,
     gridY,
     backgroundImageUrl,
@@ -294,6 +322,7 @@ export default function useCanvasPage({
     cameraX,
     cameraY,
     zoom,
+    worldOffset,
     navigateToCoordinate,
     resetCanvasZoom,
     introGuideOpen,
@@ -306,5 +335,8 @@ export default function useCanvasPage({
     latestRoundSummary: gameplay.roundSummary,
     latestRoundSnapshot: gameplay.latestRoundSnapshot,
     isLatestRoundSummaryEnabled: gameplay.canOpenLatestRoundSummary,
+    historyItems,
+    historyLoading,
+    historyError,
   };
 }

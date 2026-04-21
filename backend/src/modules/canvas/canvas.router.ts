@@ -1,4 +1,5 @@
 import { Router } from "express";
+import { historyController } from "../history/history.controller";
 import { canvasController } from "./canvas.controller";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 
@@ -6,7 +7,8 @@ const router = Router();
 
 // TO-BE
 router.get("/current", authMiddleware, canvasController.getCurrent);
-router.get("/:canvasId/chunks", authMiddleware, canvasController.getChunks);
+router.get("/:canvasId/history", historyController.getCanvasHistory);
+router.get("/:canvasId/chunks", canvasController.getChunks);
 router.get(
   "/current/participants/count",
   authMiddleware,
