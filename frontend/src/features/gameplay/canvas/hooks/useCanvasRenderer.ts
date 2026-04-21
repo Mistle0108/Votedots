@@ -2,6 +2,8 @@ import { useEffect, type RefObject } from "react";
 import { renderOverlayLayer, renderPaintLayer } from "../model/canvas.render";
 import type { Cell, VisibleCellBounds } from "../model/canvas.types";
 
+const DEBUG_CANVAS_RENDERER = true;
+
 interface UseCanvasRendererParams {
   paintCanvasRef: RefObject<HTMLCanvasElement | null>;
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -39,7 +41,7 @@ export function useCanvasRenderer({
     const paintCanvas = paintCanvasRef.current;
     const paintCtx = paintCanvas?.getContext("2d");
 
-    if (!paintCtx) {
+    if (!paintCanvas || !paintCtx) {
       return;
     }
 
@@ -69,7 +71,7 @@ export function useCanvasRenderer({
     const overlayCanvas = canvasRef.current;
     const overlayCtx = overlayCanvas?.getContext("2d");
 
-    if (!overlayCtx) {
+    if (!overlayCanvas || !overlayCtx) {
       return;
     }
 

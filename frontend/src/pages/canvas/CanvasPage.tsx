@@ -150,10 +150,7 @@ export default function CanvasPage() {
     roundSummaryOpen,
     roundSummaryPosition,
     handleRoundSummaryDragStart,
-    handleOpenLatestRoundSummary,
-    latestRoundSummary,
     latestRoundSnapshot,
-    isLatestRoundSummaryEnabled,
     historyItems,
     historyLoading,
     historyError,
@@ -187,7 +184,7 @@ export default function CanvasPage() {
   }
 
   return (
-    <div className="flex h-screen w-full bg-gray-50">
+    <div className="flex h-screen w-full overflow-hidden bg-gray-50">
       <GameHistoryPanel
         onOpenIntroGuide={handleOpenIntroGuide}
         historyItems={historyItems}

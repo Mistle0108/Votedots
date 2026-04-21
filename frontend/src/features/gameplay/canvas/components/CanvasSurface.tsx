@@ -1,9 +1,10 @@
-import type { RefObject } from "react";
+import type { Ref } from "react";
+
 import { getGameConfig } from "@/shared/config/game-config";
 
 interface CanvasSurfaceProps {
-  paintCanvasRef: RefObject<HTMLCanvasElement | null>;
-  canvasRef: RefObject<HTMLCanvasElement | null>;
+  paintCanvasRef: Ref<HTMLCanvasElement>;
+  canvasRef: Ref<HTMLCanvasElement>;
   backgroundImageUrl: string | null;
   gridX: number;
   gridY: number;
