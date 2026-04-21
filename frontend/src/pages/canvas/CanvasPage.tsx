@@ -142,6 +142,7 @@ export default function CanvasPage() {
     cameraX,
     cameraY,
     zoom,
+    worldOffset,
     navigateToCoordinate,
     resetCanvasZoom,
     introGuideOpen,
@@ -226,6 +227,7 @@ export default function CanvasPage() {
           cameraX={cameraX}
           cameraY={cameraY}
           zoom={zoom}
+          worldOffset={worldOffset}
         />
       </CanvasStage>
 

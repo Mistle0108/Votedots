@@ -11,6 +11,10 @@ interface CanvasSurfaceProps {
   cameraX: number;
   cameraY: number;
   zoom: number;
+  worldOffset: {
+    x: number;
+    y: number;
+  };
 }
 
 export default function CanvasSurface({
@@ -22,12 +26,13 @@ export default function CanvasSurface({
   cameraX,
   cameraY,
   zoom,
+  worldOffset,
 }: CanvasSurfaceProps) {
   const cellSize = getGameConfig().board.cellSize;
   const backgroundWidth = gridX * cellSize * zoom;
   const backgroundHeight = gridY * cellSize * zoom;
-  const backgroundTranslateX = -cameraX * zoom;
-  const backgroundTranslateY = -cameraY * zoom;
+  const backgroundTranslateX = worldOffset.x - cameraX * zoom;
+  const backgroundTranslateY = worldOffset.y - cameraY * zoom;
 
   return (
     <div className="relative h-full w-full overflow-hidden border border-gray-300">
