@@ -47,6 +47,163 @@ function getPhaseDurationSeconds(
   );
 }
 
+function addSeconds(date: Date, seconds: number): Date {
+  return new Date(date.getTime() + Math.max(0, seconds) * 1000);
+}
+
+function parseDate(value: string | null): Date | null {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function getPhaseEndDate(
+  phaseStartedAt: string | null,
+  phaseEndsAt: string | null,
+  fallbackDurationSec: number,
+): Date | null {
+  const explicitPhaseEnd = parseDate(phaseEndsAt);
+
+  if (explicitPhaseEnd) {
+    return explicitPhaseEnd;
+  }
+
+  const phaseStart = parseDate(phaseStartedAt);
+
+  if (!phaseStart) {
+    return null;
+  }
+
+  return addSeconds(phaseStart, fallbackDurationSec);
+}
+
+function getEstimatedGameEndFromRoundStart(
+  roundStartedAt: Date,
+  currentRoundNumber: number,
+  totalRounds: number,
+  roundDurationSec: number,
+  roundResultDelaySec: number,
+): Date | null {
+  const remainingRoundsIncludingCurrent =
+    totalRounds - currentRoundNumber + 1;
+
+  if (remainingRoundsIncludingCurrent <= 0) {
+    return null;
+  }
+
+  const remainingSeconds =
+    remainingRoundsIncludingCurrent * roundDurationSec +
+    Math.max(0, remainingRoundsIncludingCurrent - 1) * roundResultDelaySec;
+
+  return addSeconds(roundStartedAt, remainingSeconds);
+}
+
+function getEstimatedGameEndAt({
+  phase,
+  phaseStartedAt,
+  phaseEndsAt,
+  currentRoundNumber,
+  totalRounds,
+  introPhaseSec,
+  roundStartWaitSec,
+  roundDurationSec,
+  roundResultDelaySec,
+}: {
+  phase: string;
+  phaseStartedAt: string | null;
+  phaseEndsAt: string | null;
+  currentRoundNumber: number | null;
+  totalRounds: number;
+  introPhaseSec: number;
+  roundStartWaitSec: number;
+  roundDurationSec: number;
+  roundResultDelaySec: number;
+}): Date | null {
+  const safeRoundNumber = Math.max(1, currentRoundNumber ?? 1);
+
+  switch (phase) {
+    case GAME_PHASE.INTRO: {
+      const introEndsAt = getPhaseEndDate(
+        phaseStartedAt,
+        phaseEndsAt,
+        introPhaseSec,
+      );
+
+      if (!introEndsAt) {
+        return null;
+      }
+
+      return getEstimatedGameEndFromRoundStart(
+        addSeconds(introEndsAt, roundStartWaitSec),
+        1,
+        totalRounds,
+        roundDurationSec,
+        roundResultDelaySec,
+      );
+    }
+
+    case GAME_PHASE.ROUND_START_WAIT: {
+      const roundStartedAt = getPhaseEndDate(
+        phaseStartedAt,
+        phaseEndsAt,
+        roundStartWaitSec,
+      );
+
+      if (!roundStartedAt) {
+        return null;
+      }
+
+      return getEstimatedGameEndFromRoundStart(
+        roundStartedAt,
+        safeRoundNumber,
+        totalRounds,
+        roundDurationSec,
+        roundResultDelaySec,
+      );
+    }
+
+    case GAME_PHASE.ROUND_ACTIVE: {
+      const roundStartedAt = parseDate(phaseStartedAt);
+
+      if (!roundStartedAt) {
+        return null;
+      }
+
+      return getEstimatedGameEndFromRoundStart(
+        roundStartedAt,
+        safeRoundNumber,
+        totalRounds,
+        roundDurationSec,
+        roundResultDelaySec,
+      );
+    }
+
+    case GAME_PHASE.ROUND_RESULT: {
+      const resultStartedAt = parseDate(phaseStartedAt);
+
+      if (!resultStartedAt) {
+        return null;
+      }
+
+      const remainingRounds = Math.max(0, totalRounds - safeRoundNumber);
+      const remainingSeconds =
+        remainingRounds * roundDurationSec +
+        remainingRounds * roundResultDelaySec;
+
+      return addSeconds(resultStartedAt, remainingSeconds);
+    }
+
+    case GAME_PHASE.GAME_END:
+      return parseDate(phaseStartedAt);
+
+    default:
+      return null;
+  }
+}
+
 function getFallbackPhaseDuration(
   phase: string,
   phaseDurationSeconds: number | null,
@@ -127,6 +284,18 @@ export function useGameplayBootstrap() {
         phases.gameEndWaitSec,
       );
 
+    const estimatedGameEndAt = getEstimatedGameEndAt({
+      phase: canvas.phase,
+      phaseStartedAt: canvas.phaseStartedAt,
+      phaseEndsAt: canvas.phaseEndsAt,
+      currentRoundNumber: canvas.currentRoundNumber,
+      totalRounds: rules.totalRounds,
+      introPhaseSec: phases.introPhaseSec,
+      roundStartWaitSec: phases.roundStartWaitSec,
+      roundDurationSec: phases.roundDurationSec,
+      roundResultDelaySec: phases.roundResultDelaySec,
+    });
+
     const round: RoundInfoState = {
       phase: canvas.phase,
       roundId: roundState?.round?.id ?? null,
@@ -136,7 +305,9 @@ export function useGameplayBootstrap() {
       totalRounds: roundState?.round?.totalRounds ?? rules.totalRounds,
       formattedGameEndTime: roundState?.round
         ? formatClockTime(new Date(roundState.round.gameEndAt))
-        : null,
+        : estimatedGameEndAt
+          ? formatClockTime(estimatedGameEndAt)
+          : null,
       remainingSeconds: resolvedRemainingSeconds,
       formattedRemainingTime:
         resolvedRemainingSeconds !== null
