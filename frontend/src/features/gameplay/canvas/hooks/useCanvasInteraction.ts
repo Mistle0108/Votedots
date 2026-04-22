@@ -87,15 +87,30 @@ export function useCanvasInteraction({
   const handleMouseUp = (event: React.MouseEvent) => {
     if (event.button !== 0) return;
 
+    const wasPanning = isPanning.current;
     isPanning.current = false;
 
-    if (hasPanned.current) return;
+    if (!wasPanning) {
+      hasPanned.current = false;
+      return;
+    }
+
+    if (hasPanned.current) {
+      hasPanned.current = false;
+      return;
+    }
 
     const canvas = canvasRef.current;
-    if (!canvas || gridX === 0 || gridY === 0 || zoom <= 0) return;
+    if (!canvas || gridX === 0 || gridY === 0 || zoom <= 0) {
+      hasPanned.current = false;
+      return;
+    }
 
     const rect = canvas.getBoundingClientRect();
-    if (!isInsideCanvas(event.clientX, event.clientY, rect)) return;
+    if (!isInsideCanvas(event.clientX, event.clientY, rect)) {
+      hasPanned.current = false;
+      return;
+    }
 
     const cellSize = getGameConfig().board.cellSize;
     const worldPoint = getWorldCoordinate(
@@ -113,6 +128,7 @@ export function useCanvasInteraction({
     const targetY = Math.floor(worldPoint.y / cellSize);
 
     if (targetX < 0 || targetX >= gridX || targetY < 0 || targetY >= gridY) {
+      hasPanned.current = false;
       return;
     }
 
@@ -125,6 +141,7 @@ export function useCanvasInteraction({
         status: "idle",
       } as Cell);
 
+    hasPanned.current = false;
     onResetPreviewColor();
     onSelectCell(targetCell);
     onOpenPopup({ x: event.clientX, y: event.clientY });
