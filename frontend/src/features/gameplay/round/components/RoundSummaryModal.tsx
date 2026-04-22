@@ -112,6 +112,9 @@ export default function RoundSummaryModal({
                   className="block w-full rounded border border-gray-100 bg-transparent"
                   style={{ imageRendering: "pixelated" }}
                   draggable={false}
+                  onDragStart={(event) => {
+                    event.preventDefault();
+                  }}
                 />
               </div>
             )}

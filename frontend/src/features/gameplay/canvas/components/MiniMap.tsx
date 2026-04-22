@@ -286,6 +286,9 @@ export default function MiniMap({
               imageRendering: "pixelated",
             }}
             draggable={false}
+            onDragStart={(event) => {
+              event.preventDefault();
+            }}
           />
         )}
 

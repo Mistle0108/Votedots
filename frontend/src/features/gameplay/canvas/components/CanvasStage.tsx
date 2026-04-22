@@ -32,6 +32,9 @@ export default function CanvasStage({
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseLeave}
+      onDragStart={(event) => {
+        event.preventDefault();
+      }}
       onWheel={(event) => {
         console.log("[canvas-stage:wheel]", {
           deltaY: event.deltaY,
