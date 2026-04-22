@@ -39,11 +39,7 @@ function NumberText({ value }: { value: number | null | undefined }) {
   return <HighlightNumber>{formatNumber(value)}</HighlightNumber>;
 }
 
-function PercentText({
-  value,
-}: {
-  value: string | number | null | undefined;
-}) {
+function PercentText({ value }: { value: string | number | null | undefined }) {
   return <HighlightNumber>{formatPercentText(value)}</HighlightNumber>;
 }
 
@@ -124,13 +120,7 @@ function ColorStat({
   );
 }
 
-function StatLine({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function StatLine({ label, children }: { label: string; children: ReactNode }) {
   return (
     <p>
       <span className="font-bold text-gray-900">{label}: </span>
@@ -175,8 +165,8 @@ export default function GameSummaryModal({
         onClick={(event) => event.stopPropagation()}
       >
         <div className="relative flex items-center justify-center border-b border-gray-100 px-5 py-4">
-          <p className="text-center text-base font-semibold text-gray-900">
-            게임 종료 통계
+          <p className="text-center text-lg font-bold text-gray-900">
+            게임 종료
           </p>
 
           <button
@@ -207,23 +197,15 @@ export default function GameSummaryModal({
               </div>
             )}
 
-            <section className="space-y-1 text-center">
-              <p className="text-sm text-gray-500">
-                모두가 함께 만든 결과를 정리했어요
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                게임 종료 통계
-              </p>
-            </section>
-
             <section className="space-y-4 text-[15px] leading-7 text-gray-700">
               <div className="space-y-1 text-left">
                 <StatLine label="총 라운드 수">
-                  총 <NumberText value={summary.totalRounds} />라운드 진행
+                  총 <NumberText value={summary.totalRounds} />
+                  라운드 진행
                 </StatLine>
                 <StatLine label="투표 인원 수">
-                  총 <NumberText value={summary.participantCount} />명이
-                  참여했어요
+                  총 <NumberText value={summary.participantCount} />
+                  명이 참여했어요
                 </StatLine>
               </div>
 
@@ -236,7 +218,8 @@ export default function GameSummaryModal({
                   발급됐어요
                 </StatLine>
                 <StatLine label="총 투표 수">
-                  총 <NumberText value={summary.totalVotes} />표가 제출됐어요
+                  총 <NumberText value={summary.totalVotes} />
+                  표가 제출됐어요
                 </StatLine>
               </div>
 
@@ -251,33 +234,31 @@ export default function GameSummaryModal({
                   되었어요
                 </StatLine>
                 <StatLine label="남은 빈 칸 수">
-                  아직 <NumberText value={summary.emptyCellCount} />칸이 비어
-                  있어요
+                  아직 <NumberText value={summary.emptyCellCount} />
+                  칸이 비어 있어요
                 </StatLine>
               </div>
 
               <div className="space-y-1 text-left">
                 <StatLine label="가장 인기 있었던 칸">
                   <CellCoordinate summary={summary} />
-                  {summary.mostVotedCellVoteCount > 0
-                    ? (
-                        <>
-                          , <NumberText value={summary.mostVotedCellVoteCount} />
-                          표
-                        </>
-                      )
-                    : null}
+                  {summary.mostVotedCellVoteCount > 0 ? (
+                    <>
+                      , <NumberText value={summary.mostVotedCellVoteCount} />표
+                    </>
+                  ) : null}
                 </StatLine>
                 <StatLine label="랜덤 당선 칸 수">
                   동점 추첨으로 결정된 칸은{" "}
-                  <NumberText value={summary.randomResolvedCellCount} />개였어요
+                  <NumberText value={summary.randomResolvedCellCount} />
+                  개였어요
                 </StatLine>
               </div>
 
               <div className="space-y-1 text-left">
                 <StatLine label="사용 색상 수">
-                  총 <NumberText value={summary.usedColorCount} />가지 색이
-                  사용됐어요
+                  총 <NumberText value={summary.usedColorCount} />
+                  가지 색이 사용됐어요
                 </StatLine>
                 <StatLine label="가장 많이 선택된 색">
                   <ColorStat
@@ -297,26 +278,15 @@ export default function GameSummaryModal({
 
               <div className="space-y-1 text-left">
                 <StatLine label="가장 뜨거웠던 라운드">
-                  {summary.hottestRoundNumber
-                    ? (
-                        <>
-                          <NumberText value={summary.hottestRoundNumber} />
-                          라운드,{" "}
-                          <NumberText value={summary.hottestRoundVoteCount} />표
-                        </>
-                      )
-                    : "-"}
-                </StatLine>
-                <StatLine label="가장 구경했던 라운드">
-                  {summary.quietestRoundNumber
-                    ? (
-                        <>
-                          <NumberText value={summary.quietestRoundNumber} />
-                          라운드,{" "}
-                          <NumberText value={summary.quietestRoundVoteCount} />표
-                        </>
-                      )
-                    : "-"}
+                  {summary.hottestRoundNumber ? (
+                    <>
+                      <NumberText value={summary.hottestRoundNumber} />
+                      라운드,{" "}
+                      <NumberText value={summary.hottestRoundVoteCount} />표
+                    </>
+                  ) : (
+                    "-"
+                  )}
                 </StatLine>
               </div>
             </section>

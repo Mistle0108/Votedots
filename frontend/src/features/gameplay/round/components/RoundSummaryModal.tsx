@@ -87,7 +87,7 @@ export default function RoundSummaryModal({
           className="relative flex cursor-move items-center justify-center border-b border-gray-100 px-5 py-4"
           onMouseDown={onDragStart}
         >
-          <p className="text-center text-base font-semibold text-gray-900">
+          <p className="text-center text-lg font-bold text-gray-900">
             {summary.roundNumber} 라운드 결과
           </p>
 
@@ -114,15 +114,6 @@ export default function RoundSummaryModal({
                 />
               </div>
             )}
-
-            <section className="space-y-1 text-center">
-              <p className="text-sm text-gray-500">
-                이번 라운드 결과를 정리했어요
-              </p>
-              <p className="text-2xl font-bold text-gray-900">
-                {summary.roundNumber} 라운드 결과
-              </p>
-            </section>
 
             <section className="space-y-3 text-left text-[15px] font-bold leading-7 text-gray-700">
               <p>{renderParticipantCopy(summary.participantCount)}</p>

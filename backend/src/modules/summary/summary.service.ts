@@ -32,18 +32,6 @@ type TopVoterAggregate = {
   voteCount: number;
 };
 
-type RoundVoteExtreme = {
-  roundId: number;
-  roundNumber: number;
-  voteCount: number;
-} | null;
-
-type RoundVoteExtremeRow = {
-  roundId: number | string;
-  roundNumber: number | string;
-  voteCount: number | string;
-};
-
 function toPercent(numerator: number, denominator: number): string {
   if (denominator <= 0) {
     return "0.00";
@@ -159,31 +147,6 @@ export const summaryService = {
     }
 
     return summary;
-  },
-
-  async getQuietestRound(canvasId: number): Promise<RoundVoteExtreme> {
-    const row = await voteRoundRepository
-      .createQueryBuilder("round")
-      .leftJoin("round.votes", "vote")
-      .select("round.id", "roundId")
-      .addSelect("round.roundNumber", "roundNumber")
-      .addSelect("COUNT(vote.id)", "voteCount")
-      .where("round.canvas_id = :canvasId", { canvasId })
-      .groupBy("round.id")
-      .addGroupBy("round.roundNumber")
-      .orderBy("COUNT(vote.id)", "ASC")
-      .addOrderBy("round.roundNumber", "ASC")
-      .getRawOne<RoundVoteExtremeRow>();
-
-    if (!row) {
-      return null;
-    }
-
-    return {
-      roundId: Number(row.roundId),
-      roundNumber: Number(row.roundNumber),
-      voteCount: Number(row.voteCount),
-    };
   },
 
   async saveRoundSummary(
@@ -436,7 +399,7 @@ export const summaryService = {
       }
     }
 
-    const totalCellCount = cells.length;
+    const totalCellCount = canvas.gridX * canvas.gridY;
 
     const randomResolvedCellCount = countRandomResolvedCellsFromVotes(votes);
     const paintedCells = cells.filter(
