@@ -17,6 +17,20 @@ function parseCanvasId(value: unknown): number | null {
   return canvasId;
 }
 
+function toAbsoluteUrl(req: Request, url: string | null) {
+  if (!url) {
+    return null;
+  }
+
+  if (/^https?:\/\//i.test(url)) {
+    return url;
+  }
+
+  const host = req.get("host");
+
+  return host ? `${req.protocol}://${host}${url}` : url;
+}
+
 export const historyController = {
   async getCanvasHistory(req: Request, res: Response) {
     const canvasId = parseCanvasId(req.params.canvasId);
@@ -35,6 +49,25 @@ export const historyController = {
       });
     }
 
-    return res.json(history);
+    return res.json({
+      ...history,
+      rounds: history.rounds.map((round) => ({
+        ...round,
+        snapshotUrl: toAbsoluteUrl(req, round.snapshotUrl),
+        snapshot: round.snapshot
+          ? {
+              ...round.snapshot,
+              imageUrl: toAbsoluteUrl(req, round.snapshot.imageUrl),
+              snapshotUrl: toAbsoluteUrl(req, round.snapshot.snapshotUrl),
+            }
+          : null,
+      })),
+      gameSummary: history.gameSummary
+        ? {
+            ...history.gameSummary,
+            snapshotUrl: toAbsoluteUrl(req, history.gameSummary.snapshotUrl),
+          }
+        : null,
+    });
   },
 };
