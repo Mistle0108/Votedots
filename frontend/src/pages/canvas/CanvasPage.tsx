@@ -147,6 +147,7 @@ export default function CanvasPage() {
             aria-label="초기 줌 비율로 복귀"
             title="초기 줌 비율로 복귀"
             onMouseDown={(event) => event.stopPropagation()}
+            onMouseUp={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
               resetCanvasZoom();
