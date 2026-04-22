@@ -189,6 +189,9 @@ export default function GameSummaryModal({
                   className="block w-full rounded border border-gray-100 bg-transparent"
                   style={{ imageRendering: "pixelated" }}
                   draggable={false}
+                  onDragStart={(event) => {
+                    event.preventDefault();
+                  }}
                 />
               </div>
             ) : (

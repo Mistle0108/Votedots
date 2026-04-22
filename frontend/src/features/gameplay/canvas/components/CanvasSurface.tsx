@@ -49,6 +49,9 @@ export default function CanvasSurface({
             imageRendering: "pixelated",
           }}
           draggable={false}
+          onDragStart={(event) => {
+            event.preventDefault();
+          }}
         />
       )}
       <canvas
