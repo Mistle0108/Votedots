@@ -90,7 +90,7 @@ function toGameHistoryItem(
 
   return {
     type: "game",
-    id: getGameHistoryItemId(canvasId, createdAt),
+    id: getGameHistoryItemId(canvasId),
     createdAt,
     data: summary,
   };

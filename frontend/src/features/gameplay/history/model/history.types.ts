@@ -13,7 +13,7 @@ export type GameHistoryItem =
     }
   | {
       type: "game";
-      id: `game:${number}:${string}`;
+      id: `game:${number}`;
       createdAt: string;
       data: GameSummaryData;
     };
@@ -29,7 +29,6 @@ export function getRoundHistoryItemId(roundId: number): `round:${number}` {
 
 export function getGameHistoryItemId(
   canvasId: number,
-  endedAt: string | null,
-): `game:${number}:${string}` {
-  return `game:${canvasId}:${endedAt ?? "ended"}`;
+): `game:${number}` {
+  return `game:${canvasId}`;
 }
