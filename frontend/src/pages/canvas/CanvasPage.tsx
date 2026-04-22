@@ -8,7 +8,7 @@ import {
 import { GameHistoryPanel } from "@/features/gameplay/history";
 import { IntroGuideModal } from "@/features/gameplay/intro";
 import RoundSummaryModal from "@/features/gameplay/round/components/RoundSummaryModal";
-import type { GameSummaryData } from "@/features/gameplay/session/api/session.api";
+import GameSummaryModal from "@/features/gameplay/session/components/GameSummaryModal";
 import {
   ErrorScreen,
   GameEndedScreen,
@@ -17,63 +17,6 @@ import {
 import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
 import useCanvasPage from "./model/useCanvasPage";
-
-interface SummaryModalProps {
-  title: string;
-  onClose: () => void;
-  children: React.ReactNode;
-}
-
-function SummaryModal({ title, onClose, children }: SummaryModalProps) {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-      <div className="w-full max-w-[560px] rounded-3xl border border-gray-200 bg-white/95 p-6 shadow-2xl backdrop-blur">
-        <div className="mb-5 flex items-center justify-between gap-3 border-b border-gray-100 pb-4">
-          <h2 className="text-xl font-bold text-gray-900">{title}</h2>
-          <button
-            type="button"
-            className="rounded-full px-3 py-1.5 text-sm font-medium text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-            onClick={onClose}
-          >
-            닫기
-          </button>
-        </div>
-        <div>{children}</div>
-      </div>
-    </div>
-  );
-}
-
-function GameSummaryModal({
-  summary,
-  onClose,
-}: {
-  summary: GameSummaryData;
-  onClose: () => void;
-}) {
-  return (
-    <SummaryModal title="게임 종료 결과" onClose={onClose}>
-      <div className="flex flex-col gap-2 text-sm text-gray-700">
-        <div className="flex items-center justify-between gap-3">
-          <span>총 라운드 수</span>
-          <span>{summary.totalRounds}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>참여자 수</span>
-          <span>{summary.participantCount}명</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>총 투표 수</span>
-          <span>{summary.totalVotes}</span>
-        </div>
-        <div className="flex items-center justify-between gap-3">
-          <span>완성도</span>
-          <span>{summary.canvasCompletionPercent}%</span>
-        </div>
-      </div>
-    </SummaryModal>
-  );
-}
 
 export default function CanvasPage() {
   const navigate = useNavigate();
@@ -306,6 +249,7 @@ export default function CanvasPage() {
       {gameSummaryModal && (
         <GameSummaryModal
           summary={gameSummaryModal}
+          snapshotUrl={latestRoundSnapshot}
           onClose={handleCloseGameSummaryModal}
         />
       )}

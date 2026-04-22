@@ -6,11 +6,18 @@ import { Cell } from "../../entities/cell.entity";
 import { canvasService } from "./canvas.service";
 import { GameSummary } from "../../entities/game-summary.entity";
 import { summaryService } from "../summary/summary.service";
+import { roundSnapshotService } from "../history/round-snapshot.service";
 import type { GetCanvasChunksQuery } from "./dto/get-canvas-chunks.dto";
 
 interface CreateCanvasRequestBody {
   profileKey?: string;
 }
+
+type RoundVoteExtreme = {
+  roundId: number;
+  roundNumber: number;
+  voteCount: number;
+} | null;
 
 function serializeCanvas(canvas: Canvas) {
   return {
@@ -38,8 +45,26 @@ function serializeCell(cell: Cell) {
   };
 }
 
+function buildRoundSnapshotUrl(
+  req: Request,
+  canvasId: number,
+  roundId: number,
+): string {
+  const relativePath = roundSnapshotService.buildRoundSnapshotApiPath(
+    canvasId,
+    roundId,
+  );
+  const host = req.get("host");
+
+  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+}
+
 // 게임 summary 응답 구조를 명시적으로 고정
-function serializeGameSummary(summary: GameSummary) {
+function serializeGameSummary(
+  summary: GameSummary,
+  snapshotUrl: string | null,
+  quietestRound: RoundVoteExtreme,
+) {
   return {
     id: summary.id,
     canvasId: summary.canvas.id,
@@ -68,8 +93,12 @@ function serializeGameSummary(summary: GameSummary) {
     hottestRoundId: summary.hottestRoundId,
     hottestRoundNumber: summary.hottestRoundNumber,
     hottestRoundVoteCount: summary.hottestRoundVoteCount,
+    quietestRoundId: quietestRound?.roundId ?? null,
+    quietestRoundNumber: quietestRound?.roundNumber ?? null,
+    quietestRoundVoteCount: quietestRound?.voteCount ?? 0,
     topVoters: summary.topVotersJson,
     participants: summary.participantsJson,
+    snapshotUrl,
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
   };
@@ -154,10 +183,20 @@ export const canvasController = {
         return res.status(400).json({ message: "존재하지 않는 캔버스입니다." });
       }
 
-      const summary = await summaryService.getGameSummary(canvasId);
+      const [summary, snapshot, quietestRound] = await Promise.all([
+        summaryService.getGameSummary(canvasId),
+        roundSnapshotService.findLatestRoundSnapshot(canvasId),
+        summaryService.getQuietestRound(canvasId),
+      ]);
 
       return res.json({
-        data: serializeGameSummary(summary),
+        data: serializeGameSummary(
+          summary,
+          snapshot?.round?.id
+            ? buildRoundSnapshotUrl(req, canvasId, snapshot.round.id)
+            : null,
+          quietestRound,
+        ),
       });
     } catch (err) {
       return res.status(400).json({ message: String(err) });

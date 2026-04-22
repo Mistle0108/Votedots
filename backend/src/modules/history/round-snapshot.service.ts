@@ -45,6 +45,18 @@ export const roundSnapshotService = {
     });
   },
 
+  async findLatestRoundSnapshot(canvasId: number): Promise<RoundSnapshot | null> {
+    return roundSnapshotRepository.findOne({
+      where: {
+        canvas: { id: canvasId },
+      },
+      relations: ["round"],
+      order: {
+        roundNumber: "DESC",
+      },
+    });
+  },
+
   async getRoundSnapshot(
     canvasId: number,
     roundId: number,

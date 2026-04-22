@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import socket from "@/shared/lib/socket";
 import {
   CanvasBatchUpdatedPayload,
@@ -30,6 +30,8 @@ interface UseGameplaySocketParams {
   onGameEnded: () => void;
 }
 
+type GameplaySocketHandlers = Omit<UseGameplaySocketParams, "canvasId">;
+
 export function useGameplaySocket({
   canvasId,
   onCanvasJoined,
@@ -45,55 +47,125 @@ export function useGameplaySocket({
   onSessionEnded,
   onGameEnded,
 }: UseGameplaySocketParams) {
-  useEffect(() => {
-    socket.on("canvas:joined", onCanvasJoined);
-    socket.on("round:started", onRoundStarted);
-    socket.on("round:ended", onRoundEnded);
-    socket.on("round-summary:ready", onRoundSummaryReady);
-    socket.on("game-summary:ready", onGameSummaryReady);
-    socket.on("canvas:updated", onCanvasUpdated);
-    socket.on("canvas:batch-updated", onCanvasBatchUpdated);
-    socket.on("vote:update", onVoteUpdate);
-    socket.on("timer:update", onTimerUpdate);
-    socket.on("participants:updated", onParticipantsUpdated);
-    socket.on("auth:session-ended", onSessionEnded);
-    socket.on("session:replaced", onSessionEnded);
-    socket.on("game:ended", onGameEnded);
+  const handlersRef = useRef<GameplaySocketHandlers>({
+    onCanvasJoined,
+    onRoundStarted,
+    onRoundEnded,
+    onRoundSummaryReady,
+    onGameSummaryReady,
+    onCanvasUpdated,
+    onCanvasBatchUpdated,
+    onVoteUpdate,
+    onTimerUpdate,
+    onParticipantsUpdated,
+    onSessionEnded,
+    onGameEnded,
+  });
 
-    if (canvasId) {
-      socket.connect();
+  handlersRef.current = {
+    onCanvasJoined,
+    onRoundStarted,
+    onRoundEnded,
+    onRoundSummaryReady,
+    onGameSummaryReady,
+    onCanvasUpdated,
+    onCanvasBatchUpdated,
+    onVoteUpdate,
+    onTimerUpdate,
+    onParticipantsUpdated,
+    onSessionEnded,
+    onGameEnded,
+  };
+
+  useEffect(() => {
+    const handleCanvasJoined = (payload: CanvasJoinedPayload) => {
+      handlersRef.current.onCanvasJoined(payload);
+    };
+    const handleRoundStarted = (payload: RoundStartedPayload) => {
+      handlersRef.current.onRoundStarted(payload);
+    };
+    const handleRoundEnded = (payload: RoundEndedPayload) => {
+      handlersRef.current.onRoundEnded(payload);
+    };
+    const handleRoundSummaryReady = (payload: RoundSummaryReadyPayload) => {
+      handlersRef.current.onRoundSummaryReady(payload);
+    };
+    const handleGameSummaryReady = (payload: GameSummaryReadyPayload) => {
+      handlersRef.current.onGameSummaryReady(payload);
+    };
+    const handleCanvasUpdated = (payload: CanvasUpdatedPayload) => {
+      handlersRef.current.onCanvasUpdated(payload);
+    };
+    const handleCanvasBatchUpdated = (payload: CanvasBatchUpdatedPayload) => {
+      handlersRef.current.onCanvasBatchUpdated(payload);
+    };
+    const handleVoteUpdate = (payload: VoteUpdatePayload) => {
+      handlersRef.current.onVoteUpdate(payload);
+    };
+    const handleTimerUpdate = (payload: TimerUpdatePayload) => {
+      handlersRef.current.onTimerUpdate(payload);
+    };
+    const handleParticipantsUpdated = (payload: ParticipantsUpdatedPayload) => {
+      handlersRef.current.onParticipantsUpdated(payload);
+    };
+    const handleSessionEnded = (payload: SessionEndedPayload) => {
+      handlersRef.current.onSessionEnded(payload);
+    };
+    const handleGameEnded = () => {
+      handlersRef.current.onGameEnded();
+    };
+
+    socket.on("canvas:joined", handleCanvasJoined);
+    socket.on("round:started", handleRoundStarted);
+    socket.on("round:ended", handleRoundEnded);
+    socket.on("round-summary:ready", handleRoundSummaryReady);
+    socket.on("game-summary:ready", handleGameSummaryReady);
+    socket.on("canvas:updated", handleCanvasUpdated);
+    socket.on("canvas:batch-updated", handleCanvasBatchUpdated);
+    socket.on("vote:update", handleVoteUpdate);
+    socket.on("timer:update", handleTimerUpdate);
+    socket.on("participants:updated", handleParticipantsUpdated);
+    socket.on("auth:session-ended", handleSessionEnded);
+    socket.on("session:replaced", handleSessionEnded);
+    socket.on("game:ended", handleGameEnded);
+
+    return () => {
+      socket.off("canvas:joined", handleCanvasJoined);
+      socket.off("round:started", handleRoundStarted);
+      socket.off("round:ended", handleRoundEnded);
+      socket.off("round-summary:ready", handleRoundSummaryReady);
+      socket.off("game-summary:ready", handleGameSummaryReady);
+      socket.off("canvas:updated", handleCanvasUpdated);
+      socket.off("canvas:batch-updated", handleCanvasBatchUpdated);
+      socket.off("vote:update", handleVoteUpdate);
+      socket.off("timer:update", handleTimerUpdate);
+      socket.off("participants:updated", handleParticipantsUpdated);
+      socket.off("auth:session-ended", handleSessionEnded);
+      socket.off("session:replaced", handleSessionEnded);
+      socket.off("game:ended", handleGameEnded);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!canvasId) {
+      return;
+    }
+
+    const joinCanvas = () => {
       socket.emit("join:canvas", canvasId);
+    };
+
+    socket.on("connect", joinCanvas);
+
+    if (socket.connected) {
+      joinCanvas();
+    } else {
+      socket.connect();
     }
 
     return () => {
-      socket.off("canvas:joined", onCanvasJoined);
-      socket.off("round:started", onRoundStarted);
-      socket.off("round:ended", onRoundEnded);
-      socket.off("round-summary:ready", onRoundSummaryReady);
-      socket.off("game-summary:ready", onGameSummaryReady);
-      socket.off("canvas:updated", onCanvasUpdated);
-      socket.off("canvas:batch-updated", onCanvasBatchUpdated);
-      socket.off("vote:update", onVoteUpdate);
-      socket.off("timer:update", onTimerUpdate);
-      socket.off("participants:updated", onParticipantsUpdated);
-      socket.off("auth:session-ended", onSessionEnded);
-      socket.off("session:replaced", onSessionEnded);
-      socket.off("game:ended", onGameEnded);
+      socket.off("connect", joinCanvas);
       socket.disconnect();
     };
-  }, [
-    canvasId,
-    onCanvasBatchUpdated,
-    onCanvasJoined,
-    onCanvasUpdated,
-    onGameEnded,
-    onGameSummaryReady,
-    onParticipantsUpdated,
-    onRoundEnded,
-    onRoundStarted,
-    onRoundSummaryReady,
-    onSessionEnded,
-    onTimerUpdate,
-    onVoteUpdate,
-  ]);
+  }, [canvasId]);
 }

@@ -1,11 +1,20 @@
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
+import { GameSummary } from "../../entities/game-summary.entity";
 import { RoundSnapshot } from "../../entities/round-snapshot.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
+import { summaryService } from "../summary/summary.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
+const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const roundSnapshotRepository = AppDataSource.getRepository(RoundSnapshot);
+
+type RoundVoteExtreme = {
+  roundId: number;
+  roundNumber: number;
+  voteCount: number;
+} | null;
 
 function toRecord(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object") {
@@ -77,7 +86,43 @@ function getRoundFallbackKey(round: VoteRound): string {
   return `number:${getNumberField(round, "roundNumber") ?? 0}`;
 }
 
-function serializeSnapshot(snapshot: RoundSnapshot | null) {
+function getRoundForSnapshot(
+  snapshot: RoundSnapshot,
+  roundMap: Map<string, VoteRound>,
+): VoteRound | null {
+  const snapshotKey = getRoundSnapshotKey(snapshot);
+  const fallbackKey = `number:${getNumberField(snapshot, "roundNumber") ?? 0}`;
+
+  return (
+    (snapshotKey ? roundMap.get(snapshotKey) : null) ??
+    roundMap.get(fallbackKey) ??
+    null
+  );
+}
+
+function buildRoundSnapshotApiPath(canvasId: number, roundId: number): string {
+  return `/canvas/${canvasId}/rounds/${roundId}/snapshot`;
+}
+
+function getRoundSnapshotUrl(
+  canvasId: number,
+  snapshot: RoundSnapshot | null,
+  roundMap: Map<string, VoteRound>,
+): string | null {
+  if (!snapshot) {
+    return null;
+  }
+
+  const round = getRoundForSnapshot(snapshot, roundMap);
+  const roundId = round ? getEntityId(round) : null;
+
+  return roundId ? buildRoundSnapshotApiPath(canvasId, roundId) : null;
+}
+
+function serializeSnapshot(
+  snapshot: RoundSnapshot | null,
+  snapshotUrl: string | null,
+) {
   if (!snapshot) {
     return null;
   }
@@ -87,7 +132,8 @@ function serializeSnapshot(snapshot: RoundSnapshot | null) {
     getStringField(snapshot, "snapshotUrl") ??
     getStringField(snapshot, "publicUrl") ??
     getStringField(snapshot, "url") ??
-    getStringField(snapshot, "relativePath");
+    getStringField(snapshot, "relativePath") ??
+    snapshotUrl;
 
   return {
     id: getEntityId(snapshot),
@@ -107,6 +153,7 @@ function serializeSnapshot(snapshot: RoundSnapshot | null) {
 function serializeRoundSummary(
   round: VoteRound,
   snapshot: RoundSnapshot | null,
+  snapshotUrl: string | null,
 ) {
   const roundId = getEntityId(round) ?? 0;
   const roundNumber = getNumberField(round, "roundNumber") ?? 0;
@@ -120,13 +167,17 @@ function serializeRoundSummary(
     endedAt,
     phaseStartedAt: startedAt,
     phaseEndedAt: endedAt,
-    snapshot: serializeSnapshot(snapshot),
+    snapshot: serializeSnapshot(snapshot, snapshotUrl),
+    snapshotUrl,
     totalVotes: getNumberField(round, "totalVotes") ?? 0,
     winnerColor: getStringField(round, "winnerColor"),
     colorStats: toRecord(round).colorStats ?? [],
   };
 }
-function serializeRoundSummaryFromSnapshot(snapshot: RoundSnapshot) {
+function serializeRoundSummaryFromSnapshot(
+  snapshot: RoundSnapshot,
+  snapshotUrl: string | null,
+) {
   const roundId =
     getNumberField(snapshot, "roundId") ??
     getRelatedEntityId(snapshot, "round") ??
@@ -145,25 +196,72 @@ function serializeRoundSummaryFromSnapshot(snapshot: RoundSnapshot) {
     endedAt: createdAt,
     phaseStartedAt: null,
     phaseEndedAt: createdAt,
-    snapshot: serializeSnapshot(snapshot),
+    snapshot: serializeSnapshot(snapshot, snapshotUrl),
+    snapshotUrl,
     totalVotes: 0,
     winnerColor: null,
     colorStats: [],
   };
 }
 
-function serializeGameSummary(canvas: Canvas, rounds: VoteRound[]) {
+function serializeGameSummary(
+  canvas: Canvas,
+  rounds: VoteRound[],
+  summary: GameSummary | null,
+  snapshotUrl: string | null,
+  quietestRound: RoundVoteExtreme,
+) {
   const endedAt = getDateStringField(canvas, "endedAt");
+  const totalRounds =
+    summary?.totalRounds ??
+    getNumberField(canvas, "totalRounds") ??
+    getNumberField(canvas, "currentRoundNumber") ??
+    rounds.length;
 
   return {
     canvasId: getEntityId(canvas) ?? 0,
     startedAt: getDateStringField(canvas, "startedAt"),
     endedAt,
-    totalRounds:
-      getNumberField(canvas, "totalRounds") ??
-      getNumberField(canvas, "currentRoundNumber") ??
-      rounds.length,
+    totalRounds,
     roundCount: rounds.length,
+    participantCount: summary?.participantCount ?? 0,
+    issuedTicketCount: summary?.issuedTicketCount ?? 0,
+    totalVotes: summary?.totalVotes ?? 0,
+    ticketUsageRate: summary?.ticketUsageRate ?? "0.00",
+    totalCellCount: summary?.totalCellCount ?? 0,
+    paintedCellCount: summary?.paintedCellCount ?? 0,
+    emptyCellCount: summary?.emptyCellCount ?? 0,
+    canvasCompletionPercent: summary?.canvasCompletionPercent ?? "0.00",
+    mostVotedCellId: summary?.mostVotedCellId ?? null,
+    mostVotedCellX: summary?.mostVotedCellX ?? null,
+    mostVotedCellY: summary?.mostVotedCellY ?? null,
+    mostVotedCellVoteCount: summary?.mostVotedCellVoteCount ?? 0,
+    randomResolvedCellCount: summary?.randomResolvedCellCount ?? 0,
+    usedColorCount: summary?.usedColorCount ?? 0,
+    mostSelectedColor: summary?.mostSelectedColor ?? null,
+    mostSelectedColorVoteCount: summary?.mostSelectedColorVoteCount ?? 0,
+    mostPaintedColor: summary?.mostPaintedColor ?? null,
+    mostPaintedColorCellCount: summary?.mostPaintedColorCellCount ?? 0,
+    topVoterId: summary?.topVoterId ?? null,
+    topVoterName: summary?.topVoterName ?? null,
+    topVoterVoteCount: summary?.topVoterVoteCount ?? 0,
+    hottestRoundId: summary?.hottestRoundId ?? null,
+    hottestRoundNumber: summary?.hottestRoundNumber ?? null,
+    hottestRoundVoteCount: summary?.hottestRoundVoteCount ?? 0,
+    quietestRoundId: quietestRound?.roundId ?? null,
+    quietestRoundNumber: quietestRound?.roundNumber ?? null,
+    quietestRoundVoteCount: quietestRound?.voteCount ?? 0,
+    topVoters: summary?.topVotersJson ?? null,
+    participants: summary?.participantsJson ?? null,
+    snapshotUrl,
+    createdAt:
+      getDateStringField(summary, "createdAt") ??
+      endedAt ??
+      new Date().toISOString(),
+    updatedAt:
+      getDateStringField(summary, "updatedAt") ??
+      endedAt ??
+      new Date().toISOString(),
   };
 }
 
@@ -177,23 +275,29 @@ export const historyService = {
       return null;
     }
 
-    const rounds = await voteRoundRepository.find({
-      where: {
-        canvas: { id: canvasId },
-      },
-      order: {
-        roundNumber: "DESC",
-      },
-    });
-
-    const snapshots = await roundSnapshotRepository.find({
-      where: {
-        canvas: { id: canvasId },
-      },
-      order: {
-        roundNumber: "DESC",
-      },
-    });
+    const [rounds, snapshots, gameSummary, quietestRound] = await Promise.all([
+      voteRoundRepository.find({
+        where: {
+          canvas: { id: canvasId },
+        },
+        order: {
+          roundNumber: "DESC",
+        },
+      }),
+      roundSnapshotRepository.find({
+        where: {
+          canvas: { id: canvasId },
+        },
+        order: {
+          roundNumber: "DESC",
+        },
+      }),
+      gameSummaryRepository.findOne({
+        where: { canvas: { id: canvasId } },
+        relations: ["canvas"],
+      }),
+      summaryService.getQuietestRound(canvasId),
+    ]);
 
     const snapshotMap = new Map<string, RoundSnapshot>();
 
@@ -213,24 +317,31 @@ export const historyService = {
     }
 
     const historyRounds = snapshots.map((snapshot) => {
-      const snapshotKey = getRoundSnapshotKey(snapshot);
-      const fallbackKey = `number:${getNumberField(snapshot, "roundNumber") ?? 0}`;
-      const round =
-        (snapshotKey ? roundMap.get(snapshotKey) : null) ??
-        roundMap.get(fallbackKey) ??
-        null;
+      const round = getRoundForSnapshot(snapshot, roundMap);
+      const snapshotUrl = getRoundSnapshotUrl(canvasId, snapshot, roundMap);
 
       if (!round) {
-        return serializeRoundSummaryFromSnapshot(snapshot);
+        return serializeRoundSummaryFromSnapshot(snapshot, snapshotUrl);
       }
 
-      return serializeRoundSummary(round, snapshot);
+      return serializeRoundSummary(round, snapshot, snapshotUrl);
     });
+    const latestSnapshotUrl = getRoundSnapshotUrl(
+      canvasId,
+      snapshots[0] ?? null,
+      roundMap,
+    );
 
     return {
       rounds: historyRounds,
       gameSummary: getDateStringField(canvas, "endedAt")
-        ? serializeGameSummary(canvas, rounds)
+        ? serializeGameSummary(
+            canvas,
+            rounds,
+            gameSummary,
+            latestSnapshotUrl,
+            quietestRound,
+          )
         : null,
     };
   },
