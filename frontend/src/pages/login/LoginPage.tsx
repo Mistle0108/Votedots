@@ -30,7 +30,11 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <h1 className="text-center text-2xl font-bold">VoteDots</h1>
+        <img
+          src="/brand/logo-full.svg"
+          alt="VoteDots"
+          className="mx-auto h-auto w-56"
+        />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
