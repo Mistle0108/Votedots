@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { access, writeFile } from "node:fs/promises";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell } from "../../entities/cell.entity";
@@ -6,6 +6,7 @@ import { RoundSnapshot } from "../../entities/round-snapshot.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import {
   buildRoundSnapshotRelativePath,
+  buildRoundSnapshotVariantRelativePath,
   ensureRoundSnapshotDirectory,
   resolveGameHistoryAbsolutePath,
 } from "./history-storage.service";
@@ -29,8 +30,27 @@ export const roundSnapshotService = {
     return `/canvas/${canvasId}/rounds/${roundId}/snapshot`;
   },
 
+  buildRoundPreviewSnapshotApiPath(canvasId: number, roundId: number): string {
+    return `/canvas/${canvasId}/rounds/${roundId}/preview-snapshot`;
+  },
+
   resolveRoundSnapshotAbsolutePath(snapshot: RoundSnapshot): string {
     return resolveGameHistoryAbsolutePath(snapshot.storagePath);
+  },
+
+  resolveRoundPreviewSnapshotAbsolutePath(snapshot: RoundSnapshot): string {
+    return resolveGameHistoryAbsolutePath(
+      buildRoundSnapshotVariantRelativePath(snapshot.storagePath, "preview"),
+    );
+  },
+
+  async hasRoundPreviewSnapshot(snapshot: RoundSnapshot): Promise<boolean> {
+    try {
+      await access(this.resolveRoundPreviewSnapshotAbsolutePath(snapshot));
+      return true;
+    } catch {
+      return false;
+    }
   },
 
   async findRoundSnapshot(
@@ -113,6 +133,17 @@ export const roundSnapshotService = {
       })),
       outlineCells: outlineTemplate?.cells ?? [],
     });
+    const previewPngBuffer = roundSnapshotRenderService.renderPngBuffer({
+      width: canvas.gridX,
+      height: canvas.gridY,
+      cells: cells.map((cell) => ({
+        x: cell.x,
+        y: cell.y,
+        color: cell.color,
+      })),
+      outlineCells: outlineTemplate?.cells ?? [],
+      emptyCellMode: "transparent",
+    });
 
     await ensureRoundSnapshotDirectory({
       capturedAt,
@@ -125,9 +156,18 @@ export const roundSnapshotService = {
       roundNumber,
       format: "png",
     });
+    const previewRelativePath = buildRoundSnapshotRelativePath({
+      capturedAt,
+      canvasId,
+      roundNumber,
+      format: "png",
+      variant: "preview",
+    });
     const absolutePath = resolveGameHistoryAbsolutePath(relativePath);
+    const previewAbsolutePath = resolveGameHistoryAbsolutePath(previewRelativePath);
 
     await writeFile(absolutePath, pngBuffer);
+    await writeFile(previewAbsolutePath, previewPngBuffer);
 
     const existingSnapshot = await roundSnapshotRepository.findOne({
       where: {

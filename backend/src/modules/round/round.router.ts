@@ -17,5 +17,10 @@ router.get(
   authMiddleware,
   roundController.getRoundSnapshot,
 );
+router.get(
+  "/:roundId/preview-snapshot",
+  authMiddleware,
+  roundController.getRoundPreviewSnapshot,
+);
 
 export default router;

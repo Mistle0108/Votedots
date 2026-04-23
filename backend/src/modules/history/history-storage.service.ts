@@ -5,12 +5,14 @@ const DEFAULT_STORAGE_ROOT = path.resolve(process.cwd(), "storage");
 const GAME_HISTORY_PREFIX = "game-history";
 
 export type RoundSnapshotFormat = "png" | "webp";
+export type RoundSnapshotVariant = "default" | "preview";
 
 interface RoundSnapshotPathParams {
   capturedAt: Date;
   canvasId: number;
   roundNumber: number;
   format?: RoundSnapshotFormat;
+  variant?: RoundSnapshotVariant;
 }
 
 function formatMonth(value: number): string {
@@ -45,8 +47,12 @@ export function getRoundSnapshotRelativeDirectory(
 export function getRoundSnapshotFilename(
   roundNumber: number,
   format: RoundSnapshotFormat = "png",
+  variant: RoundSnapshotVariant = "default",
 ): string {
-  return `round-${formatRoundNumber(roundNumber)}.${format}`;
+  const baseName = `round-${formatRoundNumber(roundNumber)}`;
+  const variantSuffix = variant === "preview" ? "-preview" : "";
+
+  return `${baseName}${variantSuffix}.${format}`;
 }
 
 export function buildRoundSnapshotRelativePath({
@@ -54,10 +60,23 @@ export function buildRoundSnapshotRelativePath({
   canvasId,
   roundNumber,
   format = "png",
+  variant = "default",
 }: RoundSnapshotPathParams): string {
   return path.posix.join(
     getRoundSnapshotRelativeDirectory(capturedAt, canvasId),
-    getRoundSnapshotFilename(roundNumber, format),
+    getRoundSnapshotFilename(roundNumber, format, variant),
+  );
+}
+
+export function buildRoundSnapshotVariantRelativePath(
+  relativePath: string,
+  variant: Exclude<RoundSnapshotVariant, "default">,
+): string {
+  const parsedPath = path.posix.parse(relativePath);
+
+  return path.posix.join(
+    parsedPath.dir,
+    `${parsedPath.name}-${variant}${parsedPath.ext}`,
   );
 }
 

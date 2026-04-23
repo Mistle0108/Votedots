@@ -70,7 +70,8 @@ export default function RoundSummaryModal({
           100
         ).toFixed(1)
       : "0.0";
-  const roundSnapshot = summary.snapshotUrl ?? snapshot;
+  const roundSnapshot =
+    summary.previewSnapshotUrl ?? summary.snapshotUrl ?? snapshot;
 
   return (
     <div
@@ -105,7 +106,10 @@ export default function RoundSummaryModal({
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
           <div className="space-y-5">
             {roundSnapshot && (
-              <div className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-gray-200 bg-white p-3 shadow-sm">
+              <div
+                className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-gray-200 p-3 shadow-sm"
+                style={{ backgroundColor: "#F1F3F5" }}
+              >
                 <img
                   src={roundSnapshot}
                   alt={`${summary.roundNumber} 라운드 스냅샷`}

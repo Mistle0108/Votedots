@@ -20,10 +20,25 @@ function buildRoundSnapshotUrl(
   return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
 }
 
+function buildRoundPreviewSnapshotUrl(
+  req: Request,
+  canvasId: number,
+  roundId: number,
+): string {
+  const relativePath = roundSnapshotService.buildRoundPreviewSnapshotApiPath(
+    canvasId,
+    roundId,
+  );
+  const host = req.get("host");
+
+  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+}
+
 // 엔티티를 그대로 노출하지 않고 API 응답 필드를 명시적으로 고정
 function serializeRoundSummary(
   summary: RoundSummary,
   snapshotUrl: string | null,
+  previewSnapshotUrl: string | null,
 ) {
   return {
     id: summary.id,
@@ -44,6 +59,7 @@ function serializeRoundSummary(
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
     snapshotUrl,
+    previewSnapshotUrl,
   };
 }
 
@@ -118,11 +134,16 @@ export const roundController = {
         summaryService.getRoundSummary(canvasId, roundId),
         roundSnapshotService.findRoundSnapshot(canvasId, roundId),
       ]);
+      const previewSnapshotUrl =
+        snapshot && (await roundSnapshotService.hasRoundPreviewSnapshot(snapshot))
+          ? buildRoundPreviewSnapshotUrl(req, canvasId, roundId)
+          : null;
 
       return res.json({
         data: serializeRoundSummary(
           summary,
           snapshot ? buildRoundSnapshotUrl(req, canvasId, roundId) : null,
+          previewSnapshotUrl,
         ),
       });
     } catch (err) {
@@ -147,6 +168,35 @@ export const roundController = {
       );
       const absolutePath =
         roundSnapshotService.resolveRoundSnapshotAbsolutePath(snapshot);
+
+      await access(absolutePath);
+
+      res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+      res.type(snapshot.mimeType);
+
+      return res.sendFile(absolutePath);
+    } catch (err) {
+      return res.status(404).json({ message: String(err) });
+    }
+  },
+
+  async getRoundPreviewSnapshot(req: Request, res: Response) {
+    try {
+      const canvasId = parseInt(String(req.params["canvasId"]));
+      const roundId = parseInt(String(req.params["roundId"]));
+
+      if (isNaN(canvasId) || isNaN(roundId)) {
+        return res
+          .status(400)
+          .json({ message: "존재하지 않는 캔버스 또는 라운드입니다." });
+      }
+
+      const snapshot = await roundSnapshotService.getRoundSnapshot(
+        canvasId,
+        roundId,
+      );
+      const absolutePath =
+        roundSnapshotService.resolveRoundPreviewSnapshotAbsolutePath(snapshot);
 
       await access(absolutePath);
 

@@ -11,6 +11,7 @@ interface RenderRoundSnapshotParams {
   height: number;
   cells: SnapshotCell[];
   outlineCells?: Array<{ x: number; y: number }>;
+  emptyCellMode?: "checker" | "transparent";
 }
 
 interface RgbColor {
@@ -57,12 +58,15 @@ function createBasePng(
   width: number,
   height: number,
   outlineCells: Array<{ x: number; y: number }> = [],
+  emptyCellMode: "checker" | "transparent" = "checker",
 ): PNG {
   const png = new PNG({ width, height });
 
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      setPixelColor(png, x, y, getEmptyCellColor(x, y));
+  if (emptyCellMode === "checker") {
+    for (let y = 0; y < height; y += 1) {
+      for (let x = 0; x < width; x += 1) {
+        setPixelColor(png, x, y, getEmptyCellColor(x, y));
+      }
     }
   }
 
@@ -83,12 +87,13 @@ export const roundSnapshotRenderService = {
     height,
     cells,
     outlineCells = [],
+    emptyCellMode = "checker",
   }: RenderRoundSnapshotParams): Buffer {
     if (width <= 0 || height <= 0) {
       throw new Error("스냅샷 크기가 올바르지 않습니다.");
     }
 
-    const png = createBasePng(width, height, outlineCells);
+    const png = createBasePng(width, height, outlineCells, emptyCellMode);
 
     for (const cell of cells) {
       if (!cell.color) {
