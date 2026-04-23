@@ -3,7 +3,6 @@ import { Canvas } from "../../entities/canvas.entity";
 import { GameSummary } from "../../entities/game-summary.entity";
 import { RoundSnapshot } from "../../entities/round-snapshot.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
-import { roundSnapshotService } from "./round-snapshot.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
@@ -98,13 +97,6 @@ function buildRoundSnapshotApiPath(canvasId: number, roundId: number): string {
   return `/canvas/${canvasId}/rounds/${roundId}/snapshot`;
 }
 
-function buildRoundPreviewSnapshotApiPath(
-  canvasId: number,
-  roundId: number,
-): string {
-  return `/canvas/${canvasId}/rounds/${roundId}/preview-snapshot`;
-}
-
 function getRoundSnapshotUrl(
   canvasId: number,
   snapshot: RoundSnapshot | null,
@@ -118,21 +110,6 @@ function getRoundSnapshotUrl(
   const roundId = round ? getEntityId(round) : null;
 
   return roundId ? buildRoundSnapshotApiPath(canvasId, roundId) : null;
-}
-
-function getRoundPreviewSnapshotUrl(
-  canvasId: number,
-  snapshot: RoundSnapshot | null,
-  roundMap: Map<string, VoteRound>,
-): string | null {
-  if (!snapshot) {
-    return null;
-  }
-
-  const round = getRoundForSnapshot(snapshot, roundMap);
-  const roundId = round ? getEntityId(round) : null;
-
-  return roundId ? buildRoundPreviewSnapshotApiPath(canvasId, roundId) : null;
 }
 
 function serializeSnapshot(
@@ -170,7 +147,6 @@ function serializeRoundSummary(
   round: VoteRound,
   snapshot: RoundSnapshot | null,
   snapshotUrl: string | null,
-  previewSnapshotUrl: string | null,
 ) {
   const roundId = getEntityId(round) ?? 0;
   const roundNumber = getNumberField(round, "roundNumber") ?? 0;
@@ -186,7 +162,6 @@ function serializeRoundSummary(
     phaseEndedAt: endedAt,
     snapshot: serializeSnapshot(snapshot, snapshotUrl),
     snapshotUrl,
-    previewSnapshotUrl,
     totalVotes: getNumberField(round, "totalVotes") ?? 0,
     winnerColor: getStringField(round, "winnerColor"),
     colorStats: toRecord(round).colorStats ?? [],
@@ -195,7 +170,6 @@ function serializeRoundSummary(
 function serializeRoundSummaryFromSnapshot(
   snapshot: RoundSnapshot,
   snapshotUrl: string | null,
-  previewSnapshotUrl: string | null,
 ) {
   const roundId =
     getNumberField(snapshot, "roundId") ??
@@ -217,7 +191,6 @@ function serializeRoundSummaryFromSnapshot(
     phaseEndedAt: createdAt,
     snapshot: serializeSnapshot(snapshot, snapshotUrl),
     snapshotUrl,
-    previewSnapshotUrl,
     totalVotes: 0,
     winnerColor: null,
     colorStats: [],
@@ -331,31 +304,16 @@ export const historyService = {
       roundMap.set(getRoundFallbackKey(round), round);
     }
 
-    const historyRounds = await Promise.all(
-      snapshots.map(async (snapshot) => {
+    const historyRounds = snapshots.map((snapshot) => {
         const round = getRoundForSnapshot(snapshot, roundMap);
         const snapshotUrl = getRoundSnapshotUrl(canvasId, snapshot, roundMap);
-        const previewSnapshotUrl =
-          await roundSnapshotService.hasRoundPreviewSnapshot(snapshot)
-            ? getRoundPreviewSnapshotUrl(canvasId, snapshot, roundMap)
-            : null;
 
         if (!round) {
-          return serializeRoundSummaryFromSnapshot(
-            snapshot,
-            snapshotUrl,
-            previewSnapshotUrl,
-          );
+          return serializeRoundSummaryFromSnapshot(snapshot, snapshotUrl);
         }
 
-        return serializeRoundSummary(
-          round,
-          snapshot,
-          snapshotUrl,
-          previewSnapshotUrl,
-        );
-      }),
-    );
+        return serializeRoundSummary(round, snapshot, snapshotUrl);
+      });
     const latestSnapshotUrl = getRoundSnapshotUrl(
       canvasId,
       snapshots[0] ?? null,

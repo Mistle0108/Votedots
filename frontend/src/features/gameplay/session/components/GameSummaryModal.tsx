@@ -135,8 +135,7 @@ export default function GameSummaryModal({
   snapshotUrl,
   onClose,
 }: GameSummaryModalProps) {
-  const previewSnapshotUrl = summary.previewSnapshotUrl ?? null;
-  const downloadSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
+  const finalSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
   const {
     canDownload,
     isDownloading,
@@ -144,7 +143,7 @@ export default function GameSummaryModal({
     download,
     retry,
   } = useSnapshotDownload({
-    snapshotUrl: downloadSnapshotUrl,
+    snapshotUrl: finalSnapshotUrl,
     canvasId: summary.canvasId,
     endedAt: summary.endedAt,
     createdAt: summary.createdAt,
@@ -196,13 +195,13 @@ export default function GameSummaryModal({
 
         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
           <div className="space-y-5">
-            {previewSnapshotUrl ? (
+            {finalSnapshotUrl ? (
               <div
                 className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-gray-200 p-3 shadow-sm"
                 style={{ backgroundColor: "#F1F3F5" }}
               >
                 <img
-                  src={previewSnapshotUrl}
+                  src={finalSnapshotUrl}
                   alt="최종 캔버스 스냅샷"
                   className="block w-full rounded border border-gray-100 bg-transparent"
                   style={{ imageRendering: "pixelated" }}

@@ -54,10 +54,6 @@ export const historyController = {
       rounds: history.rounds.map((round) => ({
         ...round,
         snapshotUrl: toAbsoluteUrl(req, round.snapshotUrl),
-        previewSnapshotUrl: toAbsoluteUrl(
-          req,
-          "previewSnapshotUrl" in round ? round.previewSnapshotUrl : null,
-        ),
         snapshot: round.snapshot
           ? {
               ...round.snapshot,

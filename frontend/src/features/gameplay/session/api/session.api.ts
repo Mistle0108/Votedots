@@ -68,7 +68,6 @@ export interface RoundSummaryData {
   createdAt: string;
   updatedAt: string;
   snapshotUrl: string | null;
-  previewSnapshotUrl: string | null;
 }
 
 export interface GameSummaryTopVoter {
@@ -113,7 +112,6 @@ export interface GameSummaryData {
   topVoters: GameSummaryTopVoter[] | null;
   participants: GameSummaryParticipant[] | null;
   snapshotUrl: string | null;
-  previewSnapshotUrl: string | null;
   endedAt: string | null;
   createdAt: string;
   updatedAt: string;

@@ -70,8 +70,7 @@ export default function RoundSummaryModal({
           100
         ).toFixed(1)
       : "0.0";
-  const roundSnapshot =
-    summary.previewSnapshotUrl ?? summary.snapshotUrl ?? snapshot;
+  const roundSnapshot = summary.snapshotUrl ?? snapshot;
 
   return (
     <div

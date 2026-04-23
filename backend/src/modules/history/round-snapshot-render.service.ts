@@ -11,7 +11,6 @@ interface RenderRoundSnapshotParams {
   height: number;
   cells: SnapshotCell[];
   outlineCells?: Array<{ x: number; y: number }>;
-  emptyCellMode?: "checker" | "transparent";
 }
 
 interface RgbColor {
@@ -38,8 +37,6 @@ function parseHexColor(hex: string): RgbColor {
   };
 }
 
-const CHECKER_LIGHT = "#6f6f6f";
-const CHECKER_DARK = "#5f5f5f";
 const OUTLINE_COLOR = "#000000";
 
 function setPixelColor(png: PNG, x: number, y: number, color: RgbColor): void {
@@ -50,25 +47,12 @@ function setPixelColor(png: PNG, x: number, y: number, color: RgbColor): void {
   png.data[index + 3] = 255;
 }
 
-function getEmptyCellColor(x: number, y: number): RgbColor {
-  return parseHexColor((x + y) % 2 === 0 ? CHECKER_LIGHT : CHECKER_DARK);
-}
-
 function createBasePng(
   width: number,
   height: number,
   outlineCells: Array<{ x: number; y: number }> = [],
-  emptyCellMode: "checker" | "transparent" = "checker",
 ): PNG {
   const png = new PNG({ width, height });
-
-  if (emptyCellMode === "checker") {
-    for (let y = 0; y < height; y += 1) {
-      for (let x = 0; x < width; x += 1) {
-        setPixelColor(png, x, y, getEmptyCellColor(x, y));
-      }
-    }
-  }
 
   for (const cell of outlineCells) {
     if (cell.x < 0 || cell.y < 0 || cell.x >= width || cell.y >= height) {
@@ -87,13 +71,12 @@ export const roundSnapshotRenderService = {
     height,
     cells,
     outlineCells = [],
-    emptyCellMode = "checker",
   }: RenderRoundSnapshotParams): Buffer {
     if (width <= 0 || height <= 0) {
       throw new Error("스냅샷 크기가 올바르지 않습니다.");
     }
 
-    const png = createBasePng(width, height, outlineCells, emptyCellMode);
+    const png = createBasePng(width, height, outlineCells);
 
     for (const cell of cells) {
       if (!cell.color) {
