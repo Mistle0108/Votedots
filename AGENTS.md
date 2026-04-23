@@ -1,11 +1,16 @@
 # AGENTS.md
 
 ## 목적
-- 이 저장소는 Votedots 프로젝트 코드 저장소다.
+- 이 저장소는 프로젝트 코드 저장소다.
 - 이 저장소에서 시작한 세션은 프로젝트 코드 확인, 설계, 구현, 검증을 기본 작업으로 본다.
 - wiki 관련 요청은 현재 저장소 내부가 아니라 연결된 외부 wiki 저장소를 기준으로 처리한다.
 - 연결된 wiki 저장소 문서 해석과 요청 해석 규칙의 기준 진실은 이 파일에 둔다.
 - 연결된 wiki 저장소의 상세 읽기/쓰기 절차는 wiki 저장소의 `AGENTS.md`, `wiki/AGENTS.md`를 따른다.
+
+## 적용 범위
+- 이 파일은 프로젝트 저장소 루트에 둘 공용 규칙 초안이다.
+- 특정 프로젝트 이름, 개인 경로, 개인 shell 설정을 넣지 않는다.
+- 개인 환경값은 `./.local/wiki-repo.yml`에서만 관리한다.
 
 ## 기준 진실 우선순위
 ```text
@@ -23,7 +28,7 @@ code@commit
 - 브랜치 변경, 저장소 변경, 규칙 변경 요청, 현재 세션에서 `AGENTS.md` 수정이 있었을 때만 다시 읽는다.
 - 로컬 워킹트리를 최신 기준으로 추정하지 않는다.
 
-## 프로젝트 wiki bootstrap 규칙
+## 연결된 wiki 저장소 bootstrap 규칙
 - 사용자가 `wiki`, `위키`, `문서`, `wiki 기준`, `wiki 최신`, `wiki 반영`, `wiki 동기화` 같은 표현을 쓰면 먼저 프로젝트 저장소의 `./.local/wiki-repo.yml`을 읽는다.
 - 현재 shell이 WSL이면 `wiki_repo_paths.wsl`, Windows shell이면 `wiki_repo_paths.windows`를 사용한다.
 - 현재 shell 슬롯에 경로가 있고 현재 세션에서 접근 가능하면, 그 경로를 이번 세션의 연결된 외부 wiki 저장소로 확정한다.
@@ -32,7 +37,7 @@ code@commit
 
 ## wiki 요청 해석 기준
 - 연결된 wiki 저장소 문서와 요청 해석의 기준 진실은 이 파일이다.
-- 사람용 요청 예시는 wiki 저장소의 `wiki/Home/Wiki-Usage-Guide.md`를 참고하되, 충돌 시 이 파일을 우선한다.
+- 사람용 요청 예시는 연결된 wiki 저장소의 `wiki/Home/Wiki-Usage-Guide.md`를 참고하되, 충돌 시 이 파일을 우선한다.
 - 별도 설명이 없으면 `wiki`는 기본적으로 연결된 외부 wiki 저장소 문서를 뜻한다.
 - 별도 설명이 없으면 현재 프로젝트 저장소 내부의 `wiki` 폴더, `wiki` 관련 브랜치, GitHub wiki를 자동으로 연결 대상이라고 추정하지 않는다.
 
@@ -66,6 +71,20 @@ code@commit
 - wiki 저장소는 문서 조회, 반영 범위 확인, wiki 브랜치 작업, wiki commit, wiki PR 생성 용도로만 사용한다.
 - 프로젝트 브랜치와 wiki 브랜치는 서로 다른 저장소에서 관리한다.
 
+## 연결된 wiki 저장소 구조 가정
+- 연결된 wiki 저장소는 최소한 아래 구조를 가진다고 가정한다.
+
+```text
+AGENTS.md
+wiki/AGENTS.md
+wiki/Home/README.md
+wiki/03-Status/Current-State.md
+wiki/03-Status/Next-Work.md
+wiki/Home/Wiki-Usage-Guide.md
+```
+
+- 상세 구조와 문서 역할은 연결된 wiki 저장소 문서를 따른다.
+
 ## 로컬 설정 파일
 - `./.local/wiki-repo.yml`은 개인 로컬 설정 파일이다.
 - 이 파일은 git에 올리지 않는다.
@@ -77,3 +96,7 @@ wiki_repo_paths:
   windows: <windows-path-to-wiki-repo>
   wsl: <wsl-path-to-wiki-repo>
 ```
+
+## 사용 방법
+- 이 파일은 실제 프로젝트 저장소 루트의 `AGENTS.md`로 복사해 사용한다.
+- 프로젝트 이름, 기본 브랜치 이름, 별도 운영 제약이 있으면 그 부분만 저장소별로 좁혀서 보완한다.
