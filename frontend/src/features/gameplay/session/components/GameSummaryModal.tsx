@@ -4,6 +4,7 @@ import type {
   GameSummaryParticipant,
   GameSummaryTopVoter,
 } from "@/features/gameplay/session/api/session.api";
+import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
 
 interface GameSummaryModalProps {
   summary: GameSummaryData;
@@ -135,6 +136,19 @@ export default function GameSummaryModal({
   onClose,
 }: GameSummaryModalProps) {
   const finalSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
+  const {
+    canDownload,
+    isDownloading,
+    downloadError,
+    download,
+    retry,
+  } = useSnapshotDownload({
+    snapshotUrl: finalSnapshotUrl,
+    canvasId: summary.canvasId,
+    endedAt: summary.endedAt,
+    createdAt: summary.createdAt,
+    updatedAt: summary.updatedAt,
+  });
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -197,6 +211,29 @@ export default function GameSummaryModal({
             ) : (
               <div className="mx-auto flex aspect-square w-1/2 min-w-[180px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 text-center text-sm font-medium text-gray-400">
                 최종 스냅샷이 없어요
+              </div>
+            )}
+
+            {canDownload && (
+              <div className="flex flex-col items-center gap-2">
+                <button
+                  type="button"
+                  onClick={downloadError ? retry : download}
+                  disabled={isDownloading}
+                  className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                >
+                  {isDownloading
+                    ? "다운로드 중..."
+                    : downloadError
+                      ? "다시 시도"
+                      : "이미지 다운로드"}
+                </button>
+
+                {downloadError && (
+                  <p className="text-sm font-medium text-red-500">
+                    {downloadError}
+                  </p>
+                )}
               </div>
             )}
 
