@@ -15,20 +15,20 @@ export const BACKGROUND_TEMPLATES: BackgroundTemplate[] = [
     gridY: 30,
     assetKey: "cat-face-30x30",
   },
-  {
+  /* {
     id: "dog-face-50x50",
     name: "Dog Face Background",
     gridX: 50,
     gridY: 50,
     assetKey: "dog-face-50x50",
-  },
-  {
+  }, */
+  /* {
     id: "car-50x50",
     name: "Car Background",
     gridX: 50,
     gridY: 50,
     assetKey: "car-50x50",
-  },
+  }, */
   {
     id: "empty-50x50",
     name: "Empty 50x50",
