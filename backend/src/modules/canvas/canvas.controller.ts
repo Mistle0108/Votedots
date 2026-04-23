@@ -89,6 +89,7 @@ function serializeGameSummary(
     topVoters: summary.topVotersJson,
     participants: summary.participantsJson,
     snapshotUrl,
+    endedAt: summary.canvas.endedAt,
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
   };
