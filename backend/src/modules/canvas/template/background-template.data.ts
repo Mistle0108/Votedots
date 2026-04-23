@@ -4,7 +4,7 @@ export const BACKGROUND_TEMPLATES: BackgroundTemplate[] = [
   {
     id: "empty-30x30",
     name: "Empty 30x30",
-    gridX: 29,
+    gridX: 30,
     gridY: 30,
     assetKey: "empty-30x30",
   },
@@ -28,6 +28,13 @@ export const BACKGROUND_TEMPLATES: BackgroundTemplate[] = [
     gridX: 50,
     gridY: 50,
     assetKey: "car-50x50",
+  },
+  {
+    id: "empty-50x50",
+    name: "Empty 50x50",
+    gridX: 50,
+    gridY: 50,
+    assetKey: "empty-50x50",
   },
   {
     id: "empty-500x500",
