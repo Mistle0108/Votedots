@@ -248,8 +248,8 @@ export default function GameSummaryModal({
                       {isDownloadingDefaultSnapshot
                         ? "다운로드 중..."
                         : defaultDownloadError
-                          ? "기본 이미지 다시 시도"
-                          : "기본 이미지 다운로드"}
+                          ? "이미지 다시 시도"
+                          : "이미지 다운로드"}
                     </button>
                   )}
 
@@ -268,7 +268,7 @@ export default function GameSummaryModal({
                         ? "고화질 다운로드 중..."
                         : highResolutionDownloadError
                           ? "고화질 다시 시도"
-                          : "고화질 이미지 다운로드"}
+                          : "고화질 다운로드"}
                     </button>
                   )}
                 </div>
