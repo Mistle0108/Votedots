@@ -6,20 +6,6 @@ interface ParticipantPanelProps {
   error: string | null;
 }
 
-function getStatusLabel(status: ParticipantItem["status"]) {
-  if (status === "voting") {
-    return {
-      text: "투표자",
-      className: "border-blue-200 bg-blue-50 text-blue-700",
-    };
-  }
-
-  return {
-    text: "대기자",
-    className: "border-gray-200 bg-gray-100 text-gray-600",
-  };
-}
-
 export default function ParticipantPanel({
   participants,
   loading,
@@ -51,27 +37,14 @@ export default function ParticipantPanel({
           </div>
         ) : (
           <div className="max-h-[280px] overflow-y-auto">
-            <ul className="divide-y divide-gray-100">
-              {participants.map((participant) => {
-                const status = getStatusLabel(participant.status);
-
-                return (
-                  <li
-                    key={participant.sessionId}
-                    className="flex items-center justify-between gap-3 px-4 py-3"
-                  >
-                    <p className="min-w-0 truncate text-sm font-medium text-gray-800">
-                      {participant.nickname}
-                    </p>
-
-                    <span
-                      className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${status.className}`}
-                    >
-                      {status.text}
-                    </span>
-                  </li>
-                );
-              })}
+            <ul className="divide-y divide-gray-100 text-left">
+              {participants.map((participant) => (
+                <li key={participant.sessionId} className="px-4 py-3 text-left">
+                  <p className="min-w-0 truncate text-sm font-medium text-gray-800">
+                    {participant.nickname}
+                  </p>
+                </li>
+              ))}
             </ul>
           </div>
         )}
