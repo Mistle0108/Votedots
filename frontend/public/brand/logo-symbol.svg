@@ -38,7 +38,7 @@
            V176
            C408 143 435 116 468 116Z"
         fill="#3DD68C"/>
-  <path class="check" d="M474 210 L503 239 L554 188"/>
+  <path class="check" d="M476 214 L503 241 L548 196"/>
 
   <!-- Left red bubble -->
   <path d="M132 430
@@ -54,7 +54,7 @@
            V490
            C72 457 99 430 132 430Z"
         fill="#FF624E"/>
-  <path class="check" d="M152 529 L182 559 L236 505"/>
+  <path class="check" d="M142 528 L169 555 L214 510"/>
 
   <!-- Right blue bubble -->
   <path d="M802 430
@@ -70,7 +70,7 @@
            V490
            C742 457 769 430 802 430Z"
         fill="#469AE5"/>
-  <path class="check" d="M792 529 L822 559 L876 505"/>
+  <path class="check" d="M812 528 L839 555 L884 510"/>
 
   <!-- Bottom yellow bubble -->
   <path d="M468 738
@@ -86,5 +86,5 @@
            V798
            C408 765 435 738 468 738Z"
         fill="#F8B321"/>
-  <path class="check" d="M474 848 L503 877 L554 826"/>
+  <path class="check" d="M476 841 L503 868 L548 823"/>
 </svg>
