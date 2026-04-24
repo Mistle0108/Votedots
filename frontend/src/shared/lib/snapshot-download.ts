@@ -6,6 +6,7 @@ export interface SnapshotDownloadMeta {
   endedAt?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  fileNameSuffix?: string | null;
 }
 
 function getDateParts(date: Date) {
@@ -54,5 +55,6 @@ export function getSnapshotDownloadFileName(meta: SnapshotDownloadMeta) {
   }
 
   const { year, month, day } = getDateParts(resolveSnapshotDate(meta));
-  return `${year}${month}${day}-${meta.canvasId}.png`;
+  const suffix = meta.fileNameSuffix ?? "";
+  return `${year}${month}${day}-${meta.canvasId}${suffix}.png`;
 }

@@ -136,19 +136,32 @@ export default function GameSummaryModal({
   onClose,
 }: GameSummaryModalProps) {
   const finalSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
-  const downloadSnapshotUrl = summary.downloadSnapshotUrl ?? finalSnapshotUrl;
   const {
-    canDownload,
-    isDownloading,
-    downloadError,
-    download,
-    retry,
+    canDownload: canDownloadDefaultSnapshot,
+    isDownloading: isDownloadingDefaultSnapshot,
+    downloadError: defaultDownloadError,
+    download: downloadDefaultSnapshot,
+    retry: retryDefaultSnapshot,
   } = useSnapshotDownload({
-    snapshotUrl: downloadSnapshotUrl,
+    snapshotUrl: finalSnapshotUrl,
     canvasId: summary.canvasId,
     endedAt: summary.endedAt,
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
+  });
+  const {
+    canDownload: canDownloadHighResolutionSnapshot,
+    isDownloading: isDownloadingHighResolutionSnapshot,
+    downloadError: highResolutionDownloadError,
+    download: downloadHighResolutionSnapshot,
+    retry: retryHighResolutionSnapshot,
+  } = useSnapshotDownload({
+    snapshotUrl: summary.downloadSnapshotUrl,
+    canvasId: summary.canvasId,
+    endedAt: summary.endedAt,
+    createdAt: summary.createdAt,
+    updatedAt: summary.updatedAt,
+    fileNameSuffix: "-hd",
   });
 
   useEffect(() => {
@@ -218,24 +231,57 @@ export default function GameSummaryModal({
               </div>
             )}
 
-            {canDownload && (
-              <div className="flex flex-col items-center gap-2">
-                <button
-                  type="button"
-                  onClick={downloadError ? retry : download}
-                  disabled={isDownloading}
-                  className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
-                >
-                  {isDownloading
-                    ? "다운로드 중..."
-                    : downloadError
-                      ? "다시 시도"
-                      : "이미지 다운로드"}
-                </button>
+            {(canDownloadDefaultSnapshot || canDownloadHighResolutionSnapshot) && (
+              <div className="flex flex-col items-center gap-3">
+                <div className="flex flex-wrap items-center justify-center gap-2">
+                  {canDownloadDefaultSnapshot && (
+                    <button
+                      type="button"
+                      onClick={
+                        defaultDownloadError
+                          ? retryDefaultSnapshot
+                          : downloadDefaultSnapshot
+                      }
+                      disabled={isDownloadingDefaultSnapshot}
+                      className="inline-flex min-w-[180px] items-center justify-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                    >
+                      {isDownloadingDefaultSnapshot
+                        ? "다운로드 중..."
+                        : defaultDownloadError
+                          ? "기본 이미지 다시 시도"
+                          : "기본 이미지 다운로드"}
+                    </button>
+                  )}
 
-                {downloadError && (
+                  {canDownloadHighResolutionSnapshot && (
+                    <button
+                      type="button"
+                      onClick={
+                        highResolutionDownloadError
+                          ? retryHighResolutionSnapshot
+                          : downloadHighResolutionSnapshot
+                      }
+                      disabled={isDownloadingHighResolutionSnapshot}
+                      className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                    >
+                      {isDownloadingHighResolutionSnapshot
+                        ? "고화질 다운로드 중..."
+                        : highResolutionDownloadError
+                          ? "고화질 다시 시도"
+                          : "고화질 이미지 다운로드"}
+                    </button>
+                  )}
+                </div>
+
+                {defaultDownloadError && (
                   <p className="text-sm font-medium text-red-500">
-                    {downloadError}
+                    {defaultDownloadError}
+                  </p>
+                )}
+
+                {highResolutionDownloadError && (
+                  <p className="text-sm font-medium text-red-500">
+                    {highResolutionDownloadError}
                   </p>
                 )}
               </div>
