@@ -112,6 +112,8 @@ export interface GameSummaryData {
   topVoters: GameSummaryTopVoter[] | null;
   participants: GameSummaryParticipant[] | null;
   snapshotUrl: string | null;
+  downloadSnapshotUrl: string | null;
+  endedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

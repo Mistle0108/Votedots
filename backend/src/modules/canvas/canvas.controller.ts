@@ -53,10 +53,25 @@ function buildRoundSnapshotUrl(
   return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
 }
 
+function buildRoundDownloadSnapshotUrl(
+  req: Request,
+  canvasId: number,
+  roundId: number,
+): string {
+  const relativePath = roundSnapshotService.buildRoundDownloadSnapshotApiPath(
+    canvasId,
+    roundId,
+  );
+  const host = req.get("host");
+
+  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+}
+
 // 게임 summary 응답 구조를 명시적으로 고정
 function serializeGameSummary(
   summary: GameSummary,
   snapshotUrl: string | null,
+  downloadSnapshotUrl: string | null,
 ) {
   return {
     id: summary.id,
@@ -89,6 +104,8 @@ function serializeGameSummary(
     topVoters: summary.topVotersJson,
     participants: summary.participantsJson,
     snapshotUrl,
+    downloadSnapshotUrl,
+    endedAt: summary.canvas.endedAt,
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
   };
@@ -183,6 +200,9 @@ export const canvasController = {
           summary,
           snapshot?.round?.id
             ? buildRoundSnapshotUrl(req, canvasId, snapshot.round.id)
+            : null,
+          snapshot?.round?.id
+            ? buildRoundDownloadSnapshotUrl(req, canvasId, snapshot.round.id)
             : null,
         ),
       });

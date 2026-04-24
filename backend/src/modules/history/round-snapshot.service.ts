@@ -1,11 +1,14 @@
-import { writeFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell } from "../../entities/cell.entity";
 import { RoundSnapshot } from "../../entities/round-snapshot.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
+import { downloadSnapshotConfig } from "../../config/download-snapshot.config";
 import {
+  buildRoundDownloadRelativePath,
   buildRoundSnapshotRelativePath,
+  ensureRoundDownloadDirectory,
   ensureRoundSnapshotDirectory,
   resolveGameHistoryAbsolutePath,
 } from "./history-storage.service";
@@ -16,6 +19,7 @@ const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const roundSnapshotRepository = AppDataSource.getRepository(RoundSnapshot);
+const roundDownloadSnapshotLocks = new Map<string, Promise<string>>();
 
 interface SaveRoundSnapshotParams {
   canvasId: number;
@@ -29,8 +33,26 @@ export const roundSnapshotService = {
     return `/canvas/${canvasId}/rounds/${roundId}/snapshot`;
   },
 
+  buildRoundDownloadSnapshotApiPath(canvasId: number, roundId: number): string {
+    return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
+  },
+
   resolveRoundSnapshotAbsolutePath(snapshot: RoundSnapshot): string {
     return resolveGameHistoryAbsolutePath(snapshot.storagePath);
+  },
+
+  resolveRoundDownloadSnapshotAbsolutePath(
+    canvasId: number,
+    snapshot: RoundSnapshot,
+  ): string {
+    return resolveGameHistoryAbsolutePath(
+      buildRoundDownloadRelativePath({
+        capturedAt: snapshot.capturedAt,
+        canvasId,
+        roundNumber: snapshot.roundNumber,
+        format: "png",
+      }),
+    );
   },
 
   async findRoundSnapshot(
@@ -68,6 +90,59 @@ export const roundSnapshotService = {
     }
 
     return snapshot;
+  },
+
+  async ensureRoundDownloadSnapshot(
+    canvasId: number,
+    snapshot: RoundSnapshot,
+  ): Promise<string> {
+    const absolutePath = this.resolveRoundDownloadSnapshotAbsolutePath(
+      canvasId,
+      snapshot,
+    );
+
+    try {
+      await access(absolutePath);
+      return absolutePath;
+    } catch {
+      const inFlight = roundDownloadSnapshotLocks.get(absolutePath);
+
+      if (inFlight) {
+        return inFlight;
+      }
+    }
+
+    const generation = (async () => {
+      try {
+        try {
+          await access(absolutePath);
+          return absolutePath;
+        } catch {
+          await ensureRoundDownloadDirectory({
+            capturedAt: snapshot.capturedAt,
+          });
+
+          const sourceBuffer = await readFile(
+            this.resolveRoundSnapshotAbsolutePath(snapshot),
+          );
+          const downloadBuffer = downloadSnapshotConfig.enableUpscale
+            ? roundSnapshotRenderService.buildDownloadPngBuffer({
+                sourceBuffer,
+                maxLongestSide: downloadSnapshotConfig.maxLongestSide,
+              })
+            : sourceBuffer;
+
+          await writeFile(absolutePath, downloadBuffer);
+          return absolutePath;
+        }
+      } finally {
+        roundDownloadSnapshotLocks.delete(absolutePath);
+      }
+    })();
+
+    roundDownloadSnapshotLocks.set(absolutePath, generation);
+
+    return generation;
   },
 
   async saveRoundSnapshot({

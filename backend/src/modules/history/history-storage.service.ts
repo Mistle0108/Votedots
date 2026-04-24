@@ -3,6 +3,7 @@ import path from "node:path";
 
 const DEFAULT_STORAGE_ROOT = path.resolve(process.cwd(), "storage");
 const GAME_HISTORY_PREFIX = "game-history";
+const DOWNLOAD_PREFIX = "download";
 
 export type RoundSnapshotFormat = "png" | "webp";
 
@@ -14,6 +15,10 @@ interface RoundSnapshotPathParams {
 }
 
 function formatMonth(value: number): string {
+  return String(value).padStart(2, "0");
+}
+
+function formatDay(value: number): string {
   return String(value).padStart(2, "0");
 }
 
@@ -42,6 +47,14 @@ export function getRoundSnapshotRelativeDirectory(
   );
 }
 
+export function getRoundDownloadRelativeDirectory(capturedAt: Date): string {
+  const year = String(capturedAt.getFullYear());
+  const month = formatMonth(capturedAt.getMonth() + 1);
+  const day = formatDay(capturedAt.getDate());
+
+  return path.posix.join(DOWNLOAD_PREFIX, year, month, day);
+}
+
 export function getRoundSnapshotFilename(
   roundNumber: number,
   format: RoundSnapshotFormat = "png",
@@ -58,6 +71,28 @@ export function buildRoundSnapshotRelativePath({
   return path.posix.join(
     getRoundSnapshotRelativeDirectory(capturedAt, canvasId),
     getRoundSnapshotFilename(roundNumber, format),
+  );
+}
+
+export function getRoundDownloadFilename(
+  canvasId: number,
+  roundNumber: number,
+  format: RoundSnapshotFormat = "png",
+): string {
+  return `canvas-${canvasId}-${roundNumber}.${format}`;
+}
+
+export function buildRoundDownloadRelativePath(params: {
+  capturedAt: Date;
+  canvasId: number;
+  roundNumber: number;
+  format?: RoundSnapshotFormat;
+}): string {
+  const format = params.format ?? "png";
+
+  return path.posix.join(
+    getRoundDownloadRelativeDirectory(params.capturedAt),
+    getRoundDownloadFilename(params.canvasId, params.roundNumber, format),
   );
 }
 
@@ -79,6 +114,20 @@ export async function ensureRoundSnapshotDirectory(params: {
     params.capturedAt,
     params.canvasId,
   );
+  const absoluteDirPath = resolveGameHistoryAbsolutePath(relativeDirPath);
+
+  await mkdir(absoluteDirPath, { recursive: true });
+
+  return {
+    relativeDirPath,
+    absoluteDirPath,
+  };
+}
+
+export async function ensureRoundDownloadDirectory(params: {
+  capturedAt: Date;
+}): Promise<{ relativeDirPath: string; absoluteDirPath: string }> {
+  const relativeDirPath = getRoundDownloadRelativeDirectory(params.capturedAt);
   const absoluteDirPath = resolveGameHistoryAbsolutePath(relativeDirPath);
 
   await mkdir(absoluteDirPath, { recursive: true });

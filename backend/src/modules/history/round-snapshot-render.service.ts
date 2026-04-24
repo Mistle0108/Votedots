@@ -37,8 +37,6 @@ function parseHexColor(hex: string): RgbColor {
   };
 }
 
-const CHECKER_LIGHT = "#6f6f6f";
-const CHECKER_DARK = "#5f5f5f";
 const OUTLINE_COLOR = "#000000";
 
 function setPixelColor(png: PNG, x: number, y: number, color: RgbColor): void {
@@ -49,8 +47,31 @@ function setPixelColor(png: PNG, x: number, y: number, color: RgbColor): void {
   png.data[index + 3] = 255;
 }
 
-function getEmptyCellColor(x: number, y: number): RgbColor {
-  return parseHexColor((x + y) % 2 === 0 ? CHECKER_LIGHT : CHECKER_DARK);
+function copyPixel(
+  source: PNG,
+  target: PNG,
+  sourceX: number,
+  sourceY: number,
+  targetX: number,
+  targetY: number,
+): void {
+  const sourceIndex = (source.width * sourceY + sourceX) << 2;
+  const targetIndex = (target.width * targetY + targetX) << 2;
+
+  target.data[targetIndex] = source.data[sourceIndex] ?? 0;
+  target.data[targetIndex + 1] = source.data[sourceIndex + 1] ?? 0;
+  target.data[targetIndex + 2] = source.data[sourceIndex + 2] ?? 0;
+  target.data[targetIndex + 3] = source.data[sourceIndex + 3] ?? 0;
+}
+
+function getDownloadScale(width: number, height: number, maxLongestSide: number) {
+  const longestSide = Math.max(width, height);
+
+  if (longestSide <= 0) {
+    return 1;
+  }
+
+  return Math.max(1, Math.floor(maxLongestSide / longestSide));
 }
 
 function createBasePng(
@@ -59,12 +80,6 @@ function createBasePng(
   outlineCells: Array<{ x: number; y: number }> = [],
 ): PNG {
   const png = new PNG({ width, height });
-
-  for (let y = 0; y < height; y += 1) {
-    for (let x = 0; x < width; x += 1) {
-      setPixelColor(png, x, y, getEmptyCellColor(x, y));
-    }
-  }
 
   for (const cell of outlineCells) {
     if (cell.x < 0 || cell.y < 0 || cell.x >= width || cell.y >= height) {
@@ -103,5 +118,48 @@ export const roundSnapshotRenderService = {
     }
 
     return PNG.sync.write(png);
+  },
+
+  buildDownloadPngBuffer(params: {
+    sourceBuffer: Buffer;
+    maxLongestSide: number;
+  }): Buffer {
+    const sourcePng = PNG.sync.read(params.sourceBuffer);
+    const scale = getDownloadScale(
+      sourcePng.width,
+      sourcePng.height,
+      params.maxLongestSide,
+    );
+
+    if (scale === 1) {
+      return params.sourceBuffer;
+    }
+
+    const targetPng = new PNG({
+      width: sourcePng.width * scale,
+      height: sourcePng.height * scale,
+    });
+
+    for (let y = 0; y < sourcePng.height; y += 1) {
+      for (let x = 0; x < sourcePng.width; x += 1) {
+        const targetStartX = x * scale;
+        const targetStartY = y * scale;
+
+        for (let offsetY = 0; offsetY < scale; offsetY += 1) {
+          for (let offsetX = 0; offsetX < scale; offsetX += 1) {
+            copyPixel(
+              sourcePng,
+              targetPng,
+              x,
+              y,
+              targetStartX + offsetX,
+              targetStartY + offsetY,
+            );
+          }
+        }
+      }
+    }
+
+    return PNG.sync.write(targetPng);
   },
 };
