@@ -24,6 +24,7 @@ export interface RoadmapEntry {
   title: string;
   summary: string;
   date: string;
+  updatedAt: string;
   content: string;
 }
 

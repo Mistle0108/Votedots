@@ -155,7 +155,7 @@ export default function IntroGuideModal({
                 gridX={gridX}
                 gridY={gridY}
               />
-              <div className="space-y-1 text-left text-sm font-bold text-gray-700">
+              <div className="space-y-1 pl-6 text-left text-sm font-bold text-gray-700">
                 <p>
                   전체 라운드 수 :{" "}
                   <span className="text-[19px]">{description.totalRounds}</span>

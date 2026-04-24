@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import { LoginBoardPanel } from "@/features/login-board";
+import { LOGIN_BOARD_THEME_STYLE } from "@/features/login-board/model/board-theme";
+import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
 
 export default function LoginPage() {
@@ -30,17 +32,16 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 bg-white lg:h-screen lg:grid-cols-[minmax(0,2.6fr)_minmax(500px,1fr)] lg:overflow-hidden">
-      <div className="min-h-0 overflow-y-auto border-b border-[color:var(--color-border-primary)] bg-[color:var(--color-background-primary)] lg:border-b-0 lg:border-r">
+      <div
+        className="min-h-0 overflow-y-auto border-b border-[color:var(--color-border-primary)] bg-[color:var(--color-background-primary)] lg:border-b-0 lg:border-r"
+        style={LOGIN_BOARD_THEME_STYLE}
+      >
         <LoginBoardPanel />
       </div>
 
       <div className="flex items-center justify-center px-6 py-10 lg:min-h-0 lg:overflow-hidden">
         <div className="flex w-full max-w-sm flex-col gap-6">
-          <img
-            src="/brand/logo-full.svg"
-            alt="VoteDots"
-            className="mx-auto h-auto w-56"
-          />
+          <BrandLogo className="mx-auto w-40" />
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
