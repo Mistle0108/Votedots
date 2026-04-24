@@ -16,6 +16,7 @@ dist/
 # OS
 .DS_Store
 Thumbs.db
+*:Zone.Identifier
 
 # Docker
 .docker/
