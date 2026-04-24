@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import { LoginBoardPanel } from "@/features/login-board";
+import { LOGIN_BOARD_THEME_STYLE } from "@/features/login-board/model/board-theme";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
 
@@ -31,7 +32,10 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-screen grid-cols-1 bg-white lg:h-screen lg:grid-cols-[minmax(0,2.6fr)_minmax(500px,1fr)] lg:overflow-hidden">
-      <div className="min-h-0 overflow-y-auto border-b border-[color:var(--color-border-primary)] bg-[color:var(--color-background-primary)] lg:border-b-0 lg:border-r">
+      <div
+        className="min-h-0 overflow-y-auto border-b border-[color:var(--color-border-primary)] bg-[color:var(--color-background-primary)] lg:border-b-0 lg:border-r"
+        style={LOGIN_BOARD_THEME_STYLE}
+      >
         <LoginBoardPanel />
       </div>
 
