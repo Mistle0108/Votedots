@@ -158,5 +158,32 @@ export const roundController = {
       return res.status(404).json({ message: String(err) });
     }
   },
+  async getRoundDownloadSnapshot(req: Request, res: Response) {
+    try {
+      const canvasId = parseInt(String(req.params["canvasId"]));
+      const roundId = parseInt(String(req.params["roundId"]));
 
+      if (isNaN(canvasId) || isNaN(roundId)) {
+        return res
+          .status(400)
+          .json({ message: "존재하지 않는 캔버스 또는 라운드입니다." });
+      }
+
+      const snapshot = await roundSnapshotService.getRoundSnapshot(
+        canvasId,
+        roundId,
+      );
+      const absolutePath = await roundSnapshotService.ensureRoundDownloadSnapshot(
+        canvasId,
+        snapshot,
+      );
+
+      res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+      res.type(snapshot.mimeType);
+
+      return res.sendFile(absolutePath);
+    } catch (err) {
+      return res.status(404).json({ message: String(err) });
+    }
+  },
 };

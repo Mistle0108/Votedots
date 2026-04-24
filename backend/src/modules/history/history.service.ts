@@ -97,6 +97,13 @@ function buildRoundSnapshotApiPath(canvasId: number, roundId: number): string {
   return `/canvas/${canvasId}/rounds/${roundId}/snapshot`;
 }
 
+function buildRoundDownloadSnapshotApiPath(
+  canvasId: number,
+  roundId: number,
+): string {
+  return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
+}
+
 function getRoundSnapshotUrl(
   canvasId: number,
   snapshot: RoundSnapshot | null,
@@ -110,6 +117,21 @@ function getRoundSnapshotUrl(
   const roundId = round ? getEntityId(round) : null;
 
   return roundId ? buildRoundSnapshotApiPath(canvasId, roundId) : null;
+}
+
+function getRoundDownloadSnapshotUrl(
+  canvasId: number,
+  snapshot: RoundSnapshot | null,
+  roundMap: Map<string, VoteRound>,
+): string | null {
+  if (!snapshot) {
+    return null;
+  }
+
+  const round = getRoundForSnapshot(snapshot, roundMap);
+  const roundId = round ? getEntityId(round) : null;
+
+  return roundId ? buildRoundDownloadSnapshotApiPath(canvasId, roundId) : null;
 }
 
 function serializeSnapshot(
@@ -202,6 +224,7 @@ function serializeGameSummary(
   rounds: VoteRound[],
   summary: GameSummary | null,
   snapshotUrl: string | null,
+  downloadSnapshotUrl: string | null,
 ) {
   const endedAt = getDateStringField(canvas, "endedAt");
   const totalRounds =
@@ -243,6 +266,7 @@ function serializeGameSummary(
     topVoters: summary?.topVotersJson ?? null,
     participants: summary?.participantsJson ?? null,
     snapshotUrl,
+    downloadSnapshotUrl,
     createdAt:
       getDateStringField(summary, "createdAt") ??
       endedAt ??
@@ -319,6 +343,11 @@ export const historyService = {
       snapshots[0] ?? null,
       roundMap,
     );
+    const latestDownloadSnapshotUrl = getRoundDownloadSnapshotUrl(
+      canvasId,
+      snapshots[0] ?? null,
+      roundMap,
+    );
 
     return {
       rounds: historyRounds,
@@ -328,6 +357,7 @@ export const historyService = {
             rounds,
             gameSummary,
             latestSnapshotUrl,
+            latestDownloadSnapshotUrl,
           )
         : null,
     };

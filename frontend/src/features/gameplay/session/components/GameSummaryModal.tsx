@@ -136,6 +136,7 @@ export default function GameSummaryModal({
   onClose,
 }: GameSummaryModalProps) {
   const finalSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
+  const downloadSnapshotUrl = summary.downloadSnapshotUrl ?? finalSnapshotUrl;
   const {
     canDownload,
     isDownloading,
@@ -143,7 +144,7 @@ export default function GameSummaryModal({
     download,
     retry,
   } = useSnapshotDownload({
-    snapshotUrl: finalSnapshotUrl,
+    snapshotUrl: downloadSnapshotUrl,
     canvasId: summary.canvasId,
     endedAt: summary.endedAt,
     createdAt: summary.createdAt,

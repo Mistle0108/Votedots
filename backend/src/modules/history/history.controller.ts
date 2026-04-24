@@ -66,6 +66,10 @@ export const historyController = {
         ? {
             ...history.gameSummary,
             snapshotUrl: toAbsoluteUrl(req, history.gameSummary.snapshotUrl),
+            downloadSnapshotUrl: toAbsoluteUrl(
+              req,
+              history.gameSummary.downloadSnapshotUrl,
+            ),
           }
         : null,
     });
