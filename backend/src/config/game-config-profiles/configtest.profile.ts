@@ -15,8 +15,8 @@ export const testGameConfigProfile: GameConfigUpdate = {
     participantGracePeriodSec: 15,
   },
   board: {
-    gridSizeX: 10,
-    gridSizeY: 10,
+    gridSizeX: 30,
+    gridSizeY: 30,
     cellSize: 50,
   },
 };

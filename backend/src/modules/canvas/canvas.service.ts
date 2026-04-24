@@ -10,7 +10,8 @@ import {
   participantSessionService,
   type ParticipantSummary,
 } from "../participant/participant-session.service";
-import { pickRandomBackgroundTemplate } from "./template/background-template.service";
+import { pickRandomPlayBackgroundTemplate } from "./template/play-background-template.service";
+import { pickRandomResultTemplate } from "./template/result-template.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -67,7 +68,11 @@ export const canvasService = {
       now.getTime() + snapshot.phases.introPhaseSec * 1000,
     );
 
-    const backgroundTemplate = pickRandomBackgroundTemplate(
+    const playBackgroundTemplate = pickRandomPlayBackgroundTemplate(
+      gridSizeX,
+      gridSizeY,
+    );
+    const resultTemplate = pickRandomResultTemplate(
       gridSizeX,
       gridSizeY,
     );
@@ -77,7 +82,9 @@ export const canvasService = {
       gridY: gridSizeY,
       configProfileKey: profileKey,
       configSnapshot: snapshot,
-      backgroundAssetKey: backgroundTemplate?.assetKey ?? null,
+      backgroundAssetKey: resultTemplate?.assetKey ?? null,
+      playBackgroundAssetKey: playBackgroundTemplate?.assetKey ?? null,
+      resultTemplateAssetKey: resultTemplate?.assetKey ?? null,
       status: CanvasStatus.PLAYING,
       phase: GamePhase.INTRO,
       phaseStartedAt: now,

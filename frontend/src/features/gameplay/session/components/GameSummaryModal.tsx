@@ -143,7 +143,7 @@ export default function GameSummaryModal({
     download: downloadDefaultSnapshot,
     retry: retryDefaultSnapshot,
   } = useSnapshotDownload({
-    snapshotUrl: finalSnapshotUrl,
+    snapshotUrl: summary.downloadSnapshotUrl,
     canvasId: summary.canvasId,
     endedAt: summary.endedAt,
     createdAt: summary.createdAt,
@@ -156,7 +156,7 @@ export default function GameSummaryModal({
     download: downloadHighResolutionSnapshot,
     retry: retryHighResolutionSnapshot,
   } = useSnapshotDownload({
-    snapshotUrl: summary.downloadSnapshotUrl,
+    snapshotUrl: summary.highResolutionDownloadSnapshotUrl,
     canvasId: summary.canvasId,
     endedAt: summary.endedAt,
     createdAt: summary.createdAt,

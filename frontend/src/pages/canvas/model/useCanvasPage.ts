@@ -102,16 +102,20 @@ export default function useCanvasPage({
     openPopup,
   });
 
-  const [backgroundImageUrl, setBackgroundImageUrl] = useState<string | null>(
-    null,
-  );
+  const [playBackgroundImageUrl, setPlayBackgroundImageUrl] = useState<
+    string | null
+  >(null);
+  const [resultTemplateImageUrl, setResultTemplateImageUrl] = useState<
+    string | null
+  >(null);
 
   const applyBootstrapScene = useCallback(
     (result: SessionBootstrapResult) => {
       setCanvasId(result.canvasId);
       setGridX(result.gridX);
       setGridY(result.gridY);
-      setBackgroundImageUrl(result.backgroundImageUrl);
+      setPlayBackgroundImageUrl(result.playBackgroundImageUrl);
+      setResultTemplateImageUrl(result.resultTemplateImageUrl);
     },
     [setCanvasId, setGridX, setGridY],
   );
@@ -317,7 +321,8 @@ export default function useCanvasPage({
     handleOpenGameSummaryModal,
     gridX,
     gridY,
-    backgroundImageUrl,
+    playBackgroundImageUrl,
+    resultTemplateImageUrl,
     viewport,
     cameraX,
     cameraY,

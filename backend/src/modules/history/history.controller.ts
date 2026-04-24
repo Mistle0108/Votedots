@@ -70,6 +70,10 @@ export const historyController = {
               req,
               history.gameSummary.downloadSnapshotUrl,
             ),
+            highResolutionDownloadSnapshotUrl: toAbsoluteUrl(
+              req,
+              history.gameSummary.highResolutionDownloadSnapshotUrl,
+            ),
           }
         : null,
     });

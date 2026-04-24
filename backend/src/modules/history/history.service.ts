@@ -104,6 +104,13 @@ function buildRoundDownloadSnapshotApiPath(
   return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
 }
 
+function buildRoundHighResolutionDownloadSnapshotApiPath(
+  canvasId: number,
+  roundId: number,
+): string {
+  return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot-hd`;
+}
+
 function getRoundSnapshotUrl(
   canvasId: number,
   snapshot: RoundSnapshot | null,
@@ -132,6 +139,23 @@ function getRoundDownloadSnapshotUrl(
   const roundId = round ? getEntityId(round) : null;
 
   return roundId ? buildRoundDownloadSnapshotApiPath(canvasId, roundId) : null;
+}
+
+function getRoundHighResolutionDownloadSnapshotUrl(
+  canvasId: number,
+  snapshot: RoundSnapshot | null,
+  roundMap: Map<string, VoteRound>,
+): string | null {
+  if (!snapshot) {
+    return null;
+  }
+
+  const round = getRoundForSnapshot(snapshot, roundMap);
+  const roundId = round ? getEntityId(round) : null;
+
+  return roundId
+    ? buildRoundHighResolutionDownloadSnapshotApiPath(canvasId, roundId)
+    : null;
 }
 
 function serializeSnapshot(
@@ -225,6 +249,7 @@ function serializeGameSummary(
   summary: GameSummary | null,
   snapshotUrl: string | null,
   downloadSnapshotUrl: string | null,
+  highResolutionDownloadSnapshotUrl: string | null,
 ) {
   const endedAt = getDateStringField(canvas, "endedAt");
   const totalRounds =
@@ -267,6 +292,7 @@ function serializeGameSummary(
     participants: summary?.participantsJson ?? null,
     snapshotUrl,
     downloadSnapshotUrl,
+    highResolutionDownloadSnapshotUrl,
     createdAt:
       getDateStringField(summary, "createdAt") ??
       endedAt ??
@@ -348,6 +374,12 @@ export const historyService = {
       snapshots[0] ?? null,
       roundMap,
     );
+    const latestHighResolutionDownloadSnapshotUrl =
+      getRoundHighResolutionDownloadSnapshotUrl(
+        canvasId,
+        snapshots[0] ?? null,
+        roundMap,
+      );
 
     return {
       rounds: historyRounds,
@@ -358,6 +390,7 @@ export const historyService = {
             gameSummary,
             latestSnapshotUrl,
             latestDownloadSnapshotUrl,
+            latestHighResolutionDownloadSnapshotUrl,
           )
         : null,
     };

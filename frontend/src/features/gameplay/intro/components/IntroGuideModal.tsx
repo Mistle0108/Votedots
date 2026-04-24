@@ -4,7 +4,8 @@ import IntroCanvasPreview from "./IntroCanvasPreview";
 
 interface Props {
   open: boolean;
-  backgroundImageUrl: string | null;
+  playBackgroundImageUrl: string | null;
+  resultTemplateImageUrl: string | null;
   gridX: number;
   gridY: number;
   gameConfig: GameConfig;
@@ -32,7 +33,8 @@ function getDefaultPosition() {
 
 export default function IntroGuideModal({
   open,
-  backgroundImageUrl,
+  playBackgroundImageUrl,
+  resultTemplateImageUrl,
   gridX,
   gridY,
   gameConfig,
@@ -148,7 +150,8 @@ export default function IntroGuideModal({
 
             <div className="mx-auto w-fit space-y-3">
               <IntroCanvasPreview
-                backgroundImageUrl={backgroundImageUrl}
+                playBackgroundImageUrl={playBackgroundImageUrl}
+                resultTemplateImageUrl={resultTemplateImageUrl}
                 gridX={gridX}
                 gridY={gridY}
               />

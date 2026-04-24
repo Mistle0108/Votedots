@@ -20,6 +20,35 @@ function buildRoundSnapshotUrl(
   return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
 }
 
+function buildRoundDownloadSnapshotUrl(
+  req: Request,
+  canvasId: number,
+  roundId: number,
+): string {
+  const relativePath = roundSnapshotService.buildRoundDownloadSnapshotApiPath(
+    canvasId,
+    roundId,
+  );
+  const host = req.get("host");
+
+  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+}
+
+function buildRoundHighResolutionDownloadSnapshotUrl(
+  req: Request,
+  canvasId: number,
+  roundId: number,
+): string {
+  const relativePath =
+    roundSnapshotService.buildRoundHighResolutionDownloadSnapshotApiPath(
+      canvasId,
+      roundId,
+    );
+  const host = req.get("host");
+
+  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+}
+
 // 엔티티를 그대로 노출하지 않고 API 응답 필드를 명시적으로 고정
 function serializeRoundSummary(
   summary: RoundSummary,
@@ -177,6 +206,35 @@ export const roundController = {
         canvasId,
         snapshot,
       );
+
+      res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
+      res.type(snapshot.mimeType);
+
+      return res.sendFile(absolutePath);
+    } catch (err) {
+      return res.status(404).json({ message: String(err) });
+    }
+  },
+  async getRoundHighResolutionDownloadSnapshot(req: Request, res: Response) {
+    try {
+      const canvasId = parseInt(String(req.params["canvasId"]));
+      const roundId = parseInt(String(req.params["roundId"]));
+
+      if (isNaN(canvasId) || isNaN(roundId)) {
+        return res
+          .status(400)
+          .json({ message: "議댁옱?섏? ?딅뒗 罹붾쾭???먮뒗 ?쇱슫?쒖엯?덈떎." });
+      }
+
+      const snapshot = await roundSnapshotService.getRoundSnapshot(
+        canvasId,
+        roundId,
+      );
+      const absolutePath =
+        await roundSnapshotService.ensureRoundHighResolutionDownloadSnapshot(
+          canvasId,
+          snapshot,
+        );
 
       res.setHeader("Cache-Control", "private, max-age=31536000, immutable");
       res.type(snapshot.mimeType);

@@ -13,7 +13,10 @@ import {
   resolveGameHistoryAbsolutePath,
 } from "./history-storage.service";
 import { roundSnapshotRenderService } from "./round-snapshot-render.service";
-import { findOutlineTemplateByAssetKey } from "../canvas/template/outline-template.service";
+import {
+  loadResultTemplateAsset,
+  resolveResultTemplateAssetKey,
+} from "../canvas/template/result-template.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
@@ -28,6 +31,8 @@ interface SaveRoundSnapshotParams {
   capturedAt: Date;
 }
 
+type RoundDownloadVariant = "grid" | "hd";
+
 export const roundSnapshotService = {
   buildRoundSnapshotApiPath(canvasId: number, roundId: number): string {
     return `/canvas/${canvasId}/rounds/${roundId}/snapshot`;
@@ -37,6 +42,13 @@ export const roundSnapshotService = {
     return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
   },
 
+  buildRoundHighResolutionDownloadSnapshotApiPath(
+    canvasId: number,
+    roundId: number,
+  ): string {
+    return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot-hd`;
+  },
+
   resolveRoundSnapshotAbsolutePath(snapshot: RoundSnapshot): string {
     return resolveGameHistoryAbsolutePath(snapshot.storagePath);
   },
@@ -44,6 +56,7 @@ export const roundSnapshotService = {
   resolveRoundDownloadSnapshotAbsolutePath(
     canvasId: number,
     snapshot: RoundSnapshot,
+    variant: RoundDownloadVariant = "grid",
   ): string {
     return resolveGameHistoryAbsolutePath(
       buildRoundDownloadRelativePath({
@@ -51,6 +64,7 @@ export const roundSnapshotService = {
         canvasId,
         roundNumber: snapshot.roundNumber,
         format: "png",
+        suffix: variant === "hd" ? "-hd" : "",
       }),
     );
   },
@@ -96,9 +110,25 @@ export const roundSnapshotService = {
     canvasId: number,
     snapshot: RoundSnapshot,
   ): Promise<string> {
+    return this.ensureRoundDownloadSnapshotByVariant(canvasId, snapshot, "grid");
+  },
+
+  async ensureRoundHighResolutionDownloadSnapshot(
+    canvasId: number,
+    snapshot: RoundSnapshot,
+  ): Promise<string> {
+    return this.ensureRoundDownloadSnapshotByVariant(canvasId, snapshot, "hd");
+  },
+
+  async ensureRoundDownloadSnapshotByVariant(
+    canvasId: number,
+    snapshot: RoundSnapshot,
+    variant: RoundDownloadVariant,
+  ): Promise<string> {
     const absolutePath = this.resolveRoundDownloadSnapshotAbsolutePath(
       canvasId,
       snapshot,
+      variant,
     );
 
     try {
@@ -125,12 +155,25 @@ export const roundSnapshotService = {
           const sourceBuffer = await readFile(
             this.resolveRoundSnapshotAbsolutePath(snapshot),
           );
-          const downloadBuffer = downloadSnapshotConfig.enableUpscale
-            ? roundSnapshotRenderService.buildDownloadPngBuffer({
-                sourceBuffer,
-                maxLongestSide: downloadSnapshotConfig.maxLongestSide,
-              })
-            : sourceBuffer;
+          const canvas = await canvasRepository.findOne({
+            where: { id: canvasId },
+          });
+
+          if (!canvas) {
+            throw new Error("Canvas was not found.");
+          }
+
+          const downloadBuffer =
+            variant === "hd"
+              ? roundSnapshotRenderService.buildDownloadPngBuffer({
+                  sourceBuffer,
+                  maxLongestSide: downloadSnapshotConfig.maxLongestSide,
+                })
+              : roundSnapshotRenderService.buildGridSizedPngBuffer({
+                  sourceBuffer,
+                  targetWidth: canvas.gridX,
+                  targetHeight: canvas.gridY,
+                });
 
           await writeFile(absolutePath, downloadBuffer);
           return absolutePath;
@@ -174,19 +217,22 @@ export const roundSnapshotService = {
       .andWhere("cell.color IS NOT NULL")
       .getMany();
 
-    const outlineTemplate = findOutlineTemplateByAssetKey(
-      canvas.backgroundAssetKey,
-    );
+    const resultTemplateAssetKey = resolveResultTemplateAssetKey({
+      resultTemplateAssetKey: canvas.resultTemplateAssetKey,
+      backgroundAssetKey: canvas.backgroundAssetKey,
+    });
+    const resultTemplateImageBuffer =
+      await loadResultTemplateAsset(resultTemplateAssetKey);
 
-    const pngBuffer = roundSnapshotRenderService.renderPngBuffer({
-      width: canvas.gridX,
-      height: canvas.gridY,
+    const renderedSnapshot = roundSnapshotRenderService.renderPngBuffer({
+      gridWidth: canvas.gridX,
+      gridHeight: canvas.gridY,
       cells: cells.map((cell) => ({
         x: cell.x,
         y: cell.y,
         color: cell.color,
       })),
-      outlineCells: outlineTemplate?.cells ?? [],
+      backgroundImageBuffer: resultTemplateImageBuffer,
     });
 
     await ensureRoundSnapshotDirectory({
@@ -202,7 +248,7 @@ export const roundSnapshotService = {
     });
     const absolutePath = resolveGameHistoryAbsolutePath(relativePath);
 
-    await writeFile(absolutePath, pngBuffer);
+    await writeFile(absolutePath, renderedSnapshot.buffer);
 
     const existingSnapshot = await roundSnapshotRepository.findOne({
       where: {
@@ -218,9 +264,9 @@ export const roundSnapshotService = {
       existingSnapshot.storagePath = relativePath;
       existingSnapshot.mimeType = "image/png";
       existingSnapshot.format = "png";
-      existingSnapshot.width = canvas.gridX;
-      existingSnapshot.height = canvas.gridY;
-      existingSnapshot.byteSize = pngBuffer.byteLength;
+      existingSnapshot.width = renderedSnapshot.imageWidth;
+      existingSnapshot.height = renderedSnapshot.imageHeight;
+      existingSnapshot.byteSize = renderedSnapshot.buffer.byteLength;
       existingSnapshot.capturedAt = capturedAt;
 
       savedSnapshot = await roundSnapshotRepository.save(existingSnapshot);
@@ -232,9 +278,9 @@ export const roundSnapshotService = {
         storagePath: relativePath,
         mimeType: "image/png",
         format: "png",
-        width: canvas.gridX,
-        height: canvas.gridY,
-        byteSize: pngBuffer.byteLength,
+        width: renderedSnapshot.imageWidth,
+        height: renderedSnapshot.imageHeight,
+        byteSize: renderedSnapshot.buffer.byteLength,
         capturedAt,
       });
 

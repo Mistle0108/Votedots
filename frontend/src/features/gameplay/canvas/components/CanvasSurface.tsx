@@ -5,7 +5,8 @@ import { getGameConfig } from "@/shared/config/game-config";
 interface CanvasSurfaceProps {
   paintCanvasRef: Ref<HTMLCanvasElement>;
   canvasRef: Ref<HTMLCanvasElement>;
-  backgroundImageUrl: string | null;
+  playBackgroundImageUrl: string | null;
+  resultTemplateImageUrl: string | null;
   gridX: number;
   gridY: number;
   cameraX: number;
@@ -20,7 +21,8 @@ interface CanvasSurfaceProps {
 export default function CanvasSurface({
   paintCanvasRef,
   canvasRef,
-  backgroundImageUrl,
+  playBackgroundImageUrl,
+  resultTemplateImageUrl,
   gridX,
   gridY,
   cameraX,
@@ -36,11 +38,29 @@ export default function CanvasSurface({
 
   return (
     <div className="relative h-full w-full overflow-hidden border border-gray-300">
-      {backgroundImageUrl && gridX > 0 && gridY > 0 && (
+      {playBackgroundImageUrl && gridX > 0 && gridY > 0 && (
         <img
-          src={backgroundImageUrl}
-          alt="캔버스 배경"
+          src={playBackgroundImageUrl}
+          alt="Canvas play background"
           className="pointer-events-none absolute left-0 top-0 z-0 max-w-none select-none"
+          style={{
+            width: `${backgroundWidth}px`,
+            height: `${backgroundHeight}px`,
+            transform: `translate(${backgroundTranslateX}px, ${backgroundTranslateY}px)`,
+            transformOrigin: "top left",
+            imageRendering: "pixelated",
+          }}
+          draggable={false}
+          onDragStart={(event) => {
+            event.preventDefault();
+          }}
+        />
+      )}
+      {resultTemplateImageUrl && gridX > 0 && gridY > 0 && (
+        <img
+          src={resultTemplateImageUrl}
+          alt="Canvas result template"
+          className="pointer-events-none absolute left-0 top-0 z-[1] max-w-none select-none"
           style={{
             width: `${backgroundWidth}px`,
             height: `${backgroundHeight}px`,
@@ -56,12 +76,12 @@ export default function CanvasSurface({
       )}
       <canvas
         ref={paintCanvasRef}
-        className="pointer-events-none absolute inset-0 z-[1] block h-full w-full bg-transparent"
+        className="pointer-events-none absolute inset-0 z-[2] block h-full w-full bg-transparent"
       />
 
       <canvas
         ref={canvasRef}
-        className="pointer-events-none absolute inset-0 z-[2] block h-full w-full bg-transparent"
+        className="pointer-events-none absolute inset-0 z-[3] block h-full w-full bg-transparent"
       />
     </div>
   );
