@@ -22,5 +22,10 @@ router.get(
   authMiddleware,
   roundController.getRoundDownloadSnapshot,
 );
+router.get(
+  "/:roundId/download-snapshot-hd",
+  authMiddleware,
+  roundController.getRoundHighResolutionDownloadSnapshot,
+);
 
 export default router;

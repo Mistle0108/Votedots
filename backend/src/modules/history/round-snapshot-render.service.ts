@@ -1,3 +1,4 @@
+import jpeg from "jpeg-js";
 import { PNG } from "pngjs";
 
 interface SnapshotCell {
@@ -7,10 +8,16 @@ interface SnapshotCell {
 }
 
 interface RenderRoundSnapshotParams {
-  width: number;
-  height: number;
+  gridWidth: number;
+  gridHeight: number;
   cells: SnapshotCell[];
-  outlineCells?: Array<{ x: number; y: number }>;
+  backgroundImageBuffer?: Buffer | null;
+}
+
+interface RenderRoundSnapshotResult {
+  buffer: Buffer;
+  imageWidth: number;
+  imageHeight: number;
 }
 
 interface RgbColor {
@@ -18,6 +25,10 @@ interface RgbColor {
   g: number;
   b: number;
 }
+
+const PNG_SIGNATURE = Buffer.from([
+  0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+]);
 
 function normalizeHexColor(hex: string): string {
   return hex.startsWith("#") ? hex.slice(1) : hex;
@@ -36,8 +47,6 @@ function parseHexColor(hex: string): RgbColor {
     b: parseInt(normalized.slice(4, 6), 16),
   };
 }
-
-const OUTLINE_COLOR = "#000000";
 
 function setPixelColor(png: PNG, x: number, y: number, color: RgbColor): void {
   const index = (png.width * y + x) << 2;
@@ -64,6 +73,34 @@ function copyPixel(
   target.data[targetIndex + 3] = source.data[sourceIndex + 3] ?? 0;
 }
 
+function isPngBuffer(buffer: Buffer): boolean {
+  return buffer.subarray(0, PNG_SIGNATURE.length).equals(PNG_SIGNATURE);
+}
+
+function isJpegBuffer(buffer: Buffer): boolean {
+  return (
+    buffer.length >= 3 &&
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff
+  );
+}
+
+function decodeRasterBuffer(buffer: Buffer): PNG | null {
+  if (isPngBuffer(buffer)) {
+    return PNG.sync.read(buffer);
+  }
+
+  if (isJpegBuffer(buffer)) {
+    const decoded = jpeg.decode(buffer, { useTArray: true });
+    const png = new PNG({ width: decoded.width, height: decoded.height });
+    png.data = Buffer.from(decoded.data);
+    return png;
+  }
+
+  return null;
+}
+
 function getDownloadScale(width: number, height: number, maxLongestSide: number) {
   const longestSide = Math.max(width, height);
 
@@ -74,50 +111,142 @@ function getDownloadScale(width: number, height: number, maxLongestSide: number)
   return Math.max(1, Math.floor(maxLongestSide / longestSide));
 }
 
-function createBasePng(
-  width: number,
-  height: number,
-  outlineCells: Array<{ x: number; y: number }> = [],
-): PNG {
-  const png = new PNG({ width, height });
-
-  for (const cell of outlineCells) {
-    if (cell.x < 0 || cell.y < 0 || cell.x >= width || cell.y >= height) {
-      continue;
-    }
-
-    setPixelColor(png, cell.x, cell.y, parseHexColor(OUTLINE_COLOR));
+function resizePng(sourcePng: PNG, targetWidth: number, targetHeight: number): PNG {
+  if (sourcePng.width === targetWidth && sourcePng.height === targetHeight) {
+    return sourcePng;
   }
 
-  return png;
+  const targetPng = new PNG({
+    width: targetWidth,
+    height: targetHeight,
+  });
+
+  for (let y = 0; y < targetHeight; y += 1) {
+    const sourceY = Math.min(
+      sourcePng.height - 1,
+      Math.floor((y / targetHeight) * sourcePng.height),
+    );
+
+    for (let x = 0; x < targetWidth; x += 1) {
+      const sourceX = Math.min(
+        sourcePng.width - 1,
+        Math.floor((x / targetWidth) * sourcePng.width),
+      );
+
+      copyPixel(sourcePng, targetPng, sourceX, sourceY, x, y);
+    }
+  }
+
+  return targetPng;
+}
+
+function createBasePng(
+  gridWidth: number,
+  gridHeight: number,
+  backgroundImageBuffer: Buffer | null = null,
+): PNG {
+  if (backgroundImageBuffer) {
+    try {
+      const backgroundPng = decodeRasterBuffer(backgroundImageBuffer);
+
+      if (backgroundPng) {
+        return backgroundPng;
+      }
+    } catch {
+      return new PNG({ width: gridWidth, height: gridHeight });
+    }
+  }
+
+  return new PNG({ width: gridWidth, height: gridHeight });
+}
+
+function getCellPixelBounds(params: {
+  cellX: number;
+  cellY: number;
+  gridWidth: number;
+  gridHeight: number;
+  imageWidth: number;
+  imageHeight: number;
+}) {
+  const { cellX, cellY, gridWidth, gridHeight, imageWidth, imageHeight } =
+    params;
+
+  const startX = Math.floor((cellX * imageWidth) / gridWidth);
+  const startY = Math.floor((cellY * imageHeight) / gridHeight);
+  const nextX = Math.floor(((cellX + 1) * imageWidth) / gridWidth);
+  const nextY = Math.floor(((cellY + 1) * imageHeight) / gridHeight);
+
+  return {
+    startX,
+    startY,
+    endX: Math.max(startX + 1, nextX),
+    endY: Math.max(startY + 1, nextY),
+  };
+}
+
+function fillCellRect(
+  png: PNG,
+  cell: SnapshotCell,
+  color: RgbColor,
+  gridWidth: number,
+  gridHeight: number,
+): void {
+  const { startX, startY, endX, endY } = getCellPixelBounds({
+    cellX: cell.x,
+    cellY: cell.y,
+    gridWidth,
+    gridHeight,
+    imageWidth: png.width,
+    imageHeight: png.height,
+  });
+
+  const clampedStartX = Math.max(0, Math.min(startX, png.width - 1));
+  const clampedStartY = Math.max(0, Math.min(startY, png.height - 1));
+  const clampedEndX = Math.max(clampedStartX + 1, Math.min(endX, png.width));
+  const clampedEndY = Math.max(clampedStartY + 1, Math.min(endY, png.height));
+
+  for (let y = clampedStartY; y < clampedEndY; y += 1) {
+    for (let x = clampedStartX; x < clampedEndX; x += 1) {
+      setPixelColor(png, x, y, color);
+    }
+  }
 }
 
 export const roundSnapshotRenderService = {
   renderPngBuffer({
-    width,
-    height,
+    gridWidth,
+    gridHeight,
     cells,
-    outlineCells = [],
-  }: RenderRoundSnapshotParams): Buffer {
-    if (width <= 0 || height <= 0) {
-      throw new Error("스냅샷 크기가 올바르지 않습니다.");
+    backgroundImageBuffer = null,
+  }: RenderRoundSnapshotParams): RenderRoundSnapshotResult {
+    if (gridWidth <= 0 || gridHeight <= 0) {
+      throw new Error("Round snapshot dimensions must be positive.");
     }
 
-    const png = createBasePng(width, height, outlineCells);
+    const png = createBasePng(gridWidth, gridHeight, backgroundImageBuffer);
 
     for (const cell of cells) {
       if (!cell.color) {
         continue;
       }
 
-      if (cell.x < 0 || cell.y < 0 || cell.x >= width || cell.y >= height) {
+      if (
+        cell.x < 0 ||
+        cell.y < 0 ||
+        cell.x >= gridWidth ||
+        cell.y >= gridHeight
+      ) {
         continue;
       }
 
-      setPixelColor(png, cell.x, cell.y, parseHexColor(cell.color));
+      fillCellRect(png, cell, parseHexColor(cell.color), gridWidth, gridHeight);
     }
 
-    return PNG.sync.write(png);
+    return {
+      buffer: PNG.sync.write(png),
+      imageWidth: png.width,
+      imageHeight: png.height,
+    };
   },
 
   buildDownloadPngBuffer(params: {
@@ -135,30 +264,26 @@ export const roundSnapshotRenderService = {
       return params.sourceBuffer;
     }
 
-    const targetPng = new PNG({
-      width: sourcePng.width * scale,
-      height: sourcePng.height * scale,
-    });
+    const targetPng = resizePng(
+      sourcePng,
+      sourcePng.width * scale,
+      sourcePng.height * scale,
+    );
 
-    for (let y = 0; y < sourcePng.height; y += 1) {
-      for (let x = 0; x < sourcePng.width; x += 1) {
-        const targetStartX = x * scale;
-        const targetStartY = y * scale;
+    return PNG.sync.write(targetPng);
+  },
 
-        for (let offsetY = 0; offsetY < scale; offsetY += 1) {
-          for (let offsetX = 0; offsetX < scale; offsetX += 1) {
-            copyPixel(
-              sourcePng,
-              targetPng,
-              x,
-              y,
-              targetStartX + offsetX,
-              targetStartY + offsetY,
-            );
-          }
-        }
-      }
-    }
+  buildGridSizedPngBuffer(params: {
+    sourceBuffer: Buffer;
+    targetWidth: number;
+    targetHeight: number;
+  }): Buffer {
+    const sourcePng = PNG.sync.read(params.sourceBuffer);
+    const targetPng = resizePng(
+      sourcePng,
+      params.targetWidth,
+      params.targetHeight,
+    );
 
     return PNG.sync.write(targetPng);
   },

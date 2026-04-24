@@ -33,6 +33,20 @@ export class Canvas extends BaseEntity {
   backgroundAssetKey!: string | null;
 
   @Column({
+    type: "varchar",
+    length: 128,
+    nullable: true,
+  })
+  playBackgroundAssetKey!: string | null;
+
+  @Column({
+    type: "varchar",
+    length: 128,
+    nullable: true,
+  })
+  resultTemplateAssetKey!: string | null;
+
+  @Column({
     type: "jsonb",
     default: () => "'{}'::jsonb",
   })

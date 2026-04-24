@@ -80,7 +80,8 @@ export default function CanvasPage() {
     handleOpenGameSummaryModal,
     gridX,
     gridY,
-    backgroundImageUrl,
+    playBackgroundImageUrl,
+    resultTemplateImageUrl,
     viewport,
     cameraX,
     cameraY,
@@ -165,7 +166,8 @@ export default function CanvasPage() {
         <CanvasSurface
           paintCanvasRef={paintCanvasRef}
           canvasRef={canvasRef}
-          backgroundImageUrl={backgroundImageUrl}
+          playBackgroundImageUrl={playBackgroundImageUrl}
+          resultTemplateImageUrl={resultTemplateImageUrl}
           gridX={gridX}
           gridY={gridY}
           cameraX={cameraX}
@@ -194,7 +196,8 @@ export default function CanvasPage() {
             cells={cells}
             minimapCells={minimapCells}
             latestRoundSnapshot={latestRoundSnapshot}
-            backgroundImageUrl={backgroundImageUrl}
+            playBackgroundImageUrl={playBackgroundImageUrl}
+            resultTemplateImageUrl={resultTemplateImageUrl}
             participants={participants}
             participantLoading={participantLoading}
             participantError={participantError}
@@ -210,7 +213,8 @@ export default function CanvasPage() {
       {introGuideOpen && gameConfig && (
         <IntroGuideModal
           open={true}
-          backgroundImageUrl={backgroundImageUrl}
+          playBackgroundImageUrl={playBackgroundImageUrl}
+          resultTemplateImageUrl={resultTemplateImageUrl}
           gridX={gridX}
           gridY={gridY}
           gameConfig={gameConfig}

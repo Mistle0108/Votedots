@@ -20,6 +20,8 @@ function serializeCanvas(canvas: Canvas) {
     gridY: canvas.gridY,
     configProfileKey: canvas.configProfileKey,
     backgroundAssetKey: canvas.backgroundAssetKey,
+    playBackgroundAssetKey: canvas.playBackgroundAssetKey,
+    resultTemplateAssetKey: canvas.resultTemplateAssetKey,
     status: canvas.status,
     phase: canvas.phase,
     phaseStartedAt: canvas.phaseStartedAt,
@@ -67,11 +69,27 @@ function buildRoundDownloadSnapshotUrl(
   return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
 }
 
+function buildRoundHighResolutionDownloadSnapshotUrl(
+  req: Request,
+  canvasId: number,
+  roundId: number,
+): string {
+  const relativePath =
+    roundSnapshotService.buildRoundHighResolutionDownloadSnapshotApiPath(
+      canvasId,
+      roundId,
+    );
+  const host = req.get("host");
+
+  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+}
+
 // 게임 summary 응답 구조를 명시적으로 고정
 function serializeGameSummary(
   summary: GameSummary,
   snapshotUrl: string | null,
   downloadSnapshotUrl: string | null,
+  highResolutionDownloadSnapshotUrl: string | null,
 ) {
   return {
     id: summary.id,
@@ -105,6 +123,7 @@ function serializeGameSummary(
     participants: summary.participantsJson,
     snapshotUrl,
     downloadSnapshotUrl,
+    highResolutionDownloadSnapshotUrl,
     endedAt: summary.canvas.endedAt,
     createdAt: summary.createdAt,
     updatedAt: summary.updatedAt,
@@ -203,6 +222,13 @@ export const canvasController = {
             : null,
           snapshot?.round?.id
             ? buildRoundDownloadSnapshotUrl(req, canvasId, snapshot.round.id)
+            : null,
+          snapshot?.round?.id
+            ? buildRoundHighResolutionDownloadSnapshotUrl(
+                req,
+                canvasId,
+                snapshot.round.id,
+              )
             : null,
         ),
       });

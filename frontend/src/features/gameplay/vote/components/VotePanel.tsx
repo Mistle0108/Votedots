@@ -25,7 +25,8 @@ interface Props {
   cells: Cell[];
   minimapCells: Cell[];
   latestRoundSnapshot: string | null;
-  backgroundImageUrl: string | null;
+  playBackgroundImageUrl: string | null;
+  resultTemplateImageUrl: string | null;
   participants: ParticipantItem[];
   participantLoading: boolean;
   participantError: string | null;
@@ -54,7 +55,8 @@ export default function VotePanel({
   cells,
   minimapCells,
   latestRoundSnapshot,
-  backgroundImageUrl,
+  playBackgroundImageUrl,
+  resultTemplateImageUrl,
   participants,
   participantLoading,
   participantError,
@@ -110,7 +112,8 @@ export default function VotePanel({
       <MiniMap
         cells={minimapCells}
         snapshotUrl={latestRoundSnapshot}
-        backgroundImageUrl={backgroundImageUrl}
+        playBackgroundImageUrl={playBackgroundImageUrl}
+        resultTemplateImageUrl={resultTemplateImageUrl}
         gridX={gridX}
         gridY={gridY}
         viewport={viewport}
@@ -126,7 +129,7 @@ export default function VotePanel({
       />
 
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">득표 현황</p>
+        <p className="text-sm font-medium">투표 현황</p>
         <div className="flex flex-col gap-1.5 rounded border border-red-400 p-2">
           {slots.map((entry, index) => (
             <div key={index} className="flex h-5 items-center gap-2">

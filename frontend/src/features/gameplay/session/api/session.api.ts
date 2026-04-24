@@ -113,6 +113,7 @@ export interface GameSummaryData {
   participants: GameSummaryParticipant[] | null;
   snapshotUrl: string | null;
   downloadSnapshotUrl: string | null;
+  highResolutionDownloadSnapshotUrl: string | null;
   endedAt: string | null;
   createdAt: string;
   updatedAt: string;

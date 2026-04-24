@@ -10,7 +10,8 @@ const MINIMAP_STROKE_WIDTH = 2;
 interface Props {
   cells: Cell[];
   snapshotUrl: string | null;
-  backgroundImageUrl: string | null;
+  playBackgroundImageUrl: string | null;
+  resultTemplateImageUrl: string | null;
   gridX: number;
   gridY: number;
   viewport: Viewport | null;
@@ -88,7 +89,8 @@ function getClampedMarkerRect(
 export default function MiniMap({
   cells,
   snapshotUrl,
-  backgroundImageUrl,
+  playBackgroundImageUrl,
+  resultTemplateImageUrl,
   gridX,
   gridY,
   viewport,
@@ -124,7 +126,7 @@ export default function MiniMap({
     const cellWidth = canvas.width / Math.max(gridX, 1);
     const cellHeight = canvas.height / Math.max(gridY, 1);
 
-    if (!snapshotUrl && !backgroundImageUrl) {
+    if (!snapshotUrl) {
       for (const cell of cells) {
         if (!cell.color) {
           continue;
@@ -218,7 +220,6 @@ export default function MiniMap({
       ctx.restore();
     }
   }, [
-    backgroundImageUrl,
     cells,
     gridX,
     gridY,
@@ -275,10 +276,10 @@ export default function MiniMap({
   return (
     <div className="flex justify-center">
       <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-100 p-0 shadow-sm">
-        {(snapshotUrl || backgroundImageUrl) && (
+        {snapshotUrl ? (
           <img
-            src={snapshotUrl ?? backgroundImageUrl ?? undefined}
-            alt="미니맵 스냅샷"
+            src={snapshotUrl}
+            alt="Minimap snapshot"
             className="pointer-events-none absolute block h-full w-full select-none"
             style={{
               width: `${minimapDimensions.width}px`,
@@ -290,6 +291,41 @@ export default function MiniMap({
               event.preventDefault();
             }}
           />
+        ) : (
+          <>
+            {playBackgroundImageUrl && (
+              <img
+                src={playBackgroundImageUrl}
+                alt="Minimap play background"
+                className="pointer-events-none absolute block h-full w-full select-none"
+                style={{
+                  width: `${minimapDimensions.width}px`,
+                  height: `${minimapDimensions.height}px`,
+                  imageRendering: "pixelated",
+                }}
+                draggable={false}
+                onDragStart={(event) => {
+                  event.preventDefault();
+                }}
+              />
+            )}
+            {resultTemplateImageUrl && (
+              <img
+                src={resultTemplateImageUrl}
+                alt="Minimap result template"
+                className="pointer-events-none absolute block h-full w-full select-none"
+                style={{
+                  width: `${minimapDimensions.width}px`,
+                  height: `${minimapDimensions.height}px`,
+                  imageRendering: "pixelated",
+                }}
+                draggable={false}
+                onDragStart={(event) => {
+                  event.preventDefault();
+                }}
+              />
+            )}
+          </>
         )}
 
         <canvas

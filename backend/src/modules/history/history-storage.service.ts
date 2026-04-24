@@ -78,8 +78,9 @@ export function getRoundDownloadFilename(
   canvasId: number,
   roundNumber: number,
   format: RoundSnapshotFormat = "png",
+  suffix = "",
 ): string {
-  return `canvas-${canvasId}-${roundNumber}.${format}`;
+  return `canvas-${canvasId}-${roundNumber}${suffix}.${format}`;
 }
 
 export function buildRoundDownloadRelativePath(params: {
@@ -87,12 +88,14 @@ export function buildRoundDownloadRelativePath(params: {
   canvasId: number;
   roundNumber: number;
   format?: RoundSnapshotFormat;
+  suffix?: string;
 }): string {
   const format = params.format ?? "png";
+  const suffix = params.suffix ?? "";
 
   return path.posix.join(
     getRoundDownloadRelativeDirectory(params.capturedAt),
-    getRoundDownloadFilename(params.canvasId, params.roundNumber, format),
+    getRoundDownloadFilename(params.canvasId, params.roundNumber, format, suffix),
   );
 }
 
