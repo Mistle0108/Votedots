@@ -16,13 +16,6 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "cat-face-30x30",
   },
   {
-    id: "smile-40x40",
-    name: "Smile Template 40x40",
-    gridX: 40,
-    gridY: 40,
-    assetKey: "smile",
-  },
-  {
     id: "empty-50x50",
     name: "Default Template 50x50",
     gridX: 50,
@@ -30,25 +23,18 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-50x50",
   },
   {
-    id: "cat-face-60x60",
-    name: "Cat Face Template 60x60",
-    gridX: 60,
-    gridY: 60,
-    assetKey: "cat-face-60x60",
-  },
-  {
-    id: "empty-99x99",
-    name: "Default Template 99x99",
-    gridX: 99,
-    gridY: 99,
-    assetKey: "empty-99x99",
-  },
-  {
     id: "empty-100x100",
     name: "Default Template 100x100",
     gridX: 100,
     gridY: 100,
     assetKey: "empty-100x100",
+  },
+  {
+    id: "empty-300x300",
+    name: "Default Template 300x300",
+    gridX: 300,
+    gridY: 300,
+    assetKey: "empty-300x300",
   },
   {
     id: "empty-500x500",
@@ -70,26 +56,5 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     gridX: 1000,
     gridY: 1000,
     assetKey: "empty-1000x1000",
-  },
-  {
-    id: "empty-5000x5000",
-    name: "Default Template 5000x5000",
-    gridX: 5000,
-    gridY: 5000,
-    assetKey: "empty-5000x5000",
-  },
-  {
-    id: "empty-10000x10000",
-    name: "Default Template 10000x10000",
-    gridX: 10000,
-    gridY: 10000,
-    assetKey: "empty-10000x10000",
-  },
-  {
-    id: "sunflower-10000x10000",
-    name: "Sunflower Template 10000x10000",
-    gridX: 10000,
-    gridY: 10000,
-    assetKey: "sunflower-10000x10000",
   },
 ];

@@ -2,32 +2,11 @@ import type { PlayBackgroundTemplate } from "./play-background-template.types";
 
 export const PLAY_BACKGROUND_TEMPLATES: PlayBackgroundTemplate[] = [
   {
-    id: "grid-10x10",
-    name: "Grid 10x10",
-    gridX: 10,
-    gridY: 10,
-    assetKey: "grid-10x10",
-  },
-  {
-    id: "grid-25x25",
-    name: "Grid 25x25",
-    gridX: 25,
-    gridY: 25,
-    assetKey: "grid-25x25",
-  },
-  {
     id: "grid-30x30",
     name: "Grid 30x30",
     gridX: 30,
     gridY: 30,
     assetKey: "grid-30x30",
-  },
-  {
-    id: "grid-40x40",
-    name: "Grid 40x40",
-    gridX: 40,
-    gridY: 40,
-    assetKey: "grid-40x40",
   },
   {
     id: "grid-50x50",
@@ -37,25 +16,18 @@ export const PLAY_BACKGROUND_TEMPLATES: PlayBackgroundTemplate[] = [
     assetKey: "grid-50x50",
   },
   {
-    id: "grid-60x60",
-    name: "Grid 60x60",
-    gridX: 60,
-    gridY: 60,
-    assetKey: "grid-60x60",
-  },
-  {
-    id: "grid-99x99",
-    name: "Grid 99x99",
-    gridX: 99,
-    gridY: 99,
-    assetKey: "grid-99x99",
-  },
-  {
     id: "grid-100x100",
     name: "Grid 100x100",
     gridX: 100,
     gridY: 100,
     assetKey: "grid-100x100",
+  },
+  {
+    id: "grid-300x300",
+    name: "Grid 300x300",
+    gridX: 300,
+    gridY: 300,
+    assetKey: "grid-300x300",
   },
   {
     id: "grid-500x500",
@@ -70,19 +42,5 @@ export const PLAY_BACKGROUND_TEMPLATES: PlayBackgroundTemplate[] = [
     gridX: 1000,
     gridY: 1000,
     assetKey: "grid-1000x1000",
-  },
-  {
-    id: "grid-5000x5000",
-    name: "Grid 5000x5000",
-    gridX: 5000,
-    gridY: 5000,
-    assetKey: "grid-5000x5000",
-  },
-  {
-    id: "grid-10000x10000",
-    name: "Grid 10000x10000",
-    gridX: 10000,
-    gridY: 10000,
-    assetKey: "grid-10000x10000",
   },
 ];

@@ -37,6 +37,20 @@ export const BACKGROUND_TEMPLATES: BackgroundTemplate[] = [
     assetKey: "empty-50x50",
   },
   {
+    id: "empty-100x100",
+    name: "Empty 100x100",
+    gridX: 100,
+    gridY: 100,
+    assetKey: "empty-100x100",
+  },
+  {
+    id: "empty-300x300",
+    name: "Empty 300x300",
+    gridX: 300,
+    gridY: 300,
+    assetKey: "empty-300x300",
+  },
+  {
     id: "empty-500x500",
     name: "Empty 500x500",
     gridX: 500,
@@ -49,19 +63,5 @@ export const BACKGROUND_TEMPLATES: BackgroundTemplate[] = [
     gridX: 1000,
     gridY: 1000,
     assetKey: "empty-1000x1000",
-  },
-  {
-    id: "empty-5000x5000",
-    name: "Empty 5000x5000",
-    gridX: 5000,
-    gridY: 5000,
-    assetKey: "empty-5000x5000",
-  },
-  {
-    id: "empty-10000x10000",
-    name: "Empty 10000x10000",
-    gridX: 10000,
-    gridY: 10000,
-    assetKey: "empty-10000x10000",
   },
 ];
