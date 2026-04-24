@@ -8,21 +8,6 @@ interface MyInfoCardProps {
   participants: ParticipantItem[];
 }
 
-function getStatusLabel(status?: "voting" | "waiting") {
-  if (status === "voting") {
-    return {
-      text: "투표자",
-      className: "text-blue-600",
-    };
-  }
-
-  return {
-    text: "대기자",
-    className: "text-gray-500",
-  };
-}
-
-
 export default function MyInfoCard({ participants }: MyInfoCardProps) {
   const navigate = useNavigate();
 
@@ -84,25 +69,20 @@ export default function MyInfoCard({ participants }: MyInfoCardProps) {
     ? participants.find((participant) => participant.voterUuid === voter.uuid)
     : null;
 
-  const statusLabel = getStatusLabel(myParticipant?.status);
-
   return (
-    <section className="">
+    <section className="w-full">
       {loading ? (
         <p className="text-sm text-gray-400">내 정보를 불러오는 중...</p>
       ) : error ? (
         <p className="text-sm text-red-500">{error}</p>
       ) : voter ? (
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2">
-            <span className={`shrink-0 text-xs font-medium ${statusLabel.className}`}>
-              {statusLabel.text}
-            </span>
+          <div className="min-w-0 flex-1 pl-3 text-left">
             <p
               className="truncate text-xs font-medium text-gray-900"
               title={voter.nickname}
             >
-              {voter.nickname}
+              {myParticipant?.nickname ?? voter.nickname}
             </p>
           </div>
 

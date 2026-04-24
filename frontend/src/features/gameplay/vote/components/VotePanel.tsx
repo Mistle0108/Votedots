@@ -8,6 +8,7 @@ import {
   type GamePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
 import { getGameConfig } from "@/shared/config/game-config";
+import { BrandLogo } from "@/shared/ui/brand-logo";
 import { MAX_VOTE_PANEL_ENTRIES } from "../model/vote.constants";
 import { buildVotePanelEntries } from "../model/vote.utils";
 
@@ -77,12 +78,8 @@ export default function VotePanel({
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
-      <div className="flex flex-col items-center gap-2">
-        <img
-          src="/brand/logo-wordmark.svg"
-          alt="VoteDots"
-          className="mx-auto h-auto w-40"
-        />
+      <div className="flex flex-col gap-2">
+        <BrandLogo className="mx-auto w-40" />
         <MyInfoCard participants={participants} />
       </div>
 
@@ -127,7 +124,7 @@ export default function VotePanel({
 
       <div className="flex flex-col gap-1">
         <p className="text-sm font-medium">득표 현황</p>
-        <div className="flex flex-col gap-1.5 rounded border border-red-400 p-2">
+        <div className="flex flex-col gap-1.5 p-2">
           {slots.map((entry, index) => (
             <div key={index} className="flex h-5 items-center gap-2">
               {entry ? (
@@ -152,9 +149,7 @@ export default function VotePanel({
                     {entry.topCount}/{entry.totalCount}
                   </span>
                 </>
-              ) : (
-                <div className="h-2 w-full rounded bg-gray-50" />
-              )}
+              ) : null}
             </div>
           ))}
         </div>

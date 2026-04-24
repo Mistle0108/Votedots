@@ -13,7 +13,24 @@ export default function RoadmapPanel() {
   );
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
-  const groups = useMemo(() => roadmapQuarterGroups, []);
+  const groups = useMemo(() => {
+    const getLatestUpdatedAt = (dates: string[]) =>
+      [...dates].sort((a, b) => b.localeCompare(a))[0] ?? "";
+
+    return [...roadmapQuarterGroups]
+      .map((group) => ({
+        ...group,
+        items: [...group.items].sort((a, b) =>
+          b.updatedAt.localeCompare(a.updatedAt),
+        ),
+      }))
+      .sort((a, b) => {
+        const aLatest = getLatestUpdatedAt(a.items.map((item) => item.updatedAt));
+        const bLatest = getLatestUpdatedAt(b.items.map((item) => item.updatedAt));
+
+        return bLatest.localeCompare(aLatest);
+      });
+  }, []);
 
   const toggleGroup = (groupId: string) => {
     setOpenGroupIds((current) =>
