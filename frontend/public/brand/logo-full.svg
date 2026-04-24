@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="800" height="900" viewBox="0 0 800 900" xmlns="http://www.w3.org/2000/svg">
+
+  <rect width="100%" height="100%" fill="none"/>
+
+  <!-- Grid -->
+  <g stroke="#0B1B2B" stroke-width="16" fill="none" transform="translate(150,80)">
+    <rect x="0" y="0" width="500" height="500" rx="60"/>
+    <line x1="166" y1="0" x2="166" y2="500"/>
+    <line x1="333" y1="0" x2="333" y2="500"/>
+    <line x1="0" y1="166" x2="500" y2="166"/>
+    <line x1="0" y1="333" x2="500" y2="333"/>
+  </g>
+
+  <!-- Center dot -->
+  <circle cx="400" cy="330" r="40" fill="#8B5CF6"/>
+
+  <!-- Vote dots -->
+  <circle cx="400" cy="80" r="60" fill="#4ADE80"/>
+  <circle cx="160" cy="330" r="60" fill="#F87171"/>
+  <circle cx="640" cy="330" r="60" fill="#60A5FA"/>
+  <circle cx="400" cy="580" r="60" fill="#FBBF24"/>
+
+  <!-- Text -->
+  <g transform="translate(125,760)">
+    <text x="0" y="0"
+          font-family="Inter, Poppins, Arial, sans-serif"
+          font-size="140"
+          font-weight="700"
+          fill="#071A33">v</text>
+
+    <circle cx="112" cy="-40" r="38" fill="#8B5CF6"/>
+
+    <text x="150" y="0"
+          font-family="Inter, Poppins, Arial, sans-serif"
+          font-size="140"
+          font-weight="700"
+          fill="#071A33">tedots</text>
+  </g>
+
+</svg>

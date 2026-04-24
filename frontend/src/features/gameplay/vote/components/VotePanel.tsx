@@ -77,8 +77,12 @@ export default function VotePanel({
 
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
-      <div className="flex flex-col gap-2">
-        <h3 className="text-lg font">VoteDots</h3>
+      <div className="flex flex-col items-center gap-2">
+        <img
+          src="/brand/logo-wordmark.svg"
+          alt="VoteDots"
+          className="mx-auto h-auto w-40"
+        />
         <MyInfoCard participants={participants} />
       </div>
 

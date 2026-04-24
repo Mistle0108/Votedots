@@ -6,6 +6,24 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --color-text-primary: #111827;
+  --color-text-secondary: #4b5563;
+  --color-text-tertiary: #6b7280;
+  --color-background-primary: #ffffff;
+  --color-background-secondary: #f8fafc;
+  --color-background-tertiary: #eef2f7;
+  --color-border-primary: rgba(15, 23, 42, 0.14);
+  --color-border-secondary: rgba(15, 23, 42, 0.08);
+  --color-overlay: rgba(15, 23, 42, 0.42);
+  --color-accent-blue: #2563eb;
+  --color-accent-green: #16a34a;
+  --color-accent-red: #dc2626;
+  --color-badge-blue-bg: rgba(37, 99, 235, 0.12);
+  --color-badge-blue-text: #1d4ed8;
+  --color-badge-green-bg: rgba(22, 163, 74, 0.12);
+  --color-badge-green-text: #15803d;
+  --color-badge-red-bg: rgba(220, 38, 38, 0.12);
+  --color-badge-red-text: #b91c1c;
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #fff;
@@ -99,6 +117,24 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
+    --color-text-primary: #f5f7fb;
+    --color-text-secondary: #cbd5e1;
+    --color-text-tertiary: #94a3b8;
+    --color-background-primary: #111827;
+    --color-background-secondary: #182131;
+    --color-background-tertiary: #243041;
+    --color-border-primary: rgba(226, 232, 240, 0.16);
+    --color-border-secondary: rgba(226, 232, 240, 0.08);
+    --color-overlay: rgba(2, 6, 23, 0.68);
+    --color-accent-blue: #60a5fa;
+    --color-accent-green: #4ade80;
+    --color-accent-red: #f87171;
+    --color-badge-blue-bg: rgba(96, 165, 250, 0.18);
+    --color-badge-blue-text: #bfdbfe;
+    --color-badge-green-bg: rgba(74, 222, 128, 0.18);
+    --color-badge-green-text: #bbf7d0;
+    --color-badge-red-bg: rgba(248, 113, 113, 0.18);
+    --color-badge-red-text: #fecaca;
     --text: #9ca3af;
     --text-h: #f3f4f6;
     --bg: #16171d;
@@ -121,6 +157,27 @@ body {
   margin: 0;
 }
 
+.thin-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border-primary) transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.thin-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.thin-scrollbar::-webkit-scrollbar-thumb {
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: padding-box;
+  background-color: var(--color-border-primary);
+}
+
 #root {
   width: 80%;
   max-width: 100%;
@@ -131,6 +188,13 @@ body {
   display: flex;
   flex-direction: column;
   box-sizing: border-box;
+}
+
+#root.login-page-root {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  border-inline: 0;
 }
 
 h1,
