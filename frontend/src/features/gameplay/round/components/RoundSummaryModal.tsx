@@ -66,9 +66,9 @@ export default function RoundSummaryModal({
   const progressPercent =
     summary.totalCellCount > 0
       ? (
-          (summary.currentPaintedCellCount / summary.totalCellCount) *
-          100
-        ).toFixed(1)
+        (summary.currentPaintedCellCount / summary.totalCellCount) *
+        100
+      ).toFixed(1)
       : "0.0";
   const roundSnapshot = summary.snapshotUrl ?? snapshot;
 
@@ -151,19 +151,23 @@ export default function RoundSummaryModal({
               {hasMostVotedCell(summary) ? (
                 <p>
                   가장 인기 있었던 칸은 ({summary.mostVotedCellX},{" "}
-                  {summary.mostVotedCellY}) 이었어요.
+                  {summary.mostVotedCellY}) 였어요.
                 </p>
               ) : (
-                <p>가장 인기 있었던 칸은 없습니다.</p>
+                <p>가장 인기 있는 칸은 없어요.</p>
               )}
               <p>
                 동점 추첨으로 결정된 칸은{" "}
-                <span className="font-bold text-gray-900">
-                  {summary.randomResolvedCellCount > 0
-                    ? summary.randomResolvedCellCount
-                    : "없어요."}
-                </span>
-                {summary.randomResolvedCellCount > 0 ? "개였어요." : ""}
+                {summary.randomResolvedCellCount > 0 ? (
+                  <>
+                    <span className="font-bold text-gray-900">
+                      {summary.randomResolvedCellCount}
+                    </span>
+                    개였어요.
+                  </>
+                ) : (
+                  "없어요."
+                )}
               </p>
             </section>
           </div>
