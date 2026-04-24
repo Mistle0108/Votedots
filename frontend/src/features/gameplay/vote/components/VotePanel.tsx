@@ -8,6 +8,7 @@ import {
   type GamePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
 import { getGameConfig } from "@/shared/config/game-config";
+import { BrandLogo } from "@/shared/ui/brand-logo";
 import { MAX_VOTE_PANEL_ENTRIES } from "../model/vote.constants";
 import { buildVotePanelEntries } from "../model/vote.utils";
 
@@ -78,11 +79,7 @@ export default function VotePanel({
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <div className="flex flex-col items-center gap-2">
-        <img
-          src="/brand/logo-wordmark.svg"
-          alt="VoteDots"
-          className="mx-auto h-auto w-40"
-        />
+        <BrandLogo className="mx-auto w-40" />
         <MyInfoCard participants={participants} />
       </div>
 

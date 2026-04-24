@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import { LoginBoardPanel } from "@/features/login-board";
+import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
 
 export default function LoginPage() {
@@ -36,11 +37,7 @@ export default function LoginPage() {
 
       <div className="flex items-center justify-center px-6 py-10 lg:min-h-0 lg:overflow-hidden">
         <div className="flex w-full max-w-sm flex-col gap-6">
-          <img
-            src="/brand/logo-full.svg"
-            alt="VoteDots"
-            className="mx-auto h-auto w-56"
-          />
+          <BrandLogo className="mx-auto w-40" />
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
