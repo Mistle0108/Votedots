@@ -4,6 +4,7 @@ import { Canvas } from "../../entities/canvas.entity";
 import { Cell } from "../../entities/cell.entity";
 import { RoundSnapshot } from "../../entities/round-snapshot.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
+import { downloadSnapshotConfig } from "../../config/download-snapshot.config";
 import {
   buildRoundDownloadRelativePath,
   buildRoundSnapshotRelativePath,
@@ -19,7 +20,6 @@ const cellRepository = AppDataSource.getRepository(Cell);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const roundSnapshotRepository = AppDataSource.getRepository(RoundSnapshot);
 const roundDownloadSnapshotLocks = new Map<string, Promise<string>>();
-const MAX_DOWNLOAD_SNAPSHOT_LONGEST_SIDE = 2048;
 
 interface SaveRoundSnapshotParams {
   canvasId: number;
@@ -125,11 +125,12 @@ export const roundSnapshotService = {
           const sourceBuffer = await readFile(
             this.resolveRoundSnapshotAbsolutePath(snapshot),
           );
-          const downloadBuffer =
-            roundSnapshotRenderService.buildDownloadPngBuffer({
-              sourceBuffer,
-              maxLongestSide: MAX_DOWNLOAD_SNAPSHOT_LONGEST_SIDE,
-            });
+          const downloadBuffer = downloadSnapshotConfig.enableUpscale
+            ? roundSnapshotRenderService.buildDownloadPngBuffer({
+                sourceBuffer,
+                maxLongestSide: downloadSnapshotConfig.maxLongestSide,
+              })
+            : sourceBuffer;
 
           await writeFile(absolutePath, downloadBuffer);
           return absolutePath;
