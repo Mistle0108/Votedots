@@ -16,6 +16,7 @@ services:
       - /app/node_modules
       - ./frontend/public/result-templates:/app/result-templates:ro
       - ../votedots_local_storage:/votedots-storage
+      - ../votedots_login_board:/votedots-login-board
   frontend:
     build:
       context: ./frontend

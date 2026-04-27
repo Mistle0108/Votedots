@@ -16,6 +16,7 @@ import { ensureGameHistoryStorageRoot } from "./modules/history/history-storage.
 
 import authRouter from "./modules/auth/auth.router";
 import canvasRouter from "./modules/canvas/canvas.router";
+import loginBoardRouter from "./modules/login-board/login-board.router";
 import roundRouter from "./modules/round/round.router";
 import voteRouter from "./modules/vote/vote.router";
 
@@ -88,6 +89,7 @@ app.set("io", io);
 
 app.use("/auth", authRouter);
 app.use("/canvas", canvasRouter);
+app.use("/public/login-board", loginBoardRouter);
 app.use("/canvas/:canvasId/rounds", roundRouter);
 app.use("/vote", voteRouter);
 

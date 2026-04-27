@@ -36,6 +36,12 @@ export interface RoadmapQuarterGroup {
   items: RoadmapEntry[];
 }
 
+export interface LoginBoardPayload {
+  patches: PatchVersionGroup[];
+  roadmap: RoadmapQuarterGroup[];
+  generatedAt: string;
+}
+
 export interface BoardModalPayload {
   id: string;
   title: string;
