@@ -37,7 +37,7 @@ export default function CanvasSurface({
   const backgroundTranslateY = worldOffset.y - cameraY * zoom;
 
   return (
-    <div className="relative h-full w-full overflow-hidden border border-gray-300">
+    <div className="relative h-full w-full overflow-hidden border border-[color:var(--page-theme-border-primary)]">
       {playBackgroundImageUrl && gridX > 0 && gridY > 0 && (
         <img
           src={playBackgroundImageUrl}

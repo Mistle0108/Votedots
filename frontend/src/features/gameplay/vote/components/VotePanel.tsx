@@ -81,7 +81,7 @@ export default function VotePanel({
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <div className="flex flex-col items-center gap-2">
-        <BrandLogo className="mx-auto w-40" />
+        <BrandLogo variant="wordmark" className="mx-auto w-40" />
         <MyInfoCard participants={participants} />
       </div>
 
@@ -97,13 +97,17 @@ export default function VotePanel({
       />
 
       <div className="flex min-h-2 items-center justify-between gap-3">
-        <p className="text-sm font-medium">남은 투표권</p>
+        <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
+          남은 투표권
+        </p>
         {isVotingPhase && remaining !== null ? (
-          <span className="text-sm font-bold text-blue-600">
+          <span className="text-sm font-bold text-[color:var(--page-theme-primary-action)]">
             {remaining}/{votesPerRound}
           </span>
         ) : (
-          <span className="text-sm text-gray-400">-</span>
+          <span className="text-sm text-[color:var(--page-theme-text-tertiary)]">
+            -
+          </span>
         )}
       </div>
 
@@ -128,20 +132,22 @@ export default function VotePanel({
       />
 
       <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium">투표 현황</p>
-        <div className="flex flex-col gap-1.5 rounded border border-gray-200 p-2">
+        <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
+          투표 현황
+        </p>
+        <div className="flex flex-col gap-1.5 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3">
           {slots.map((entry, index) => (
             <div key={index} className="flex h-5 items-center gap-2">
               {entry ? (
                 <>
                   <div
-                    className="h-3 w-3 shrink-0 rounded-sm border border-gray-200"
+                    className="h-3 w-3 shrink-0 rounded-sm border border-[color:var(--page-theme-border-secondary)]"
                     style={{ backgroundColor: entry.topColor }}
                   />
-                  <span className="w-16 shrink-0 text-xs text-gray-500">
+                  <span className="w-16 shrink-0 text-xs text-[color:var(--page-theme-text-secondary)]">
                     ({entry.x}, {entry.y})
                   </span>
-                  <div className="h-2 flex-1 rounded bg-gray-100">
+                  <div className="h-2 flex-1 rounded bg-[color:var(--page-theme-surface-secondary)]">
                     <div
                       className="h-2 rounded"
                       style={{
@@ -150,12 +156,12 @@ export default function VotePanel({
                       }}
                     />
                   </div>
-                  <span className="w-8 shrink-0 text-right text-xs text-gray-500">
+                  <span className="w-8 shrink-0 text-right text-xs text-[color:var(--page-theme-text-secondary)]">
                     {entry.topCount}/{entry.totalCount}
                   </span>
                 </>
               ) : (
-                <div className="h-2 w-full rounded bg-gray-50" />
+                <div className="h-2 w-full rounded bg-[color:var(--page-theme-surface-secondary)]" />
               )}
             </div>
           ))}

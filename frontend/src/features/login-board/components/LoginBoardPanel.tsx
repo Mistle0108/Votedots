@@ -55,7 +55,7 @@ export default function LoginBoardPanel() {
             Update board
           </p>
           <h1 className="m-0 text-[2rem] font-semibold tracking-tight text-[color:var(--color-text-primary)]">
-            패치 내역 & 로드맵
+            Plan Board
           </h1>
         </div>
 
@@ -67,7 +67,7 @@ export default function LoginBoardPanel() {
             className="rounded-md px-3 text-[13px]"
             onClick={() => setActiveTab("patches")}
           >
-            패치 내역
+            Patch Notes
           </Button>
           <Button
             type="button"
@@ -76,7 +76,7 @@ export default function LoginBoardPanel() {
             className="rounded-md px-3 text-[13px]"
             onClick={() => setActiveTab("roadmap")}
           >
-            로드맵
+            Roadmaps
           </Button>
         </div>
       </div>

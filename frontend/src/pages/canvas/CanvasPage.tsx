@@ -17,6 +17,7 @@ import {
 import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
 import useCanvasPage from "./model/useCanvasPage";
+import { PLAY_THEME_STYLE } from "./model/play-theme";
 
 export default function CanvasPage() {
   const navigate = useNavigate();
@@ -104,6 +105,8 @@ export default function CanvasPage() {
     onUnauthorized: handleUnauthorized,
   });
 
+  const canvasPageThemeStyle = PLAY_THEME_STYLE;
+
   useEffect(() => {
     if (phase === GAME_PHASE.INTRO && !introModalDismissed) {
       handleOpenIntroGuide();
@@ -117,19 +120,43 @@ export default function CanvasPage() {
   }, [handleCloseIntroGuide, handleOpenIntroGuide, introModalDismissed, phase]);
 
   if (loading) {
-    return <LoadingScreen />;
+    return (
+      <div
+        className="flex h-screen w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
+        style={canvasPageThemeStyle}
+      >
+        <LoadingScreen />
+      </div>
+    );
   }
 
   if (error) {
-    return <ErrorScreen message={error} />;
+    return (
+      <div
+        className="flex h-screen w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
+        style={canvasPageThemeStyle}
+      >
+        <ErrorScreen message={error} />
+      </div>
+    );
   }
 
   if (gameEnded) {
-    return <GameEndedScreen />;
+    return (
+      <div
+        className="flex h-screen w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
+        style={canvasPageThemeStyle}
+      >
+        <GameEndedScreen />
+      </div>
+    );
   }
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-gray-50">
+    <div
+      className="flex h-screen w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
+      style={canvasPageThemeStyle}
+    >
       <GameHistoryPanel
         onOpenIntroGuide={handleOpenIntroGuide}
         historyItems={historyItems}
@@ -144,7 +171,7 @@ export default function CanvasPage() {
         overlay={
           <button
             type="button"
-            className="flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 bg-white text-gray-600 shadow-sm hover:bg-gray-50"
+            className="flex h-9 w-9 items-center justify-center rounded-md border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-[color:var(--page-theme-primary-action)] shadow-sm hover:bg-[color:var(--page-theme-surface-secondary)]"
             aria-label="초기 줌 비율로 복귀"
             title="초기 줌 비율로 복귀"
             onMouseDown={(event) => event.stopPropagation()}
@@ -178,7 +205,7 @@ export default function CanvasPage() {
       </CanvasStage>
 
       <div
-        className="shrink-0 border-l border-gray-200 bg-white"
+        className="shrink-0 border-l border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-panel-background)]"
         style={{ width: `${PANEL_WIDTH}px` }}
       >
         {canvasId && (

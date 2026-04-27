@@ -33,6 +33,9 @@ interface Props {
   onClose: () => void;
 }
 
+const INITIAL_POINTER_OFFSET_X = 190;
+const INITIAL_POINTER_OFFSET_Y = 120;
+
 function getPhaseBlockedMessage(phase: GamePhase): string {
   switch (phase) {
     case GAME_PHASE.INTRO:
@@ -298,7 +301,8 @@ export default function VotePopup({
     const popup = popupRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    let { x, y } = position;
+    let x = position.x + INITIAL_POINTER_OFFSET_X;
+    let y = position.y - INITIAL_POINTER_OFFSET_Y;
 
     if (x + popup.width > viewportWidth) {
       x = viewportWidth - popup.width - 8;
@@ -368,18 +372,18 @@ export default function VotePopup({
   return (
     <div
       ref={popupRef}
-      className="fixed z-50 w-64 rounded-lg border border-gray-200 bg-white shadow-lg"
+      className="fixed z-50 w-64 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-elevated)] shadow-lg"
       style={{ top: pos.y, left: pos.x }}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
       <div
-        className="flex cursor-move select-none items-center justify-between border-b border-gray-100 px-4 py-3"
+        className="flex cursor-move select-none items-center justify-between border-b border-[color:var(--page-theme-border-secondary)] px-4 py-3"
         onMouseDown={handleDragStart}
       >
         <div className="flex items-center gap-2">
           <div
-            className="h-5 w-5 shrink-0 cursor-pointer rounded border border-gray-300"
+            className="h-5 w-5 shrink-0 cursor-pointer rounded border border-[color:var(--page-theme-border-secondary)]"
             style={
               selectedCell.color
                 ? { backgroundColor: selectedCell.color }
@@ -388,7 +392,7 @@ export default function VotePopup({
                     backgroundImage: CHECKER_PATTERN,
                     backgroundPosition: "0 0, 4px 4px",
                     backgroundSize: "8px 8px",
-                  }
+                }
             }
             onClick={(event) => {
               event.stopPropagation();
@@ -397,7 +401,7 @@ export default function VotePopup({
               }
             }}
           />
-          <p className="text-sm font-semibold">
+          <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
             ({selectedCell.x}, {selectedCell.y})
           </p>
         </div>
@@ -407,7 +411,7 @@ export default function VotePopup({
             event.stopPropagation();
             onClose();
           }}
-          className="text-lg leading-none text-gray-400 hover:text-gray-600"
+          className="text-lg leading-none text-[color:var(--page-theme-text-tertiary)] hover:text-[color:var(--page-theme-text-primary)]"
         >
           ×
         </button>
@@ -416,25 +420,27 @@ export default function VotePopup({
       <div className="flex flex-col gap-3 p-4">
         {voteEntries.length > 0 && (
           <div>
-            <p className="mb-2 text-xs font-medium">실시간 현황</p>
+            <p className="mb-2 text-xs font-medium text-[color:var(--page-theme-text-secondary)]">
+              실시간 현황
+            </p>
             <div className="flex max-h-[72px] flex-col gap-1 overflow-y-auto">
               {voteEntries.map(({ color: entryColor, count }) => (
                 <button
                   key={entryColor}
-                  className="flex w-full items-center gap-2 rounded px-1 py-0.5 hover:bg-gray-50"
+                  className="flex w-full items-center gap-2 rounded px-1 py-0.5 hover:bg-[color:var(--page-theme-surface-secondary)]"
                   onClick={(event) => {
                     event.stopPropagation();
                     handleColorChange(entryColor);
                   }}
                 >
                   <div
-                    className="h-3 w-3 shrink-0 rounded-sm border border-gray-200"
+                    className="h-3 w-3 shrink-0 rounded-sm border border-[color:var(--page-theme-border-secondary)]"
                     style={{ backgroundColor: entryColor }}
                   />
-                  <span className="w-14 shrink-0 text-left text-xs text-gray-500">
+                  <span className="w-14 shrink-0 text-left text-xs text-[color:var(--page-theme-text-secondary)]">
                     {entryColor}
                   </span>
-                  <div className="h-2 flex-1 rounded bg-gray-100">
+                  <div className="h-2 flex-1 rounded bg-[color:var(--page-theme-surface-secondary)]">
                     <div
                       className="h-2 rounded transition-all"
                       style={{
@@ -443,7 +449,7 @@ export default function VotePopup({
                       }}
                     />
                   </div>
-                  <span className="w-4 shrink-0 text-right text-xs text-gray-500">
+                  <span className="w-4 shrink-0 text-right text-xs text-[color:var(--page-theme-text-secondary)]">
                     {count}
                   </span>
                 </button>
@@ -472,10 +478,14 @@ export default function VotePopup({
         </Button>
 
         {!isVotingPhase && (
-          <p className="text-sm text-gray-500">{phaseBlockedMessage}</p>
+          <p className="text-sm text-[color:var(--page-theme-text-secondary)]">
+            {phaseBlockedMessage}
+          </p>
         )}
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && (
+          <p className="text-sm text-[color:var(--page-theme-alert)]">{error}</p>
+        )}
       </div>
     </div>
   );

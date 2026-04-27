@@ -81,8 +81,8 @@ export default function CoordinateNavigator({
     <div className="flex flex-col gap-2">
       <div className="grid grid-cols-[5fr_2fr] gap-2">
         <div className="grid grid-rows-2 gap-2">
-          <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3">
-            <span className="shrink-0 text-xs font-medium text-gray-500">
+          <div className="flex items-center gap-2 rounded-md border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3">
+            <span className="shrink-0 text-xs font-medium text-[color:var(--page-theme-text-secondary)]">
               X :
             </span>
             <input
@@ -91,12 +91,12 @@ export default function CoordinateNavigator({
               value={xInput}
               onChange={handleNumericChange(setXInput)}
               onKeyDown={handleKeyDown}
-              className="h-9 w-full border-0 bg-transparent text-sm outline-none"
+              className="h-9 w-full border-0 bg-transparent text-sm text-[color:var(--page-theme-text-primary)] outline-none"
             />
           </div>
 
-          <div className="flex items-center gap-2 rounded-md border border-gray-200 bg-white px-3">
-            <span className="shrink-0 text-xs font-medium text-gray-500">
+          <div className="flex items-center gap-2 rounded-md border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3">
+            <span className="shrink-0 text-xs font-medium text-[color:var(--page-theme-text-secondary)]">
               Y :
             </span>
             <input
@@ -105,7 +105,7 @@ export default function CoordinateNavigator({
               value={yInput}
               onChange={handleNumericChange(setYInput)}
               onKeyDown={handleKeyDown}
-              className="h-9 w-full border-0 bg-transparent text-sm outline-none"
+              className="h-9 w-full border-0 bg-transparent text-sm text-[color:var(--page-theme-text-primary)] outline-none"
             />
           </div>
         </div>
@@ -120,7 +120,9 @@ export default function CoordinateNavigator({
         </Button>
       </div>
 
-      {error && <p className="text-xs text-red-500">{error}</p>}
+      {error && (
+        <p className="text-xs text-[color:var(--page-theme-alert)]">{error}</p>
+      )}
     </div>
   );
 }
