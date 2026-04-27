@@ -3,7 +3,5 @@ interface ErrorScreenProps {
 }
 
 export default function ErrorScreen({ message }: ErrorScreenProps) {
-  return (
-    <div className="flex h-screen items-center justify-center">{message}</div>
-  );
+  return <div className="flex h-full w-full items-center justify-center">{message}</div>;
 }

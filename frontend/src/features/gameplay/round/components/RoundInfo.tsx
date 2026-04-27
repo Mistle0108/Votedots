@@ -44,26 +44,30 @@ export default function RoundInfo({
     : 100;
 
   const progressColor =
-    phase === GAME_PHASE.ROUND_ACTIVE ? "bg-red-500" : "bg-gray-400";
+    phase === GAME_PHASE.ROUND_ACTIVE
+      ? "var(--page-theme-alert)"
+      : "var(--page-theme-primary-action)";
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1 rounded-lg border border-gray-200 p-3">
+      <div className="flex flex-col gap-1 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3">
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="font-medium">상태</span>
-          <span className="text-gray-500">{getPhaseLabel(phase)}</span>
+          <span className="text-[color:var(--page-theme-primary-action)]">
+            {getPhaseLabel(phase)}
+          </span>
         </div>
 
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="font-medium">라운드</span>
-          <span className="text-gray-500">
+          <span className="text-[color:var(--page-theme-text-secondary)]">
             {roundNumber ? `${roundNumber}/${totalRounds}` : "-"}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-3 text-sm">
           <span className="font-medium">투표자</span>
-          <span className="text-gray-500">
+          <span className="text-[color:var(--page-theme-text-secondary)]">
             {votingParticipantCount !== null
               ? `${votingParticipantCount}명`
               : "-"}
@@ -71,21 +75,28 @@ export default function RoundInfo({
         </div>
 
         <div className="flex justify-center">
-          <span className="text-2xl font-bold leading-none text-red-500">
+          <span className="text-2xl font-bold leading-none text-[color:var(--page-theme-alert)]">
             {formattedRemainingTime ?? "-"}
           </span>
         </div>
 
-        <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+        <div className="h-2 w-full overflow-hidden rounded-full bg-[color:var(--page-theme-alert-soft)]">
           <div
-            className={`h-full rounded-full ${progressColor}`}
-            style={{ width: `${progressPercent}%` }}
+            className="h-full rounded-full"
+            style={{
+              width: `${progressPercent}%`,
+              backgroundColor: progressColor,
+            }}
           />
         </div>
 
         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium text-gray-600">게임 종료</span>
-          <span className="text-gray-500">{formattedGameEndTime ?? "-"}</span>
+          <span className="font-medium text-[color:var(--page-theme-text-secondary)]">
+            게임 종료
+          </span>
+          <span className="text-[color:var(--page-theme-text-secondary)]">
+            {formattedGameEndTime ?? "-"}
+          </span>
         </div>
       </div>
     </div>
