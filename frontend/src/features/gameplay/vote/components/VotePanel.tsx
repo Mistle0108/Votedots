@@ -81,7 +81,7 @@ export default function VotePanel({
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <div className="flex flex-col items-center gap-2">
-        <BrandLogo className="mx-auto w-40" />
+        <BrandLogo variant="wordmark" className="mx-auto w-40" />
         <MyInfoCard participants={participants} />
       </div>
 

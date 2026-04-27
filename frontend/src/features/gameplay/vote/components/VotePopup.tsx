@@ -33,6 +33,9 @@ interface Props {
   onClose: () => void;
 }
 
+const INITIAL_POINTER_OFFSET_X = 190;
+const INITIAL_POINTER_OFFSET_Y = 120;
+
 function getPhaseBlockedMessage(phase: GamePhase): string {
   switch (phase) {
     case GAME_PHASE.INTRO:
@@ -298,7 +301,8 @@ export default function VotePopup({
     const popup = popupRef.current.getBoundingClientRect();
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    let { x, y } = position;
+    let x = position.x + INITIAL_POINTER_OFFSET_X;
+    let y = position.y - INITIAL_POINTER_OFFSET_Y;
 
     if (x + popup.width > viewportWidth) {
       x = viewportWidth - popup.width - 8;
