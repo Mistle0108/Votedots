@@ -22,7 +22,7 @@
   <line class="grid" x1="265" y1="589" x2="759" y2="589"/>
 
   <!-- Center purple circle -->
-  <circle cx="512" cy="507" r="50" fill="url(#purpleGrad)"/>
+  <circle cx="512" cy="507" r="50" fill="#DE5548"/>
 
   <!-- Top green bubble -->
   <path d="M468 116
