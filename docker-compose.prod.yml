@@ -35,6 +35,7 @@ services:
     volumes:
       - ./frontend/public/result-templates:/app/result-templates:ro
       - ../votedots_local_storage:/votedots-storage
+      - ../votedots_login_board:/votedots-login-board
     networks:
       - default
       - shared-db-network
