@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi, type Voter } from "@/features/auth";
+import { useI18n } from "@/shared/i18n";
 import { Button } from "@/shared/ui/button";
 import type { ParticipantItem } from "../api/session.api";
 
@@ -10,6 +11,7 @@ interface MyInfoCardProps {
 
 export default function MyInfoCard({ participants }: MyInfoCardProps) {
   const navigate = useNavigate();
+  const { t } = useI18n();
 
   const [voter, setVoter] = useState<Voter | null>(null);
   const [loading, setLoading] = useState(true);
@@ -36,7 +38,7 @@ export default function MyInfoCard({ participants }: MyInfoCardProps) {
           return;
         }
 
-        setError("내 정보를 불러오지 못했습니다.");
+        setError(t("session.myInfoLoadFailed"));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -59,7 +61,7 @@ export default function MyInfoCard({ participants }: MyInfoCardProps) {
       await authApi.logout();
       navigate("/login", { replace: true });
     } catch {
-      setError("로그아웃 중 오류가 발생했습니다.");
+      setError(t("session.logoutFailed"));
     } finally {
       setLogoutLoading(false);
     }
@@ -73,7 +75,7 @@ export default function MyInfoCard({ participants }: MyInfoCardProps) {
     <section className="w-full">
       {loading ? (
         <p className="text-sm text-[color:var(--page-theme-text-tertiary)]">
-          내 정보를 불러오는 중...
+          {t("session.loadingMyInfo")}
         </p>
       ) : error ? (
         <p className="text-sm text-[color:var(--page-theme-alert)]">{error}</p>
@@ -96,12 +98,12 @@ export default function MyInfoCard({ participants }: MyInfoCardProps) {
             onClick={handleLogout}
             disabled={logoutLoading}
           >
-            {logoutLoading ? "로그아웃 중..." : "로그아웃"}
+            {logoutLoading ? t("session.loggingOut") : t("session.logout")}
           </Button>
         </div>
       ) : (
         <p className="text-sm text-[color:var(--page-theme-text-tertiary)]">
-          표시할 사용자 정보가 없습니다.
+          {t("session.noUserInfo")}
         </p>
       )}
     </section>

@@ -8,7 +8,9 @@ import {
   type GamePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
 import { getGameConfig } from "@/shared/config/game-config";
+import { useI18n } from "@/shared/i18n";
 import { BrandLogo } from "@/shared/ui/brand-logo";
+import LanguageSwitcher from "@/shared/ui/language-switcher";
 import { MAX_VOTE_PANEL_ENTRIES } from "../model/vote.constants";
 import { buildVotePanelEntries } from "../model/vote.utils";
 
@@ -67,6 +69,7 @@ export default function VotePanel({
   viewport,
   onNavigateToCoordinate,
 }: Props) {
+  const { t } = useI18n();
   const votesPerRound = getGameConfig().rules.votesPerRound;
   const voteEntries = buildVotePanelEntries(votes, cells).slice(
     0,
@@ -81,6 +84,10 @@ export default function VotePanel({
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <div className="flex flex-col items-center gap-2">
+        <div className="flex w-full justify-end">
+          <LanguageSwitcher />
+        </div>
+
         <BrandLogo variant="wordmark" className="mx-auto w-40" />
         <MyInfoCard participants={participants} />
       </div>
@@ -98,7 +105,7 @@ export default function VotePanel({
 
       <div className="flex min-h-2 items-center justify-between gap-3">
         <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
-          남은 투표권
+          {t("vote.remainingVotes")}
         </p>
         {isVotingPhase && remaining !== null ? (
           <span className="text-sm font-bold text-[color:var(--page-theme-primary-action)]">
@@ -133,7 +140,7 @@ export default function VotePanel({
 
       <div className="flex flex-col gap-1">
         <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
-          투표 현황
+          {t("vote.status")}
         </p>
         <div className="flex flex-col gap-1.5 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3">
           {slots.map((entry, index) => (

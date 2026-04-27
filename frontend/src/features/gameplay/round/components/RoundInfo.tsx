@@ -6,19 +6,23 @@ import {
   GAME_PHASE,
   type GamePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
+import { useI18n } from "@/shared/i18n";
 
-function getPhaseLabel(phase: GamePhase): string {
+function getPhaseLabel(
+  phase: GamePhase,
+  translate: (key: string) => string,
+): string {
   switch (phase) {
     case GAME_PHASE.INTRO:
-      return "게임 시작 안내";
+      return translate("round.phase.intro");
     case GAME_PHASE.ROUND_START_WAIT:
-      return "라운드 시작 대기";
+      return translate("round.phase.startWait");
     case GAME_PHASE.ROUND_ACTIVE:
-      return "라운드 진행 중";
+      return translate("round.phase.active");
     case GAME_PHASE.ROUND_RESULT:
-      return "라운드 결과 집계 중";
+      return translate("round.phase.result");
     case GAME_PHASE.GAME_END:
-      return "게임 종료";
+      return translate("round.phase.gameEnd");
     default:
       return "-";
   }
@@ -34,6 +38,8 @@ export default function RoundInfo({
   roundDurationSec,
   votingParticipantCount,
 }: RoundInfoProps) {
+  const { t } = useI18n();
+  const phaseLabel = getPhaseLabel(phase, t);
   const showProgress =
     remainingSeconds !== null &&
     roundDurationSec !== null &&
@@ -52,24 +58,27 @@ export default function RoundInfo({
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-1 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3">
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium">상태</span>
-          <span className="text-[color:var(--page-theme-primary-action)]">
-            {getPhaseLabel(phase)}
+          <span className="font-medium">{t("round.status")}</span>
+          <span
+            className="max-w-[132px] truncate text-right text-[color:var(--page-theme-primary-action)]"
+            title={phaseLabel}
+          >
+            {phaseLabel}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium">라운드</span>
+          <span className="font-medium">{t("round.round")}</span>
           <span className="text-[color:var(--page-theme-text-secondary)]">
             {roundNumber ? `${roundNumber}/${totalRounds}` : "-"}
           </span>
         </div>
 
         <div className="flex items-center justify-between gap-3 text-sm">
-          <span className="font-medium">투표자</span>
+          <span className="font-medium">{t("round.voters")}</span>
           <span className="text-[color:var(--page-theme-text-secondary)]">
             {votingParticipantCount !== null
-              ? `${votingParticipantCount}명`
+              ? t("round.peopleCount", { count: votingParticipantCount })
               : "-"}
           </span>
         </div>
@@ -92,7 +101,7 @@ export default function RoundInfo({
 
         <div className="mt-3 flex items-center justify-between gap-3 text-sm">
           <span className="font-medium text-[color:var(--page-theme-text-secondary)]">
-            게임 종료
+            {t("round.gameEnd")}
           </span>
           <span className="text-[color:var(--page-theme-text-secondary)]">
             {formattedGameEndTime ?? "-"}

@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import { useI18n } from "@/shared/i18n";
 import { downloadBlobFile } from "@/shared/lib/download-file";
 import {
   canDownloadSnapshot,
@@ -9,6 +10,7 @@ import {
 type SnapshotDownloadStatus = "idle" | "loading" | "error";
 
 export function useSnapshotDownload(meta: SnapshotDownloadMeta) {
+  const { t } = useI18n();
   const [status, setStatus] = useState<SnapshotDownloadStatus>("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -34,9 +36,9 @@ export function useSnapshotDownload(meta: SnapshotDownloadMeta) {
     } catch (error) {
       console.error("[snapshot-download] failed:", error);
       setStatus("error");
-      setErrorMessage("이미지 다운로드에 실패했습니다. 다시 시도해 주세요.");
+      setErrorMessage(t("gameSummary.downloadError"));
     }
-  }, [canDownload, meta]);
+  }, [canDownload, meta, t]);
 
   const resetError = useCallback(() => {
     setStatus("idle");

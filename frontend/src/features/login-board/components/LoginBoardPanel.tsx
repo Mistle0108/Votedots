@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
 import { loginBoardApi } from "../api/login-board.api";
+import { useI18n } from "@/shared/i18n";
 import { Button } from "@/shared/ui/button";
 import type { LoginBoardPayload, LoginBoardTab } from "../model/board.types";
 import PatchNotesPanel from "./PatchNotesPanel";
 import RoadmapPanel from "./RoadmapPanel";
 
 export default function LoginBoardPanel() {
+  const { t } = useI18n();
   const [activeTab, setActiveTab] = useState<LoginBoardTab>("patches");
   const [boardData, setBoardData] = useState<LoginBoardPayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -32,7 +34,7 @@ export default function LoginBoardPanel() {
         }
 
         console.error("[login-board] failed to fetch board data:", err);
-        setError("게시판 내용을 불러오지 못했어요.");
+        setError(t("loginBoard.loadError"));
       } finally {
         if (!cancelled) {
           setLoading(false);
@@ -45,17 +47,17 @@ export default function LoginBoardPanel() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   return (
     <div className="flex h-full min-h-screen flex-col px-5 py-6 text-left lg:px-7 lg:py-8">
       <div className="space-y-3">
         <div className="space-y-1.5">
           <p className="text-sm font-medium text-[color:var(--color-text-tertiary)]">
-            Update board
+            {t("loginBoard.subtitle")}
           </p>
           <h1 className="m-0 text-[2rem] font-semibold tracking-tight text-[color:var(--color-text-primary)]">
-            Plan Board
+            {t("loginBoard.title")}
           </h1>
         </div>
 
@@ -67,7 +69,7 @@ export default function LoginBoardPanel() {
             className="rounded-md px-3 text-[13px]"
             onClick={() => setActiveTab("patches")}
           >
-            Patch Notes
+            {t("loginBoard.tab.patches")}
           </Button>
           <Button
             type="button"
@@ -76,7 +78,7 @@ export default function LoginBoardPanel() {
             className="rounded-md px-3 text-[13px]"
             onClick={() => setActiveTab("roadmap")}
           >
-            Roadmaps
+            {t("loginBoard.tab.roadmap")}
           </Button>
         </div>
       </div>
@@ -84,7 +86,7 @@ export default function LoginBoardPanel() {
       <div className="mt-5 flex min-h-[520px] flex-1 flex-col overflow-hidden rounded-lg border-[0.5px] border-[color:var(--color-border-primary)] bg-[color:var(--color-background-secondary)] p-3 lg:min-h-[620px]">
         {loading ? (
           <div className="flex h-full min-h-[320px] items-center justify-center text-sm text-[color:var(--color-text-tertiary)]">
-            게시판을 불러오는 중입니다...
+            {t("loginBoard.loading")}
           </div>
         ) : error ? (
           <div className="flex h-full min-h-[320px] items-center justify-center px-6 text-center text-sm text-[color:var(--color-accent-red)]">

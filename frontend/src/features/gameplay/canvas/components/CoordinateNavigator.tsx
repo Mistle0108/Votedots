@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useI18n } from "@/shared/i18n";
 import { Button } from "@/shared/ui/button";
 
 interface Props {
@@ -16,6 +17,7 @@ export default function CoordinateNavigator({
   selectedY,
   onNavigate,
 }: Props) {
+  const { t } = useI18n();
   const [xInput, setXInput] = useState(() =>
     selectedX !== null ? String(selectedX) : "0",
   );
@@ -48,7 +50,7 @@ export default function CoordinateNavigator({
 
   const handleSubmit = () => {
     if (xInput === "" || yInput === "") {
-      setError("X, Y 좌표를 입력해 주세요.");
+      setError(t("coordinate.required"));
       return;
     }
 
@@ -56,14 +58,12 @@ export default function CoordinateNavigator({
     const nextY = Number.parseInt(yInput, 10);
 
     if (Number.isNaN(nextX) || Number.isNaN(nextY)) {
-      setError("X, Y 좌표는 숫자만 입력할 수 있습니다.");
+      setError(t("coordinate.numbersOnly"));
       return;
     }
 
     if (nextX < 0 || nextX >= gridX || nextY < 0 || nextY >= gridY) {
-      setError(
-        `이동 가능한 범위는 X: 0-${gridX - 1}, Y: 0-${gridY - 1} 입니다.`,
-      );
+      setError(t("coordinate.range", { maxX: gridX - 1, maxY: gridY - 1 }));
       return;
     }
 
@@ -116,7 +116,7 @@ export default function CoordinateNavigator({
           className="h-full w-full"
           onClick={handleSubmit}
         >
-          이동
+          {t("coordinate.move")}
         </Button>
       </div>
 

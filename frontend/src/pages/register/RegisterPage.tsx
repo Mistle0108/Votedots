@@ -1,11 +1,15 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
+import { useI18n } from "@/shared/i18n";
+import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
+import LanguageSwitcher from "@/shared/ui/language-switcher";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
+  const { locale, t } = useI18n();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [nickname, setNickname] = useState("");
@@ -21,9 +25,11 @@ export default function RegisterPage() {
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const axiosErr = err as { response: { data: { message: string } } };
-        setError(axiosErr.response.data.message);
+        setError(
+          translateServerMessage(axiosErr.response.data.message, t, locale),
+        );
       } else {
-        setError("회원가입 중 오류가 발생했어요.");
+        setError(t("auth.register.errorFallback"));
       }
     }
   };
@@ -31,11 +37,17 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex w-full max-w-sm flex-col gap-6">
+        <div className="flex justify-end">
+          <LanguageSwitcher />
+        </div>
+
         <BrandLogo variant="full" className="mx-auto w-60" />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">아이디</label>
+            <label className="text-sm font-medium">
+              {t("auth.register.usernameLabel")}
+            </label>
             <input
               type="text"
               value={username}
@@ -46,7 +58,9 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">닉네임</label>
+            <label className="text-sm font-medium">
+              {t("auth.register.nicknameLabel")}
+            </label>
             <input
               type="text"
               value={nickname}
@@ -57,7 +71,9 @@ export default function RegisterPage() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium">비밀번호</label>
+            <label className="text-sm font-medium">
+              {t("auth.register.passwordLabel")}
+            </label>
             <input
               type="password"
               value={password}
@@ -70,14 +86,14 @@ export default function RegisterPage() {
           {error && <p className="text-sm text-red-500">{error}</p>}
 
           <Button type="submit" className="w-full">
-            회원가입
+            {t("auth.register.submit")}
           </Button>
         </form>
 
         <p className="text-center text-sm">
-          이미 계정이 있으신가요?{" "}
+          {t("auth.register.hasAccount")}{" "}
           <Link to="/login" className="underline">
-            로그인
+            {t("auth.register.login")}
           </Link>
         </p>
       </div>

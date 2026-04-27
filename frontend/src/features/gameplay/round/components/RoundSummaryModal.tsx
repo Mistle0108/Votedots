@@ -1,5 +1,6 @@
 import { useEffect, type MouseEvent } from "react";
 import type { RoundSummaryData } from "@/features/gameplay/session/api/session.api";
+import { useI18n } from "@/shared/i18n";
 
 interface RoundSummaryModalProps {
   open: boolean;
@@ -17,19 +18,25 @@ function hasMostVotedCell(summary: RoundSummaryData) {
   );
 }
 
-function renderParticipantCopy(count: number) {
+function renderParticipantCopy(
+  count: number,
+  translate: (key: string, params?: Record<string, string | number>) => string,
+  locale: "ko" | "en",
+) {
   if (count > 0) {
     return (
       <>
         <span className="text-[22px] text-[color:var(--page-theme-alert)]">
           {count}
         </span>
-        명이 투표에 참여했어요
+        {count === 1 && locale === "en"
+          ? translate("roundSummary.participantVotedSingular")
+          : translate("roundSummary.participantsVoted")}
       </>
     );
   }
 
-  return "참여자가 없어요.";
+  return translate("roundSummary.noParticipants");
 }
 
 export default function RoundSummaryModal({
@@ -40,6 +47,8 @@ export default function RoundSummaryModal({
   onClose,
   onDragStart,
 }: RoundSummaryModalProps) {
+  const { formatPercent, locale, t } = useI18n();
+
   useEffect(() => {
     if (!open || !summary) {
       return;
@@ -91,14 +100,14 @@ export default function RoundSummaryModal({
           onMouseDown={onDragStart}
         >
           <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
-            {summary.roundNumber} 라운드 결과
+            {t("roundSummary.title", { round: summary.roundNumber })}
           </p>
 
           <button
             type="button"
             onClick={onClose}
             className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[color:var(--page-theme-text-tertiary)] hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
-            aria-label="라운드 결과 닫기"
+            aria-label={t("roundSummary.close")}
           >
             ×
           </button>
@@ -115,7 +124,9 @@ export default function RoundSummaryModal({
               >
                 <img
                   src={roundSnapshot}
-                  alt={`${summary.roundNumber} 라운드 스냅샷`}
+                  alt={t("roundSummary.snapshotAlt", {
+                    round: summary.roundNumber,
+                  })}
                   className="block w-full rounded border border-[color:var(--page-theme-border-secondary)] bg-transparent"
                   style={{ imageRendering: "pixelated" }}
                   draggable={false}
@@ -127,50 +138,48 @@ export default function RoundSummaryModal({
             )}
 
             <section className="space-y-3 text-left text-[15px] font-bold leading-7 text-[color:var(--page-theme-text-secondary)]">
-              <p>{renderParticipantCopy(summary.participantCount)}</p>
+              <p>{renderParticipantCopy(summary.participantCount, t, locale)}</p>
               <p>
-                이번 라운드 총{" "}
                 <span className="text-[22px] text-[color:var(--page-theme-alert)]">
                   {summary.totalVotes}
-                </span>
-                표가 모였어요
+                </span>{" "}
+                {t("roundSummary.totalVotes")}
               </p>
               <p>
-                이번 라운드에서{" "}
                 <span className="text-[22px] text-[color:var(--page-theme-alert)]">
                   {summary.paintedCellCount}
                 </span>
-                개를 색칠했어요
+                {t("roundSummary.paintedCells")}
               </p>
               <p>
-                캔버스 진행도{" "}
+                {t("roundSummary.progress")}{" "}
                 <span className="text-[22px] text-[color:var(--page-theme-alert)]">
-                  {progressPercent}
+                  {formatPercent(progressPercent)}
                 </span>
-                %
               </p>
             </section>
 
             <section className="space-y-3 rounded-2xl border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)] px-5 py-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
               {hasMostVotedCell(summary) ? (
                 <p>
-                  가장 인기 있었던 칸은 ({summary.mostVotedCellX},{" "}
-                  {summary.mostVotedCellY}) 였어요.
+                  {t("roundSummary.mostPopularPrefix")} (
+                  {summary.mostVotedCellX}, {summary.mostVotedCellY})
+                  {t("roundSummary.mostPopularSuffix")}
                 </p>
               ) : (
-                <p>가장 인기 있는 칸은 없어요.</p>
+                <p>{t("roundSummary.noPopularCell")}</p>
               )}
               <p>
-                동점 추첨으로 결정된 칸은{" "}
+                {t("roundSummary.randomResolvedPrefix")}{" "}
                 {summary.randomResolvedCellCount > 0 ? (
                   <>
                     <span className="font-bold text-[color:var(--page-theme-text-primary)]">
                       {summary.randomResolvedCellCount}
                     </span>
-                    개였어요.
+                    {t("roundSummary.randomResolvedSuffix")}
                   </>
                 ) : (
-                  "없어요."
+                  t("common.none")
                 )}
               </p>
             </section>

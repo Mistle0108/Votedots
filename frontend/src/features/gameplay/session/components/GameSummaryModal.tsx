@@ -4,32 +4,13 @@ import type {
   GameSummaryParticipant,
   GameSummaryTopVoter,
 } from "@/features/gameplay/session/api/session.api";
+import { useI18n } from "@/shared/i18n";
 import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
 
 interface GameSummaryModalProps {
   summary: GameSummaryData;
   snapshotUrl?: string | null;
   onClose: () => void;
-}
-
-function formatNumber(value: number | null | undefined) {
-  return (value ?? 0).toLocaleString("ko-KR");
-}
-
-function formatPercentText(value: string | number | null | undefined) {
-  if (value === null || value === undefined || value === "") {
-    return "0%";
-  }
-
-  const numericValue = Number(value);
-
-  if (!Number.isFinite(numericValue)) {
-    return `${value}%`;
-  }
-
-  return `${numericValue.toLocaleString("ko-KR", {
-    maximumFractionDigits: 2,
-  })}%`;
 }
 
 function HighlightNumber({ children }: { children: ReactNode }) {
@@ -40,15 +21,33 @@ function HighlightNumber({ children }: { children: ReactNode }) {
   );
 }
 
-function NumberText({ value }: { value: number | null | undefined }) {
+function NumberText({
+  value,
+  formatNumber,
+}: {
+  value: number | null | undefined;
+  formatNumber: (value: number | null | undefined) => string;
+}) {
   return <HighlightNumber>{formatNumber(value)}</HighlightNumber>;
 }
 
-function PercentText({ value }: { value: string | number | null | undefined }) {
-  return <HighlightNumber>{formatPercentText(value)}</HighlightNumber>;
+function PercentText({
+  value,
+  formatPercent,
+}: {
+  value: string | number | null | undefined;
+  formatPercent: (value: number | string | null | undefined) => string;
+}) {
+  return <HighlightNumber>{formatPercent(value)}</HighlightNumber>;
 }
 
-function CellCoordinate({ summary }: { summary: GameSummaryData }) {
+function CellCoordinate({
+  summary,
+  formatNumber,
+}: {
+  summary: GameSummaryData;
+  formatNumber: (value: number | null | undefined) => string;
+}) {
   if (
     typeof summary.mostVotedCellX !== "number" ||
     typeof summary.mostVotedCellY !== "number"
@@ -58,39 +57,62 @@ function CellCoordinate({ summary }: { summary: GameSummaryData }) {
 
   return (
     <>
-      (<NumberText value={summary.mostVotedCellX} />,{" "}
-      <NumberText value={summary.mostVotedCellY} />)
+      (
+      <NumberText value={summary.mostVotedCellX} formatNumber={formatNumber} />,{" "}
+      <NumberText value={summary.mostVotedCellY} formatNumber={formatNumber} />
+      )
     </>
   );
 }
 
 function VoterName({
   voter,
+  formatNumber,
 }: {
   voter: GameSummaryTopVoter | GameSummaryParticipant;
+  formatNumber: (value: number | null | undefined) => string;
 }) {
   return `${voter.name} #${formatNumber(voter.voterId)}`;
 }
 
 function VoterList({
   voters,
+  formatNumber,
+  emptyLabel = "-",
   limit = 6,
+  listStyle = "inline",
 }: {
   voters: Array<GameSummaryTopVoter | GameSummaryParticipant> | null;
+  formatNumber: (value: number | null | undefined) => string;
+  emptyLabel?: string;
   limit?: number;
+  listStyle?: "inline" | "list";
 }) {
   if (!voters || voters.length === 0) {
-    return <span>-</span>;
+    return <span>{emptyLabel}</span>;
   }
 
   const visibleVoters = voters.slice(0, limit);
+
+  if (listStyle === "list") {
+    return (
+      <ul className="space-y-1">
+        {visibleVoters.map((voter) => (
+          <li key={voter.voterId} className="list-none">
+            - <VoterName voter={voter} formatNumber={formatNumber} />
+          </li>
+        ))}
+        {voters.length > limit ? <li className="list-none">- ...</li> : null}
+      </ul>
+    );
+  }
 
   return (
     <>
       {visibleVoters.map((voter, index) => (
         <span key={voter.voterId}>
           {index > 0 ? ", " : ""}
-          <VoterName voter={voter} />
+          <VoterName voter={voter} formatNumber={formatNumber} />
         </span>
       ))}
       {voters.length > limit ? ", ..." : ""}
@@ -101,14 +123,28 @@ function VoterList({
 function ColorStat({
   color,
   count,
+  formatNumber,
+  emptyLabel = "-",
+  wrapCount = false,
   suffix,
 }: {
   color: string | null;
   count: number;
+  formatNumber: (value: number | null | undefined) => string;
+  emptyLabel?: string;
+  wrapCount?: boolean;
   suffix: string;
 }) {
   if (!color) {
-    return <span>-</span>;
+    return (
+      <span>
+        {emptyLabel}
+        {wrapCount ? " (" : " "}
+        <NumberText value={0} formatNumber={formatNumber} />
+        {suffix}
+        {wrapCount ? ")" : ""}
+      </span>
+    );
   }
 
   return (
@@ -118,8 +154,11 @@ function ColorStat({
         style={{ backgroundColor: color }}
       />
       <span>
-        {color} <NumberText value={count} />
+        {color}
+        {wrapCount ? " (" : " "}
+        <NumberText value={count} formatNumber={formatNumber} />
         {suffix}
+        {wrapCount ? ")" : ""}
       </span>
     </span>
   );
@@ -136,11 +175,28 @@ function StatLine({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
+function getVoteUnit(count: number | null | undefined, locale: "ko" | "en") {
+  if (locale === "en") {
+    return (count ?? 0) === 1 ? " vote" : " votes";
+  }
+
+  return "표";
+}
+
+function getCellUnit(count: number | null | undefined, locale: "ko" | "en") {
+  if (locale === "en") {
+    return (count ?? 0) === 1 ? " cell" : " cells";
+  }
+
+  return "칸";
+}
+
 export default function GameSummaryModal({
   summary,
   snapshotUrl,
   onClose,
 }: GameSummaryModalProps) {
+  const { formatNumber, formatPercent, locale, t } = useI18n();
   const finalSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
   const {
     canDownload: canDownloadDefaultSnapshot,
@@ -200,14 +256,14 @@ export default function GameSummaryModal({
       >
         <div className="relative flex items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4">
           <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
-            게임 종료
+            {t("gameSummary.title")}
           </p>
 
           <button
             type="button"
             onClick={onClose}
             className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[color:var(--page-theme-text-tertiary)] hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
-            aria-label="게임 종료 통계 닫기"
+            aria-label={t("gameSummary.close")}
           >
             ×
           </button>
@@ -224,7 +280,7 @@ export default function GameSummaryModal({
               >
                 <img
                   src={finalSnapshotUrl}
-                  alt="최종 캔버스 스냅샷"
+                  alt={t("gameSummary.snapshotAlt")}
                   className="block w-full rounded border border-[color:var(--page-theme-border-secondary)] bg-transparent"
                   style={{ imageRendering: "pixelated" }}
                   draggable={false}
@@ -235,7 +291,7 @@ export default function GameSummaryModal({
               </div>
             ) : (
               <div className="mx-auto flex aspect-square w-1/2 min-w-[180px] items-center justify-center rounded-2xl border border-dashed border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-4 text-center text-sm font-medium text-[color:var(--page-theme-text-tertiary)]">
-                최종 스냅샷이 없어요
+                {t("gameSummary.noSnapshot")}
               </div>
             )}
 
@@ -254,10 +310,10 @@ export default function GameSummaryModal({
                       className="inline-flex min-w-[180px] items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-2 text-sm font-semibold text-[color:var(--page-theme-text-primary)] transition hover:border-[color:var(--page-theme-primary-action)] hover:bg-[color:var(--page-theme-surface-secondary)] disabled:cursor-not-allowed disabled:border-[color:var(--page-theme-border-secondary)] disabled:bg-[color:var(--page-theme-surface-secondary)] disabled:text-[color:var(--page-theme-text-tertiary)]"
                     >
                       {isDownloadingDefaultSnapshot
-                        ? "다운로드 중..."
+                        ? t("gameSummary.downloading")
                         : defaultDownloadError
-                          ? "이미지 다시 시도"
-                          : "이미지 다운로드"}
+                          ? t("gameSummary.downloadRetry")
+                          : t("gameSummary.download")}
                     </button>
                   )}
 
@@ -273,10 +329,10 @@ export default function GameSummaryModal({
                       className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-[color:var(--page-theme-primary-action)] px-4 py-2 text-sm font-semibold text-[color:var(--page-theme-primary-action-text)] transition hover:bg-[color:var(--page-theme-primary-action-hover)] disabled:cursor-not-allowed disabled:bg-[color:var(--page-theme-border-primary)]"
                     >
                       {isDownloadingHighResolutionSnapshot
-                        ? "고화질 다운로드 중..."
+                        ? t("gameSummary.downloadingHd")
                         : highResolutionDownloadError
-                          ? "고화질 다시 시도"
-                          : "고화질 다운로드"}
+                          ? t("gameSummary.downloadHdRetry")
+                          : t("gameSummary.downloadHd")}
                     </button>
                   )}
                 </div>
@@ -297,91 +353,276 @@ export default function GameSummaryModal({
 
             <section className="space-y-4 text-[15px] leading-7 text-[color:var(--page-theme-text-secondary)]">
               <div className="space-y-1 text-left">
-                <StatLine label="총 라운드 수">
-                  총 <NumberText value={summary.totalRounds} />
-                  라운드 진행
-                </StatLine>
-                <StatLine label="투표 인원 수">
-                  총 <NumberText value={summary.participantCount} />
-                  명이 참여했어요
-                </StatLine>
-              </div>
-
-              <div className="space-y-1 text-left">
-                <StatLine label="투표권 사용률">
-                  <PercentText value={summary.ticketUsageRate} />
-                </StatLine>
-                <StatLine label="총 지급 투표권 수">
-                  총 <NumberText value={summary.issuedTicketCount} />개 투표권이
-                  발급됐어요
-                </StatLine>
-                <StatLine label="총 투표 수">
-                  총 <NumberText value={summary.totalVotes} />
-                  표가 제출됐어요
-                </StatLine>
-              </div>
-
-              <div className="space-y-1 text-left">
-                <StatLine label="완성도">
-                  캔버스 완성도{" "}
-                  <PercentText value={summary.canvasCompletionPercent} />
-                </StatLine>
-                <StatLine label="색칠된 칸 수">
-                  총 <NumberText value={summary.totalCellCount} />칸 중{" "}
-                  <NumberText value={summary.paintedCellCount} />칸 색칠
-                  되었어요
-                </StatLine>
-                <StatLine label="남은 빈 칸 수">
-                  아직 <NumberText value={summary.emptyCellCount} />
-                  칸이 비어 있어요
-                </StatLine>
-              </div>
-
-              <div className="space-y-1 text-left">
-                <StatLine label="가장 인기 있었던 칸">
-                  <CellCoordinate summary={summary} />
-                  {summary.mostVotedCellVoteCount > 0 ? (
+                <StatLine label={t("gameSummary.stat.totalRounds")}>
+                  {locale === "en" ? (
+                    <NumberText
+                      value={summary.totalRounds}
+                      formatNumber={formatNumber}
+                    />
+                  ) : (
                     <>
-                      , <NumberText value={summary.mostVotedCellVoteCount} />표
+                      <NumberText
+                        value={summary.totalRounds}
+                        formatNumber={formatNumber}
+                      />{" "}
+                      {t("gameSummary.text.roundsCompleted")}
                     </>
-                  ) : null}
+                  )}
                 </StatLine>
-                <StatLine label="랜덤 당선 칸 수">
-                  동점 추첨으로 결정된 칸은{" "}
-                  <NumberText value={summary.randomResolvedCellCount} />
-                  개였어요
+                <StatLine label={t("gameSummary.stat.participants")}>
+                  <NumberText
+                    value={summary.participantCount}
+                    formatNumber={formatNumber}
+                  />{" "}
+                  {locale === "en" && summary.participantCount === 1
+                    ? t("gameSummary.text.participantJoinedSingular")
+                    : t("gameSummary.text.participantsJoined")}
                 </StatLine>
               </div>
 
               <div className="space-y-1 text-left">
-                <StatLine label="사용 색상 수">
-                  총 <NumberText value={summary.usedColorCount} />
-                  가지 색이 사용됐어요
+                <StatLine label={t("gameSummary.stat.ticketUsage")}>
+                  <PercentText
+                    value={summary.ticketUsageRate}
+                    formatPercent={formatPercent}
+                  />
                 </StatLine>
-                <StatLine label="가장 많이 선택된 색">
+                <StatLine label={t("gameSummary.stat.issuedTickets")}>
+                  {locale === "en" ? (
+                    <NumberText
+                      value={summary.issuedTicketCount}
+                      formatNumber={formatNumber}
+                    />
+                  ) : (
+                    <>
+                      <NumberText
+                        value={summary.issuedTicketCount}
+                        formatNumber={formatNumber}
+                      />{" "}
+                      {t("gameSummary.text.issuedTickets")}
+                    </>
+                  )}
+                </StatLine>
+                <StatLine label={t("gameSummary.stat.totalVotes")}>
+                  {locale === "en" ? (
+                    <NumberText
+                      value={summary.totalVotes}
+                      formatNumber={formatNumber}
+                    />
+                  ) : (
+                    <>
+                      <NumberText
+                        value={summary.totalVotes}
+                        formatNumber={formatNumber}
+                      />{" "}
+                      {t("gameSummary.text.totalVotes")}
+                    </>
+                  )}
+                </StatLine>
+              </div>
+
+              <div className="space-y-1 text-left">
+                <StatLine
+                  label={
+                    locale === "ko"
+                      ? t("gameSummary.text.canvasCompletion")
+                      : t("gameSummary.stat.completion")
+                  }
+                >
+                  <PercentText
+                    value={summary.canvasCompletionPercent}
+                    formatPercent={formatPercent}
+                  />
+                </StatLine>
+                <StatLine label={t("gameSummary.stat.paintedCells")}>
+                  {locale === "en" ? (
+                    <>
+                      <NumberText
+                        value={summary.paintedCellCount}
+                        formatNumber={formatNumber}
+                      />{" "}
+                      /{" "}
+                      <NumberText
+                        value={summary.totalCellCount}
+                        formatNumber={formatNumber}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      총{" "}
+                      <NumberText
+                        value={summary.totalCellCount}
+                        formatNumber={formatNumber}
+                      />
+                      칸 중{" "}
+                      <NumberText
+                        value={summary.paintedCellCount}
+                        formatNumber={formatNumber}
+                      />
+                      칸 색칠되었어요
+                    </>
+                  )}
+                </StatLine>
+                <StatLine label={t("gameSummary.stat.emptyCells")}>
+                  {locale === "en" ? (
+                    <>
+                      <NumberText
+                        value={summary.emptyCellCount}
+                        formatNumber={formatNumber}
+                      />{" "}
+                      remaining
+                    </>
+                  ) : (
+                    <>
+                      <NumberText
+                        value={summary.emptyCellCount}
+                        formatNumber={formatNumber}
+                      />
+                      칸이 남아 있어요
+                    </>
+                  )}
+                </StatLine>
+              </div>
+
+              <div className="space-y-1 text-left">
+                <StatLine label={t("gameSummary.stat.mostVotedCell")}>
+                  {typeof summary.mostVotedCellX === "number" &&
+                  typeof summary.mostVotedCellY === "number" ? (
+                    locale === "en" ? (
+                      <>
+                        <CellCoordinate
+                          summary={summary}
+                          formatNumber={formatNumber}
+                        />{" "}
+                        {summary.mostVotedCellVoteCount > 0 ? (
+                          <>
+                            -{" "}
+                            <NumberText
+                              value={summary.mostVotedCellVoteCount}
+                              formatNumber={formatNumber}
+                            />
+                            {getVoteUnit(
+                              summary.mostVotedCellVoteCount,
+                              locale,
+                            )}
+                          </>
+                        ) : null}
+                      </>
+                    ) : (
+                      <>
+                        <CellCoordinate
+                          summary={summary}
+                          formatNumber={formatNumber}
+                        />
+                        {summary.mostVotedCellVoteCount > 0 ? (
+                          <>
+                            ,{" "}
+                            <NumberText
+                              value={summary.mostVotedCellVoteCount}
+                              formatNumber={formatNumber}
+                            />
+                            {t("gameSummary.text.votesSuffix")}
+                          </>
+                        ) : null}
+                      </>
+                    )
+                  ) : (
+                    "-"
+                  )}
+                </StatLine>
+                <StatLine label={t("gameSummary.stat.randomResolved")}>
+                  {locale === "en" ? (
+                    <NumberText
+                      value={summary.randomResolvedCellCount}
+                      formatNumber={formatNumber}
+                    />
+                  ) : (
+                    <>
+                      {t("gameSummary.text.randomResolvedPrefix")}{" "}
+                      <NumberText
+                        value={summary.randomResolvedCellCount}
+                        formatNumber={formatNumber}
+                      />
+                      {t("gameSummary.text.randomResolvedSuffix")}
+                    </>
+                  )}
+                </StatLine>
+              </div>
+
+              <div className="space-y-1 text-left">
+                <StatLine label={t("gameSummary.stat.usedColors")}>
+                  {locale === "en" ? (
+                    <NumberText
+                      value={summary.usedColorCount}
+                      formatNumber={formatNumber}
+                    />
+                  ) : (
+                    <>
+                      <NumberText
+                        value={summary.usedColorCount}
+                        formatNumber={formatNumber}
+                      />{" "}
+                      {t("gameSummary.text.usedColors")}
+                    </>
+                  )}
+                </StatLine>
+                <StatLine label={t("gameSummary.stat.mostSelectedColor")}>
                   <ColorStat
                     color={summary.mostSelectedColor}
                     count={summary.mostSelectedColorVoteCount}
-                    suffix="표"
+                    formatNumber={formatNumber}
+                    wrapCount={locale === "en"}
+                    suffix={getVoteUnit(
+                      summary.mostSelectedColorVoteCount,
+                      locale,
+                    )}
                   />
                 </StatLine>
-                <StatLine label="캔버스에서 가장 많이 쓰인 색">
+                <StatLine label={t("gameSummary.stat.mostPaintedColor")}>
                   <ColorStat
                     color={summary.mostPaintedColor}
                     count={summary.mostPaintedColorCellCount}
-                    suffix="칸"
+                    formatNumber={formatNumber}
+                    wrapCount={locale === "en"}
+                    suffix={getCellUnit(
+                      summary.mostPaintedColorCellCount,
+                      locale,
+                    )}
                   />
                 </StatLine>
               </div>
 
               <div className="space-y-1 text-left">
-                <StatLine label="가장 뜨거웠던 라운드">
+                <StatLine label={t("gameSummary.stat.hottestRound")}>
                   {summary.hottestRoundNumber ? (
-                    <>
-                      <NumberText value={summary.hottestRoundNumber} />
-                      라운드,{" "}
-                      <NumberText value={summary.hottestRoundVoteCount} />표
-                    </>
+                    locale === "en" ? (
+                      <>
+                        {t("round.round")}{" "}
+                        <NumberText
+                          value={summary.hottestRoundNumber}
+                          formatNumber={formatNumber}
+                        />{" "}
+                        (
+                        <NumberText
+                          value={summary.hottestRoundVoteCount}
+                          formatNumber={formatNumber}
+                        />
+                        {getVoteUnit(summary.hottestRoundVoteCount, locale)})
+                      </>
+                    ) : (
+                      <>
+                        <NumberText
+                          value={summary.hottestRoundNumber}
+                          formatNumber={formatNumber}
+                        />
+                        {t("gameSummary.text.roundSuffix")},{" "}
+                        <NumberText
+                          value={summary.hottestRoundVoteCount}
+                          formatNumber={formatNumber}
+                        />
+                        {t("gameSummary.text.votesSuffix")}
+                      </>
+                    )
                   ) : (
                     "-"
                   )}
@@ -392,19 +633,28 @@ export default function GameSummaryModal({
             <section className="space-y-3 rounded-2xl border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)] px-5 py-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
               <div>
                 <p className="mb-1 font-bold text-[color:var(--page-theme-text-primary)]">
-                  최다 투표자
+                  {t("gameSummary.stat.topVoters")}
                 </p>
-                <p>
-                  <VoterList voters={summary.topVoters} />
-                </p>
+                <div>
+                  <VoterList
+                    voters={summary.topVoters}
+                    formatNumber={formatNumber}
+                    listStyle={locale === "en" ? "list" : "inline"}
+                  />
+                </div>
               </div>
               <div>
                 <p className="mb-1 font-bold text-[color:var(--page-theme-text-primary)]">
-                  함께한 투표자
+                  {t("gameSummary.stat.allParticipants")}
                 </p>
-                <p>
-                  <VoterList voters={summary.participants} limit={8} />
-                </p>
+                <div>
+                  <VoterList
+                    voters={summary.participants}
+                    formatNumber={formatNumber}
+                    limit={8}
+                    listStyle={locale === "en" ? "list" : "inline"}
+                  />
+                </div>
               </div>
             </section>
           </div>

@@ -1,3 +1,5 @@
+import { useI18n } from "@/shared/i18n";
+
 interface IntroPanelButtonProps {
   onClick: () => void;
 }
@@ -5,6 +7,8 @@ interface IntroPanelButtonProps {
 export default function IntroPanelButton({
   onClick,
 }: IntroPanelButtonProps) {
+  const { t } = useI18n();
+
   return (
     <button
       type="button"
@@ -13,16 +17,18 @@ export default function IntroPanelButton({
     >
       <div className="min-w-0">
         <p className="text-xs font-semibold uppercase tracking-[0.08em] text-gray-400">
-          Intro
+          {t("history.introButton")}
         </p>
-        <p className="mt-1 text-base font-bold text-gray-900">게임 안내</p>
+        <p className="mt-1 text-base font-bold text-gray-900">
+          {t("intro.panel.title")}
+        </p>
         <p className="mt-1 text-sm text-gray-500">
-          언제든지 인트로 모달을 다시 열 수 있어요.
+          {t("intro.panel.description")}
         </p>
       </div>
 
       <span className="shrink-0 rounded-full bg-gray-100 px-3 py-1 text-sm font-semibold text-gray-700">
-        열기
+        {t("intro.panel.button")}
       </span>
     </button>
   );

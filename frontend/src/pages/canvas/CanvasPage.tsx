@@ -16,17 +16,19 @@ import {
 } from "@/features/gameplay/session";
 import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
+import { useI18n } from "@/shared/i18n";
 import useCanvasPage from "./model/useCanvasPage";
 import { PLAY_THEME_STYLE } from "./model/play-theme";
 
 export default function CanvasPage() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [introModalDismissed, setIntroModalDismissed] = useState(false);
 
   const handleSessionEnded = useCallback(() => {
-    window.alert("세션이 종료되었습니다. 다시 로그인해 주세요.");
+    window.alert(t("canvas.sessionEnded"));
     navigate("/login", { replace: true });
-  }, [navigate]);
+  }, [navigate, t]);
 
   const handleUnauthorized = useCallback(
     (message: string) => {
@@ -172,8 +174,8 @@ export default function CanvasPage() {
           <button
             type="button"
             className="flex h-9 w-9 items-center justify-center rounded-md border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-[color:var(--page-theme-primary-action)] shadow-sm hover:bg-[color:var(--page-theme-surface-secondary)]"
-            aria-label="초기 줌 비율로 복귀"
-            title="초기 줌 비율로 복귀"
+            aria-label={t("canvas.resetZoom")}
+            title={t("canvas.resetZoom")}
             onMouseDown={(event) => event.stopPropagation()}
             onMouseUp={(event) => event.stopPropagation()}
             onClick={(event) => {
@@ -181,7 +183,7 @@ export default function CanvasPage() {
               resetCanvasZoom();
             }}
           >
-            ⟲
+            ↺
           </button>
         }
         onMouseDown={handleMouseDown}

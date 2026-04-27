@@ -3,6 +3,7 @@ import type {
   GameSummaryData,
   RoundSummaryData,
 } from "@/features/gameplay/session/api/session.api";
+import { useI18n } from "@/shared/i18n";
 import { historyApi } from "../api/history.api";
 import {
   getGameHistoryItemId,
@@ -105,6 +106,7 @@ function upsertHistoryItem(
 }
 
 export function useCanvasHistory(canvasId: number | null) {
+  const { t } = useI18n();
   const [historyItems, setHistoryItems] = useState<GameHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -145,7 +147,7 @@ export function useCanvasHistory(canvasId: number | null) {
         setHistoryError(
           error instanceof Error
             ? error.message
-            : "히스토리를 불러오지 못했습니다.",
+            : t("history.loadFailed"),
         );
       } finally {
         if (!abortController.signal.aborted) {
@@ -159,7 +161,7 @@ export function useCanvasHistory(canvasId: number | null) {
     return () => {
       abortController.abort();
     };
-  }, [canvasId]);
+  }, [canvasId, t]);
 
   const addRoundHistoryItem = useCallback((summary: RoundSummaryData) => {
     setHistoryItems((items) =>

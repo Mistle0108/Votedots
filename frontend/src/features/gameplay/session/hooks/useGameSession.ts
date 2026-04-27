@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authApi } from "@/features/auth";
+import { useI18n } from "@/shared/i18n";
 import { SessionBootstrapResult } from "../model/session.types";
 import { useGameplayBootstrap } from "./useGameplayBootstrap";
 
@@ -138,6 +139,7 @@ export function useGameSession({
   onBootstrap,
   onUnauthorized,
 }: UseGameSessionParams) {
+  const { t } = useI18n();
   const { bootstrap } = useGameplayBootstrap();
 
   const [loading, setLoading] = useState(true);
@@ -155,11 +157,9 @@ export function useGameSession({
 
     serviceAlertShownRef.current = true;
     clearRestartPending();
-    window.alert(
-      "서비스가 원활하지 않습니다. 잠시 후 다시 이용해 주시기 바랍니다.",
-    );
+    window.alert(t("session.serviceUnavailable"));
     window.location.href = "/login";
-  }, []);
+  }, [t]);
 
   const initializeSession = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
@@ -181,12 +181,12 @@ export function useGameSession({
           if (status === 401) {
             if (!unauthorizedRedirectHandled) {
               unauthorizedRedirectHandled = true;
-              onUnauthorized("로그인이 필요합니다.");
+              onUnauthorized(t("server.auth.requiredLogin"));
             }
             return null;
           }
 
-          setError("로그인 상태를 확인하지 못했습니다.");
+          setError(t("session.authCheckFailed"));
           return null;
         }
 
@@ -204,20 +204,18 @@ export function useGameSession({
             const elapsedMs = getRestartElapsedMs();
 
             if (elapsedMs < BOOTSTRAP_RETRY_MAX_MS) {
-              setError("새 게임을 준비 중입니다. 잠시만 기다려주세요.");
+              setError(t("session.preparingGame"));
               setRetryNonce((prev) => prev + 1);
               return null;
             }
 
-            setError(
-              "서비스가 원활하지 않습니다. 잠시 후 다시 이용해 주시기 바랍니다.",
-            );
+            setError(t("session.serviceUnavailable"));
             setRetryNonce(0);
             showServiceUnavailableAlert();
             return null;
           }
 
-          setError("진행 중인 캔버스를 불러오지 못했습니다");
+          setError(t("session.loadCanvasFailed"));
           setRetryNonce(0);
           clearRestartPending();
           return null;
@@ -228,7 +226,7 @@ export function useGameSession({
         }
       }
     },
-    [bootstrap, onBootstrap, onUnauthorized, showServiceUnavailableAlert],
+    [bootstrap, onBootstrap, onUnauthorized, showServiceUnavailableAlert, t],
   );
 
   useEffect(() => {

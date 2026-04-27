@@ -2,6 +2,7 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import AccordionGroup from "./AccordionGroup";
 import MarkdownContent from "./MarkdownContent";
+import { useI18n } from "@/shared/i18n";
 import type { RoadmapQuarterGroup } from "../model/board.types";
 
 interface RoadmapPanelProps {
@@ -9,6 +10,7 @@ interface RoadmapPanelProps {
 }
 
 export default function RoadmapPanel({ groups }: RoadmapPanelProps) {
+  const { t } = useI18n();
   const [openGroupIds, setOpenGroupIds] = useState<string[]>([]);
   const [openItemId, setOpenItemId] = useState<string | null>(null);
 
@@ -52,7 +54,7 @@ export default function RoadmapPanel({ groups }: RoadmapPanelProps) {
     <div className="thin-scrollbar h-full min-h-0 overflow-y-auto pr-1">
       {sortedGroups.length === 0 ? (
         <div className="flex h-full min-h-[320px] items-center justify-center rounded-lg border border-dashed border-[color:var(--color-border-primary)] bg-[color:var(--color-background-primary)] px-6 text-center text-sm text-[color:var(--color-text-tertiary)]">
-          아직 공개된 로드맵이 없습니다.
+          {t("loginBoard.emptyRoadmaps")}
         </div>
       ) : (
         <div className="space-y-3">
