@@ -31,7 +31,7 @@ export default function RegisterPage() {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="flex w-full max-w-sm flex-col gap-6">
-        <BrandLogo className="mx-auto w-40" />
+        <BrandLogo variant="full" className="mx-auto w-40" />
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">

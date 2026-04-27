@@ -41,7 +41,7 @@ export default function LoginPage() {
 
       <div className="flex items-center justify-center px-6 py-10 lg:min-h-0 lg:overflow-hidden">
         <div className="flex w-full max-w-sm flex-col gap-6">
-          <BrandLogo className="mx-auto w-40" />
+          <BrandLogo variant="full" className="mx-auto w-40" />
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
