@@ -21,7 +21,9 @@ function renderParticipantCopy(count: number) {
   if (count > 0) {
     return (
       <>
-        <span className="text-[22px] text-red-500">{count}</span>
+        <span className="text-[22px] text-[color:var(--page-theme-alert)]">
+          {count}
+        </span>
         명이 투표에 참여했어요
       </>
     );
@@ -79,23 +81,23 @@ export default function RoundSummaryModal({
       onClick={(event) => event.stopPropagation()}
     >
       <div
-        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[560px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur"
+        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[560px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-elevated)] shadow-2xl backdrop-blur"
         style={{ top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className="relative flex cursor-move items-center justify-center border-b border-gray-100 px-5 py-4"
+          className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4"
           onMouseDown={onDragStart}
         >
-          <p className="text-center text-lg font-bold text-gray-900">
+          <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
             {summary.roundNumber} 라운드 결과
           </p>
 
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[color:var(--page-theme-text-tertiary)] hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
             aria-label="라운드 결과 닫기"
           >
             ×
@@ -106,13 +108,15 @@ export default function RoundSummaryModal({
           <div className="space-y-5">
             {roundSnapshot && (
               <div
-                className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-gray-200 p-3 shadow-sm"
-                style={{ backgroundColor: "#F1F3F5" }}
+                className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-[color:var(--page-theme-border-primary)] p-3 shadow-sm"
+                style={{
+                  backgroundColor: "var(--page-theme-surface-secondary)",
+                }}
               >
                 <img
                   src={roundSnapshot}
                   alt={`${summary.roundNumber} 라운드 스냅샷`}
-                  className="block w-full rounded border border-gray-100 bg-transparent"
+                  className="block w-full rounded border border-[color:var(--page-theme-border-secondary)] bg-transparent"
                   style={{ imageRendering: "pixelated" }}
                   draggable={false}
                   onDragStart={(event) => {
@@ -122,32 +126,32 @@ export default function RoundSummaryModal({
               </div>
             )}
 
-            <section className="space-y-3 text-left text-[15px] font-bold leading-7 text-gray-700">
+            <section className="space-y-3 text-left text-[15px] font-bold leading-7 text-[color:var(--page-theme-text-secondary)]">
               <p>{renderParticipantCopy(summary.participantCount)}</p>
               <p>
                 이번 라운드 총{" "}
-                <span className="text-[22px] text-red-500">
+                <span className="text-[22px] text-[color:var(--page-theme-alert)]">
                   {summary.totalVotes}
                 </span>
                 표가 모였어요
               </p>
               <p>
                 이번 라운드에서{" "}
-                <span className="text-[22px] text-red-500">
+                <span className="text-[22px] text-[color:var(--page-theme-alert)]">
                   {summary.paintedCellCount}
                 </span>
                 개를 색칠했어요
               </p>
               <p>
                 캔버스 진행도{" "}
-                <span className="text-[22px] text-red-500">
+                <span className="text-[22px] text-[color:var(--page-theme-alert)]">
                   {progressPercent}
                 </span>
                 %
               </p>
             </section>
 
-            <section className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-sm leading-6 text-gray-700">
+            <section className="space-y-3 rounded-2xl border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)] px-5 py-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
               {hasMostVotedCell(summary) ? (
                 <p>
                   가장 인기 있었던 칸은 ({summary.mostVotedCellX},{" "}
@@ -160,7 +164,7 @@ export default function RoundSummaryModal({
                 동점 추첨으로 결정된 칸은{" "}
                 {summary.randomResolvedCellCount > 0 ? (
                   <>
-                    <span className="font-bold text-gray-900">
+                    <span className="font-bold text-[color:var(--page-theme-text-primary)]">
                       {summary.randomResolvedCellCount}
                     </span>
                     개였어요.

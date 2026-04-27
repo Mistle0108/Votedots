@@ -33,7 +33,11 @@ function formatPercentText(value: string | number | null | undefined) {
 }
 
 function HighlightNumber({ children }: { children: ReactNode }) {
-  return <span className="text-[19px] font-bold text-red-500">{children}</span>;
+  return (
+    <span className="text-[19px] font-bold text-[color:var(--page-theme-alert)]">
+      {children}
+    </span>
+  );
 }
 
 function NumberText({ value }: { value: number | null | undefined }) {
@@ -110,7 +114,7 @@ function ColorStat({
   return (
     <span className="inline-flex items-center gap-1.5 align-middle">
       <span
-        className="h-3 w-3 rounded-full border border-gray-300"
+        className="h-3 w-3 rounded-full border border-[color:var(--page-theme-border-secondary)]"
         style={{ backgroundColor: color }}
       />
       <span>
@@ -124,7 +128,9 @@ function ColorStat({
 function StatLine({ label, children }: { label: string; children: ReactNode }) {
   return (
     <p>
-      <span className="font-bold text-gray-900">{label}: </span>
+      <span className="font-bold text-[color:var(--page-theme-text-primary)]">
+        {label}:{" "}
+      </span>
       {children}
     </p>
   );
@@ -183,24 +189,24 @@ export default function GameSummaryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-3 py-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--page-theme-overlay)] px-3 py-6"
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
       <div
-        className="pointer-events-auto flex max-h-[min(calc(100vh-80px),680px)] w-[720px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white/95 shadow-2xl backdrop-blur"
+        className="pointer-events-auto flex max-h-[min(calc(100vh-80px),680px)] w-[720px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-elevated)] shadow-2xl backdrop-blur"
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative flex items-center justify-center border-b border-gray-100 px-5 py-4">
-          <p className="text-center text-lg font-bold text-gray-900">
+        <div className="relative flex items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4">
+          <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
             게임 종료
           </p>
 
           <button
             type="button"
             onClick={onClose}
-            className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-gray-400 hover:bg-gray-100 hover:text-gray-700"
+            className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[color:var(--page-theme-text-tertiary)] hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
             aria-label="게임 종료 통계 닫기"
           >
             ×
@@ -211,13 +217,15 @@ export default function GameSummaryModal({
           <div className="space-y-5">
             {finalSnapshotUrl ? (
               <div
-                className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-gray-200 p-3 shadow-sm"
-                style={{ backgroundColor: "#F1F3F5" }}
+                className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-[color:var(--page-theme-border-primary)] p-3 shadow-sm"
+                style={{
+                  backgroundColor: "var(--page-theme-surface-secondary)",
+                }}
               >
                 <img
                   src={finalSnapshotUrl}
                   alt="최종 캔버스 스냅샷"
-                  className="block w-full rounded border border-gray-100 bg-transparent"
+                  className="block w-full rounded border border-[color:var(--page-theme-border-secondary)] bg-transparent"
                   style={{ imageRendering: "pixelated" }}
                   draggable={false}
                   onDragStart={(event) => {
@@ -226,7 +234,7 @@ export default function GameSummaryModal({
                 />
               </div>
             ) : (
-              <div className="mx-auto flex aspect-square w-1/2 min-w-[180px] items-center justify-center rounded-2xl border border-dashed border-gray-200 bg-gray-50 px-4 text-center text-sm font-medium text-gray-400">
+              <div className="mx-auto flex aspect-square w-1/2 min-w-[180px] items-center justify-center rounded-2xl border border-dashed border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-4 text-center text-sm font-medium text-[color:var(--page-theme-text-tertiary)]">
                 최종 스냅샷이 없어요
               </div>
             )}
@@ -243,7 +251,7 @@ export default function GameSummaryModal({
                           : downloadDefaultSnapshot
                       }
                       disabled={isDownloadingDefaultSnapshot}
-                      className="inline-flex min-w-[180px] items-center justify-center rounded-full border border-gray-300 bg-white px-4 py-2 text-sm font-semibold text-gray-900 transition hover:border-gray-400 hover:bg-gray-50 disabled:cursor-not-allowed disabled:border-gray-200 disabled:bg-gray-100 disabled:text-gray-400"
+                      className="inline-flex min-w-[180px] items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-2 text-sm font-semibold text-[color:var(--page-theme-text-primary)] transition hover:border-[color:var(--page-theme-primary-action)] hover:bg-[color:var(--page-theme-surface-secondary)] disabled:cursor-not-allowed disabled:border-[color:var(--page-theme-border-secondary)] disabled:bg-[color:var(--page-theme-surface-secondary)] disabled:text-[color:var(--page-theme-text-tertiary)]"
                     >
                       {isDownloadingDefaultSnapshot
                         ? "다운로드 중..."
@@ -262,7 +270,7 @@ export default function GameSummaryModal({
                           : downloadHighResolutionSnapshot
                       }
                       disabled={isDownloadingHighResolutionSnapshot}
-                      className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-gray-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-gray-700 disabled:cursor-not-allowed disabled:bg-gray-300"
+                      className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-[color:var(--page-theme-primary-action)] px-4 py-2 text-sm font-semibold text-[color:var(--page-theme-primary-action-text)] transition hover:bg-[color:var(--page-theme-primary-action-hover)] disabled:cursor-not-allowed disabled:bg-[color:var(--page-theme-border-primary)]"
                     >
                       {isDownloadingHighResolutionSnapshot
                         ? "고화질 다운로드 중..."
@@ -274,20 +282,20 @@ export default function GameSummaryModal({
                 </div>
 
                 {defaultDownloadError && (
-                  <p className="text-sm font-medium text-red-500">
+                  <p className="text-sm font-medium text-[color:var(--page-theme-alert)]">
                     {defaultDownloadError}
                   </p>
                 )}
 
                 {highResolutionDownloadError && (
-                  <p className="text-sm font-medium text-red-500">
+                  <p className="text-sm font-medium text-[color:var(--page-theme-alert)]">
                     {highResolutionDownloadError}
                   </p>
                 )}
               </div>
             )}
 
-            <section className="space-y-4 text-[15px] leading-7 text-gray-700">
+            <section className="space-y-4 text-[15px] leading-7 text-[color:var(--page-theme-text-secondary)]">
               <div className="space-y-1 text-left">
                 <StatLine label="총 라운드 수">
                   총 <NumberText value={summary.totalRounds} />
@@ -381,15 +389,19 @@ export default function GameSummaryModal({
               </div>
             </section>
 
-            <section className="space-y-3 rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4 text-sm leading-6 text-gray-700">
+            <section className="space-y-3 rounded-2xl border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)] px-5 py-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
               <div>
-                <p className="mb-1 font-bold text-gray-900">최다 투표자</p>
+                <p className="mb-1 font-bold text-[color:var(--page-theme-text-primary)]">
+                  최다 투표자
+                </p>
                 <p>
                   <VoterList voters={summary.topVoters} />
                 </p>
               </div>
               <div>
-                <p className="mb-1 font-bold text-gray-900">함께한 투표자</p>
+                <p className="mb-1 font-bold text-[color:var(--page-theme-text-primary)]">
+                  함께한 투표자
+                </p>
                 <p>
                   <VoterList voters={summary.participants} limit={8} />
                 </p>

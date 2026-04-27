@@ -29,10 +29,10 @@ export default function IntroCanvasPreview({
 
   return (
     <div className="w-fit">
-      <div className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+      <div className="rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-4 shadow-sm">
         {playBackgroundImageUrl || resultTemplateImageUrl ? (
           <div
-            className="relative overflow-hidden rounded border border-gray-100 bg-white"
+            className="relative overflow-hidden rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-primary)]"
             style={{
               width: `${previewSize.width}px`,
               height: `${previewSize.height}px`,
@@ -65,7 +65,7 @@ export default function IntroCanvasPreview({
           </div>
         ) : (
           <div
-            className="rounded border border-gray-100 bg-gray-100"
+            className="rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)]"
             style={{
               width: `${previewSize.width}px`,
               height: `${previewSize.height}px`,

@@ -62,7 +62,7 @@ export default function ColorPalette({
   return (
     <div className="flex flex-col gap-3">
       <div
-        className="overflow-hidden rounded-md border border-gray-200"
+        className="overflow-hidden rounded-md border border-[color:var(--page-theme-border-primary)]"
         onClick={(e) => e.stopPropagation()}
       >
         <HexColorPicker
@@ -75,13 +75,13 @@ export default function ColorPalette({
       <div className="flex items-center gap-1.5">
         <button
           onClick={handleEyeDropper}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-200 text-xs text-gray-500 hover:bg-gray-50"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
           title="색상 선택 (취소는 Esc)"
         >
           🖊
         </button>
 
-        <div className="flex flex-1 items-center overflow-hidden rounded border border-gray-200">
+        <div className="flex flex-1 items-center overflow-hidden rounded border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)]">
           <div
             className="h-7 w-7 shrink-0 cursor-pointer"
             style={{ backgroundColor: selected }}
@@ -106,7 +106,7 @@ export default function ColorPalette({
             onChange={handleHexInput}
             onBlur={handleHexBlur}
             onClick={(e) => e.stopPropagation()}
-            className="w-0 flex-1 px-1.5 text-xs outline-none"
+            className="w-0 flex-1 bg-transparent px-1.5 text-xs text-[color:var(--page-theme-text-primary)] outline-none"
             maxLength={7}
           />
         </div>
@@ -116,7 +116,7 @@ export default function ColorPalette({
             e.stopPropagation();
             onSlotAdd();
           }}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-200 text-sm text-gray-500 hover:bg-gray-50"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-sm text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
           title="슬롯에 추가"
         >
           +
@@ -127,7 +127,7 @@ export default function ColorPalette({
             e.stopPropagation();
             onSlotReset();
           }}
-          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-gray-200 text-xs text-gray-500 hover:bg-gray-50"
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
           title="초기화"
         >
           ↺
@@ -144,15 +144,18 @@ export default function ColorPalette({
             }}
             className="relative h-7 w-7 rounded border-2"
             style={{
-              backgroundColor: c || "#f9fafb",
+              backgroundColor: c || "var(--page-theme-surface-secondary)",
               backgroundImage: c ? "none" : CHECKER_PATTERN,
               backgroundPosition: c ? undefined : "0 0, 4px 4px",
               backgroundSize: c ? undefined : "8px 8px",
-              borderColor: idx === slotCursor ? "#f97316" : "#d1d5db",
+              borderColor:
+                idx === slotCursor
+                  ? "var(--page-theme-primary-action)"
+                  : "var(--page-theme-border-primary)",
             }}
           >
             {idx === slotCursor && (
-              <span className="absolute inset-0 flex items-center justify-center text-[8px] text-white drop-shadow">
+              <span className="absolute inset-0 flex items-center justify-center text-[8px] text-[color:var(--page-theme-primary-action-text)] drop-shadow">
                 ▼
               </span>
             )}

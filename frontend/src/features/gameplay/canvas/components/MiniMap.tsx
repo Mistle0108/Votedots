@@ -275,7 +275,7 @@ export default function MiniMap({
 
   return (
     <div className="flex justify-center">
-      <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden rounded-lg border border-gray-200 bg-gray-100 p-0 shadow-sm">
+      <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-0 shadow-sm">
         {snapshotUrl ? (
           <img
             src={snapshotUrl}
