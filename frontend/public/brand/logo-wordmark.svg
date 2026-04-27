@@ -10,14 +10,14 @@
           font-family="Inter, Poppins, Arial, sans-serif"
           font-size="140"
           font-weight="700"
-          fill="#071A33">v</text>
+          fill="#272E37">v</text>
 
-    <circle cx="112" cy="-40" r="38" fill="#8B5CF6"/>
+    <circle cx="112" cy="-40" r="38" fill="#DE5548"/>
 
     <text x="150" y="0"
           font-family="Inter, Poppins, Arial, sans-serif"
           font-size="140"
           font-weight="700"
-          fill="#071A33">tedots</text>
+          fill="#272E37">tedots</text>
   </g>
 </svg>
