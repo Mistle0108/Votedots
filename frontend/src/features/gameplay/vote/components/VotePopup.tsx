@@ -4,6 +4,8 @@ import {
   GAME_PHASE,
   type GamePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
+import { useI18n } from "@/shared/i18n";
+import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { Button } from "@/shared/ui/button";
 import { voteApi } from "../api/vote.api";
 import {
@@ -36,16 +38,19 @@ interface Props {
 const INITIAL_POINTER_OFFSET_X = 190;
 const INITIAL_POINTER_OFFSET_Y = 120;
 
-function getPhaseBlockedMessage(phase: GamePhase): string {
+function getPhaseBlockedMessage(
+  phase: GamePhase,
+  translate: (key: string) => string,
+): string {
   switch (phase) {
     case GAME_PHASE.INTRO:
-      return "게임 시작 안내 중에는 투표할 수 없어요.";
+      return translate("vote.popup.blockedIntro");
     case GAME_PHASE.ROUND_START_WAIT:
-      return "라운드 시작 대기 중에는 투표할 수 없어요.";
+      return translate("vote.popup.blockedStartWait");
     case GAME_PHASE.ROUND_RESULT:
-      return "결과 집계 중에는 투표할 수 없어요.";
+      return translate("vote.popup.blockedResult");
     case GAME_PHASE.GAME_END:
-      return "게임이 종료되어 투표할 수 없어요.";
+      return translate("vote.popup.blockedGameEnd");
     case GAME_PHASE.ROUND_ACTIVE:
       return "";
   }
@@ -55,20 +60,21 @@ function getButtonLabel(
   phase: GamePhase,
   isRoundExpired: boolean,
   loading: boolean,
+  translate: (key: string) => string,
 ): string {
   if (phase !== GAME_PHASE.ROUND_ACTIVE) {
-    return "투표 불가";
+    return translate("vote.popup.disabled");
   }
 
   if (isRoundExpired) {
-    return "투표 마감";
+    return translate("vote.popup.closed");
   }
 
   if (loading) {
-    return "투표 중...";
+    return translate("vote.popup.loading");
   }
 
-  return "투표하기";
+  return translate("vote.popup.submit");
 }
 
 function isTextInputElement(target: EventTarget | null): boolean {
@@ -99,6 +105,7 @@ export default function VotePopup({
   onColorChange,
   onClose,
 }: Props) {
+  const { locale, t } = useI18n();
   const [color, setColor] = useState(() => loadLastVotedColor());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -120,11 +127,11 @@ export default function VotePopup({
   );
   const maxCount = voteEntries[0]?.count ?? 1;
   const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
-  const phaseBlockedMessage = getPhaseBlockedMessage(phase);
+  const phaseBlockedMessage = getPhaseBlockedMessage(phase, t);
   const isVoteDisabled =
     !roundId || !isVotingPhase || loading || isRoundExpired;
 
-  const buttonLabel = getButtonLabel(phase, isRoundExpired, loading);
+  const buttonLabel = getButtonLabel(phase, isRoundExpired, loading, t);
 
   const handleColorChange = (nextColor: string) => {
     setColor(nextColor);
@@ -166,7 +173,7 @@ export default function VotePopup({
     }
 
     if (isRoundExpired) {
-      setError("현재 라운드의 투표가 마감되었어요.");
+      setError(t("vote.popup.roundClosed"));
       return;
     }
 
@@ -191,10 +198,16 @@ export default function VotePopup({
       if (err && typeof err === "object" && "response" in err) {
         const axiosErr = err as { response?: { data?: { message?: string } } };
         setError(
-          axiosErr.response?.data?.message ?? "투표 중 오류가 발생했어요.",
+          translateServerMessage(
+            axiosErr.response?.data?.message ?? t("vote.popup.submitError"),
+            t,
+            locale,
+          ),
         );
+      } else if (err instanceof Error) {
+        setError(translateServerMessage(err.message, t, locale));
       } else {
-        setError("투표 중 오류가 발생했어요.");
+        setError(t("vote.popup.submitError"));
       }
     } finally {
       setLoading(false);
@@ -276,8 +289,6 @@ export default function VotePopup({
         return;
       }
 
-      // 메인 보드 canvas, paint canvas, minimap canvas 클릭은
-      // 선택 유지/이동 동작으로 보고 팝업 close 처리하지 않음
       if (target.closest("canvas")) {
         return;
       }
@@ -349,7 +360,7 @@ export default function VotePopup({
         return;
       }
 
-      event.preventDefault(); // 변경: 모달이 열려 있으면 스페이스 기본 스크롤 차단
+      event.preventDefault();
 
       if (event.repeat) {
         return;
@@ -392,7 +403,7 @@ export default function VotePopup({
                     backgroundImage: CHECKER_PATTERN,
                     backgroundPosition: "0 0, 4px 4px",
                     backgroundSize: "8px 8px",
-                }
+                  }
             }
             onClick={(event) => {
               event.stopPropagation();
@@ -421,7 +432,7 @@ export default function VotePopup({
         {voteEntries.length > 0 && (
           <div>
             <p className="mb-2 text-xs font-medium text-[color:var(--page-theme-text-secondary)]">
-              실시간 현황
+              {t("vote.popup.liveStatus")}
             </p>
             <div className="flex max-h-[72px] flex-col gap-1 overflow-y-auto">
               {voteEntries.map(({ color: entryColor, count }) => (

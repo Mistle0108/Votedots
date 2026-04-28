@@ -3,11 +3,15 @@ import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import { LoginBoardPanel } from "@/features/login-board";
 import { LOGIN_BOARD_THEME_STYLE } from "@/features/login-board/model/board-theme";
+import { translateServerMessage } from "@/shared/i18n/server-messages";
+import { useI18n } from "@/shared/i18n";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
+import LanguageSwitcher from "@/shared/ui/language-switcher";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { locale, t } = useI18n();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -23,9 +27,11 @@ export default function LoginPage() {
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const axiosErr = err as { response: { data: { message: string } } };
-        setError(axiosErr.response.data.message);
+        setError(
+          translateServerMessage(axiosErr.response.data.message, t, locale),
+        );
       } else {
-        setError("로그인 중 오류가 발생했어요.");
+        setError(t("auth.login.errorFallback"));
       }
     }
   };
@@ -39,13 +45,19 @@ export default function LoginPage() {
         <LoginBoardPanel />
       </div>
 
-      <div className="flex items-center justify-center px-6 py-10 lg:min-h-0 lg:overflow-hidden">
+      <div className="relative flex items-center justify-center px-6 py-10 lg:min-h-0 lg:overflow-hidden">
+        <div className="absolute right-6 top-6">
+          <LanguageSwitcher />
+        </div>
+
         <div className="flex w-full max-w-sm flex-col gap-6">
           <BrandLogo variant="full" className="mx-auto w-85" />
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">아이디</label>
+              <label className="text-sm font-medium">
+                {t("auth.login.usernameLabel")}
+              </label>
               <input
                 type="text"
                 value={username}
@@ -56,7 +68,9 @@ export default function LoginPage() {
             </div>
 
             <div className="flex flex-col gap-1">
-              <label className="text-sm font-medium">비밀번호</label>
+              <label className="text-sm font-medium">
+                {t("auth.login.passwordLabel")}
+              </label>
               <input
                 type="password"
                 value={password}
@@ -69,14 +83,14 @@ export default function LoginPage() {
             {error && <p className="text-sm text-red-500">{error}</p>}
 
             <Button type="submit" className="w-full">
-              로그인
+              {t("auth.login.submit")}
             </Button>
           </form>
 
           <p className="text-center text-sm">
-            계정이 없으신가요?{" "}
+            {t("auth.login.noAccount")}{" "}
             <Link to="/register" className="underline">
-              회원가입
+              {t("auth.login.signUp")}
             </Link>
           </p>
         </div>

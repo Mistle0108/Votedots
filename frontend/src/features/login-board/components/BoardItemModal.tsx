@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import type { BoardModalPayload } from "../model/board.types";
+import { useI18n } from "@/shared/i18n";
 import MarkdownContent from "./MarkdownContent";
 
 interface BoardItemModalProps {
@@ -24,6 +25,8 @@ export default function BoardItemModal({
   item,
   onClose,
 }: BoardItemModalProps) {
+  const { t } = useI18n();
+
   if (!item) {
     return null;
   }
@@ -55,7 +58,7 @@ export default function BoardItemModal({
             type="button"
             onClick={onClose}
             className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-[color:var(--color-border-primary)] bg-[color:var(--color-background-primary)] text-[color:var(--color-text-secondary)] transition hover:bg-[color:var(--color-background-secondary)] hover:text-[color:var(--color-text-primary)]"
-            aria-label="상세 닫기"
+            aria-label={t("common.closeDetails")}
           >
             <X className="h-4 w-4" />
           </button>

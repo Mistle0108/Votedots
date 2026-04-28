@@ -1,18 +1,20 @@
 import type { PatchChangeType } from "./board.types";
 
-export function getPatchTypeLabel(type: PatchChangeType) {
+export function getPatchTypeLabel(
+  type: PatchChangeType,
+  translate: (key: string) => string,
+) {
   switch (type) {
     case "feature":
-      return "신기능";
+      return translate("loginBoard.patchType.feature");
     case "bugfix":
-      return "버그픽스";
+      return translate("loginBoard.patchType.bugfix");
     case "breaking":
-      return "Breaking";
+      return translate("loginBoard.patchType.breaking");
     default:
       return type;
   }
 }
-
 export function getPatchBadgeTone(
   type: PatchChangeType,
 ): "blue" | "green" | "red" {

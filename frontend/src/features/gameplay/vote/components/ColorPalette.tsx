@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { HexColorPicker } from "react-colorful";
+import { useI18n } from "@/shared/i18n";
 
 const CHECKER_PATTERN =
   "linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db), linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db)";
@@ -23,6 +24,7 @@ export default function ColorPalette({
   onSlotReset,
   onSlotSelect,
 }: Props) {
+  const { t } = useI18n();
   const colorInputRef = useRef<HTMLInputElement>(null);
   const [draftHex, setDraftHex] = useState(selected);
 
@@ -41,7 +43,7 @@ export default function ColorPalette({
       const result = await eyeDropper.open();
       onChange(result.sRGBHex);
     } catch {
-      // 브라우저 기본 취소(Esc 등) 시 색상 변경 없음
+      // noop
     }
   };
 
@@ -76,9 +78,9 @@ export default function ColorPalette({
         <button
           onClick={handleEyeDropper}
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
-          title="색상 선택 (취소는 Esc)"
+          title={t("vote.palette.eyeDropper")}
         >
-          🖊
+          ⌾
         </button>
 
         <div className="flex flex-1 items-center overflow-hidden rounded border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)]">
@@ -117,7 +119,7 @@ export default function ColorPalette({
             onSlotAdd();
           }}
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-sm text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
-          title="슬롯에 추가"
+          title={t("vote.palette.addSlot")}
         >
           +
         </button>
@@ -128,7 +130,7 @@ export default function ColorPalette({
             onSlotReset();
           }}
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
-          title="초기화"
+          title={t("vote.palette.reset")}
         >
           ↺
         </button>
@@ -156,7 +158,7 @@ export default function ColorPalette({
           >
             {idx === slotCursor && (
               <span className="absolute inset-0 flex items-center justify-center text-[8px] text-[color:var(--page-theme-primary-action-text)] drop-shadow">
-                ▼
+                ✓
               </span>
             )}
           </button>
