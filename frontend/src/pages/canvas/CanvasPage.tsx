@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CanvasStage,
@@ -14,16 +14,20 @@ import {
   GameEndedScreen,
   LoadingScreen,
 } from "@/features/gameplay/session";
-import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
 import { useI18n } from "@/shared/i18n";
 import useCanvasPage from "./model/useCanvasPage";
 import { PLAY_THEME_STYLE } from "./model/play-theme";
 
+const INTRO_GUIDE_SEEN_STORAGE_KEY = "votedots:intro-guide-seen";
+
+function buildIntroGuideSeenStorageKey(canvasId: number): string {
+  return `${INTRO_GUIDE_SEEN_STORAGE_KEY}:${canvasId}`;
+}
+
 export default function CanvasPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
-  const [introModalDismissed, setIntroModalDismissed] = useState(false);
 
   const handleSessionEnded = useCallback(() => {
     window.alert(t("canvas.sessionEnded"));
@@ -110,16 +114,19 @@ export default function CanvasPage() {
   const canvasPageThemeStyle = PLAY_THEME_STYLE;
 
   useEffect(() => {
-    if (phase === GAME_PHASE.INTRO && !introModalDismissed) {
-      handleOpenIntroGuide();
+    if (!canvasId || loading || error || gameEnded) {
       return;
     }
 
-    if (phase !== GAME_PHASE.INTRO) {
-      handleCloseIntroGuide();
-      setIntroModalDismissed(false);
+    const storageKey = buildIntroGuideSeenStorageKey(canvasId);
+
+    if (window.sessionStorage.getItem(storageKey) === "true") {
+      return;
     }
-  }, [handleCloseIntroGuide, handleOpenIntroGuide, introModalDismissed, phase]);
+
+    window.sessionStorage.setItem(storageKey, "true");
+    handleOpenIntroGuide();
+  }, [canvasId, error, gameEnded, handleOpenIntroGuide, loading]);
 
   if (loading) {
     return (
@@ -248,10 +255,7 @@ export default function CanvasPage() {
           gridY={gridY}
           gameConfig={gameConfig}
           formattedGameEndTime={formattedGameEndTime}
-          onClose={() => {
-            setIntroModalDismissed(true);
-            handleCloseIntroGuide();
-          }}
+          onClose={handleCloseIntroGuide}
         />
       )}
 
