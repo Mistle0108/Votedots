@@ -51,6 +51,7 @@ const MAX_ZOOM = 4;
 const MAX_ZOOM_MULTIPLIER = 4;
 
 const INITIAL_VIEWPORT_GRID_DIVISIONS = 3;
+const ZOOMED_ENTRY_GRID_THRESHOLD = 128;
 
 function getZoomBounds(
   container: HTMLDivElement,
@@ -379,10 +380,11 @@ export default function useCanvasScene({
     if (sceneKeyRef.current !== sceneKey) {
       const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
       const bounds = getZoomBounds(container, worldWidth, worldHeight);
-      const initialZoom = clampZoom(
-        bounds.minZoom * INITIAL_VIEWPORT_GRID_DIVISIONS,
-        bounds,
-      );
+      const largestGridSize = Math.max(gridX, gridY);
+      const initialZoom =
+        largestGridSize >= ZOOMED_ENTRY_GRID_THRESHOLD
+          ? clampZoom(bounds.minZoom * INITIAL_VIEWPORT_GRID_DIVISIONS, bounds)
+          : bounds.minZoom;
       const initialCamera = clampCamera(
         (worldWidth - viewportWidth / initialZoom) / 2,
         (worldHeight - viewportHeight / initialZoom) / 2,

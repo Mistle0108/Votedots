@@ -4,7 +4,7 @@ export const SLOT_COUNT = 12;
 
 export const STORAGE_KEYS = {
   slotColors: "votedots:vote-popup-slot-colors",
-  lastVotedColor: "votedots:last-voted-color",
+  lastPaletteColor: "votedots:last-palette-color",
 } as const;
 
 export const INITIAL_SLOTS = Array<string>(SLOT_COUNT).fill("");

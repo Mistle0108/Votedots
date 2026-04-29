@@ -67,23 +67,19 @@ function CellCoordinate({
 
 function VoterName({
   voter,
-  formatNumber,
 }: {
   voter: GameSummaryTopVoter | GameSummaryParticipant;
-  formatNumber: (value: number | null | undefined) => string;
 }) {
-  return `${voter.name} #${formatNumber(voter.voterId)}`;
+  return voter.name;
 }
 
 function VoterList({
   voters,
-  formatNumber,
   emptyLabel = "-",
   limit = 6,
   listStyle = "inline",
 }: {
   voters: Array<GameSummaryTopVoter | GameSummaryParticipant> | null;
-  formatNumber: (value: number | null | undefined) => string;
   emptyLabel?: string;
   limit?: number;
   listStyle?: "inline" | "list";
@@ -99,7 +95,7 @@ function VoterList({
       <ul className="space-y-1">
         {visibleVoters.map((voter) => (
           <li key={voter.voterId} className="list-none">
-            - <VoterName voter={voter} formatNumber={formatNumber} />
+            - <VoterName voter={voter} />
           </li>
         ))}
         {voters.length > limit ? <li className="list-none">- ...</li> : null}
@@ -112,7 +108,7 @@ function VoterList({
       {visibleVoters.map((voter, index) => (
         <span key={voter.voterId}>
           {index > 0 ? ", " : ""}
-          <VoterName voter={voter} formatNumber={formatNumber} />
+          <VoterName voter={voter} />
         </span>
       ))}
       {voters.length > limit ? ", ..." : ""}
@@ -638,7 +634,6 @@ export default function GameSummaryModal({
                 <div>
                   <VoterList
                     voters={summary.topVoters}
-                    formatNumber={formatNumber}
                     listStyle={locale === "en" ? "list" : "inline"}
                   />
                 </div>
@@ -650,7 +645,6 @@ export default function GameSummaryModal({
                 <div>
                   <VoterList
                     voters={summary.participants}
-                    formatNumber={formatNumber}
                     limit={8}
                     listStyle={locale === "en" ? "list" : "inline"}
                   />
