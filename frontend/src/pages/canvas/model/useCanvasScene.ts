@@ -80,6 +80,10 @@ function clampZoom(nextZoom: number, bounds: ZoomBounds) {
   return Math.min(bounds.maxZoom, Math.max(bounds.minZoom, nextZoom));
 }
 
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max);
+}
+
 function getNextZoom(currentZoom: number, zoomIn: boolean, bounds: ZoomBounds) {
   const scaledZoom = zoomIn
     ? currentZoom * ZOOM_SCALE
@@ -124,6 +128,21 @@ function isCellInsideVisibleBounds(
     x <= bounds.endCellX &&
     y >= bounds.startCellY &&
     y <= bounds.endCellY
+  );
+}
+
+function isTextInputElement(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  const tagName = target.tagName;
+
+  return (
+    tagName === "INPUT" ||
+    tagName === "TEXTAREA" ||
+    tagName === "SELECT" ||
+    target.isContentEditable
   );
 }
 
@@ -422,6 +441,130 @@ export default function useCanvasScene({
     zoom,
   });
 
+  const buildCellAtCoordinate = useCallback(
+    (x: number, y: number): Cell =>
+      cells.find((cell) => cell.x === x && cell.y === y) ??
+      ({
+        x,
+        y,
+        color: null,
+        status: "idle",
+      } as Cell),
+    [cells],
+  );
+
+  const centerCameraOnCell = useCallback(
+    (x: number, y: number) => {
+      const container = containerRef.current;
+
+      if (!container || gridX === 0 || gridY === 0 || zoomRef.current <= 0) {
+        return null;
+      }
+
+      const cellSize = getGameConfig().board.cellSize;
+      const viewportWorldWidth = container.clientWidth / zoomRef.current;
+      const viewportWorldHeight = container.clientHeight / zoomRef.current;
+      const targetWorldCenterX = x * cellSize + cellSize / 2;
+      const targetWorldCenterY = y * cellSize + cellSize / 2;
+
+      return {
+        x: clamp(
+          targetWorldCenterX - viewportWorldWidth / 2,
+          0,
+          Math.max(0, worldWidth - viewportWorldWidth),
+        ),
+        y: clamp(
+          targetWorldCenterY - viewportWorldHeight / 2,
+          0,
+          Math.max(0, worldHeight - viewportWorldHeight),
+        ),
+      };
+    },
+    [gridX, gridY, worldHeight, worldWidth],
+  );
+
+  const getPopupPositionForCell = useCallback(
+    (
+      x: number,
+      y: number,
+      cameraOverride?: { x: number; y: number } | null,
+    ): { x: number; y: number } | null => {
+      const container = containerRef.current;
+
+      if (!container || zoomRef.current <= 0) {
+        return null;
+      }
+
+      const rect = container.getBoundingClientRect();
+      const cellSize = getGameConfig().board.cellSize;
+      const resolvedCamera = cameraOverride ?? {
+        x: cameraXRef.current,
+        y: cameraYRef.current,
+      };
+
+      return {
+        x:
+          rect.left +
+          worldOffset.x -
+          resolvedCamera.x * zoomRef.current +
+          (x + 0.5) * cellSize * zoomRef.current,
+        y:
+          rect.top +
+          worldOffset.y -
+          resolvedCamera.y * zoomRef.current +
+          (y + 0.5) * cellSize * zoomRef.current,
+      };
+    },
+    [worldOffset.x, worldOffset.y],
+  );
+
+  const activateCell = useCallback(
+    (cell: Cell, position?: { x: number; y: number }) => {
+      resetPreviewColor();
+      setSelectedCell(cell);
+      selectedCellRef.current = cell;
+      openPopup(position ?? getPopupPositionForCell(cell.x, cell.y) ?? { x: 0, y: 0 });
+    },
+    [getPopupPositionForCell, openPopup, resetPreviewColor],
+  );
+
+  const activateCellAtCoordinate = useCallback(
+    (x: number, y: number) => {
+      if (x < 0 || x >= gridX || y < 0 || y >= gridY) {
+        return;
+      }
+
+      const nextCell = buildCellAtCoordinate(x, y);
+      const shouldCenterCamera = !isCellInsideVisibleBounds(
+        x,
+        y,
+        visibleCellBounds,
+      );
+      const nextCamera = shouldCenterCamera ? centerCameraOnCell(x, y) : null;
+
+      if (nextCamera) {
+        setCameraX(nextCamera.x);
+        setCameraY(nextCamera.y);
+        cameraXRef.current = nextCamera.x;
+        cameraYRef.current = nextCamera.y;
+      }
+
+      activateCell(
+        nextCell,
+        getPopupPositionForCell(x, y, nextCamera) ?? undefined,
+      );
+    },
+    [
+      activateCell,
+      buildCellAtCoordinate,
+      centerCameraOnCell,
+      getPopupPositionForCell,
+      gridX,
+      gridY,
+      visibleCellBounds,
+    ],
+  );
+
   useLayoutEffect(() => {
     const container = containerRef.current;
     const pending = pendingZoomAdjustmentRef.current;
@@ -481,11 +624,6 @@ export default function useCanvasScene({
     worldOffsetY: worldOffset.y,
   });
 
-  const handleSelectCell = useCallback((cell: Cell) => {
-    setSelectedCell(cell);
-    selectedCellRef.current = cell;
-  }, []);
-
   const handlePan = useCallback(
     (dx: number, dy: number) => {
       const container = containerRef.current;
@@ -522,10 +660,68 @@ export default function useCanvasScene({
       worldOffsetX: worldOffset.x,
       worldOffsetY: worldOffset.y,
       onPan: handlePan,
-      onSelectCell: handleSelectCell,
-      onResetPreviewColor: resetPreviewColor,
-      onOpenPopup: openPopup,
+      onActivateCell: activateCell,
     });
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey) {
+        return;
+      }
+
+      if (isTextInputElement(event.target)) {
+        return;
+      }
+
+      const key = event.key.toLowerCase();
+      let deltaX = 0;
+      let deltaY = 0;
+
+      switch (key) {
+        case "arrowup":
+        case "w":
+          deltaY = -1;
+          break;
+        case "arrowdown":
+        case "s":
+          deltaY = 1;
+          break;
+        case "arrowleft":
+        case "a":
+          deltaX = -1;
+          break;
+        case "arrowright":
+        case "d":
+          deltaX = 1;
+          break;
+        default:
+          return;
+      }
+
+      event.preventDefault();
+
+      const currentCell = selectedCellRef.current;
+
+      if (!currentCell) {
+        return;
+      }
+
+      const nextX = currentCell.x + deltaX;
+      const nextY = currentCell.y + deltaY;
+
+      if (nextX < 0 || nextX >= gridX || nextY < 0 || nextY >= gridY) {
+        return;
+      }
+
+      activateCellAtCoordinate(nextX, nextY);
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [activateCellAtCoordinate, gridX, gridY]);
 
   const resetCanvasZoom = useCallback(() => {
     const container = containerRef.current;
