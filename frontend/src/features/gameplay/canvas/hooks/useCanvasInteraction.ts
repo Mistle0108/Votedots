@@ -13,9 +13,7 @@ interface UseCanvasInteractionParams {
   worldOffsetX: number;
   worldOffsetY: number;
   onPan: (dx: number, dy: number) => void;
-  onSelectCell: (cell: Cell) => void;
-  onResetPreviewColor: () => void;
-  onOpenPopup: (position: { x: number; y: number }) => void;
+  onActivateCell: (cell: Cell, position: { x: number; y: number }) => void;
 }
 
 function isInsideCanvas(clientX: number, clientY: number, rect: DOMRect) {
@@ -54,9 +52,7 @@ export function useCanvasInteraction({
   worldOffsetX,
   worldOffsetY,
   onPan,
-  onSelectCell,
-  onResetPreviewColor,
-  onOpenPopup,
+  onActivateCell,
 }: UseCanvasInteractionParams) {
   const isPanning = useRef(false);
   const hasPanned = useRef(false);
@@ -142,9 +138,10 @@ export function useCanvasInteraction({
       } as Cell);
 
     hasPanned.current = false;
-    onResetPreviewColor();
-    onSelectCell(targetCell);
-    onOpenPopup({ x: event.clientX, y: event.clientY });
+    onActivateCell(targetCell, {
+      x: event.clientX,
+      y: event.clientY,
+    });
   };
 
   const handleMouseLeave = () => {
