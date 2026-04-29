@@ -1,4 +1,5 @@
 import * as dotenv from "dotenv";
+import { DEFAULT_ROTATION_PROFILE_KEY } from "./game-rotation.config";
 import { GAME_CONFIG_PROFILES } from "./game-config-profiles";
 import type {
   CanvasGameConfigSource,
@@ -22,7 +23,7 @@ export type {
   GameRuleConfig,
 } from "./game-config.types";
 
-const DEFAULT_PROFILE_KEY = "default";
+const DEFAULT_PROFILE_KEY = DEFAULT_ROTATION_PROFILE_KEY;
 
 function readPositiveIntegerEnv(name: string, fallback: number): number {
   const value = parseInt(String(process.env[name] ?? ""), 10);

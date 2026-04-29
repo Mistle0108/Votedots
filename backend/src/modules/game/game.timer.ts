@@ -1,4 +1,5 @@
 import { Server } from "socket.io";
+import { resolveNextGameSizeRotationProfileKey } from "../../config/game-rotation.config";
 import {
   getCanvasGameConfigSnapshot,
   type GameConfigSnapshot,
@@ -111,7 +112,9 @@ async function createNextCanvas(
   profileKey?: string | null,
 ): Promise<void> {
   const { canvasService } = await import("../canvas/canvas.service");
-  await canvasService.create(io, { profileKey });
+  await canvasService.create(io, {
+    profileKey: resolveNextGameSizeRotationProfileKey(profileKey),
+  });
 }
 
 async function transitionToRoundStartWait(
