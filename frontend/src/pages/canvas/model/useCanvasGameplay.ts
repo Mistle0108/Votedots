@@ -321,13 +321,8 @@ export default function useCanvasGameplay({
       return;
     }
 
-    if (phase === GAME_PHASE.GAME_END) {
-      clearParticipants();
-      return;
-    }
-
     void refreshParticipants();
-  }, [canvasId, clearParticipants, phase, refreshParticipants]);
+  }, [canvasId, clearParticipants, refreshParticipants]);
 
   useEffect(() => {
     if (isRoundActivePhase(phase)) {
