@@ -103,6 +103,8 @@ export default function CanvasPage() {
     roundSummaryPosition,
     handleRoundSummaryDragStart,
     latestRoundSnapshot,
+    backgroundMode,
+    setBackgroundMode,
     historyItems,
     historyLoading,
     historyError,
@@ -234,6 +236,8 @@ export default function CanvasPage() {
             latestRoundSnapshot={latestRoundSnapshot}
             playBackgroundImageUrl={playBackgroundImageUrl}
             resultTemplateImageUrl={resultTemplateImageUrl}
+            backgroundMode={backgroundMode}
+            onBackgroundModeChange={setBackgroundMode}
             participants={participants}
             participantLoading={participantLoading}
             participantError={participantError}

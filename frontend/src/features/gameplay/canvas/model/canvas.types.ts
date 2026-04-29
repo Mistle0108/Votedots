@@ -9,7 +9,6 @@ export interface Canvas {
   gridX: number;
   gridY: number;
   configProfileKey: string;
-  playBackgroundAssetKey: string | null;
   resultTemplateAssetKey: string | null;
   status: CanvasStatus;
   phase: GamePhase;

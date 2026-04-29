@@ -1,9 +1,6 @@
 import { useCallback } from "react";
 import { voteApi } from "@/features/gameplay/vote";
-import {
-  resolvePlayBackgroundImageUrl,
-  resolveResultTemplateImageUrl,
-} from "@/features/gameplay/canvas/model/background-assets";
+import { resolveResultTemplateImageUrl } from "@/features/gameplay/canvas/model/background-assets";
 import { setGameConfig } from "@/shared/config/game-config";
 import { GAME_PHASE, isRoundActivePhase } from "../model/game-phase.types";
 import { sessionApi, type RoundStateResponse } from "../api/session.api";
@@ -329,9 +326,6 @@ export function useGameplayBootstrap() {
       canvasId: canvas.id,
       gridX: canvas.gridX,
       gridY: canvas.gridY,
-      playBackgroundImageUrl: resolvePlayBackgroundImageUrl({
-        playBackgroundAssetKey: canvas.playBackgroundAssetKey,
-      }),
       resultTemplateImageUrl: resolveResultTemplateImageUrl({
         resultTemplateAssetKey: canvas.resultTemplateAssetKey,
       }),

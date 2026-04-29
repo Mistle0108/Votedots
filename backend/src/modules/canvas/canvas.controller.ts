@@ -19,7 +19,6 @@ function serializeCanvas(canvas: Canvas) {
     gridX: canvas.gridX,
     gridY: canvas.gridY,
     configProfileKey: canvas.configProfileKey,
-    playBackgroundAssetKey: canvas.playBackgroundAssetKey,
     resultTemplateAssetKey: canvas.resultTemplateAssetKey,
     status: canvas.status,
     phase: canvas.phase,

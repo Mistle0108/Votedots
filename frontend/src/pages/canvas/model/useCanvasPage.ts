@@ -1,4 +1,8 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  resolvePlayBackgroundImageUrl,
+  type PlayBackgroundMode,
+} from "@/features/gameplay/canvas/model/background-assets";
 import { useChunkLoader } from "@/features/gameplay/canvas/hooks/useChunkLoader";
 import { useCanvasHistory } from "@/features/gameplay/history/hooks/useCanvasHistory";
 import { useVotePopup, useVoteState } from "@/features/gameplay/vote";
@@ -19,6 +23,8 @@ interface UseCanvasPageParams {
   onSessionEnded: () => void;
   onUnauthorized: (message: string) => void;
 }
+
+const PLAY_BACKGROUND_MODE_STORAGE_KEY = "votedots:play-background-mode";
 
 function getDefaultRoundSummaryModalPosition() {
   const modalWidth = Math.min(560, window.innerWidth - 24);
@@ -51,6 +57,14 @@ export default function useCanvasPage({
   const [roundSummaryPosition, setRoundSummaryPosition] = useState(
     getDefaultRoundSummaryModalPosition,
   );
+  const [backgroundMode, setBackgroundMode] = useState<PlayBackgroundMode>(() => {
+    if (typeof window === "undefined") {
+      return "w";
+    }
+
+    const stored = window.localStorage.getItem(PLAY_BACKGROUND_MODE_STORAGE_KEY);
+    return stored === "g" || stored === "b" ? stored : "w";
+  });
 
   const {
     popupOpen,
@@ -102,23 +116,39 @@ export default function useCanvasPage({
     openPopup,
   });
 
-  const [playBackgroundImageUrl, setPlayBackgroundImageUrl] = useState<
-    string | null
-  >(null);
   const [resultTemplateImageUrl, setResultTemplateImageUrl] = useState<
     string | null
   >(null);
+  const playBackgroundImageUrl = useMemo(
+    () =>
+      resolvePlayBackgroundImageUrl({
+        gridX,
+        gridY,
+        backgroundMode,
+      }),
+    [backgroundMode, gridX, gridY],
+  );
 
   const applyBootstrapScene = useCallback(
     (result: SessionBootstrapResult) => {
       setCanvasId(result.canvasId);
       setGridX(result.gridX);
       setGridY(result.gridY);
-      setPlayBackgroundImageUrl(result.playBackgroundImageUrl);
       setResultTemplateImageUrl(result.resultTemplateImageUrl);
     },
     [setCanvasId, setGridX, setGridY],
   );
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    window.localStorage.setItem(
+      PLAY_BACKGROUND_MODE_STORAGE_KEY,
+      backgroundMode,
+    );
+  }, [backgroundMode]);
 
   const { invalidateChunksByCells } = useChunkLoader({
     canvasId,
@@ -339,6 +369,8 @@ export default function useCanvasPage({
     latestRoundSummary: gameplay.roundSummary,
     latestRoundSnapshot: gameplay.latestRoundSnapshot,
     isLatestRoundSummaryEnabled: gameplay.canOpenLatestRoundSummary,
+    backgroundMode,
+    setBackgroundMode,
     historyItems,
     historyLoading,
     historyError,

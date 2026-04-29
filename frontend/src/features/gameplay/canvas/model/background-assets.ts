@@ -48,10 +48,26 @@ export function getResultTemplateImageUrl(
   return `/result-templates/${assetKey}.png`;
 }
 
+export type PlayBackgroundMode = "w" | "g" | "b";
+
 export function resolvePlayBackgroundImageUrl(params: {
-  playBackgroundAssetKey: string | null;
+  gridX: number;
+  gridY: number;
+  backgroundMode: PlayBackgroundMode;
 }): string | null {
-  return getPlayBackgroundImageUrl(params.playBackgroundAssetKey);
+  if (params.gridX <= 0 || params.gridY <= 0 || params.gridX !== params.gridY) {
+    return null;
+  }
+
+  const sizeFolder = `${params.gridX}x${params.gridY}`;
+
+  if (!SIZE_FOLDER_ASSET_SUFFIXES.has(sizeFolder)) {
+    return null;
+  }
+
+  return getPlayBackgroundImageUrl(
+    `grid-${params.backgroundMode}-${sizeFolder}`,
+  );
 }
 
 export function resolveResultTemplateImageUrl(params: {

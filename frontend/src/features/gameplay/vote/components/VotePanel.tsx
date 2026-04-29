@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Cell, Viewport } from "@/features/gameplay/canvas";
+import type { PlayBackgroundMode } from "@/features/gameplay/canvas/model/background-assets";
 import { CoordinateNavigator, MiniMap } from "@/features/gameplay/canvas";
 import { RoundInfo } from "@/features/gameplay/round";
 import { MyInfoCard, ParticipantPanel } from "@/features/gameplay/session";
@@ -31,6 +32,8 @@ interface Props {
   latestRoundSnapshot: string | null;
   playBackgroundImageUrl: string | null;
   resultTemplateImageUrl: string | null;
+  backgroundMode: PlayBackgroundMode;
+  onBackgroundModeChange: (mode: PlayBackgroundMode) => void;
   participants: ParticipantItem[];
   participantLoading: boolean;
   participantError: string | null;
@@ -61,6 +64,8 @@ export default function VotePanel({
   latestRoundSnapshot,
   playBackgroundImageUrl,
   resultTemplateImageUrl,
+  backgroundMode,
+  onBackgroundModeChange,
   participants,
   participantLoading,
   participantError,
@@ -143,6 +148,8 @@ export default function VotePanel({
               ref={settingsMenuRef}
               locale={locale}
               onLocaleChange={setLocale}
+              backgroundMode={backgroundMode}
+              onBackgroundModeChange={onBackgroundModeChange}
             />
           ) : null}
         </div>
