@@ -219,7 +219,6 @@ export const roundSnapshotService = {
 
     const resultTemplateAssetKey = resolveResultTemplateAssetKey({
       resultTemplateAssetKey: canvas.resultTemplateAssetKey,
-      backgroundAssetKey: canvas.backgroundAssetKey,
     });
     const resultTemplateImageBuffer =
       await loadResultTemplateAsset(resultTemplateAssetKey);

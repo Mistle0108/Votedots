@@ -82,7 +82,6 @@ export const canvasService = {
       gridY: gridSizeY,
       configProfileKey: profileKey,
       configSnapshot: snapshot,
-      backgroundAssetKey: resultTemplate?.assetKey ?? null,
       playBackgroundAssetKey: playBackgroundTemplate?.assetKey ?? null,
       resultTemplateAssetKey: resultTemplate?.assetKey ?? null,
       status: CanvasStatus.PLAYING,

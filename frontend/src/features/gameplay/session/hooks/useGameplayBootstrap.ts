@@ -331,11 +331,9 @@ export function useGameplayBootstrap() {
       gridY: canvas.gridY,
       playBackgroundImageUrl: resolvePlayBackgroundImageUrl({
         playBackgroundAssetKey: canvas.playBackgroundAssetKey,
-        backgroundAssetKey: canvas.backgroundAssetKey,
       }),
       resultTemplateImageUrl: resolveResultTemplateImageUrl({
         resultTemplateAssetKey: canvas.resultTemplateAssetKey,
-        backgroundAssetKey: canvas.backgroundAssetKey,
       }),
       round,
       votes,
