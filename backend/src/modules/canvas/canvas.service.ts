@@ -10,7 +10,6 @@ import {
   participantSessionService,
   type ParticipantSummary,
 } from "../participant/participant-session.service";
-import { pickRandomPlayBackgroundTemplate } from "./template/play-background-template.service";
 import { pickRandomResultTemplate } from "./template/result-template.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
@@ -68,10 +67,6 @@ export const canvasService = {
       now.getTime() + snapshot.phases.introPhaseSec * 1000,
     );
 
-    const playBackgroundTemplate = pickRandomPlayBackgroundTemplate(
-      gridSizeX,
-      gridSizeY,
-    );
     const resultTemplate = pickRandomResultTemplate(
       gridSizeX,
       gridSizeY,
@@ -82,8 +77,6 @@ export const canvasService = {
       gridY: gridSizeY,
       configProfileKey: profileKey,
       configSnapshot: snapshot,
-      backgroundAssetKey: resultTemplate?.assetKey ?? null,
-      playBackgroundAssetKey: playBackgroundTemplate?.assetKey ?? null,
       resultTemplateAssetKey: resultTemplate?.assetKey ?? null,
       status: CanvasStatus.PLAYING,
       phase: GamePhase.INTRO,

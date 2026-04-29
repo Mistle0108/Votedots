@@ -65,16 +65,6 @@ function buildResultTemplateCandidatePaths(assetKey: string): string[] {
   ];
 }
 
-function resolveLegacyResultTemplateAssetKey(
-  backgroundAssetKey: string | null,
-): string | null {
-  if (!backgroundAssetKey) {
-    return null;
-  }
-
-  return backgroundAssetKey;
-}
-
 export function pickRandomResultTemplate(
   gridX: number,
   gridY: number,
@@ -92,12 +82,8 @@ export function pickRandomResultTemplate(
 
 export function resolveResultTemplateAssetKey(params: {
   resultTemplateAssetKey: string | null;
-  backgroundAssetKey: string | null;
 }): string | null {
-  return (
-    params.resultTemplateAssetKey ??
-    resolveLegacyResultTemplateAssetKey(params.backgroundAssetKey)
-  );
+  return params.resultTemplateAssetKey;
 }
 
 export async function loadResultTemplateAsset(

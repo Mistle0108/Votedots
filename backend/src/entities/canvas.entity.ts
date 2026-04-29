@@ -30,20 +30,6 @@ export class Canvas extends BaseEntity {
     length: 128,
     nullable: true,
   })
-  backgroundAssetKey!: string | null;
-
-  @Column({
-    type: "varchar",
-    length: 128,
-    nullable: true,
-  })
-  playBackgroundAssetKey!: string | null;
-
-  @Column({
-    type: "varchar",
-    length: 128,
-    nullable: true,
-  })
   resultTemplateAssetKey!: string | null;
 
   @Column({
