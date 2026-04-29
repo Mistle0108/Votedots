@@ -271,9 +271,8 @@ export default function useCanvasPage({
   }, [closePopup]);
 
   const handleVoteSuccess = useCallback(() => {
-    clearSelectedCell();
     gameplay.handleVoteSuccess();
-  }, [clearSelectedCell, gameplay]);
+  }, [gameplay]);
 
   return {
     paintCanvasRef,
