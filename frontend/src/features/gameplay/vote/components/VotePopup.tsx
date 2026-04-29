@@ -16,7 +16,7 @@ import {
 } from "../model/vote.constants";
 import {
   buildVotePopupEntries,
-  loadLastVotedColor,
+  loadLastPaletteColor,
   loadSlotColors,
 } from "../model/vote.utils";
 import ColorPalette from "./ColorPalette";
@@ -106,7 +106,7 @@ export default function VotePopup({
   onClose,
 }: Props) {
   const { locale, t } = useI18n();
-  const [color, setColor] = useState(() => loadLastVotedColor());
+  const [color, setColor] = useState(() => loadLastPaletteColor());
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [slotColors, setSlotColors] = useState<string[]>(() =>
@@ -134,6 +134,7 @@ export default function VotePopup({
   const buttonLabel = getButtonLabel(phase, isRoundExpired, loading, t);
 
   const handleColorChange = (nextColor: string) => {
+    window.localStorage.setItem(STORAGE_KEYS.lastPaletteColor, nextColor);
     setColor(nextColor);
     onColorChange(nextColor);
   };
@@ -179,8 +180,6 @@ export default function VotePopup({
 
     setError("");
     setLoading(true);
-
-    window.localStorage.setItem(STORAGE_KEYS.lastVotedColor, color);
 
     try {
       await voteApi.submit({

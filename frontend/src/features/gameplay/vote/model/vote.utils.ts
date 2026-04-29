@@ -37,12 +37,12 @@ export function loadSlotColors(): string[] {
   }
 }
 
-export function loadLastVotedColor(): string {
+export function loadLastPaletteColor(): string {
   if (typeof window === "undefined") {
     return DEFAULT_VOTE_COLOR;
   }
 
-  const saved = window.localStorage.getItem(STORAGE_KEYS.lastVotedColor);
+  const saved = window.localStorage.getItem(STORAGE_KEYS.lastPaletteColor);
   if (!saved) {
     return DEFAULT_VOTE_COLOR;
   }
