@@ -167,9 +167,7 @@ export default function VotePanel({
                     {entry.topCount}/{entry.totalCount}
                   </span>
                 </>
-              ) : (
-                <div className="h-2 w-full rounded bg-[color:var(--page-theme-surface-secondary)]" />
-              )}
+              ) : null}
             </div>
           ))}
         </div>
