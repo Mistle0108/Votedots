@@ -40,7 +40,6 @@ export interface SessionBootstrapResult {
   canvasId: number;
   gridX: number;
   gridY: number;
-  playBackgroundImageUrl: string | null;
   resultTemplateImageUrl: string | null;
   round: RoundInfoState;
   votes: Record<string, number>;

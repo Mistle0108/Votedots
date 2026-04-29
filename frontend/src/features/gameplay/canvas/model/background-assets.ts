@@ -7,26 +7,6 @@ const SIZE_FOLDER_ASSET_SUFFIXES = new Set([
   "1024x1024",
 ]);
 
-function getLegacyPlayBackgroundAssetKey(
-  assetKey: string | null,
-): string | null {
-  if (!assetKey || !assetKey.startsWith("empty-")) {
-    return null;
-  }
-
-  return assetKey.replace(/^empty-/, "grid-");
-}
-
-function getLegacyResultTemplateAssetKey(
-  assetKey: string | null,
-): string | null {
-  if (!assetKey) {
-    return null;
-  }
-
-  return assetKey;
-}
-
 function getAssetSizeFolder(assetKey: string): string | null {
   const matched = assetKey.match(/-(\d+x\d+)$/);
   const sizeFolder = matched?.[1] ?? null;
@@ -68,31 +48,30 @@ export function getResultTemplateImageUrl(
   return `/result-templates/${assetKey}.png`;
 }
 
+export type PlayBackgroundMode = "w" | "g" | "b";
+
 export function resolvePlayBackgroundImageUrl(params: {
-  playBackgroundAssetKey: string | null;
-  backgroundAssetKey: string | null;
+  gridX: number;
+  gridY: number;
+  backgroundMode: PlayBackgroundMode;
 }): string | null {
+  if (params.gridX <= 0 || params.gridY <= 0 || params.gridX !== params.gridY) {
+    return null;
+  }
+
+  const sizeFolder = `${params.gridX}x${params.gridY}`;
+
+  if (!SIZE_FOLDER_ASSET_SUFFIXES.has(sizeFolder)) {
+    return null;
+  }
+
   return getPlayBackgroundImageUrl(
-    params.playBackgroundAssetKey ??
-      getLegacyPlayBackgroundAssetKey(params.backgroundAssetKey),
+    `grid-${params.backgroundMode}-${sizeFolder}`,
   );
 }
 
 export function resolveResultTemplateImageUrl(params: {
   resultTemplateAssetKey: string | null;
-  backgroundAssetKey: string | null;
 }): string | null {
-  if (params.resultTemplateAssetKey) {
-    return getResultTemplateImageUrl(params.resultTemplateAssetKey);
-  }
-
-  const legacyAssetKey = getLegacyResultTemplateAssetKey(
-    params.backgroundAssetKey,
-  );
-
-  if (!legacyAssetKey) {
-    return null;
-  }
-
-  return `/game-backgrounds/${legacyAssetKey}.png`;
+  return getResultTemplateImageUrl(params.resultTemplateAssetKey);
 }

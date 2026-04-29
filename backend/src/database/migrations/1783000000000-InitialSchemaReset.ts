@@ -18,7 +18,6 @@ export class InitialSchemaReset1783000000000 implements MigrationInterface {
         "gridX" smallint NOT NULL DEFAULT '10',
         "gridY" smallint NOT NULL DEFAULT '10',
         "configProfileKey" character varying(64) NOT NULL DEFAULT 'default',
-        "backgroundAssetKey" character varying(128),
         "configSnapshot" jsonb NOT NULL DEFAULT '{}'::jsonb,
         "status" character varying(16) NOT NULL DEFAULT 'playing',
         "phase" character varying(24) NOT NULL DEFAULT 'round_active',

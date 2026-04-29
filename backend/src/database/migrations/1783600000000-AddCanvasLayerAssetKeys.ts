@@ -8,11 +8,6 @@ export class AddCanvasLayerAssetKeys1783600000000
   public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`
       ALTER TABLE "canvas"
-      ADD "playBackgroundAssetKey" character varying(128)
-    `);
-
-    await queryRunner.query(`
-      ALTER TABLE "canvas"
       ADD "resultTemplateAssetKey" character varying(128)
     `);
   }
@@ -21,11 +16,6 @@ export class AddCanvasLayerAssetKeys1783600000000
     await queryRunner.query(`
       ALTER TABLE "canvas"
       DROP COLUMN "resultTemplateAssetKey"
-    `);
-
-    await queryRunner.query(`
-      ALTER TABLE "canvas"
-      DROP COLUMN "playBackgroundAssetKey"
     `);
   }
 }
