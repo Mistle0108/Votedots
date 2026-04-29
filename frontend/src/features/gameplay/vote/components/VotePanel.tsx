@@ -1,3 +1,4 @@
+import { useState } from "react";
 import type { Cell, Viewport } from "@/features/gameplay/canvas";
 import { CoordinateNavigator, MiniMap } from "@/features/gameplay/canvas";
 import { RoundInfo } from "@/features/gameplay/round";
@@ -10,7 +11,6 @@ import {
 import { getGameConfig } from "@/shared/config/game-config";
 import { useI18n } from "@/shared/i18n";
 import { BrandLogo } from "@/shared/ui/brand-logo";
-import LanguageSwitcher from "@/shared/ui/language-switcher";
 import { MAX_VOTE_PANEL_ENTRIES } from "../model/vote.constants";
 import { buildVotePanelEntries } from "../model/vote.utils";
 
@@ -69,7 +69,8 @@ export default function VotePanel({
   viewport,
   onNavigateToCoordinate,
 }: Props) {
-  const { t } = useI18n();
+  const { locale, setLocale, t } = useI18n();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const votesPerRound = getGameConfig().rules.votesPerRound;
   const voteEntries = buildVotePanelEntries(votes, cells).slice(
     0,
@@ -84,8 +85,52 @@ export default function VotePanel({
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <div className="flex flex-col items-center gap-2">
-        <div className="flex w-full justify-end">
-          <LanguageSwitcher />
+        <div className="relative flex w-full justify-end">
+          <button
+            type="button"
+            onClick={() => setIsSettingsOpen((prev) => !prev)}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-sm font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
+            aria-label="Settings"
+            aria-expanded={isSettingsOpen}
+          >
+            ⚙
+          </button>
+
+          {isSettingsOpen ? (
+            <div className="absolute right-0 top-11 z-10 w-56 rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3 shadow-lg">
+              <div className="flex flex-col gap-2">
+                <section className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3 py-2">
+                  <p className="text-xs font-semibold text-[color:var(--page-theme-text-secondary)]">
+                    Language
+                  </p>
+                  <select
+                    value={locale}
+                    onChange={(event) =>
+                      setLocale(event.target.value as "ko" | "en")
+                    }
+                    className="min-w-[108px] rounded-lg border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-2 py-1.5 text-xs font-medium text-[color:var(--page-theme-text-primary)] outline-none"
+                  >
+                    <option value="ko">KO</option>
+                    <option value="en">EN</option>
+                  </select>
+                </section>
+
+                <section className="flex items-center justify-between gap-3 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3 py-2">
+                  <p className="text-xs font-semibold text-[color:var(--page-theme-text-secondary)]">
+                    Background
+                  </p>
+                  <select
+                    defaultValue="w"
+                    className="min-w-[108px] rounded-lg border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-2 py-1.5 text-xs font-medium text-[color:var(--page-theme-text-primary)] outline-none"
+                  >
+                    <option value="w">W</option>
+                    <option value="g">G</option>
+                    <option value="b">B</option>
+                  </select>
+                </section>
+              </div>
+            </div>
+          ) : null}
         </div>
 
         <BrandLogo variant="wordmark" className="mx-auto w-40" />
