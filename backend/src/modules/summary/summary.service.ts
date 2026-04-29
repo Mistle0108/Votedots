@@ -2,6 +2,7 @@ import { AppDataSource } from "../../database/data-source";
 import { Cell, CellStatus } from "../../entities/cell.entity";
 import { Canvas } from "../../entities/canvas.entity";
 import { GameSummary } from "../../entities/game-summary.entity";
+import { RoundVoterState } from "../../entities/round-voter-state.entity";
 import { RoundSummary } from "../../entities/round-summary.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { VoteTicket } from "../../entities/vote-ticket.entity";
@@ -10,6 +11,7 @@ import { Vote } from "../../entities/vote.entity";
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
 const voteRepository = AppDataSource.getRepository(Vote);
+const roundVoterStateRepository = AppDataSource.getRepository(RoundVoterState);
 const voteTicketRepository = AppDataSource.getRepository(VoteTicket);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const roundSummaryRepository = AppDataSource.getRepository(RoundSummary);
@@ -271,10 +273,13 @@ export const summaryService = {
       throw new Error("캔버스가 존재하지 않습니다.");
     }
 
-    const [votes, tickets, rounds, cells, existingSummary] = await Promise.all([
+    const [votes, roundVoterStates, tickets, rounds, cells, existingSummary] = await Promise.all([
       voteRepository.find({
         where: { round: { canvas: { id: canvasId } } },
         relations: ["voter", "round"],
+      }),
+      roundVoterStateRepository.find({
+        where: { round: { canvas: { id: canvasId } } },
       }),
       voteTicketRepository.find({
         where: { round: { canvas: { id: canvasId } } },
@@ -400,6 +405,12 @@ export const summaryService = {
     }
 
     const totalCellCount = canvas.gridX * canvas.gridY;
+    const issuedVotesFromState = roundVoterStates.reduce(
+      (total, state) => total + state.issuedVotes,
+      0,
+    );
+    const issuedVoteCount =
+      issuedVotesFromState > 0 ? issuedVotesFromState : tickets.length;
 
     const randomResolvedCellCount = countRandomResolvedCellsFromVotes(votes);
     const paintedCells = cells.filter(
@@ -413,9 +424,9 @@ export const summaryService = {
       canvas: { id: canvasId },
       totalRounds: rounds.length,
       participantCount: participantMap.size,
-      issuedTicketCount: tickets.length,
+      issuedTicketCount: issuedVoteCount,
       totalVotes: votes.length,
-      ticketUsageRate: toPercent(votes.length, tickets.length),
+      ticketUsageRate: toPercent(votes.length, issuedVoteCount),
       totalCellCount,
       paintedCellCount,
       emptyCellCount,

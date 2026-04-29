@@ -8,8 +8,8 @@ import { redisClient } from "../../config/redis";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
+import { RoundVoterState } from "../../entities/round-voter-state.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
-import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { Vote } from "../../entities/vote.entity";
 import { Voter } from "../../entities/voter.entity";
 import { GamePhase } from "../game/game-phase.types";
@@ -21,11 +21,11 @@ import { voteService } from "../vote/vote.service";
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
-const voteTicketRepository = AppDataSource.getRepository(VoteTicket);
+const roundVoterStateRepository = AppDataSource.getRepository(RoundVoterState);
 const voteRepository = AppDataSource.getRepository(Vote);
 const voterRepository = AppDataSource.getRepository(Voter);
 
-const VOTE_TICKET_INSERT_CHUNK_SIZE = 1000;
+const ROUND_VOTER_STATE_INSERT_CHUNK_SIZE = 1000;
 
 interface RoundStateResponse {
   status: "active" | "waiting";
@@ -167,40 +167,38 @@ export const roundService = {
         ? await voterRepository.findBy({ id: In(voterIds) })
         : [];
 
-    const tickets: Array<{
+    const roundVoterStates: Array<{
       round: { id: number };
       voter: { id: number };
-      isUsed: boolean;
+      issuedVotes: number;
+      usedVotes: number;
     }> = [];
 
     for (const voter of voters) {
-      for (let i = 0; i < canvasGameConfig.rules.votesPerRound; i++) {
-        tickets.push({
-          round: { id: round.id },
-          voter: { id: voter.id },
-          isUsed: false,
-        });
-      }
+      roundVoterStates.push({
+        round: { id: round.id },
+        voter: { id: voter.id },
+        issuedVotes: canvasGameConfig.rules.votesPerRound,
+        usedVotes: 0,
+      });
     }
 
-    const ticketInsertStartedAt = performance.now();
+    const roundVoterStateInsertStartedAt = performance.now();
 
     for (
       let index = 0;
-      index < tickets.length;
-      index += VOTE_TICKET_INSERT_CHUNK_SIZE
+      index < roundVoterStates.length;
+      index += ROUND_VOTER_STATE_INSERT_CHUNK_SIZE
     ) {
-      const chunk = tickets.slice(index, index + VOTE_TICKET_INSERT_CHUNK_SIZE);
-      await voteTicketRepository.insert(chunk);
+      const chunk = roundVoterStates.slice(
+        index,
+        index + ROUND_VOTER_STATE_INSERT_CHUNK_SIZE,
+      );
+      await roundVoterStateRepository.insert(chunk);
     }
 
     console.log(
-      `[perf] vote tickets insert | roundId=${round.id} voterCount=${voters.length} ticketCount=${tickets.length} ms=${(performance.now() - ticketInsertStartedAt).toFixed(2)}`,
-    );
-
-    await voteService.registerIssuedVoters(
-      round.id,
-      voters.map((voter) => voter.id),
+      `[perf] round voter states insert | roundId=${round.id} voterCount=${voters.length} issuedVotes=${roundVoterStates.reduce((total, state) => total + state.issuedVotes, 0)} ms=${(performance.now() - roundVoterStateInsertStartedAt).toFixed(2)}`,
     );
 
     if (io) {
@@ -422,8 +420,6 @@ export const roundService = {
     }
 
     await redisClient.del(redisKey);
-    await voteService.clearIssuedVoters(round.id);
-
     if (io) {
       io.to(`canvas:${canvasId}`).emit("round:ended", {
         roundId: round.id,

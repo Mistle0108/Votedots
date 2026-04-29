@@ -86,13 +86,6 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-64x64",
   },
   {
-    id: "cat-oblique-64x64",
-    name: "Cat Oblique Template 64x64",
-    gridX: 64,
-    gridY: 64,
-    assetKey: "cat-oblique-64x64",
-  },
-  {
     id: "empty-128x128",
     name: "Default Template 128x128",
     gridX: 128,
@@ -100,18 +93,11 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-128x128",
   },
   {
-    id: "cat-front-128x128",
-    name: "Cat Front Template 128x128",
+    id: "cat-oblique-128x128",
+    name: "Cat Oblique Template 128x128",
     gridX: 128,
     gridY: 128,
-    assetKey: "cat-front-128x128",
-  },
-  {
-    id: "Farrot-oblique-128x128",
-    name: "Farrot Oblique Template 128x128",
-    gridX: 128,
-    gridY: 128,
-    assetKey: "Farrot-oblique-128x128",
+    assetKey: "cat-oblique-128x128",
   },
   {
     id: "empty-256x256",
@@ -121,11 +107,25 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-256x256",
   },
   {
+    id: "cat-front-256x256",
+    name: "Cat Front Template 256x256",
+    gridX: 256,
+    gridY: 256,
+    assetKey: "cat-front-256x256",
+  },
+  {
     id: "empty-512x512",
     name: "Default Template 512x512",
     gridX: 512,
     gridY: 512,
     assetKey: "empty-512x512",
+  },
+  {
+    id: "Farrot-oblique-512x512",
+    name: "Farrot Oblique Template 512x512",
+    gridX: 512,
+    gridY: 512,
+    assetKey: "Farrot-oblique-512x512",
   },
   {
     id: "smile-512x512",

@@ -32,7 +32,13 @@ function buildResultTemplateCandidatePaths(assetKey: string): string[] {
 
   return [
     ...(sizeFolder
-      ? [path.resolve("/app/result-templates", sizeFolder, `${assetKey}.png`)]
+      ? [
+          path.resolve(
+            "/app/result-templates",
+            sizeFolder,
+            `${assetKey}.png`,
+          ),
+        ]
       : []),
     path.resolve("/app/result-templates", `${assetKey}.png`),
     path.resolve("/app/game-backgrounds", `${assetKey}.png`),
