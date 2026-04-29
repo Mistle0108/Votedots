@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
-import { authService } from "./auth.service";
 import { authSessionService } from "./auth-session.service";
+import { authService } from "./auth.service";
+import { validateLoginInput, validateRegisterInput } from "./auth.validation";
 import { getSessionRoom } from "../../socket/socket";
 
 function regenerateSession(req: Request): Promise<void> {
@@ -33,26 +34,32 @@ export const authController = {
   async register(req: Request, res: Response) {
     try {
       const { username, password, nickname } = req.body;
+      const validationError = validateRegisterInput({
+        username,
+        password,
+        nickname,
+      });
 
-      if (!username || !password || !nickname) {
-        return res.status(400).json({ message: "모든 항목을 입력해주세요" });
+      if (validationError) {
+        return res.status(400).json({ message: validationError });
       }
 
       await authService.register(username, password, nickname);
-      return res.status(201).json({ message: "회원가입이 완료됐어요" });
+      return res.status(201).json({ message: "REGISTER_SUCCESS" });
     } catch (err) {
-      return res.status(400).json({ message: String(err) });
+      return res.status(400).json({
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   },
 
   async login(req: Request, res: Response) {
     try {
       const { username, password } = req.body;
+      const validationError = validateLoginInput({ username, password });
 
-      if (!username || !password) {
-        return res
-          .status(400)
-          .json({ message: "아이디와 비밀번호를 입력해주세요" });
+      if (validationError) {
+        return res.status(400).json({ message: validationError });
       }
 
       const voter = await authService.login(username, password);
@@ -78,9 +85,11 @@ export const authController = {
         await authSessionService.destroySession(previousSessionId);
       }
 
-      return res.json({ message: "로그인 성공" });
+      return res.json({ message: "LOGIN_SUCCESS" });
     } catch (err) {
-      return res.status(401).json({ message: String(err) });
+      return res.status(401).json({
+        message: err instanceof Error ? err.message : String(err),
+      });
     }
   },
 
@@ -96,9 +105,9 @@ export const authController = {
       await destroyRequestSession(req);
 
       res.clearCookie("connect.sid");
-      return res.json({ message: "로그아웃 됐어요" });
-    } catch (err) {
-      return res.status(500).json({ message: "로그아웃 중 오류가 발생했어요" });
+      return res.json({ message: "LOGOUT_SUCCESS" });
+    } catch {
+      return res.status(500).json({ message: "LOGOUT_FAILED" });
     }
   },
 
