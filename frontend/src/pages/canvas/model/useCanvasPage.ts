@@ -89,6 +89,7 @@ export default function useCanvasPage({
     gridX,
     gridY,
     selectedCell,
+    displaySelectedCell,
     viewport,
     cameraX,
     cameraY,
@@ -108,6 +109,8 @@ export default function useCanvasPage({
     handleCanvasUpdated,
     handleCanvasBatchUpdated,
     clearSelectedCell,
+    applySelectedCellColor,
+    hideSelectedCellVisual,
   } = useCanvasScene({
     previewColor,
     votingCellIds,
@@ -300,9 +303,11 @@ export default function useCanvasPage({
     closePopup();
   }, [closePopup]);
 
-  const handleVoteSuccess = useCallback(() => {
+  const handleVoteSuccess = useCallback((color: string) => {
+    applySelectedCellColor(color);
+    hideSelectedCellVisual();
     gameplay.handleVoteSuccess();
-  }, [gameplay]);
+  }, [applySelectedCellColor, gameplay, hideSelectedCellVisual]);
 
   return {
     paintCanvasRef,
@@ -323,6 +328,7 @@ export default function useCanvasPage({
     roundId: gameplay.roundId,
     isRoundExpired: gameplay.isRoundExpired,
     selectedCell,
+    displaySelectedCell,
     votes,
     cells,
     minimapCells,
