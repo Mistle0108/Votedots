@@ -61,6 +61,7 @@ export default function CanvasPage() {
     roundId,
     isRoundExpired,
     selectedCell,
+    displaySelectedCell,
     votes,
     cells,
     minimapCells,
@@ -243,7 +244,7 @@ export default function CanvasPage() {
             participantError={participantError}
             gridX={gridX}
             gridY={gridY}
-            selectedCell={selectedCell}
+            selectedCell={displaySelectedCell}
             viewport={viewport}
             onNavigateToCoordinate={navigateToCoordinate}
           />
