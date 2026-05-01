@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { useI18n } from "@/shared/i18n";
+import eyedropperIcon from "@/assets/eyedropper-icon.png";
 
 const CHECKER_PATTERN =
   "linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db), linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db)";
@@ -80,7 +81,12 @@ export default function ColorPalette({
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
           title={t("vote.palette.eyeDropper")}
         >
-          ⌾
+          <img
+            src={eyedropperIcon}
+            alt=""
+            className="h-4 w-4 object-contain"
+            draggable={false}
+          />
         </button>
 
         <div className="flex flex-1 items-center overflow-hidden rounded border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)]">
@@ -132,7 +138,7 @@ export default function ColorPalette({
           className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
           title={t("vote.palette.reset")}
         >
-          ↺
+          ×
         </button>
       </div>
 
@@ -158,7 +164,7 @@ export default function ColorPalette({
           >
             {idx === slotCursor && (
               <span className="absolute inset-0 flex items-center justify-center text-[8px] text-[color:var(--page-theme-primary-action-text)] drop-shadow">
-                ✓
+                ●
               </span>
             )}
           </button>

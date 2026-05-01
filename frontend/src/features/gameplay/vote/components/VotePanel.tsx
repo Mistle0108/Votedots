@@ -12,6 +12,7 @@ import {
 import { getGameConfig } from "@/shared/config/game-config";
 import { useI18n } from "@/shared/i18n";
 import { BrandLogo } from "@/shared/ui/brand-logo";
+import settingsIcon from "@/assets/settings-icon.png";
 import VotePanelSettings from "./VotePanelSettings";
 import { MAX_VOTE_PANEL_ENTRIES } from "../model/vote.constants";
 import { buildVotePanelEntries } from "../model/vote.utils";
@@ -140,7 +141,12 @@ export default function VotePanel({
             aria-label="Settings"
             aria-expanded={isSettingsOpen}
           >
-            ⚙
+            <img
+              src={settingsIcon}
+              alt=""
+              className="h-4.5 w-4.5 object-contain"
+              draggable={false}
+            />
           </button>
 
           {isSettingsOpen ? (

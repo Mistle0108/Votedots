@@ -30,7 +30,7 @@ interface Props {
   votes: Record<string, number>;
   cells: Cell[];
   position: { x: number; y: number };
-  onVoteSuccess: () => void;
+  onVoteSuccess: (color: string) => void;
   onColorChange: (color: string | null) => void;
   onClose: () => void;
 }
@@ -190,8 +190,8 @@ export default function VotePopup({
         color,
       });
 
+      onVoteSuccess(color);
       onColorChange(null);
-      onVoteSuccess();
       onClose();
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
@@ -334,6 +334,10 @@ export default function VotePopup({
     onColorChange(color);
     return () => onColorChange(null);
   }, []);
+
+  useEffect(() => {
+    onColorChange(color);
+  }, [color, onColorChange, selectedCell.x, selectedCell.y]);
 
   useEffect(() => {
     if (!isVotingPhase || isRoundExpired) {

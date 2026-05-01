@@ -225,6 +225,7 @@ export default function useCanvasScene({
   const [gridX, setGridX] = useState(0);
   const [gridY, setGridY] = useState(0);
   const [selectedCell, setSelectedCell] = useState<Cell | null>(null);
+  const [selectionVisible, setSelectionVisible] = useState(false);
   const [canvasReady, setCanvasReady] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [cameraX, setCameraX] = useState(0);
@@ -349,6 +350,7 @@ export default function useCanvasScene({
         cameraYRef.current = 0;
         selectedCellRef.current = null;
         setSelectedCell(null);
+        setSelectionVisible(false);
       }
 
       return;
@@ -409,6 +411,7 @@ export default function useCanvasScene({
       setCameraX(initialCamera.x);
       setCameraY(initialCamera.y);
       setSelectedCell(null);
+      setSelectionVisible(false);
     }
 
     if (!canvasReady) {
@@ -525,6 +528,7 @@ export default function useCanvasScene({
       resetPreviewColor();
       setSelectedCell(cell);
       selectedCellRef.current = cell;
+      setSelectionVisible(true);
       openPopup(position ?? getPopupPositionForCell(cell.x, cell.y) ?? { x: 0, y: 0 });
     },
     [getPopupPositionForCell, openPopup, resetPreviewColor],
@@ -614,7 +618,7 @@ export default function useCanvasScene({
     canvasRef: canvasElementRef,
     canvasReady,
     cells,
-    selectedCell,
+    selectedCell: selectionVisible ? selectedCell : null,
     previewColor,
     votingCellIds,
     topColorMap,
@@ -884,6 +888,51 @@ export default function useCanvasScene({
   const clearSelectedCell = useCallback(() => {
     setSelectedCell(null);
     selectedCellRef.current = null;
+    setSelectionVisible(false);
+  }, []);
+
+  const applySelectedCellColor = useCallback(
+    (color: string) => {
+      const currentSelectedCell = selectedCellRef.current;
+
+      if (!currentSelectedCell) {
+        return;
+      }
+
+      const nextSelectedCell: Cell = {
+        ...currentSelectedCell,
+        color,
+        status: "painted",
+      };
+
+      updateCells((prev) =>
+        upsertCells(prev, [
+          {
+            x: nextSelectedCell.x,
+            y: nextSelectedCell.y,
+            color,
+          },
+        ]),
+      );
+
+      updateMinimapCells((prev) =>
+        upsertCells(prev, [
+          {
+            x: nextSelectedCell.x,
+            y: nextSelectedCell.y,
+            color,
+          },
+        ]),
+      );
+
+      setSelectedCell(nextSelectedCell);
+      selectedCellRef.current = nextSelectedCell;
+    },
+    [updateCells, updateMinimapCells],
+  );
+
+  const hideSelectedCellVisual = useCallback(() => {
+    setSelectionVisible(false);
   }, []);
 
   return {
@@ -896,6 +945,7 @@ export default function useCanvasScene({
     gridX,
     gridY,
     selectedCell,
+    displaySelectedCell: selectionVisible ? selectedCell : null,
     viewport,
     cameraX,
     cameraY,
@@ -916,5 +966,7 @@ export default function useCanvasScene({
     handleCanvasUpdated,
     handleCanvasBatchUpdated,
     clearSelectedCell,
+    applySelectedCellColor,
+    hideSelectedCellVisual,
   };
 }
