@@ -11,13 +11,6 @@ interface RoundSummaryModalProps {
   onDragStart: (event: MouseEvent<HTMLDivElement>) => void;
 }
 
-function hasMostVotedCell(summary: RoundSummaryData) {
-  return (
-    typeof summary.mostVotedCellX === "number" &&
-    typeof summary.mostVotedCellY === "number"
-  );
-}
-
 function renderParticipantCopy(
   count: number,
   translate: (key: string, params?: Record<string, string | number>) => string,
@@ -28,7 +21,7 @@ function renderParticipantCopy(
       <>
         <span className="text-[22px] text-[color:var(--page-theme-alert)]">
           {count}
-        </span>
+        </span>{" "}
         {count === 1 && locale === "en"
           ? translate("roundSummary.participantVotedSingular")
           : translate("roundSummary.participantsVoted")}
@@ -90,7 +83,7 @@ export default function RoundSummaryModal({
       onClick={(event) => event.stopPropagation()}
     >
       <div
-        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[560px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-elevated)] shadow-2xl backdrop-blur"
+        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[560px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-elevated)] shadow-2xl"
         style={{ top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
@@ -116,18 +109,13 @@ export default function RoundSummaryModal({
         <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
           <div className="space-y-5">
             {roundSnapshot && (
-              <div
-                className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-[color:var(--page-theme-border-primary)] p-3 shadow-sm"
-                style={{
-                  backgroundColor: "var(--page-theme-surface-secondary)",
-                }}
-              >
+              <div className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3 shadow-sm">
                 <img
                   src={roundSnapshot}
                   alt={t("roundSummary.snapshotAlt", {
                     round: summary.roundNumber,
                   })}
-                  className="block w-full rounded border border-[color:var(--page-theme-border-secondary)] bg-transparent"
+                  className="block w-full rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)]"
                   style={{ imageRendering: "pixelated" }}
                   draggable={false}
                   onDragStart={(event) => {
@@ -136,8 +124,7 @@ export default function RoundSummaryModal({
                 />
               </div>
             )}
-
-            <section className="space-y-3 text-left text-[15px] font-bold leading-7 text-[color:var(--page-theme-text-secondary)]">
+            <section className="mx-auto w-4/6 space-y-3 rounded-2xl border-2 border-[color:var(--page-theme-primary-action)] px-5 py-4 text-center text-[15px] font-bold leading-7 text-[color:var(--page-theme-text-primary)]">
               <p>{renderParticipantCopy(summary.participantCount, t, locale)}</p>
               <p>
                 <span className="text-[22px] text-[color:var(--page-theme-alert)]">
@@ -148,39 +135,8 @@ export default function RoundSummaryModal({
               <p>
                 <span className="text-[22px] text-[color:var(--page-theme-alert)]">
                   {summary.paintedCellCount}
-                </span>
+                </span>{" "}
                 {t("roundSummary.paintedCells")}
-              </p>
-              <p>
-                {t("roundSummary.progress")}{" "}
-                <span className="text-[22px] text-[color:var(--page-theme-alert)]">
-                  {formatPercent(progressPercent)}
-                </span>
-              </p>
-            </section>
-
-            <section className="space-y-3 rounded-2xl border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)] px-5 py-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
-              {hasMostVotedCell(summary) ? (
-                <p>
-                  {t("roundSummary.mostPopularPrefix")} (
-                  {summary.mostVotedCellX}, {summary.mostVotedCellY})
-                  {t("roundSummary.mostPopularSuffix")}
-                </p>
-              ) : (
-                <p>{t("roundSummary.noPopularCell")}</p>
-              )}
-              <p>
-                {t("roundSummary.randomResolvedPrefix")}{" "}
-                {summary.randomResolvedCellCount > 0 ? (
-                  <>
-                    <span className="font-bold text-[color:var(--page-theme-text-primary)]">
-                      {summary.randomResolvedCellCount}
-                    </span>
-                    {t("roundSummary.randomResolvedSuffix")}
-                  </>
-                ) : (
-                  t("common.none")
-                )}
               </p>
             </section>
           </div>
