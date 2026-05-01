@@ -54,23 +54,55 @@ export default function IntroGuideModal({
     () => [
       {
         label: t("intro.label.canvasSize"),
-        value: `${gridX} x ${gridY}`,
+        value: (
+          <>
+            <span className="text-[19px] text-[color:var(--page-theme-accent-warm)]">
+              {gridX}
+            </span>
+            {" x "}
+            <span className="text-[19px] text-[color:var(--page-theme-accent-warm)]">
+              {gridY}
+            </span>
+          </>
+        ),
       },
       {
         label: t("intro.label.totalRounds"),
-        value: String(description.totalRounds),
+        value: (
+          <span className="text-[19px] text-[color:var(--page-theme-accent-warm)]">
+            {description.totalRounds}
+          </span>
+        ),
       },
       {
         label: t("intro.label.roundDuration"),
-        value: `${description.roundDurationSec}${t("intro.unit.seconds")}`,
+        value: (
+          <>
+            <span className="text-[19px] text-[color:var(--page-theme-accent-warm)]">
+              {description.roundDurationSec}
+            </span>
+            {t("intro.unit.seconds")}
+          </>
+        ),
       },
       {
         label: t("intro.label.votesPerRound"),
-        value: `${description.votesPerRound}${t("intro.unit.votes")}`,
+        value: (
+          <>
+            <span className="text-[19px] text-[color:var(--page-theme-accent-warm)]">
+              {description.votesPerRound}
+            </span>
+            {t("intro.unit.votes")}
+          </>
+        ),
       },
       {
         label: t("intro.label.gameEndTime"),
-        value: formattedGameEndTime ?? "-",
+        value: (
+          <span className="text-[19px] text-[color:var(--page-theme-accent-warm)]">
+            {formattedGameEndTime ?? "-"}
+          </span>
+        ),
       },
     ],
     [description, formattedGameEndTime, gridX, gridY, t],
@@ -183,18 +215,10 @@ export default function IntroGuideModal({
                 gridY={gridY}
               />
               <div className="space-y-1 pl-6 text-left text-sm font-bold text-[color:var(--page-theme-text-primary)]">
-                {introStats.map((stat, index) => (
+                {introStats.map((stat) => (
                   <p key={stat.label}>
                     {stat.label} :{" "}
-                    <span
-                      className={`text-[19px] ${
-                        index % 2 === 0
-                          ? "text-[color:var(--page-theme-primary-action)]"
-                          : "text-[color:var(--page-theme-accent-warm)]"
-                      }`}
-                    >
-                      {stat.value}
-                    </span>
+                    {stat.value}
                   </p>
                 ))}
               </div>
@@ -207,18 +231,18 @@ export default function IntroGuideModal({
                 </h3>
                 <ul className="space-y-1 text-left">
                   <li>
-                    {t("intro.rule.totalRoundsPrefix")}{" "}
+                    {t("intro.rule.totalRoundsPrefix")}
                     <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
                       {description.totalRounds}
                     </span>
                     {t("intro.rule.totalRoundsSuffix")}
                   </li>
                   <li>
-                    {t("intro.rule.roundDurationPrefix")}{" "}
+                    {t("intro.rule.roundDurationPrefix")}
                     <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
                       {description.roundDurationSec}
                     </span>
-                    {t("intro.rule.roundDurationMiddle")}{" "}
+                    {t("intro.rule.roundDurationMiddle")}
                     <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
                       {description.votesPerRound}
                     </span>
@@ -235,10 +259,14 @@ export default function IntroGuideModal({
                   {t("intro.section.voteGuide")}
                 </h3>
                 <ul className="space-y-1 text-left">
-                  <li>{t("intro.vote.selectCell")}</li>
-                  <li>{t("intro.vote.submit")}</li>
-                  <li>{t("intro.vote.favorite")}</li>
-                  <li>{t("intro.vote.warning")}</li>
+                  <li className="whitespace-pre-line">
+                    {t("intro.vote.selectCell")}
+                  </li>
+                  <li className="whitespace-pre-line">{t("intro.vote.submit")}</li>
+                  <li className="whitespace-pre-line">
+                    {t("intro.vote.favorite")}
+                  </li>
+                  <li className="whitespace-pre-line">{t("intro.vote.warning")}</li>
                 </ul>
               </section>
             </div>
