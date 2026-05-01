@@ -50,6 +50,31 @@ export default function IntroGuideModal({
   const dragOffsetRef = useRef({ x: 0, y: 0 });
 
   const description = useMemo(() => buildDescription(gameConfig), [gameConfig]);
+  const introStats = useMemo(
+    () => [
+      {
+        label: t("intro.label.canvasSize"),
+        value: `${gridX} x ${gridY}`,
+      },
+      {
+        label: t("intro.label.totalRounds"),
+        value: String(description.totalRounds),
+      },
+      {
+        label: t("intro.label.roundDuration"),
+        value: `${description.roundDurationSec}${t("intro.unit.seconds")}`,
+      },
+      {
+        label: t("intro.label.votesPerRound"),
+        value: `${description.votesPerRound}${t("intro.unit.votes")}`,
+      },
+      {
+        label: t("intro.label.gameEndTime"),
+        value: formattedGameEndTime ?? "-",
+      },
+    ],
+    [description, formattedGameEndTime, gridX, gridY, t],
+  );
 
   useEffect(() => {
     if (!open) {
@@ -158,32 +183,20 @@ export default function IntroGuideModal({
                 gridY={gridY}
               />
               <div className="space-y-1 pl-6 text-left text-sm font-bold text-[color:var(--page-theme-text-primary)]">
-                <p>
-                  {t("intro.label.totalRounds")} :{" "}
-                  <span className="text-[19px] text-[color:var(--page-theme-primary-action)]">
-                    {description.totalRounds}
-                  </span>
-                </p>
-                <p>
-                  {t("intro.label.roundDuration")} :{" "}
-                  <span className="text-[19px] text-[color:var(--page-theme-accent-warm)]">
-                    {description.roundDurationSec}
-                    {t("intro.unit.seconds")}
-                  </span>
-                </p>
-                <p>
-                  {t("intro.label.votesPerRound")} :{" "}
-                  <span className="text-[19px] text-[color:var(--page-theme-accent-warm)]">
-                    {description.votesPerRound}
-                    {t("intro.unit.votes")}
-                  </span>
-                </p>
-                <p>
-                  {t("intro.label.gameEndTime")} :{" "}
-                  <span className="text-[19px] text-[color:var(--page-theme-primary-action)]">
-                    {formattedGameEndTime ?? "-"}
-                  </span>
-                </p>
+                {introStats.map((stat, index) => (
+                  <p key={stat.label}>
+                    {stat.label} :{" "}
+                    <span
+                      className={`text-[19px] ${
+                        index % 2 === 0
+                          ? "text-[color:var(--page-theme-primary-action)]"
+                          : "text-[color:var(--page-theme-accent-warm)]"
+                      }`}
+                    >
+                      {stat.value}
+                    </span>
+                  </p>
+                ))}
               </div>
             </div>
 
