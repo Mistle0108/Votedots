@@ -1,18 +1,18 @@
 import { Server } from "socket.io";
 import { getCanvasGameConfigSnapshot } from "../../config/game.config";
+import { redisClient } from "../../config/redis";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
+import { RoundVoterState } from "../../entities/round-voter-state.entity";
 import { Vote } from "../../entities/vote.entity";
 import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
-import { Cell } from "../../entities/cell.entity";
-import { redisClient } from "../../config/redis";
 import { participantSessionService } from "../participant/participant-session.service";
 
 const voteRepository = AppDataSource.getRepository(Vote);
+const roundVoterStateRepository = AppDataSource.getRepository(RoundVoterState);
 const voteTicketRepository = AppDataSource.getRepository(VoteTicket);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
-const cellRepository = AppDataSource.getRepository(Cell);
 const canvasRepository = AppDataSource.getRepository(Canvas);
 
 interface EnsureCurrentRoundTicketsResult {
@@ -20,26 +20,7 @@ interface EnsureCurrentRoundTicketsResult {
   issued: boolean;
 }
 
-function getIssuedVotersKey(roundId: number): string {
-  return `vote:round:${roundId}:issued-voters`;
-}
-
 export const voteService = {
-  async registerIssuedVoters(
-    roundId: number,
-    voterIds: number[],
-  ): Promise<void> {
-    if (voterIds.length === 0) {
-      return;
-    }
-
-    await redisClient.sAdd(getIssuedVotersKey(roundId), voterIds.map(String));
-  },
-
-  async clearIssuedVoters(roundId: number): Promise<void> {
-    await redisClient.del(getIssuedVotersKey(roundId));
-  },
-
   async ensureCurrentRoundTicketsForParticipant(
     canvasId: number,
     voterId: number,
@@ -70,49 +51,54 @@ export const voteService = {
       return { roundId: round.id, issued: false };
     }
 
-    const issuedVotersKey = getIssuedVotersKey(round.id);
-
-    const existingTicketCount = await voteTicketRepository.count({
+    const existingState = await roundVoterStateRepository.findOne({
       where: {
         round: { id: round.id },
         voter: { id: voterId },
       },
     });
 
-    if (existingTicketCount > 0) {
-      await redisClient.sAdd(issuedVotersKey, String(voterId));
+    if (existingState) {
       return { roundId: round.id, issued: false };
     }
 
-    const addedCount = await redisClient.sAdd(issuedVotersKey, String(voterId));
+    const existingLegacyTicketCount = await voteTicketRepository.count({
+      where: {
+        round: { id: round.id },
+        voter: { id: voterId },
+      },
+    });
 
-    if (addedCount === 0) {
+    if (existingLegacyTicketCount > 0) {
       return { roundId: round.id, issued: false };
     }
 
-    try {
-      const tickets = Array.from(
-        { length: canvasGameConfig.rules.votesPerRound },
-        () => ({
-          round: { id: round.id },
-          voter: { id: voterId },
-          isUsed: false,
-        }),
-      );
+    await roundVoterStateRepository
+      .createQueryBuilder()
+      .insert()
+      .into(RoundVoterState)
+      .values({
+        round: { id: round.id },
+        voter: { id: voterId },
+        issuedVotes: canvasGameConfig.rules.votesPerRound,
+        usedVotes: 0,
+      })
+      .orIgnore()
+      .execute();
 
-      if (tickets.length > 0) {
-        await voteTicketRepository.insert(tickets);
-      }
+    const createdState = await roundVoterStateRepository.findOne({
+      where: {
+        round: { id: round.id },
+        voter: { id: voterId },
+      },
+    });
 
-      return { roundId: round.id, issued: true };
-    } catch (error) {
-      await redisClient.sRem(issuedVotersKey, String(voterId));
-      throw new Error(
-        `현재 라운드 투표권 지급 중 오류가 발생했어요: ${String(error)}`,
-      );
-    }
+    return {
+      roundId: round.id,
+      issued: Boolean(createdState && !existingState),
+    };
   },
-  // TO-BE
+
   async submit(
     voterId: number,
     sessionId: string,
@@ -126,8 +112,9 @@ export const voteService = {
     const round = await voteRoundRepository.findOne({
       where: { id: roundId, canvas: { id: canvasId }, isActive: true },
     });
+
     if (!round) {
-      throw new Error("진행 중인 라운드가 없어요");
+      throw new Error("No active round was found.");
     }
 
     await participantSessionService.assertVotingParticipant(
@@ -139,35 +126,63 @@ export const voteService = {
     const canvas = await canvasRepository.findOne({
       where: { id: canvasId },
     });
+
     if (!canvas) {
-      throw new Error("캔버스를 찾을 수 없어요");
+      throw new Error("Canvas was not found.");
     }
 
     if (x < 0 || y < 0 || x >= canvas.gridX || y >= canvas.gridY) {
-      throw new Error("유효하지 않은 셀 좌표예요");
-    }
-
-    const ticket = await voteTicketRepository.findOne({
-      where: {
-        round: { id: roundId },
-        voter: { id: voterId },
-        isUsed: false,
-      },
-    });
-    if (!ticket) {
-      throw new Error("남은 투표권이 없어요");
+      throw new Error("Invalid cell coordinate.");
     }
 
     let vote: Vote;
+
     try {
       vote = await AppDataSource.transaction(async (manager) => {
-        ticket.isUsed = true;
-        await manager.save(ticket);
+        const stateUpdate = await manager
+          .createQueryBuilder()
+          .update(RoundVoterState)
+          .set({
+            usedVotes: () => '"used_votes" + 1',
+          })
+          .where('"round_id" = :roundId', { roundId })
+          .andWhere('"voter_id" = :voterId', { voterId })
+          .andWhere('"used_votes" < "issued_votes"')
+          .returning(["id"])
+          .execute();
+
+        if ((stateUpdate.affected ?? 0) === 0) {
+          const legacyTicket = await manager.findOne(VoteTicket, {
+            where: {
+              round: { id: roundId },
+              voter: { id: voterId },
+              isUsed: false,
+            },
+          });
+
+          if (!legacyTicket) {
+            throw new Error("No remaining votes are available.");
+          }
+
+          legacyTicket.isUsed = true;
+          await manager.save(legacyTicket);
+
+          const legacyVote = manager.create(Vote, {
+            round,
+            voter: { id: voterId },
+            ticket: legacyTicket,
+            x,
+            y,
+            color,
+          });
+
+          return manager.save(legacyVote);
+        }
 
         const newVote = manager.create(Vote, {
           round,
           voter: { id: voterId },
-          ticket,
+          ticket: null,
           x,
           y,
           color,
@@ -175,8 +190,12 @@ export const voteService = {
 
         return manager.save(newVote);
       });
-    } catch (err) {
-      throw new Error(`투표 처리 중 오류가 발생했어요: ${String(err)}`);
+    } catch (error) {
+      if (error instanceof Error && error.message === "No remaining votes are available.") {
+        throw error;
+      }
+
+      throw new Error(`Failed to submit vote: ${String(error)}`);
     }
 
     try {
@@ -188,7 +207,7 @@ export const voteService = {
         const votes: Record<string, number> = {};
 
         for (const [key, value] of Object.entries(voteData)) {
-          votes[key] = parseInt(value);
+          votes[key] = parseInt(value, 10);
         }
 
         io.to(`canvas:${canvasId}`).emit("vote:update", {
@@ -199,14 +218,21 @@ export const voteService = {
           votes,
         });
       }
-    } catch (err) {
+    } catch (error) {
       await AppDataSource.transaction(async (manager) => {
-        ticket.isUsed = false;
-        await manager.save(ticket);
         await manager.delete(Vote, vote.id);
+        await manager
+          .createQueryBuilder()
+          .update(RoundVoterState)
+          .set({
+            usedVotes: () => 'GREATEST("used_votes" - 1, 0)',
+          })
+          .where('"round_id" = :roundId', { roundId })
+          .andWhere('"voter_id" = :voterId', { voterId })
+          .execute();
       });
 
-      throw new Error("투표 집계 중 오류가 발생했어요. 다시 시도해주세요");
+      throw new Error("Failed to update vote status.");
     }
 
     return vote;
@@ -218,13 +244,24 @@ export const voteService = {
 
     const result: Record<string, number> = {};
     for (const [key, value] of Object.entries(data)) {
-      result[key] = parseInt(value);
+      result[key] = parseInt(value, 10);
     }
 
     return result;
   },
 
   async getRemainingTickets(voterId: number, roundId: number): Promise<number> {
+    const state = await roundVoterStateRepository.findOne({
+      where: {
+        round: { id: roundId },
+        voter: { id: voterId },
+      },
+    });
+
+    if (state) {
+      return Math.max(0, state.issuedVotes - state.usedVotes);
+    }
+
     return voteTicketRepository.count({
       where: {
         round: { id: roundId },

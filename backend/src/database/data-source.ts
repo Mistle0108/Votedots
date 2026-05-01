@@ -5,12 +5,11 @@ import { Voter } from "../entities/voter.entity";
 import { Canvas } from "../entities/canvas.entity";
 import { Cell } from "../entities/cell.entity";
 import { VoteRound } from "../entities/vote-round.entity";
+import { RoundVoterState } from "../entities/round-voter-state.entity";
 import { VoteTicket } from "../entities/vote-ticket.entity";
 import { Vote } from "../entities/vote.entity";
-
-import { GameSummary } from "../entities/game-summary.entity"; // 추가: 게임 집계 엔티티
-import { RoundSummary } from "../entities/round-summary.entity"; // 추가: 라운드 집계 엔티티
-
+import { GameSummary } from "../entities/game-summary.entity";
+import { RoundSummary } from "../entities/round-summary.entity";
 import { RoundSnapshot } from "../entities/round-snapshot.entity";
 
 function readNonNegativeIntegerEnv(name: string, fallback: number): number {
@@ -33,6 +32,7 @@ export const AppDataSource = new DataSource({
     Cell,
     Vote,
     VoteRound,
+    RoundVoterState,
     VoteTicket,
     Voter,
     GameSummary,

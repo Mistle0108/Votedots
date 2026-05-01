@@ -1,4 +1,3 @@
-// TO-BE
 import { Entity, Column, ManyToOne, OneToOne, JoinColumn } from "typeorm";
 import { BaseEntity } from "./base.entity";
 import { VoteRound } from "./vote-round.entity";
@@ -17,7 +16,7 @@ export class Vote extends BaseEntity {
 
   @OneToOne(() => VoteTicket, (ticket) => ticket.vote, { onDelete: "CASCADE" })
   @JoinColumn({ name: "ticket_id" })
-  ticket!: VoteTicket;
+  ticket!: VoteTicket | null;
 
   @Column({ type: "smallint" })
   x!: number;
