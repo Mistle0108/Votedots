@@ -64,7 +64,6 @@ export default function CanvasPage() {
     displaySelectedCell,
     votes,
     cells,
-    minimapCells,
     handleVoteSuccess,
     handleColorChange,
     handlePopupClose,
@@ -233,7 +232,6 @@ export default function CanvasPage() {
             votes={votes}
             remaining={remaining}
             cells={cells}
-            minimapCells={minimapCells}
             latestRoundSnapshot={latestRoundSnapshot}
             playBackgroundImageUrl={playBackgroundImageUrl}
             resultTemplateImageUrl={resultTemplateImageUrl}
@@ -284,6 +282,7 @@ export default function CanvasPage() {
         open={roundSummaryOpen}
         summary={roundSummaryModal}
         snapshot={latestRoundSnapshot}
+        playBackgroundImageUrl={playBackgroundImageUrl}
         position={roundSummaryPosition}
         onClose={handleCloseRoundSummaryModal}
         onDragStart={handleRoundSummaryDragStart}
@@ -293,6 +292,7 @@ export default function CanvasPage() {
         <GameSummaryModal
           summary={gameSummaryModal}
           snapshotUrl={latestRoundSnapshot}
+          playBackgroundImageUrl={playBackgroundImageUrl}
           onClose={handleCloseGameSummaryModal}
         />
       )}

@@ -170,7 +170,7 @@ export default function IntroGuideModal({
     >
       <div
         ref={modalRef}
-        className="pointer-events-auto fixed flex max-h-[min(calc(100vh-80px),680px)] w-[720px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-elevated)] shadow-2xl backdrop-blur"
+        className="pointer-events-auto fixed flex max-h-[min(calc(100vh-80px),680px)] w-[720px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
         style={{ top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}

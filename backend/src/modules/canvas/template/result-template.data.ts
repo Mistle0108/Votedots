@@ -65,6 +65,13 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-512x512",
   },
   {
+    id: "converse-512x512",
+    name: "Converse Template 512x512",
+    gridX: 512,
+    gridY: 512,
+    assetKey: "converse-512x512",
+  },
+  {
     id: "Farrot-oblique-512x512",
     name: "Farrot Oblique Template 512x512",
     gridX: 512,
@@ -84,5 +91,12 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     gridX: 1024,
     gridY: 1024,
     assetKey: "empty-1024x1024",
+  },
+  {
+    id: "boothpictures-1024x1024",
+    name: "Boothpictures Template 1024x1024",
+    gridX: 1024,
+    gridY: 1024,
+    assetKey: "boothpictures-1024x1024",
   },
 ];
