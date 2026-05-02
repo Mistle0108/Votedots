@@ -1,8 +1,25 @@
-import { createClient } from "redis"
+import { createClient } from "redis";
 
-export const redisClient = createClient({ url: process.env.REDIS_URL })
+export const redisClient = createClient({ url: process.env.REDIS_URL });
 
-redisClient
-  .connect()
-  .then(() => console.log("Redis 연결 성공"))
-  .catch((err: Error) => console.error("Redis 연결 실패:", err))
+export async function connectRedis(): Promise<void> {
+  if (redisClient.isOpen) {
+    return;
+  }
+
+  try {
+    await redisClient.connect();
+    console.log("Redis connected");
+  } catch (err) {
+    console.error("Redis connection failed:", err);
+    throw err;
+  }
+}
+
+export async function disconnectRedis(): Promise<void> {
+  if (!redisClient.isOpen) {
+    return;
+  }
+
+  await redisClient.quit();
+}
