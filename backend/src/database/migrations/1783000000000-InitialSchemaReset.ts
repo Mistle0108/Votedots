@@ -18,6 +18,7 @@ export class InitialSchemaReset1783000000000 implements MigrationInterface {
         "gridX" smallint NOT NULL DEFAULT '10',
         "gridY" smallint NOT NULL DEFAULT '10',
         "configProfileKey" character varying(64) NOT NULL DEFAULT 'default',
+        "resultTemplateAssetKey" character varying(128),
         "configSnapshot" jsonb NOT NULL DEFAULT '{}'::jsonb,
         "status" character varying(16) NOT NULL DEFAULT 'playing',
         "phase" character varying(24) NOT NULL DEFAULT 'round_active',
@@ -94,6 +95,32 @@ export class InitialSchemaReset1783000000000 implements MigrationInterface {
         "voter_id" integer,
         CONSTRAINT "PK_vote_ticket_id" PRIMARY KEY ("id")
       )
+    `);
+
+    await queryRunner.query(`
+      CREATE TABLE "round_voter_state" (
+        "id" SERIAL NOT NULL,
+        "createdAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+        "updatedAt" TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+        "createdBy" integer,
+        "updatedBy" integer,
+        "issued_votes" integer NOT NULL DEFAULT 0,
+        "used_votes" integer NOT NULL DEFAULT 0,
+        "round_id" integer,
+        "voter_id" integer,
+        CONSTRAINT "UQ_round_voter_state_round_voter" UNIQUE ("round_id", "voter_id"),
+        CONSTRAINT "PK_round_voter_state_id" PRIMARY KEY ("id")
+      )
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX "IDX_round_voter_state_round_id"
+      ON "round_voter_state" ("round_id")
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX "IDX_round_voter_state_voter_id"
+      ON "round_voter_state" ("voter_id")
     `);
 
     await queryRunner.query(`
@@ -245,6 +272,20 @@ export class InitialSchemaReset1783000000000 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
+      ALTER TABLE "round_voter_state"
+      ADD CONSTRAINT "FK_round_voter_state_round_id"
+      FOREIGN KEY ("round_id") REFERENCES "vote_round"("id")
+      ON DELETE CASCADE ON UPDATE NO ACTION
+    `);
+
+    await queryRunner.query(`
+      ALTER TABLE "round_voter_state"
+      ADD CONSTRAINT "FK_round_voter_state_voter_id"
+      FOREIGN KEY ("voter_id") REFERENCES "voter"("id")
+      ON DELETE CASCADE ON UPDATE NO ACTION
+    `);
+
+    await queryRunner.query(`
       ALTER TABLE "vote"
       ADD CONSTRAINT "FK_vote_round_id"
       FOREIGN KEY ("round_id") REFERENCES "vote_round"("id")
@@ -333,6 +374,12 @@ export class InitialSchemaReset1783000000000 implements MigrationInterface {
       `ALTER TABLE "vote_ticket" DROP CONSTRAINT "FK_vote_ticket_round_id"`,
     );
     await queryRunner.query(
+      `ALTER TABLE "round_voter_state" DROP CONSTRAINT "FK_round_voter_state_voter_id"`,
+    );
+    await queryRunner.query(
+      `ALTER TABLE "round_voter_state" DROP CONSTRAINT "FK_round_voter_state_round_id"`,
+    );
+    await queryRunner.query(
       `ALTER TABLE "vote_round" DROP CONSTRAINT "FK_vote_round_canvas_id"`,
     );
     await queryRunner.query(
@@ -356,6 +403,13 @@ export class InitialSchemaReset1783000000000 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE "game_summary"`);
 
     await queryRunner.query(`DROP TABLE "vote"`);
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_round_voter_state_voter_id"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_round_voter_state_round_id"`,
+    );
+    await queryRunner.query(`DROP TABLE "round_voter_state"`);
     await queryRunner.query(`DROP TABLE "vote_ticket"`);
     await queryRunner.query(`DROP TABLE "vote_round"`);
     await queryRunner.query(`DROP TABLE "cell"`);
