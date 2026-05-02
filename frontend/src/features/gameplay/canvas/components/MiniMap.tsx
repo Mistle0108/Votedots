@@ -8,7 +8,6 @@ const SELECTED_CELL_STROKE = "#f97316";
 const MINIMAP_STROKE_WIDTH = 2;
 
 interface Props {
-  cells: Cell[];
   snapshotUrl: string | null;
   playBackgroundImageUrl: string | null;
   resultTemplateImageUrl: string | null;
@@ -87,7 +86,6 @@ function getClampedMarkerRect(
 }
 
 export default function MiniMap({
-  cells,
   snapshotUrl,
   playBackgroundImageUrl,
   resultTemplateImageUrl,
@@ -125,22 +123,6 @@ export default function MiniMap({
 
     const cellWidth = canvas.width / Math.max(gridX, 1);
     const cellHeight = canvas.height / Math.max(gridY, 1);
-
-    if (!snapshotUrl) {
-      for (const cell of cells) {
-        if (!cell.color) {
-          continue;
-        }
-
-        ctx.fillStyle = cell.color;
-        ctx.fillRect(
-          cell.x * cellWidth,
-          cell.y * cellHeight,
-          Math.max(cellWidth, 1),
-          Math.max(cellHeight, 1),
-        );
-      }
-    }
 
     if (viewport) {
       const viewportRect = getClampedViewportRect(
@@ -220,7 +202,6 @@ export default function MiniMap({
       ctx.restore();
     }
   }, [
-    cells,
     gridX,
     gridY,
     minimapDimensions.width,
@@ -277,6 +258,23 @@ export default function MiniMap({
     <div className="flex justify-center">
       <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-0 shadow-sm">
         {snapshotUrl ? (
+          <>
+            {playBackgroundImageUrl && (
+              <img
+                src={playBackgroundImageUrl}
+                alt="Minimap play background"
+                className="pointer-events-none absolute block h-full w-full select-none"
+                style={{
+                  width: `${minimapDimensions.width}px`,
+                  height: `${minimapDimensions.height}px`,
+                  imageRendering: "pixelated",
+                }}
+                draggable={false}
+                onDragStart={(event) => {
+                  event.preventDefault();
+                }}
+              />
+            )}
           <img
             src={snapshotUrl}
             alt="Minimap snapshot"
@@ -291,6 +289,7 @@ export default function MiniMap({
               event.preventDefault();
             }}
           />
+          </>
         ) : (
           <>
             {playBackgroundImageUrl && (
