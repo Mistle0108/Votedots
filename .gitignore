@@ -1,7 +1,9 @@
 # 환경변수
 .env
-.env.local
-.env.production
+.env
+.env.*
+!.env.example
+!**/.env.example
 
 # 의존성
 node_modules/
