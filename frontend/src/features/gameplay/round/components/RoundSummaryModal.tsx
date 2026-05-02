@@ -6,6 +6,7 @@ interface RoundSummaryModalProps {
   open: boolean;
   summary: RoundSummaryData | null;
   snapshot: string | null;
+  playBackgroundImageUrl: string | null;
   position: { x: number; y: number };
   onClose: () => void;
   onDragStart: (event: MouseEvent<HTMLDivElement>) => void;
@@ -36,6 +37,7 @@ export default function RoundSummaryModal({
   open,
   summary,
   snapshot,
+  playBackgroundImageUrl,
   position,
   onClose,
   onDragStart,
@@ -110,18 +112,32 @@ export default function RoundSummaryModal({
           <div className="space-y-5">
             {roundSnapshot && (
               <div className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3 shadow-sm">
-                <img
-                  src={roundSnapshot}
-                  alt={t("roundSummary.snapshotAlt", {
-                    round: summary.roundNumber,
-                  })}
-                  className="block w-full rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)]"
-                  style={{ imageRendering: "pixelated" }}
-                  draggable={false}
-                  onDragStart={(event) => {
-                    event.preventDefault();
-                  }}
-                />
+                <div className="relative overflow-hidden rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)]">
+                  {playBackgroundImageUrl && (
+                    <img
+                      src={playBackgroundImageUrl}
+                      alt="Round summary play background"
+                      className="absolute inset-0 block h-full w-full"
+                      style={{ imageRendering: "pixelated" }}
+                      draggable={false}
+                      onDragStart={(event) => {
+                        event.preventDefault();
+                      }}
+                    />
+                  )}
+                  <img
+                    src={roundSnapshot}
+                    alt={t("roundSummary.snapshotAlt", {
+                      round: summary.roundNumber,
+                    })}
+                    className="relative block w-full bg-transparent"
+                    style={{ imageRendering: "pixelated" }}
+                    draggable={false}
+                    onDragStart={(event) => {
+                      event.preventDefault();
+                    }}
+                  />
+                </div>
               </div>
             )}
             <section className="mx-auto w-4/6 space-y-3 rounded-2xl border-2 border-[color:var(--page-theme-primary-action)] px-5 py-4 text-center text-[15px] font-bold leading-7 text-[color:var(--page-theme-text-primary)]">

@@ -10,6 +10,7 @@ import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
 interface GameSummaryModalProps {
   summary: GameSummaryData;
   snapshotUrl?: string | null;
+  playBackgroundImageUrl?: string | null;
   onClose: () => void;
 }
 
@@ -190,6 +191,7 @@ function getCellUnit(count: number | null | undefined, locale: "ko" | "en") {
 export default function GameSummaryModal({
   summary,
   snapshotUrl,
+  playBackgroundImageUrl,
   onClose,
 }: GameSummaryModalProps) {
   const { formatNumber, formatPercent, locale, t } = useI18n();
@@ -269,16 +271,30 @@ export default function GameSummaryModal({
           <div className="space-y-5">
             {finalSnapshotUrl ? (
               <div className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3 shadow-sm">
-                <img
-                  src={finalSnapshotUrl}
-                  alt={t("gameSummary.snapshotAlt")}
-                  className="block w-full rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)]"
-                  style={{ imageRendering: "pixelated" }}
-                  draggable={false}
-                  onDragStart={(event) => {
-                    event.preventDefault();
-                  }}
-                />
+                <div className="relative overflow-hidden rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)]">
+                  {playBackgroundImageUrl && (
+                    <img
+                      src={playBackgroundImageUrl}
+                      alt="Game summary play background"
+                      className="absolute inset-0 block h-full w-full"
+                      style={{ imageRendering: "pixelated" }}
+                      draggable={false}
+                      onDragStart={(event) => {
+                        event.preventDefault();
+                      }}
+                    />
+                  )}
+                  <img
+                    src={finalSnapshotUrl}
+                    alt={t("gameSummary.snapshotAlt")}
+                    className="relative block w-full bg-transparent"
+                    style={{ imageRendering: "pixelated" }}
+                    draggable={false}
+                    onDragStart={(event) => {
+                      event.preventDefault();
+                    }}
+                  />
+                </div>
               </div>
             ) : (
               <div className="mx-auto flex aspect-square w-1/2 min-w-[180px] items-center justify-center rounded-2xl border border-dashed border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-4 text-center text-sm font-medium text-[color:var(--page-theme-text-tertiary)]">

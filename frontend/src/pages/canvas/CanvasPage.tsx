@@ -282,6 +282,7 @@ export default function CanvasPage() {
         open={roundSummaryOpen}
         summary={roundSummaryModal}
         snapshot={latestRoundSnapshot}
+        playBackgroundImageUrl={playBackgroundImageUrl}
         position={roundSummaryPosition}
         onClose={handleCloseRoundSummaryModal}
         onDragStart={handleRoundSummaryDragStart}
@@ -291,6 +292,7 @@ export default function CanvasPage() {
         <GameSummaryModal
           summary={gameSummaryModal}
           snapshotUrl={latestRoundSnapshot}
+          playBackgroundImageUrl={playBackgroundImageUrl}
           onClose={handleCloseGameSummaryModal}
         />
       )}
