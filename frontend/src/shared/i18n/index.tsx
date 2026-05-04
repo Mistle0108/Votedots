@@ -162,5 +162,3 @@ export function useI18n() {
 
   return context;
 }
-
-export { SUPPORTED_LOCALES, type Locale };

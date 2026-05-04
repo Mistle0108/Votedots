@@ -807,7 +807,7 @@ export default function useCanvasScene({
         return nextZoom;
       });
     },
-    [canvasId, canvasReady, gridX, gridY, zoom],
+    [canvasReady, gridX, gridY],
   );
 
   const handleCanvasUpdated = useCallback(
