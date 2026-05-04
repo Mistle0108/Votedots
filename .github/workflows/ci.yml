@@ -39,7 +39,7 @@ jobs:
       DATABASE_URL: postgresql://postgres:1234@127.0.0.1:5432/votedots_test
       REDIS_URL: redis://127.0.0.1:6379
       SESSION_SECRET: ${{ secrets.CI_SESSION_SECRET || 'ci-session-secret' }}
-      CLIENT_URL: http://localhost:5173
+      CLIENT_URLS: http://localhost:5173
       VITE_API_URL: http://localhost:4000
       VITE_SOCKET_URL: http://localhost:4000
 
