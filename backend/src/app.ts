@@ -3,7 +3,7 @@ import express from "express";
 import { Server } from "socket.io";
 import cors from "cors";
 import { AppDataSource } from "./database/data-source";
-import { getDbConnectionState } from "./database/db-connection.manager";
+import { clientUrls } from "./config/client-url";
 import { sessionMiddleware } from "./config/session";
 import { redisClient } from "./config/redis";
 
@@ -32,7 +32,7 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: process.env.CLIENT_URL ?? "http://localhost:5173",
+      origin: clientUrls,
       credentials: true,
     }),
   );
@@ -44,6 +44,10 @@ export function createApp() {
   });
 
   app.get("/health/redis", async (_req, res) => {
+    if (process.env.NODE_ENV === "production") {
+      return res.status(404).json({ message: "Not found" });
+    }
+
     try {
       await redisClient.set("test", "ok");
       const value = await redisClient.get("test");
@@ -54,13 +58,14 @@ export function createApp() {
   });
 
   app.get("/health/db", async (_req, res) => {
-    const connection = getDbConnectionState();
+    if (process.env.NODE_ENV === "production") {
+      return res.status(404).json({ message: "Not found" });
+    }
 
     if (!AppDataSource.isInitialized) {
       return res.status(503).json({
         status: "error",
-        message: connection.lastError ?? "DB is not connected",
-        connection,
+        message: "DB is not connected",
       });
     }
 
@@ -69,13 +74,11 @@ export function createApp() {
 
       return res.json({
         status: "ok",
-        connection: getDbConnectionState(),
       });
-    } catch (err) {
+    } catch {
       return res.status(503).json({
         status: "error",
-        message: String(err),
-        connection: getDbConnectionState(),
+        message: "DB health check failed",
       });
     }
   });

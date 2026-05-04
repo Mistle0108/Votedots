@@ -1,6 +1,6 @@
-import * as dotenv from "dotenv";
 import { DEFAULT_ROTATION_PROFILE_KEY } from "./game-rotation.config";
 import { GAME_CONFIG_PROFILES } from "./game-config-profiles";
+import { loadEnvironment } from "./load-env";
 import type {
   CanvasGameConfigSource,
   GameBoardConfig,
@@ -10,8 +10,9 @@ import type {
   GamePhaseConfig,
   GameRuleConfig,
 } from "./game-config.types";
+import { DEFAULT_GAME_CONFIG_SNAPSHOT } from "./default-game-config";
 
-dotenv.config();
+loadEnvironment();
 
 export type {
   CanvasGameConfigSource,
@@ -24,16 +25,6 @@ export type {
 } from "./game-config.types";
 
 const DEFAULT_PROFILE_KEY = DEFAULT_ROTATION_PROFILE_KEY;
-
-function readPositiveIntegerEnv(name: string, fallback: number): number {
-  const value = parseInt(String(process.env[name] ?? ""), 10);
-  return Number.isInteger(value) && value > 0 ? value : fallback;
-}
-
-function readNonNegativeIntegerEnv(name: string, fallback: number): number {
-  const value = parseInt(String(process.env[name] ?? ""), 10);
-  return Number.isInteger(value) && value >= 0 ? value : fallback;
-}
 
 function cloneGameConfigSnapshot(
   config: GameConfigSnapshot,
@@ -123,44 +114,6 @@ function isGameConfigSnapshot(value: unknown): value is GameConfigSnapshot {
 
 const overrides: GameConfigUpdate = {};
 
-function resolveEnvPhases(): GamePhaseConfig {
-  return {
-    introPhaseSec: readNonNegativeIntegerEnv("INTRO_PHASE_SEC", 0),
-    roundStartWaitSec: readNonNegativeIntegerEnv("ROUND_START_WAIT_SEC", 5),
-    roundDurationSec: readPositiveIntegerEnv("ROUND_DURATION_SEC", 20),
-    roundResultDelaySec: readNonNegativeIntegerEnv("ROUND_RESULT_DELAY_SEC", 3),
-    gameEndWaitSec: readNonNegativeIntegerEnv("GAME_END_WAIT_SEC", 5),
-    restartDelaySec: readNonNegativeIntegerEnv("RESTART_DELAY_SEC", 3),
-  };
-}
-
-function resolveEnvRules(): GameRuleConfig {
-  return {
-    totalRounds: readPositiveIntegerEnv("TOTAL_ROUNDS", 10),
-    votesPerRound: readPositiveIntegerEnv("VOTES_PER_ROUND", 3),
-    participantGracePeriodSec: readNonNegativeIntegerEnv(
-      "PARTICIPANT_GRACE_PERIOD_SEC",
-      15,
-    ),
-  };
-}
-
-function resolveEnvBoard(): GameBoardConfig {
-  return {
-    gridSizeX: readPositiveIntegerEnv("GRID_SIZE_X", 25),
-    gridSizeY: readPositiveIntegerEnv("GRID_SIZE_Y", 25),
-    cellSize: readPositiveIntegerEnv("CELL_SIZE", 8),
-  };
-}
-
-function resolveEnvGameConfig(): GameConfigSnapshot {
-  return {
-    phases: resolveEnvPhases(),
-    rules: resolveEnvRules(),
-    board: resolveEnvBoard(),
-  };
-}
-
 export function getGameConfigProfileKeys(): string[] {
   return Object.keys(GAME_CONFIG_PROFILES);
 }
@@ -201,10 +154,12 @@ export function resolveGameConfigProfileKey(
 
 function resolveGameConfig(profileKey?: string | null): GameConfigSnapshot {
   const resolvedProfileKey = resolveGameConfigProfileKey(profileKey);
-  const envConfig = resolveEnvGameConfig();
   const profileConfig = GAME_CONFIG_PROFILES[resolvedProfileKey];
 
-  return mergeGameConfig(mergeGameConfig(envConfig, profileConfig), overrides);
+  return mergeGameConfig(
+    mergeGameConfig(DEFAULT_GAME_CONFIG_SNAPSHOT, profileConfig),
+    overrides,
+  );
 }
 
 function normalizeBoardSnapshot(

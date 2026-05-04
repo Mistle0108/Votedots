@@ -9,10 +9,15 @@ export const sessionStore = new RedisStore({
 });
 
 const isProduction = process.env.NODE_ENV === "production";
+const sessionSecret = process.env.SESSION_SECRET;
+
+if (isProduction && !sessionSecret) {
+  throw new Error("SESSION_SECRET is required in production.");
+}
 
 export const sessionMiddleware = session({
   store: sessionStore,
-  secret: process.env.SESSION_SECRET ?? "dev-secret",
+  secret: sessionSecret ?? "dev-secret",
   resave: false,
   saveUninitialized: false,
   cookie: {

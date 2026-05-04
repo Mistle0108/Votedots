@@ -7,8 +7,8 @@ const router = Router();
 
 // TO-BE
 router.get("/current", authMiddleware, canvasController.getCurrent);
-router.get("/:canvasId/history", historyController.getCanvasHistory);
-router.get("/:canvasId/chunks", canvasController.getChunks);
+router.get("/:canvasId/history", authMiddleware, historyController.getCanvasHistory);
+router.get("/:canvasId/chunks", authMiddleware, canvasController.getChunks);
 router.get(
   "/current/participants/count",
   authMiddleware,
