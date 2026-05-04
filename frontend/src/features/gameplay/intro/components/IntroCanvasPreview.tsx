@@ -8,7 +8,7 @@ interface Props {
   maxSize?: number;
 }
 
-const DEFAULT_PREVIEW_SIZE = 260;
+const DEFAULT_PREVIEW_SIZE = 512;
 
 export default function IntroCanvasPreview({
   playBackgroundImageUrl,

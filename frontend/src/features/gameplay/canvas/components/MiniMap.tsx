@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
+import { MINIMAP_SIZE } from "../model/canvas.constants";
 import { Cell, Viewport } from "../model/canvas.types";
 
-const MINIMAP_BOX_SIZE = 220;
 const VIEWPORT_STROKE = "#ef4444";
 const VIEWPORT_FILL = "rgba(239, 68, 68, 0.12)";
 const SELECTED_CELL_STROKE = "#f97316";
@@ -100,7 +100,7 @@ export default function MiniMap({
 
   const minimapDimensions = useMemo(() => {
     const longestSide = Math.max(gridX, gridY, 1);
-    const scale = MINIMAP_BOX_SIZE / longestSide;
+    const scale = MINIMAP_SIZE / longestSide;
 
     return {
       width: Math.max(1, Math.round(gridX * scale)),
@@ -144,11 +144,22 @@ export default function MiniMap({
         viewportRect.width,
         viewportRect.height,
       );
+
+      const viewportStrokeRect = getInsetStrokeRect(
+        viewportRect.x,
+        viewportRect.y,
+        viewportRect.width,
+        viewportRect.height,
+        MINIMAP_STROKE_WIDTH,
+        canvas.width,
+        canvas.height,
+      );
+
       ctx.strokeRect(
-        viewportRect.x + MINIMAP_STROKE_WIDTH / 2,
-        viewportRect.y + MINIMAP_STROKE_WIDTH / 2,
-        Math.max(0, viewportRect.width - MINIMAP_STROKE_WIDTH),
-        Math.max(0, viewportRect.height - MINIMAP_STROKE_WIDTH),
+        viewportStrokeRect.x,
+        viewportStrokeRect.y,
+        viewportStrokeRect.width,
+        viewportStrokeRect.height,
       );
       ctx.restore();
     }
@@ -256,91 +267,89 @@ export default function MiniMap({
 
   return (
     <div className="flex justify-center">
-      <div className="relative flex h-[220px] w-full items-center justify-center overflow-hidden rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-0 shadow-sm">
-        {snapshotUrl ? (
-          <>
-            {playBackgroundImageUrl && (
+      <div
+        className="flex items-center justify-center overflow-hidden rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-0 shadow-sm"
+        style={{
+          width: `${MINIMAP_SIZE}px`,
+          height: `${MINIMAP_SIZE}px`,
+        }}
+      >
+        <div
+          className="relative shrink-0"
+          style={{
+            width: `${minimapDimensions.width}px`,
+            height: `${minimapDimensions.height}px`,
+          }}
+        >
+          {snapshotUrl ? (
+            <>
+              {playBackgroundImageUrl && (
+                <img
+                  src={playBackgroundImageUrl}
+                  alt="Minimap play background"
+                  className="pointer-events-none absolute inset-0 block h-full w-full select-none"
+                  style={{ imageRendering: "pixelated" }}
+                  draggable={false}
+                  onDragStart={(event) => {
+                    event.preventDefault();
+                  }}
+                />
+              )}
               <img
-                src={playBackgroundImageUrl}
-                alt="Minimap play background"
-                className="pointer-events-none absolute block h-full w-full select-none"
-                style={{
-                  width: `${minimapDimensions.width}px`,
-                  height: `${minimapDimensions.height}px`,
-                  imageRendering: "pixelated",
-                }}
+                src={snapshotUrl}
+                alt="Minimap snapshot"
+                className="pointer-events-none absolute inset-0 block h-full w-full select-none"
+                style={{ imageRendering: "pixelated" }}
                 draggable={false}
                 onDragStart={(event) => {
                   event.preventDefault();
                 }}
               />
-            )}
-          <img
-            src={snapshotUrl}
-            alt="Minimap snapshot"
-            className="pointer-events-none absolute block h-full w-full select-none"
+            </>
+          ) : (
+            <>
+              {playBackgroundImageUrl && (
+                <img
+                  src={playBackgroundImageUrl}
+                  alt="Minimap play background"
+                  className="pointer-events-none absolute inset-0 block h-full w-full select-none"
+                  style={{ imageRendering: "pixelated" }}
+                  draggable={false}
+                  onDragStart={(event) => {
+                    event.preventDefault();
+                  }}
+                />
+              )}
+              {resultTemplateImageUrl && (
+                <img
+                  src={resultTemplateImageUrl}
+                  alt="Minimap result template"
+                  className="pointer-events-none absolute inset-0 block h-full w-full select-none"
+                  style={{ imageRendering: "pixelated" }}
+                  draggable={false}
+                  onDragStart={(event) => {
+                    event.preventDefault();
+                  }}
+                />
+              )}
+            </>
+          )}
+
+          <canvas
+            ref={canvasRef}
+            onMouseDown={(event) => {
+              isDraggingRef.current = true;
+              navigateFromPointer(event.clientX, event.clientY, "auto");
+            }}
+            onDragStart={(event) => event.preventDefault()}
+            className="absolute inset-0 z-[1] block cursor-crosshair bg-transparent"
             style={{
               width: `${minimapDimensions.width}px`,
               height: `${minimapDimensions.height}px`,
               imageRendering: "pixelated",
             }}
-            draggable={false}
-            onDragStart={(event) => {
-              event.preventDefault();
-            }}
           />
-          </>
-        ) : (
-          <>
-            {playBackgroundImageUrl && (
-              <img
-                src={playBackgroundImageUrl}
-                alt="Minimap play background"
-                className="pointer-events-none absolute block h-full w-full select-none"
-                style={{
-                  width: `${minimapDimensions.width}px`,
-                  height: `${minimapDimensions.height}px`,
-                  imageRendering: "pixelated",
-                }}
-                draggable={false}
-                onDragStart={(event) => {
-                  event.preventDefault();
-                }}
-              />
-            )}
-            {resultTemplateImageUrl && (
-              <img
-                src={resultTemplateImageUrl}
-                alt="Minimap result template"
-                className="pointer-events-none absolute block h-full w-full select-none"
-                style={{
-                  width: `${minimapDimensions.width}px`,
-                  height: `${minimapDimensions.height}px`,
-                  imageRendering: "pixelated",
-                }}
-                draggable={false}
-                onDragStart={(event) => {
-                  event.preventDefault();
-                }}
-              />
-            )}
-          </>
-        )}
-
-        <canvas
-          ref={canvasRef}
-          onMouseDown={(event) => {
-            isDraggingRef.current = true;
-            navigateFromPointer(event.clientX, event.clientY, "auto");
-          }}
-          onDragStart={(event) => event.preventDefault()}
-          className="relative z-[1] block cursor-crosshair bg-transparent"
-          style={{
-            width: `${minimapDimensions.width}px`,
-            height: `${minimapDimensions.height}px`,
-            imageRendering: "pixelated",
-          }}
-        />
+        </div>
       </div>
     </div>
   );

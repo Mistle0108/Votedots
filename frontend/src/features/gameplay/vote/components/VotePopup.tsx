@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Cell } from "@/features/gameplay/canvas";
 import {
   GAME_PHASE,
@@ -116,6 +116,7 @@ export default function VotePopup({
   const [pos, setPos] = useState(position);
 
   const isDragging = useRef(false);
+  const hasManualPositionRef = useRef(false);
   const dragOffset = useRef({ x: 0, y: 0 });
   const popupRef = useRef<HTMLDivElement>(null);
 
@@ -235,6 +236,7 @@ export default function VotePopup({
 
   const handleDragStart = (event: React.MouseEvent) => {
     isDragging.current = true;
+    hasManualPositionRef.current = true;
     dragOffset.current = {
       x: event.clientX - pos.x,
       y: event.clientY - pos.y,
@@ -311,8 +313,12 @@ export default function VotePopup({
     };
   }, [onClose]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!popupRef.current) {
+      return;
+    }
+
+    if (hasManualPositionRef.current) {
       return;
     }
 
@@ -336,7 +342,11 @@ export default function VotePopup({
     }
 
     setPos({ x, y });
-  }, [position]);
+  }, [position, error, phaseBlockedMessage, isVotingPhase]);
+
+  useEffect(() => {
+    hasManualPositionRef.current = false;
+  }, [position.x, position.y, selectedCell.x, selectedCell.y]);
 
   useEffect(() => {
     onColorChange(color);

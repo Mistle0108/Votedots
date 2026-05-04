@@ -1,5 +1,5 @@
-export const PANEL_WIDTH = 280;
-export const MINIMAP_SIZE = 220;
+export const PANEL_WIDTH = 320;
+export const MINIMAP_SIZE = 256;
 
 export const CHECKER_LIGHT = "#6f6f6f";
 export const CHECKER_DARK = "#5f5f5f";

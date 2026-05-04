@@ -14,6 +14,7 @@ import type { SessionBootstrapResult } from "@/features/gameplay/session";
 import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
+import { getCanvasTopCenterModalPosition } from "./modal-position";
 
 interface UseCanvasPageParams {
   onSessionEnded: () => void;
@@ -23,13 +24,7 @@ interface UseCanvasPageParams {
 const PLAY_BACKGROUND_MODE_STORAGE_KEY = "votedots:play-background-mode";
 
 function getDefaultRoundSummaryModalPosition() {
-  const modalWidth = Math.min(560, window.innerWidth - 24);
-  const modalHeight = Math.min(window.innerHeight - 48, 720);
-
-  return {
-    x: Math.max(12, Math.round((window.innerWidth - modalWidth) / 2)),
-    y: Math.max(24, Math.round((window.innerHeight - modalHeight) / 2)),
-  };
+  return getCanvasTopCenterModalPosition(700);
 }
 
 export default function useCanvasPage({

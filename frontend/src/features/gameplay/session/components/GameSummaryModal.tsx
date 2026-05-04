@@ -6,11 +6,13 @@ import type {
 } from "@/features/gameplay/session/api/session.api";
 import { useI18n } from "@/shared/i18n";
 import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
+import { PixelSnapshotPreview } from "@/shared/ui/pixel-snapshot-preview";
 
 interface GameSummaryModalProps {
   summary: GameSummaryData;
   snapshotUrl?: string | null;
   playBackgroundImageUrl?: string | null;
+  position: { x: number; y: number };
   onClose: () => void;
 }
 
@@ -108,6 +110,7 @@ export default function GameSummaryModal({
   summary,
   snapshotUrl,
   playBackgroundImageUrl,
+  position,
   onClose,
 }: GameSummaryModalProps) {
   const { formatNumber, formatPercent, locale, t } = useI18n();
@@ -159,12 +162,13 @@ export default function GameSummaryModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-[color:var(--page-theme-overlay)] px-3 py-6"
+      className="fixed inset-0 z-50 bg-[color:var(--page-theme-overlay)] px-3 py-6"
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
       <div
-        className="pointer-events-auto flex max-h-[min(calc(100vh-80px),680px)] w-[720px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
+        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[700px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
+        style={{ top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
@@ -186,32 +190,13 @@ export default function GameSummaryModal({
         <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
           <div className="space-y-5">
             {finalSnapshotUrl ? (
-              <div className="mx-auto w-1/2 min-w-[180px] rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3 shadow-sm">
-                <div className="relative overflow-hidden rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)]">
-                  {playBackgroundImageUrl && (
-                    <img
-                      src={playBackgroundImageUrl}
-                      alt="Game summary play background"
-                      className="absolute inset-0 block h-full w-full"
-                      style={{ imageRendering: "pixelated" }}
-                      draggable={false}
-                      onDragStart={(event) => {
-                        event.preventDefault();
-                      }}
-                    />
-                  )}
-                  <img
-                    src={finalSnapshotUrl}
-                    alt={t("gameSummary.snapshotAlt")}
-                    className="relative block w-full bg-transparent"
-                    style={{ imageRendering: "pixelated" }}
-                    draggable={false}
-                    onDragStart={(event) => {
-                      event.preventDefault();
-                    }}
-                  />
-                </div>
-              </div>
+              <PixelSnapshotPreview
+                snapshotUrl={finalSnapshotUrl}
+                alt={t("gameSummary.snapshotAlt")}
+                backgroundImageUrl={playBackgroundImageUrl}
+                backgroundAlt="Game summary play background"
+                maxLongestSide={512}
+              />
             ) : (
               <div className="mx-auto flex aspect-square w-1/2 min-w-[180px] items-center justify-center rounded-2xl border border-dashed border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-4 text-center text-sm font-medium text-[color:var(--page-theme-text-tertiary)]">
                 {t("gameSummary.noSnapshot")}

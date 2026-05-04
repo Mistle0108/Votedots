@@ -188,16 +188,18 @@ export default function VotePanel({
         )}
       </div>
 
-      <MiniMap
-        snapshotUrl={latestRoundSnapshot}
-        playBackgroundImageUrl={playBackgroundImageUrl}
-        resultTemplateImageUrl={resultTemplateImageUrl}
-        gridX={gridX}
-        gridY={gridY}
-        viewport={viewport}
-        selectedCell={selectedCell}
-        onNavigate={onNavigateToCoordinate}
-      />
+      <div className="shrink-0">
+        <MiniMap
+          snapshotUrl={latestRoundSnapshot}
+          playBackgroundImageUrl={playBackgroundImageUrl}
+          resultTemplateImageUrl={resultTemplateImageUrl}
+          gridX={gridX}
+          gridY={gridY}
+          viewport={viewport}
+          selectedCell={selectedCell}
+          onNavigate={onNavigateToCoordinate}
+        />
+      </div>
 
       <CoordinateNavigator
         gridX={gridX}
