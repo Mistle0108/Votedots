@@ -22,7 +22,6 @@ jobs:
         )
       }}
     runs-on: ubuntu-latest
-
     steps:
       - name: Deploy to production server
         uses: appleboy/ssh-action@v1.2.0
@@ -34,5 +33,4 @@ jobs:
           script_stop: true
           command_timeout: 30m
           script: |
-            cd /opt/votedots/app
-            bash scripts/deploy.sh
+            bash /opt/votedots/deploy/deploy.sh
