@@ -113,9 +113,6 @@ export function useCanvasHistory(canvasId: number | null) {
 
   useEffect(() => {
     if (!canvasId) {
-      setHistoryItems([]);
-      setHistoryLoading(false);
-      setHistoryError(null);
       return;
     }
 
@@ -184,13 +181,14 @@ export function useCanvasHistory(canvasId: number | null) {
 
   return useMemo(
     () => ({
-      historyItems,
-      historyLoading,
-      historyError,
+      historyItems: canvasId ? historyItems : [],
+      historyLoading: canvasId ? historyLoading : false,
+      historyError: canvasId ? historyError : null,
       addRoundHistoryItem,
       addGameHistoryItem,
     }),
     [
+      canvasId,
       historyError,
       historyItems,
       historyLoading,
