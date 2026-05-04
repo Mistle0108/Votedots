@@ -73,8 +73,6 @@ export function useCanvasViewport({
 
   useEffect(() => {
     if (!canvasReady) {
-      setViewport(null);
-      setVisibleCellBounds(null);
       return;
     }
 
@@ -98,8 +96,8 @@ export function useCanvasViewport({
   }, [canvasReady, containerRef, updateViewport]);
 
   return {
-    viewport,
-    visibleCellBounds,
+    viewport: canvasReady ? viewport : null,
+    visibleCellBounds: canvasReady ? visibleCellBounds : null,
     updateViewport,
   };
 }
