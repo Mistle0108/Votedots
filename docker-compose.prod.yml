@@ -27,7 +27,7 @@ services:
     container_name: votedots-backend
     restart: unless-stopped
     env_file:
-      - ./backend/.env.server
+      - ./backend/.env.production
     expose:
       - "4000"
     depends_on:

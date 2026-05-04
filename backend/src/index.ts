@@ -1,12 +1,12 @@
 import "reflect-metadata";
-import * as dotenv from "dotenv";
 import { createApp } from "./app";
+import { loadEnvironment } from "./config/load-env";
 import { connectWithRetry } from "./database/db-connection.manager";
 import { connectRedis } from "./config/redis";
 import { ensureGameHistoryStorageRoot } from "./modules/history/history-storage.service";
 import { createServer } from "./server";
 
-dotenv.config();
+loadEnvironment();
 
 const app = createApp();
 const { server, io } = createServer(app);

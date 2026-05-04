@@ -1,6 +1,6 @@
 import "reflect-metadata";
-import "dotenv/config";
 import { DataSource } from "typeorm";
+import { loadEnvironment } from "../config/load-env";
 import { Voter } from "../entities/voter.entity";
 import { Canvas } from "../entities/canvas.entity";
 import { Cell } from "../entities/cell.entity";
@@ -11,6 +11,8 @@ import { Vote } from "../entities/vote.entity";
 import { GameSummary } from "../entities/game-summary.entity";
 import { RoundSummary } from "../entities/round-summary.entity";
 import { RoundSnapshot } from "../entities/round-snapshot.entity";
+
+loadEnvironment();
 
 function readNonNegativeIntegerEnv(name: string, fallback: number): number {
   const value = Number(process.env[name]);
