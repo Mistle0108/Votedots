@@ -3,7 +3,6 @@ import express from "express";
 import { Server } from "socket.io";
 import cors from "cors";
 import { AppDataSource } from "./database/data-source";
-import { getDbConnectionState } from "./database/db-connection.manager";
 import { clientUrls } from "./config/client-url";
 import { sessionMiddleware } from "./config/session";
 import { redisClient } from "./config/redis";
@@ -63,8 +62,6 @@ export function createApp() {
       return res.status(404).json({ message: "Not found" });
     }
 
-    const connection = getDbConnectionState();
-
     if (!AppDataSource.isInitialized) {
       return res.status(503).json({
         status: "error",
@@ -78,7 +75,7 @@ export function createApp() {
       return res.json({
         status: "ok",
       });
-    } catch (err) {
+    } catch {
       return res.status(503).json({
         status: "error",
         message: "DB health check failed",
