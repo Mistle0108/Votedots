@@ -27,15 +27,15 @@ services:
     container_name: votedots-backend
     restart: unless-stopped
     env_file:
-      - ./backend/.env.production
+      - /opt/votedots/env/backend/.env.production
     expose:
       - "4000"
     depends_on:
       - redis
     volumes:
       - ./frontend/public/result-templates:/app/result-templates:ro
-      - ../votedots_local_storage:/votedots-storage
-      - ../votedots_login_board:/votedots-login-board
+      - /opt/votedots/data/storage:/votedots-storage
+      - /opt/votedots/data/login-board:/votedots-login-board
     networks:
       - default
       - shared-db-network
