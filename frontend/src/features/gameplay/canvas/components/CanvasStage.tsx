@@ -9,6 +9,7 @@ interface CanvasStageProps {
   onMouseMove: (event: React.MouseEvent) => void;
   onMouseUp: (event: React.MouseEvent) => void;
   onMouseLeave: () => void;
+  isDragging: boolean;
   onWheel: (event: React.WheelEvent) => void;
 }
 
@@ -20,11 +21,12 @@ export default function CanvasStage({
   onMouseMove,
   onMouseUp,
   onMouseLeave,
+  isDragging,
   onWheel,
 }: CanvasStageProps) {
   return (
     <div
-      className="relative min-w-0 flex-1 overflow-hidden cursor-grab active:cursor-grabbing"
+      className={`relative min-w-0 flex-1 overflow-hidden ${isDragging ? "cursor-grabbing" : ""}`}
       style={{
         backgroundColor: CANVAS_BACKGROUND_COLOR,
       }}
