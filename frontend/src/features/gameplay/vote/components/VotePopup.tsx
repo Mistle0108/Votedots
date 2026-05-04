@@ -128,10 +128,18 @@ export default function VotePopup({
   const maxCount = voteEntries[0]?.count ?? 1;
   const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
   const phaseBlockedMessage = getPhaseBlockedMessage(phase, t);
+  const canSubmitVote = isVotingPhase && !isRoundExpired;
+  const visibleLoading = loading && canSubmitVote;
+  const visibleError = canSubmitVote ? error : "";
   const isVoteDisabled =
-    !roundId || !isVotingPhase || loading || isRoundExpired;
+    !roundId || !canSubmitVote || visibleLoading;
 
-  const buttonLabel = getButtonLabel(phase, isRoundExpired, loading, t);
+  const buttonLabel = getButtonLabel(
+    phase,
+    isRoundExpired,
+    visibleLoading,
+    t,
+  );
 
   const handleColorChange = (nextColor: string) => {
     window.localStorage.setItem(STORAGE_KEYS.lastPaletteColor, nextColor);
@@ -340,14 +348,6 @@ export default function VotePopup({
   }, [color, onColorChange, selectedCell.x, selectedCell.y]);
 
   useEffect(() => {
-    if (!isVotingPhase || isRoundExpired) {
-      setLoading(false);
-    }
-
-    setError("");
-  }, [isRoundExpired, isVotingPhase]);
-
-  useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -497,8 +497,8 @@ export default function VotePopup({
           </p>
         )}
 
-        {error && (
-          <p className="text-sm text-[color:var(--page-theme-alert)]">{error}</p>
+        {visibleError && (
+          <p className="text-sm text-[color:var(--page-theme-alert)]">{visibleError}</p>
         )}
       </div>
     </div>
