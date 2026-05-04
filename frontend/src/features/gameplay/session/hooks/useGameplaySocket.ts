@@ -62,7 +62,22 @@ export function useGameplaySocket({
     onGameEnded,
   });
 
-  handlersRef.current = {
+  useEffect(() => {
+    handlersRef.current = {
+      onCanvasJoined,
+      onRoundStarted,
+      onRoundEnded,
+      onRoundSummaryReady,
+      onGameSummaryReady,
+      onCanvasUpdated,
+      onCanvasBatchUpdated,
+      onVoteUpdate,
+      onTimerUpdate,
+      onParticipantsUpdated,
+      onSessionEnded,
+      onGameEnded,
+    };
+  }, [
     onCanvasJoined,
     onRoundStarted,
     onRoundEnded,
@@ -75,7 +90,7 @@ export function useGameplaySocket({
     onParticipantsUpdated,
     onSessionEnded,
     onGameEnded,
-  };
+  ]);
 
   useEffect(() => {
     const handleCanvasJoined = (payload: CanvasJoinedPayload) => {

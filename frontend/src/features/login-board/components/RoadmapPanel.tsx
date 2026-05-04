@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AccordionGroup from "./AccordionGroup";
 import MarkdownContent from "./MarkdownContent";
 import { useI18n } from "@/shared/i18n";
@@ -9,10 +9,14 @@ interface RoadmapPanelProps {
   groups: RoadmapQuarterGroup[];
 }
 
+function getGroupSignature(groups: RoadmapQuarterGroup[]) {
+  return groups
+    .map((group) => `${group.id}:${group.items.map((item) => item.id).join(",")}`)
+    .join("|");
+}
+
 export default function RoadmapPanel({ groups }: RoadmapPanelProps) {
   const { t } = useI18n();
-  const [openGroupIds, setOpenGroupIds] = useState<string[]>([]);
-  const [openItemId, setOpenItemId] = useState<string | null>(null);
 
   const sortedGroups = useMemo(() => {
     const getLatestUpdatedAt = (dates: string[]) =>
@@ -32,22 +36,47 @@ export default function RoadmapPanel({ groups }: RoadmapPanelProps) {
         return bLatest.localeCompare(aLatest);
       });
   }, [groups]);
-
-  useEffect(() => {
-    setOpenGroupIds(
+  const groupSignature = useMemo(
+    () => getGroupSignature(sortedGroups),
+    [sortedGroups],
+  );
+  const defaultOpenGroupIds = useMemo(
+    () =>
       sortedGroups
         .filter((group) => group.defaultOpen)
         .map((group) => group.id),
-    );
-    setOpenItemId(null);
-  }, [sortedGroups]);
+    [sortedGroups],
+  );
+  const availableItemIds = useMemo(
+    () => new Set(sortedGroups.flatMap((group) => group.items.map((item) => item.id))),
+    [sortedGroups],
+  );
+  const [groupState, setGroupState] = useState(() => ({
+    openIds: defaultOpenGroupIds,
+    signature: groupSignature,
+  }));
+  const [itemState, setItemState] = useState(() => ({
+    openItemId: null as string | null,
+    signature: groupSignature,
+  }));
+  const openGroupIds =
+    groupState.signature === groupSignature
+      ? groupState.openIds
+      : defaultOpenGroupIds;
+  const openItemId =
+    itemState.signature === groupSignature
+      ? itemState.openItemId
+      : itemState.openItemId && availableItemIds.has(itemState.openItemId)
+        ? itemState.openItemId
+        : null;
 
   const toggleGroup = (groupId: string) => {
-    setOpenGroupIds((current) =>
-      current.includes(groupId)
-        ? current.filter((id) => id !== groupId)
-        : [...current, groupId],
-    );
+    setGroupState({
+      openIds: openGroupIds.includes(groupId)
+        ? openGroupIds.filter((id) => id !== groupId)
+        : [...openGroupIds, groupId],
+      signature: groupSignature,
+    });
   };
 
   return (
@@ -78,9 +107,10 @@ export default function RoadmapPanel({ groups }: RoadmapPanelProps) {
                         <button
                           type="button"
                           onClick={() =>
-                            setOpenItemId((current) =>
-                              current === item.id ? null : item.id,
-                            )
+                            setItemState({
+                              openItemId: openItemId === item.id ? null : item.id,
+                              signature: groupSignature,
+                            })
                           }
                           className="w-full px-4 py-3 text-left transition hover:bg-[color:var(--color-background-secondary)]"
                         >

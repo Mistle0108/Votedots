@@ -16,7 +16,6 @@ import { GamePhase } from "../game/game-phase.types";
 import { roundSnapshotService } from "../history/round-snapshot.service";
 import { participantSessionService } from "../participant/participant-session.service";
 import { summaryService } from "../summary/summary.service"; // 추가: 라운드 summary 저장 서비스
-import { voteService } from "../vote/vote.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);

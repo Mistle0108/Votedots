@@ -44,30 +44,6 @@ function PercentText({
   return <HighlightNumber>{formatPercent(value)}</HighlightNumber>;
 }
 
-function CellCoordinate({
-  summary,
-  formatNumber,
-}: {
-  summary: GameSummaryData;
-  formatNumber: (value: number | null | undefined) => string;
-}) {
-  if (
-    typeof summary.mostVotedCellX !== "number" ||
-    typeof summary.mostVotedCellY !== "number"
-  ) {
-    return <span>-</span>;
-  }
-
-  return (
-    <>
-      (
-      <NumberText value={summary.mostVotedCellX} formatNumber={formatNumber} />,{" "}
-      <NumberText value={summary.mostVotedCellY} formatNumber={formatNumber} />
-      )
-    </>
-  );
-}
-
 function VoterName({
   voter,
 }: {
@@ -119,50 +95,6 @@ function VoterList({
   );
 }
 
-function ColorStat({
-  color,
-  count,
-  formatNumber,
-  emptyLabel = "-",
-  wrapCount = false,
-  suffix,
-}: {
-  color: string | null;
-  count: number;
-  formatNumber: (value: number | null | undefined) => string;
-  emptyLabel?: string;
-  wrapCount?: boolean;
-  suffix: string;
-}) {
-  if (!color) {
-    return (
-      <span>
-        {emptyLabel}
-        {wrapCount ? " (" : " "}
-        <NumberText value={0} formatNumber={formatNumber} />
-        {suffix}
-        {wrapCount ? ")" : ""}
-      </span>
-    );
-  }
-
-  return (
-    <span className="inline-flex items-center gap-1.5 align-middle">
-      <span
-        className="h-3 w-3 rounded-full border border-[color:var(--page-theme-border-secondary)]"
-        style={{ backgroundColor: color }}
-      />
-      <span>
-        {color}
-        {wrapCount ? " (" : " "}
-        <NumberText value={count} formatNumber={formatNumber} />
-        {suffix}
-        {wrapCount ? ")" : ""}
-      </span>
-    </span>
-  );
-}
-
 function StatLine({ label, children }: { label: string; children: ReactNode }) {
   return (
     <p>
@@ -172,22 +104,6 @@ function StatLine({ label, children }: { label: string; children: ReactNode }) {
       {children}
     </p>
   );
-}
-
-function getVoteUnit(count: number | null | undefined, locale: "ko" | "en") {
-  if (locale === "en") {
-    return (count ?? 0) === 1 ? " vote" : " votes";
-  }
-
-  return "표";
-}
-
-function getCellUnit(count: number | null | undefined, locale: "ko" | "en") {
-  if (locale === "en") {
-    return (count ?? 0) === 1 ? " cell" : " cells";
-  }
-
-  return "칸";
 }
 
 export default function GameSummaryModal({

@@ -22,7 +22,6 @@ export const AppDataSource = new DataSource({
   type: "postgres",
   url: process.env.DATABASE_URL,
   synchronize: false,
-  logging: process.env.NODE_ENV === "development",
   connectTimeoutMS: readNonNegativeIntegerEnv("DB_CONNECT_TIMEOUT_MS", 5000),
   poolErrorHandler: (error: Error) => {
     console.error("[db] postgres pool error:", error);

@@ -9,7 +9,6 @@ import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { participantSessionService } from "../participant/participant-session.service";
 
-const voteRepository = AppDataSource.getRepository(Vote);
 const roundVoterStateRepository = AppDataSource.getRepository(RoundVoterState);
 const voteTicketRepository = AppDataSource.getRepository(VoteTicket);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
@@ -218,7 +217,7 @@ export const voteService = {
           votes,
         });
       }
-    } catch (error) {
+    } catch {
       await AppDataSource.transaction(async (manager) => {
         await manager.delete(Vote, vote.id);
         await manager

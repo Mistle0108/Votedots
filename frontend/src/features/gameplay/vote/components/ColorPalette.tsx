@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { HexColorPicker } from "react-colorful";
 import { useI18n } from "@/shared/i18n";
 import eyedropperIcon from "@/assets/eyedropper-icon.png";
@@ -27,11 +27,12 @@ export default function ColorPalette({
 }: Props) {
   const { t } = useI18n();
   const colorInputRef = useRef<HTMLInputElement>(null);
-  const [draftHex, setDraftHex] = useState(selected);
-
-  useEffect(() => {
-    setDraftHex(selected);
-  }, [selected]);
+  const [draftState, setDraftState] = useState(() => ({
+    value: selected,
+    source: selected,
+  }));
+  const resolvedDraftHex =
+    draftState.source === selected ? draftState.value : selected;
 
   const handleEyeDropper = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -51,7 +52,10 @@ export default function ColorPalette({
   const handleHexInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     e.stopPropagation();
     const value = e.target.value;
-    setDraftHex(value);
+    setDraftState({
+      value,
+      source: selected,
+    });
 
     if (/^#[0-9a-fA-F]{6}$/.test(value)) {
       onChange(value);
@@ -59,7 +63,10 @@ export default function ColorPalette({
   };
 
   const handleHexBlur = () => {
-    setDraftHex(selected);
+    setDraftState({
+      value: selected,
+      source: selected,
+    });
   };
 
   return (
@@ -110,7 +117,7 @@ export default function ColorPalette({
           />
           <input
             type="text"
-            value={draftHex}
+            value={resolvedDraftHex}
             onChange={handleHexInput}
             onBlur={handleHexBlur}
             onClick={(e) => e.stopPropagation()}

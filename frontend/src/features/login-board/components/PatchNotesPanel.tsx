@@ -1,5 +1,5 @@
 import { ChevronDown } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import AccordionGroup from "./AccordionGroup";
 import MarkdownContent from "./MarkdownContent";
 import { useI18n } from "@/shared/i18n";
@@ -34,25 +34,56 @@ function getBadgeClass(tone: "blue" | "green" | "red") {
   }
 }
 
+function getGroupSignature(groups: PatchVersionGroup[]) {
+  return groups
+    .map((group) => `${group.id}:${group.items.map((item) => item.id).join(",")}`)
+    .join("|");
+}
+
 export default function PatchNotesPanel({ groups }: PatchNotesPanelProps) {
   const { t } = useI18n();
-  const [openGroupIds, setOpenGroupIds] = useState<string[]>([]);
-  const [openItemId, setOpenItemId] = useState<string | null>(null);
   const resolvedGroups = useMemo(() => groups, [groups]);
-
-  useEffect(() => {
-    setOpenGroupIds(
-      groups.filter((group) => group.defaultOpen).map((group) => group.id),
-    );
-    setOpenItemId(null);
-  }, [groups]);
+  const groupSignature = useMemo(
+    () => getGroupSignature(resolvedGroups),
+    [resolvedGroups],
+  );
+  const defaultOpenGroupIds = useMemo(
+    () =>
+      resolvedGroups
+        .filter((group) => group.defaultOpen)
+        .map((group) => group.id),
+    [resolvedGroups],
+  );
+  const availableItemIds = useMemo(
+    () => new Set(resolvedGroups.flatMap((group) => group.items.map((item) => item.id))),
+    [resolvedGroups],
+  );
+  const [groupState, setGroupState] = useState(() => ({
+    openIds: defaultOpenGroupIds,
+    signature: groupSignature,
+  }));
+  const [itemState, setItemState] = useState(() => ({
+    openItemId: null as string | null,
+    signature: groupSignature,
+  }));
+  const openGroupIds =
+    groupState.signature === groupSignature
+      ? groupState.openIds
+      : defaultOpenGroupIds;
+  const openItemId =
+    itemState.signature === groupSignature
+      ? itemState.openItemId
+      : itemState.openItemId && availableItemIds.has(itemState.openItemId)
+        ? itemState.openItemId
+        : null;
 
   const toggleGroup = (groupId: string) => {
-    setOpenGroupIds((current) =>
-      current.includes(groupId)
-        ? current.filter((id) => id !== groupId)
-        : [...current, groupId],
-    );
+    setGroupState({
+      openIds: openGroupIds.includes(groupId)
+        ? openGroupIds.filter((id) => id !== groupId)
+        : [...openGroupIds, groupId],
+      signature: groupSignature,
+    });
   };
 
   return (
@@ -93,9 +124,10 @@ export default function PatchNotesPanel({ groups }: PatchNotesPanelProps) {
                         <button
                           type="button"
                           onClick={() =>
-                            setOpenItemId((current) =>
-                              current === item.id ? null : item.id,
-                            )
+                            setItemState({
+                              openItemId: openItemId === item.id ? null : item.id,
+                              signature: groupSignature,
+                            })
                           }
                           className="flex w-full items-center gap-3 px-4 py-3 text-left transition hover:bg-[color:var(--color-background-secondary)]"
                         >

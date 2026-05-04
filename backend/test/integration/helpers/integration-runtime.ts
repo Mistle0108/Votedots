@@ -1,4 +1,3 @@
-import request from "supertest";
 import type { Express } from "express";
 import { Client } from "pg";
 import { AppDataSource } from "../../../src/database/data-source";
