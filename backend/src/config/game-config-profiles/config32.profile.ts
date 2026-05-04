@@ -6,4 +6,16 @@ export const config32GameConfigProfile: GameConfigUpdate = {
     gridSizeY: 32,
     cellSize: 30,
   },
+  phases: {
+    introPhaseSec: 10,
+    roundStartWaitSec: 1,
+    roundDurationSec: 20,
+    roundResultDelaySec: 3,
+    gameEndWaitSec: 10,
+  },
+  rules: {
+    totalRounds: 2,
+    votesPerRound: 4,
+    participantGracePeriodSec: 15,
+  },
 };
