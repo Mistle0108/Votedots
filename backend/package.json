@@ -15,7 +15,7 @@
     "test:integration": "vitest run test/integration",
     "test:coverage": "vitest run --coverage",
     "migration:generate": "ts-node --require tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/database/data-source.ts",
-    "migration:run": "ts-node --require tsconfig-paths/register ./node_modules/typeorm/cli.js migration:run -d src/database/data-source.ts",
+    "migration:run": "node ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js",
     "migration:revert": "ts-node --require tsconfig-paths/register ./node_modules/typeorm/cli.js migration:revert -d src/database/data-source.ts"
   },
   "keywords": [],

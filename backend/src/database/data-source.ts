@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import path from "node:path";
 import { DataSource } from "typeorm";
 import { loadEnvironment } from "../config/load-env";
 import { Voter } from "../entities/voter.entity";
@@ -40,5 +41,5 @@ export const AppDataSource = new DataSource({
     RoundSummary,
     RoundSnapshot,
   ],
-  migrations: ["src/database/migrations/*.ts"],
+  migrations: [path.join(__dirname, "migrations/*.{js,ts}")],
 });
