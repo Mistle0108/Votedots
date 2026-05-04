@@ -145,19 +145,21 @@ function createBasePng(
   gridHeight: number,
   backgroundImageBuffer: Buffer | null = null,
 ): PNG {
+  const basePng = new PNG({ width: gridWidth, height: gridHeight });
+
   if (backgroundImageBuffer) {
     try {
       const backgroundPng = decodeRasterBuffer(backgroundImageBuffer);
 
       if (backgroundPng) {
-        return backgroundPng;
+        return resizePng(backgroundPng, gridWidth, gridHeight);
       }
     } catch {
-      return new PNG({ width: gridWidth, height: gridHeight });
+      return basePng;
     }
   }
 
-  return new PNG({ width: gridWidth, height: gridHeight });
+  return basePng;
 }
 
 function getCellPixelBounds(params: {
