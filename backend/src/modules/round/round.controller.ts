@@ -20,35 +20,6 @@ function buildRoundSnapshotUrl(
   return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
 }
 
-function buildRoundDownloadSnapshotUrl(
-  req: Request,
-  canvasId: number,
-  roundId: number,
-): string {
-  const relativePath = roundSnapshotService.buildRoundDownloadSnapshotApiPath(
-    canvasId,
-    roundId,
-  );
-  const host = req.get("host");
-
-  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
-}
-
-function buildRoundHighResolutionDownloadSnapshotUrl(
-  req: Request,
-  canvasId: number,
-  roundId: number,
-): string {
-  const relativePath =
-    roundSnapshotService.buildRoundHighResolutionDownloadSnapshotApiPath(
-      canvasId,
-      roundId,
-    );
-  const host = req.get("host");
-
-  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
-}
-
 // 엔티티를 그대로 노출하지 않고 API 응답 필드를 명시적으로 고정
 function serializeRoundSummary(
   summary: RoundSummary,
