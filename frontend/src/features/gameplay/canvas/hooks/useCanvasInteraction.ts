@@ -1,4 +1,4 @@
-import { useRef, type RefObject } from "react";
+import { useRef, useState, type RefObject } from "react";
 import { getGameConfig } from "@/shared/config/game-config";
 import { Cell } from "../model/canvas.types";
 
@@ -57,12 +57,14 @@ export function useCanvasInteraction({
   const isPanning = useRef(false);
   const hasPanned = useRef(false);
   const lastPos = useRef({ x: 0, y: 0 });
+  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
 
   const handleMouseDown = (event: React.MouseEvent) => {
     if (event.button !== 0) return;
 
     isPanning.current = true;
     hasPanned.current = false;
+    setIsDraggingCanvas(false);
     lastPos.current = { x: event.clientX, y: event.clientY };
   };
 
@@ -74,6 +76,7 @@ export function useCanvasInteraction({
 
     if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
       hasPanned.current = true;
+      setIsDraggingCanvas(true);
     }
 
     onPan(dx, dy);
@@ -85,6 +88,7 @@ export function useCanvasInteraction({
 
     const wasPanning = isPanning.current;
     isPanning.current = false;
+    setIsDraggingCanvas(false);
 
     if (!wasPanning) {
       hasPanned.current = false;
@@ -146,6 +150,7 @@ export function useCanvasInteraction({
 
   const handleMouseLeave = () => {
     isPanning.current = false;
+    setIsDraggingCanvas(false);
   };
 
   return {
@@ -153,5 +158,6 @@ export function useCanvasInteraction({
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
+    isDraggingCanvas,
   };
 }

@@ -53,6 +53,7 @@ export default function CanvasPage() {
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
+    isDraggingCanvas,
     handleWheel,
     popupOpen,
     popupPos,
@@ -199,6 +200,7 @@ export default function CanvasPage() {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={handleMouseLeave}
+        isDragging={isDraggingCanvas}
         onWheel={handleWheel}
       >
         <CanvasSurface

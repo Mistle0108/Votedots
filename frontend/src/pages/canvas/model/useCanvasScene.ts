@@ -665,20 +665,25 @@ export default function useCanvasScene({
     [gridX, gridY],
   );
 
-  const { handleMouseDown, handleMouseMove, handleMouseUp, handleMouseLeave } =
-    useCanvasInteraction({
-      canvasRef: canvasElementRef,
-      cells,
-      gridX,
-      gridY,
-      cameraX,
-      cameraY,
-      zoom,
-      worldOffsetX: worldOffset.x,
-      worldOffsetY: worldOffset.y,
-      onPan: handlePan,
-      onActivateCell: activateCell,
-    });
+  const {
+    handleMouseDown,
+    handleMouseMove,
+    handleMouseUp,
+    handleMouseLeave,
+    isDraggingCanvas,
+  } = useCanvasInteraction({
+    canvasRef: canvasElementRef,
+    cells,
+    gridX,
+    gridY,
+    cameraX,
+    cameraY,
+    zoom,
+    worldOffsetX: worldOffset.x,
+    worldOffsetY: worldOffset.y,
+    onPan: handlePan,
+    onActivateCell: activateCell,
+  });
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -973,6 +978,7 @@ export default function useCanvasScene({
     handleMouseMove,
     handleMouseUp,
     handleMouseLeave,
+    isDraggingCanvas,
     handleWheel,
     handleCanvasUpdated,
     handleCanvasBatchUpdated,
