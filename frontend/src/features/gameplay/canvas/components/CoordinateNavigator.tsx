@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { Button } from "@/shared/ui/button";
 
@@ -18,44 +18,54 @@ export default function CoordinateNavigator({
   onNavigate,
 }: Props) {
   const { t } = useI18n();
-  const [xInput, setXInput] = useState(() =>
-    selectedX !== null ? String(selectedX) : "0",
-  );
-  const [yInput, setYInput] = useState(() =>
-    selectedY !== null ? String(selectedY) : "0",
-  );
+  const [xInputState, setXInputState] = useState(() => ({
+    value: selectedX !== null ? String(selectedX) : "0",
+    source: selectedX,
+  }));
+  const [yInputState, setYInputState] = useState(() => ({
+    value: selectedY !== null ? String(selectedY) : "0",
+    source: selectedY,
+  }));
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    if (selectedX !== null) {
-      setXInput(String(selectedX));
-    }
-  }, [selectedX]);
-
-  useEffect(() => {
-    if (selectedY !== null) {
-      setYInput(String(selectedY));
-    }
-  }, [selectedY]);
+  const resolvedXInput =
+    xInputState.source === selectedX
+      ? xInputState.value
+      : selectedX !== null
+        ? String(selectedX)
+        : "0";
+  const resolvedYInput =
+    yInputState.source === selectedY
+      ? yInputState.value
+      : selectedY !== null
+        ? String(selectedY)
+        : "0";
 
   const handleNumericChange =
-    (setter: React.Dispatch<React.SetStateAction<string>>) =>
+    (
+      setter: React.Dispatch<
+        React.SetStateAction<{ value: string; source: number | null }>
+      >,
+      source: number | null,
+    ) =>
     (event: React.ChangeEvent<HTMLInputElement>) => {
       const nextValue = event.target.value.replace(/[^0-9]/g, "");
-      setter(nextValue);
+      setter({
+        value: nextValue,
+        source,
+      });
       if (error) {
         setError("");
       }
     };
 
   const handleSubmit = () => {
-    if (xInput === "" || yInput === "") {
+    if (resolvedXInput === "" || resolvedYInput === "") {
       setError(t("coordinate.required"));
       return;
     }
 
-    const nextX = Number.parseInt(xInput, 10);
-    const nextY = Number.parseInt(yInput, 10);
+    const nextX = Number.parseInt(resolvedXInput, 10);
+    const nextY = Number.parseInt(resolvedYInput, 10);
 
     if (Number.isNaN(nextX) || Number.isNaN(nextY)) {
       setError(t("coordinate.numbersOnly"));
@@ -88,8 +98,8 @@ export default function CoordinateNavigator({
             <input
               type="text"
               inputMode="numeric"
-              value={xInput}
-              onChange={handleNumericChange(setXInput)}
+              value={resolvedXInput}
+              onChange={handleNumericChange(setXInputState, selectedX)}
               onKeyDown={handleKeyDown}
               className="h-9 w-full border-0 bg-transparent text-sm text-[color:var(--page-theme-text-primary)] outline-none"
             />
@@ -102,8 +112,8 @@ export default function CoordinateNavigator({
             <input
               type="text"
               inputMode="numeric"
-              value={yInput}
-              onChange={handleNumericChange(setYInput)}
+              value={resolvedYInput}
+              onChange={handleNumericChange(setYInputState, selectedY)}
               onKeyDown={handleKeyDown}
               className="h-9 w-full border-0 bg-transparent text-sm text-[color:var(--page-theme-text-primary)] outline-none"
             />

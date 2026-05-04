@@ -42,7 +42,7 @@ export default function RoundSummaryModal({
   onClose,
   onDragStart,
 }: RoundSummaryModalProps) {
-  const { formatPercent, locale, t } = useI18n();
+  const { locale, t } = useI18n();
 
   useEffect(() => {
     if (!open || !summary) {
@@ -69,13 +69,6 @@ export default function RoundSummaryModal({
     return null;
   }
 
-  const progressPercent =
-    summary.totalCellCount > 0
-      ? (
-        (summary.currentPaintedCellCount / summary.totalCellCount) *
-        100
-      ).toFixed(1)
-      : "0.0";
   const roundSnapshot = summary.snapshotUrl ?? snapshot;
 
   return (

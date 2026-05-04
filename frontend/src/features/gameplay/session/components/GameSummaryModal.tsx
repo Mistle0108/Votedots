@@ -172,22 +172,6 @@ function StatLine({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function getVoteUnit(count: number | null | undefined, locale: "ko" | "en") {
-  if (locale === "en") {
-    return (count ?? 0) === 1 ? " vote" : " votes";
-  }
-
-  return "표";
-}
-
-function getCellUnit(count: number | null | undefined, locale: "ko" | "en") {
-  if (locale === "en") {
-    return (count ?? 0) === 1 ? " cell" : " cells";
-  }
-
-  return "칸";
-}
-
 export default function GameSummaryModal({
   summary,
   snapshotUrl,

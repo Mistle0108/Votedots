@@ -324,6 +324,9 @@ export default function useCanvasScene({
   );
 
   useLayoutEffect(() => {
+    const scheduleStateUpdate = (callback: () => void) => {
+      queueMicrotask(callback);
+    };
     const container = containerRef.current;
     const paintCanvas = paintCanvasElementRef.current;
     const canvas = canvasElementRef.current;
@@ -335,10 +338,6 @@ export default function useCanvasScene({
       gridX === 0 ||
       gridY === 0
     ) {
-      if (canvasReady) {
-        setCanvasReady(false);
-      }
-
       if (!canvasId || gridX === 0 || gridY === 0) {
         sceneKeyRef.current = null;
         pendingZoomAdjustmentRef.current = null;
@@ -349,8 +348,15 @@ export default function useCanvasScene({
         cameraXRef.current = 0;
         cameraYRef.current = 0;
         selectedCellRef.current = null;
-        setSelectedCell(null);
-        setSelectionVisible(false);
+        scheduleStateUpdate(() => {
+          setCanvasReady(false);
+          setSelectedCell(null);
+          setSelectionVisible(false);
+        });
+      } else if (canvasReady) {
+        scheduleStateUpdate(() => {
+          setCanvasReady(false);
+        });
       }
 
       return;
@@ -362,7 +368,9 @@ export default function useCanvasScene({
 
     if (viewportWidth <= 0 || viewportHeight <= 0) {
       if (canvasReady) {
-        setCanvasReady(false);
+        scheduleStateUpdate(() => {
+          setCanvasReady(false);
+        });
       }
       return;
     }
@@ -406,16 +414,19 @@ export default function useCanvasScene({
       cameraXRef.current = initialCamera.x;
       cameraYRef.current = initialCamera.y;
       selectedCellRef.current = null;
-
-      setZoom(initialZoom);
-      setCameraX(initialCamera.x);
-      setCameraY(initialCamera.y);
-      setSelectedCell(null);
-      setSelectionVisible(false);
+      scheduleStateUpdate(() => {
+        setZoom(initialZoom);
+        setCameraX(initialCamera.x);
+        setCameraY(initialCamera.y);
+        setSelectedCell(null);
+        setSelectionVisible(false);
+      });
     }
 
     if (!canvasReady) {
-      setCanvasReady(true);
+      scheduleStateUpdate(() => {
+        setCanvasReady(true);
+      });
     }
   }, [
     canvasId,
