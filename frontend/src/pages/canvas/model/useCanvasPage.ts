@@ -11,10 +11,6 @@ import type {
   RoundSummaryData,
 } from "@/features/gameplay/session/api/session.api";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
-import {
-  GAME_PHASE,
-  type GamePhase,
-} from "@/features/gameplay/session/model/game-phase.types";
 import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
@@ -36,17 +32,12 @@ function getDefaultRoundSummaryModalPosition() {
   };
 }
 
-function isRoundSummaryPhase(phase: GamePhase) {
-  return (
-    phase === GAME_PHASE.ROUND_RESULT || phase === GAME_PHASE.ROUND_START_WAIT
-  );
-}
-
 export default function useCanvasPage({
   onSessionEnded,
   onUnauthorized,
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
+  const lastAutoOpenedRoundIdRef = useRef<number | null>(null);
 
   const [roundSummaryModal, setRoundSummaryModal] =
     useState<RoundSummaryData | null>(null);
@@ -175,6 +166,11 @@ export default function useCanvasPage({
     closePopup();
   }, [clearSelectedCell, resetPreviewColor, closePopup]);
 
+  const handleRoundStartedCleanup = useCallback(() => {
+    setRoundSummaryOpen(false);
+    setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
+  }, []);
+
   const handleGameEndedCleanup = useCallback(() => {
     clearSelectedCell();
   }, [clearSelectedCell]);
@@ -212,9 +208,21 @@ export default function useCanvasPage({
   const handleReceiveRoundSummary = useCallback(
     (summary: RoundSummaryData) => {
       addRoundHistoryItem(summary);
+
+      if (roundSummaryOpen) {
+        setRoundSummaryModal(summary);
+        return;
+      }
+
+      if (lastAutoOpenedRoundIdRef.current === summary.roundId) {
+        setRoundSummaryModal(summary);
+        return;
+      }
+
+      lastAutoOpenedRoundIdRef.current = summary.roundId;
       handleOpenRoundSummaryModal(summary);
     },
-    [addRoundHistoryItem, handleOpenRoundSummaryModal],
+    [addRoundHistoryItem, handleOpenRoundSummaryModal, roundSummaryOpen],
   );
 
   const handleReceiveGameSummary = useCallback(
@@ -269,6 +277,7 @@ export default function useCanvasPage({
     onCanvasBatchUpdated: handleCanvasBatchUpdatedForRoundResult,
     onOpenRoundSummaryModal: handleReceiveRoundSummary,
     onOpenGameSummaryModal: handleReceiveGameSummary,
+    onRoundStartedCleanup: handleRoundStartedCleanup,
     onRoundEndedCleanup: handleRoundEndedCleanup,
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
@@ -280,12 +289,6 @@ export default function useCanvasPage({
   useEffect(() => {
     isRoundExpiredRef.current = gameplay.isRoundExpiredRefValue;
   }, [gameplay.isRoundExpiredRefValue]);
-
-  useEffect(() => {
-    if (!isRoundSummaryPhase(gameplay.phase)) {
-      handleCloseRoundSummaryModal();
-    }
-  }, [gameplay.phase, handleCloseRoundSummaryModal]);
 
   const handleOpenLatestRoundSummary = useCallback(() => {
     if (!gameplay.roundSummary || !gameplay.canOpenLatestRoundSummary) {
