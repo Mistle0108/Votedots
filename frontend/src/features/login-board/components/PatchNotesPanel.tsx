@@ -153,7 +153,7 @@ export default function PatchNotesPanel({ groups }: PatchNotesPanelProps) {
                               </span>
                             </div>
 
-                            <h3 className="m-0 text-base font-semibold text-[color:var(--color-text-primary)]">
+                            <h3 className="m-0 text-2xl font-semibold tracking-tight text-[color:var(--color-text-primary)]">
                               {item.title}
                             </h3>
 
