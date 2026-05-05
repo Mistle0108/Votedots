@@ -130,21 +130,21 @@ function getRoundSummaryForSnapshot(
 }
 
 function buildRoundSnapshotApiPath(canvasId: number, roundId: number): string {
-  return `/canvas/${canvasId}/rounds/${roundId}/snapshot`;
+  return `/api/canvas/${canvasId}/rounds/${roundId}/snapshot`;
 }
 
 function buildRoundDownloadSnapshotApiPath(
   canvasId: number,
   roundId: number,
 ): string {
-  return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
+  return `/api/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
 }
 
 function buildRoundHighResolutionDownloadSnapshotApiPath(
   canvasId: number,
   roundId: number,
 ): string {
-  return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot-hd`;
+  return `/api/canvas/${canvasId}/rounds/${roundId}/download-snapshot-hd`;
 }
 
 function getRoundSnapshotUrl(
