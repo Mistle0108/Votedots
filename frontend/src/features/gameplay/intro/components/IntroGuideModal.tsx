@@ -202,14 +202,14 @@ export default function IntroGuideModal({
               </p>
             </section>
 
-            <div className="mx-auto w-fit space-y-3">
+            <div className="mx-auto flex w-fit flex-col items-center gap-3">
               <IntroCanvasPreview
                 playBackgroundImageUrl={playBackgroundImageUrl}
                 resultTemplateImageUrl={resultTemplateImageUrl}
                 gridX={gridX}
                 gridY={gridY}
               />
-              <div className="space-y-1 pl-6 text-left text-sm font-bold text-[color:var(--page-theme-text-primary)]">
+              <div className="mx-auto w-fit space-y-1 text-left text-sm font-bold text-[color:var(--page-theme-text-primary)]">
                 {introStats.map((stat) => (
                   <p key={stat.label}>
                     {stat.label} :{" "}
