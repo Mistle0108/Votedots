@@ -51,7 +51,7 @@ export default function MyInfoCard({ participants }: MyInfoCardProps) {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [t]);
 
   const handleLogout = async () => {
     setLogoutLoading(true);

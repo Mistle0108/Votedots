@@ -21,72 +21,105 @@ export default function MarkdownContent({
       <ReactMarkdown
         remarkPlugins={[remarkBreaks]}
         components={{
-          h1: ({ node: _node, ...props }) => (
-            <h1
-              style={{ color: "#111827" }}
-              {...props}
-            />
-          ),
-          h2: ({ node: _node, ...props }) => (
-            <h2
-              style={{ color: "#111827" }}
-              {...props}
-            />
-          ),
-          h3: ({ node: _node, ...props }) => (
-            <h3
-              style={{ color: "#111827" }}
-              {...props}
-            />
-          ),
-          p: ({ node: _node, ...props }) => (
-            <p
-              style={{ color: "#4b5563" }}
-              {...props}
-            />
-          ),
-          li: ({ node: _node, ...props }) => (
-            <li
-              style={{ color: "#4b5563" }}
-              {...props}
-            />
-          ),
-          a: ({ node: _node, ...props }) => (
-            <a
-              style={{ color: "#111827" }}
-              {...props}
-            />
-          ),
-          strong: ({ node: _node, ...props }) => (
-            <strong
-              style={{ color: "#111827" }}
-              {...props}
-            />
-          ),
-          blockquote: ({ node: _node, ...props }) => (
-            <blockquote
-              style={{ color: "#6b7280", borderColor: "#d1d5db" }}
-              {...props}
-            />
-          ),
-          code: ({ node: _node, ...props }) => (
-            <code
-              style={{ color: "#111827", backgroundColor: "#f3f4f6" }}
-              {...props}
-            />
-          ),
-          pre: ({ node: _node, ...props }) => (
-            <pre
-              style={{ color: "#111827", backgroundColor: "#f3f4f6" }}
-              {...props}
-            />
-          ),
-          hr: ({ node: _node, ...props }) => (
-            <hr
-              style={{ borderColor: "#d1d5db" }}
-              {...props}
-            />
-          ),
+          h1: ({ node, ...props }) => {
+            void node;
+            return (
+              <h1
+                style={{ color: "#111827" }}
+                {...props}
+              />
+            );
+          },
+          h2: ({ node, ...props }) => {
+            void node;
+            return (
+              <h2
+                style={{ color: "#111827" }}
+                {...props}
+              />
+            );
+          },
+          h3: ({ node, ...props }) => {
+            void node;
+            return (
+              <h3
+                style={{ color: "#111827" }}
+                {...props}
+              />
+            );
+          },
+          p: ({ node, ...props }) => {
+            void node;
+            return (
+              <p
+                style={{ color: "#4b5563" }}
+                {...props}
+              />
+            );
+          },
+          li: ({ node, ...props }) => {
+            void node;
+            return (
+              <li
+                style={{ color: "#4b5563" }}
+                {...props}
+              />
+            );
+          },
+          a: ({ node, ...props }) => {
+            void node;
+            return (
+              <a
+                style={{ color: "#111827" }}
+                {...props}
+              />
+            );
+          },
+          strong: ({ node, ...props }) => {
+            void node;
+            return (
+              <strong
+                style={{ color: "#111827" }}
+                {...props}
+              />
+            );
+          },
+          blockquote: ({ node, ...props }) => {
+            void node;
+            return (
+              <blockquote
+                style={{ color: "#6b7280", borderColor: "#d1d5db" }}
+                {...props}
+              />
+            );
+          },
+          code: ({ node, ...props }) => {
+            void node;
+            return (
+              <code
+                style={{ color: "#111827", backgroundColor: "#f3f4f6" }}
+                {...props}
+              />
+            );
+          },
+          pre: ({ node, ...props }) => {
+            void node;
+            return (
+              <pre
+                style={{ color: "#111827", backgroundColor: "#f3f4f6" }}
+                {...props}
+              />
+            );
+          },
+          hr: ({ node, ...props }) => {
+            void node;
+            return (
+              <hr
+                style={{ borderColor: "#d1d5db" }}
+                {...props}
+              />
+            );
+          },
         }}
       >
         {content}
