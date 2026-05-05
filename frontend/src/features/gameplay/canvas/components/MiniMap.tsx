@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { MINIMAP_SIZE } from "../model/canvas.constants";
 import { Cell, Viewport } from "../model/canvas.types";
 
@@ -222,29 +222,32 @@ export default function MiniMap({
     viewport,
   ]);
 
-  const navigateFromPointer = (
-    clientX: number,
-    clientY: number,
-    behavior: ScrollBehavior = "auto",
-  ) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const navigateFromPointer = useCallback(
+    (
+      clientX: number,
+      clientY: number,
+      behavior: ScrollBehavior = "auto",
+    ) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const rect = canvas.getBoundingClientRect();
-    const relativeX = Math.min(Math.max(clientX - rect.left, 0), rect.width);
-    const relativeY = Math.min(Math.max(clientY - rect.top, 0), rect.height);
+      const rect = canvas.getBoundingClientRect();
+      const relativeX = Math.min(Math.max(clientX - rect.left, 0), rect.width);
+      const relativeY = Math.min(Math.max(clientY - rect.top, 0), rect.height);
 
-    const nextX = Math.min(
-      gridX - 1,
-      Math.max(0, Math.floor((relativeX / rect.width) * gridX)),
-    );
-    const nextY = Math.min(
-      gridY - 1,
-      Math.max(0, Math.floor((relativeY / rect.height) * gridY)),
-    );
+      const nextX = Math.min(
+        gridX - 1,
+        Math.max(0, Math.floor((relativeX / rect.width) * gridX)),
+      );
+      const nextY = Math.min(
+        gridY - 1,
+        Math.max(0, Math.floor((relativeY / rect.height) * gridY)),
+      );
 
-    onNavigate(nextX, nextY, behavior);
-  };
+      onNavigate(nextX, nextY, behavior);
+    },
+    [gridX, gridY, onNavigate],
+  );
 
   useEffect(() => {
     const handleMouseMove = (event: MouseEvent) => {
@@ -263,7 +266,7 @@ export default function MiniMap({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [gridX, gridY, onNavigate]);
+  }, [navigateFromPointer]);
 
   return (
     <div className="flex justify-center">
