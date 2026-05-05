@@ -6,6 +6,16 @@ import eyedropperIcon from "@/assets/eyedropper-icon.png";
 const CHECKER_PATTERN =
   "linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db), linear-gradient(45deg, #d1d5db 25%, transparent 25%, transparent 75%, #d1d5db 75%, #d1d5db)";
 
+type EyeDropperResult = {
+  sRGBHex: string;
+};
+
+type EyeDropperInstance = {
+  open: () => Promise<EyeDropperResult>;
+};
+
+type EyeDropperConstructor = new () => EyeDropperInstance;
+
 interface Props {
   selected: string;
   onChange: (color: string) => void;
@@ -36,10 +46,12 @@ export default function ColorPalette({
 
   const handleEyeDropper = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!("EyeDropper" in window)) return;
+    const eyeDropperCtor = (window as Window & {
+      EyeDropper?: EyeDropperConstructor;
+    }).EyeDropper;
+    if (!eyeDropperCtor) return;
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const eyeDropper = new (window as any).EyeDropper();
+    const eyeDropper = new eyeDropperCtor();
 
     try {
       const result = await eyeDropper.open();

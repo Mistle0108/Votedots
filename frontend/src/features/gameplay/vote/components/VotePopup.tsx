@@ -228,6 +228,8 @@ export default function VotePopup({
     isVotingPhase,
     phaseBlockedMessage,
     isRoundExpired,
+    locale,
+    t,
     color,
     canvasId,
     selectedCell.x,
@@ -353,12 +355,11 @@ export default function VotePopup({
 
   useEffect(() => {
     onColorChange(color);
-    return () => onColorChange(null);
-  }, []);
+  }, [color, onColorChange, selectedCell.x, selectedCell.y]);
 
   useEffect(() => {
-    onColorChange(color);
-  }, [color, onColorChange, selectedCell.x, selectedCell.y]);
+    return () => onColorChange(null);
+  }, [onColorChange]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {

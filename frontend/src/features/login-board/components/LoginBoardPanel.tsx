@@ -51,22 +51,17 @@ export default function LoginBoardPanel() {
 
   return (
     <div className="flex h-full min-h-screen flex-col px-5 py-6 text-left lg:px-7 lg:py-8">
-      <div className="space-y-3">
-        <div className="space-y-1.5">
-          <p className="text-sm font-medium text-[color:var(--color-text-tertiary)]">
-            {t("loginBoard.subtitle")}
-          </p>
-          <h1 className="m-0 text-[2rem] font-semibold tracking-tight text-[color:var(--color-text-primary)]">
-            {t("loginBoard.title")}
-          </h1>
-        </div>
-
+      <div>
         <div className="inline-flex w-fit items-center gap-1 rounded-lg border-[0.5px] border-[color:var(--color-border-primary)] bg-[color:var(--color-background-secondary)] p-1">
           <Button
             type="button"
             variant={activeTab === "patches" ? "secondary" : "ghost"}
             size="sm"
-            className="rounded-md px-3 text-[13px]"
+            className={`rounded-md px-4 py-2 text-sm font-semibold ${
+              activeTab === "patches"
+                ? "border-[color:var(--color-border-primary)] bg-[color:var(--color-background-primary)] text-[color:var(--color-text-primary)] shadow-sm"
+                : "text-[color:var(--color-text-secondary)]"
+            }`}
             onClick={() => setActiveTab("patches")}
           >
             {t("loginBoard.tab.patches")}
@@ -75,7 +70,11 @@ export default function LoginBoardPanel() {
             type="button"
             variant={activeTab === "roadmap" ? "secondary" : "ghost"}
             size="sm"
-            className="rounded-md px-3 text-[13px]"
+            className={`rounded-md px-4 py-2 text-sm font-semibold ${
+              activeTab === "roadmap"
+                ? "border-[color:var(--color-border-primary)] bg-[color:var(--color-background-primary)] text-[color:var(--color-text-primary)] shadow-sm"
+                : "text-[color:var(--color-text-secondary)]"
+            }`}
             onClick={() => setActiveTab("roadmap")}
           >
             {t("loginBoard.tab.roadmap")}
