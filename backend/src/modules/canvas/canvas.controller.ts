@@ -39,47 +39,28 @@ function serializeCell(cell: Cell) {
   };
 }
 
-function buildRoundSnapshotUrl(
-  req: Request,
-  canvasId: number,
-  roundId: number,
-): string {
-  const relativePath = roundSnapshotService.buildRoundSnapshotApiPath(
-    canvasId,
-    roundId,
-  );
-  const host = req.get("host");
-
-  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+function buildRoundSnapshotUrl(canvasId: number, roundId: number): string {
+  return roundSnapshotService.buildRoundSnapshotApiPath(canvasId, roundId);
 }
 
 function buildRoundDownloadSnapshotUrl(
-  req: Request,
   canvasId: number,
   roundId: number,
 ): string {
-  const relativePath = roundSnapshotService.buildRoundDownloadSnapshotApiPath(
+  return roundSnapshotService.buildRoundDownloadSnapshotApiPath(
     canvasId,
     roundId,
   );
-  const host = req.get("host");
-
-  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
 }
 
 function buildRoundHighResolutionDownloadSnapshotUrl(
-  req: Request,
   canvasId: number,
   roundId: number,
 ): string {
-  const relativePath =
-    roundSnapshotService.buildRoundHighResolutionDownloadSnapshotApiPath(
-      canvasId,
-      roundId,
-    );
-  const host = req.get("host");
-
-  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+  return roundSnapshotService.buildRoundHighResolutionDownloadSnapshotApiPath(
+    canvasId,
+    roundId,
+  );
 }
 
 // 게임 summary 응답 구조를 명시적으로 고정
@@ -216,14 +197,13 @@ export const canvasController = {
         data: serializeGameSummary(
           summary,
           snapshot?.round?.id
-            ? buildRoundSnapshotUrl(req, canvasId, snapshot.round.id)
+            ? buildRoundSnapshotUrl(canvasId, snapshot.round.id)
             : null,
           snapshot?.round?.id
-            ? buildRoundDownloadSnapshotUrl(req, canvasId, snapshot.round.id)
+            ? buildRoundDownloadSnapshotUrl(canvasId, snapshot.round.id)
             : null,
           snapshot?.round?.id
             ? buildRoundHighResolutionDownloadSnapshotUrl(
-                req,
                 canvasId,
                 snapshot.round.id,
               )

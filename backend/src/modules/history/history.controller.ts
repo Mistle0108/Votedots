@@ -17,18 +17,8 @@ function parseCanvasId(value: unknown): number | null {
   return canvasId;
 }
 
-function toAbsoluteUrl(req: Request, url: string | null) {
-  if (!url) {
-    return null;
-  }
-
-  if (/^https?:\/\//i.test(url)) {
-    return url;
-  }
-
-  const host = req.get("host");
-
-  return host ? `${req.protocol}://${host}${url}` : url;
+function toRelativeUrl(url: string | null) {
+  return url;
 }
 
 export const historyController = {
@@ -53,25 +43,23 @@ export const historyController = {
       ...history,
       rounds: history.rounds.map((round) => ({
         ...round,
-        snapshotUrl: toAbsoluteUrl(req, round.snapshotUrl),
+        snapshotUrl: toRelativeUrl(round.snapshotUrl),
         snapshot: round.snapshot
           ? {
               ...round.snapshot,
-              imageUrl: toAbsoluteUrl(req, round.snapshot.imageUrl),
-              snapshotUrl: toAbsoluteUrl(req, round.snapshot.snapshotUrl),
+              imageUrl: toRelativeUrl(round.snapshot.imageUrl),
+              snapshotUrl: toRelativeUrl(round.snapshot.snapshotUrl),
             }
           : null,
       })),
       gameSummary: history.gameSummary
         ? {
             ...history.gameSummary,
-            snapshotUrl: toAbsoluteUrl(req, history.gameSummary.snapshotUrl),
-            downloadSnapshotUrl: toAbsoluteUrl(
-              req,
+            snapshotUrl: toRelativeUrl(history.gameSummary.snapshotUrl),
+            downloadSnapshotUrl: toRelativeUrl(
               history.gameSummary.downloadSnapshotUrl,
             ),
-            highResolutionDownloadSnapshotUrl: toAbsoluteUrl(
-              req,
+            highResolutionDownloadSnapshotUrl: toRelativeUrl(
               history.gameSummary.highResolutionDownloadSnapshotUrl,
             ),
           }
