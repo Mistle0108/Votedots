@@ -21,16 +21,16 @@ export interface GameConfig {
 
 const DEFAULT_GAME_CONFIG: GameConfig = {
   phases: {
-    introPhaseSec: 0,
+    introPhaseSec: 25,
     roundStartWaitSec: 5,
-    roundDurationSec: 20,
-    roundResultDelaySec: 3,
-    gameEndWaitSec: 5,
-    restartDelaySec: 3,
+    roundDurationSec: 60,
+    roundResultDelaySec: 10,
+    gameEndWaitSec: 275,
+    restartDelaySec: 5,
   },
   rules: {
     totalRounds: 10,
-    votesPerRound: 3,
+    votesPerRound: 50,
     participantGracePeriodSec: 15,
   },
   board: {
