@@ -35,18 +35,18 @@ type RoundDownloadVariant = "grid" | "hd";
 
 export const roundSnapshotService = {
   buildRoundSnapshotApiPath(canvasId: number, roundId: number): string {
-    return `/canvas/${canvasId}/rounds/${roundId}/snapshot`;
+    return `/api/canvas/${canvasId}/rounds/${roundId}/snapshot`;
   },
 
   buildRoundDownloadSnapshotApiPath(canvasId: number, roundId: number): string {
-    return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
+    return `/api/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
   },
 
   buildRoundHighResolutionDownloadSnapshotApiPath(
     canvasId: number,
     roundId: number,
   ): string {
-    return `/canvas/${canvasId}/rounds/${roundId}/download-snapshot-hd`;
+    return `/api/canvas/${canvasId}/rounds/${roundId}/download-snapshot-hd`;
   },
 
   resolveRoundSnapshotAbsolutePath(snapshot: RoundSnapshot): string {
