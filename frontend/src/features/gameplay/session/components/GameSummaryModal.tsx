@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, type MouseEvent, type ReactNode } from "react";
 import type {
   GameSummaryData,
   GameSummaryParticipant,
@@ -13,6 +13,7 @@ interface GameSummaryModalProps {
   snapshotUrl?: string | null;
   playBackgroundImageUrl?: string | null;
   position: { x: number; y: number };
+  onDragStart: (event: MouseEvent<HTMLDivElement>) => void;
   onClose: () => void;
 }
 
@@ -111,6 +112,7 @@ export default function GameSummaryModal({
   snapshotUrl,
   playBackgroundImageUrl,
   position,
+  onDragStart,
   onClose,
 }: GameSummaryModalProps) {
   const { formatNumber, formatPercent, locale, t } = useI18n();
@@ -172,7 +174,10 @@ export default function GameSummaryModal({
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative flex items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4">
+        <div
+          className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4"
+          onMouseDown={onDragStart}
+        >
           <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
             {t("gameSummary.title")}
           </p>

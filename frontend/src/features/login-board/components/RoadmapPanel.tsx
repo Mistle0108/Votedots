@@ -136,7 +136,7 @@ export default function RoadmapPanel({ groups }: RoadmapPanelProps) {
                             </div>
 
                             <div>
-                              <h3 className="m-0 text-base font-semibold text-[color:var(--color-text-primary)]">
+                              <h3 className="m-0 text-2xl font-semibold tracking-tight text-[color:var(--color-text-primary)]">
                                 {item.title}
                               </h3>
                               <p className="mt-1 text-sm leading-6 text-[color:var(--color-text-tertiary)]">
