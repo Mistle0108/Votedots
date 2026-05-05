@@ -26,6 +26,7 @@ interface Props {
   roundId: number | null;
   phase: GamePhase;
   isRoundExpired: boolean;
+  remaining: number | null;
   selectedCell: Cell;
   votes: Record<string, number>;
   cells: Cell[];
@@ -97,6 +98,7 @@ export default function VotePopup({
   roundId,
   phase,
   isRoundExpired,
+  remaining,
   selectedCell,
   votes,
   cells,
@@ -130,10 +132,11 @@ export default function VotePopup({
   const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
   const phaseBlockedMessage = getPhaseBlockedMessage(phase, t);
   const canSubmitVote = isVotingPhase && !isRoundExpired;
+  const hasRemainingVotes = remaining !== null ? remaining > 0 : true;
   const visibleLoading = loading && canSubmitVote;
   const visibleError = canSubmitVote ? error : "";
   const isVoteDisabled =
-    !roundId || !canSubmitVote || visibleLoading;
+    !roundId || !canSubmitVote || !hasRemainingVotes || visibleLoading;
 
   const buttonLabel = getButtonLabel(
     phase,

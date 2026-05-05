@@ -268,7 +268,7 @@ export default function MiniMap({
   return (
     <div className="flex justify-center">
       <div
-        className="flex items-center justify-center overflow-hidden rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-0 shadow-sm"
+        className="flex items-center justify-center overflow-hidden border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-0 shadow-sm"
         style={{
           width: `${MINIMAP_SIZE}px`,
           height: `${MINIMAP_SIZE}px`,

@@ -270,6 +270,7 @@ export default function CanvasPage() {
           roundId={roundId}
           phase={phase}
           isRoundExpired={isRoundExpired}
+          remaining={remaining}
           selectedCell={selectedCell}
           votes={votes}
           cells={cells}
