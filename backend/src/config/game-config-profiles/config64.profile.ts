@@ -6,4 +6,7 @@ export const config64GameConfigProfile: GameConfigUpdate = {
     gridSizeY: 64,
     cellSize: 30,
   },
+  rules: {
+    totalRounds: 15,
+  },
 };
