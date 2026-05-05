@@ -1,5 +1,3 @@
-import api from "@/shared/api/client";
-
 interface DownloadBlobFileParams {
   url: string;
   fileName: string;
@@ -9,11 +7,17 @@ export async function downloadBlobFile({
   url,
   fileName,
 }: DownloadBlobFileParams) {
-  const response = await api.get<Blob>(url, {
-    responseType: "blob",
+  const response = await fetch(url, {
+    credentials: "include",
   });
 
-  const blobUrl = window.URL.createObjectURL(response.data);
+  if (!response.ok) {
+    throw new Error(`Download request failed with status ${response.status}`);
+  }
+
+  const blob = await response.blob();
+
+  const blobUrl = window.URL.createObjectURL(blob);
   const anchor = document.createElement("a");
 
   anchor.href = blobUrl;
