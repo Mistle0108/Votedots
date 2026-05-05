@@ -456,12 +456,10 @@ export default function useCanvasGameplay({
   ]);
 
   const handleCanvasJoined = useCallback(() => {
-    void refreshParticipants();
-
     if (roundId && isRoundActivePhase(phase)) {
       void fetchTickets(roundId);
     }
-  }, [fetchTickets, phase, refreshParticipants, roundId]);
+  }, [fetchTickets, phase, roundId]);
 
   const handleRoundStarted = useCallback(
     async ({
@@ -502,7 +500,7 @@ export default function useCanvasGameplay({
       clearSessionError();
       resetVoteState();
 
-      await Promise.all([fetchTickets(roundId), refreshParticipants()]);
+      await fetchTickets(roundId);
     },
     [
       clearLocalPhaseTransitionTimer,
@@ -510,7 +508,6 @@ export default function useCanvasGameplay({
       clearSnapshotDelayTimer,
       fetchTickets,
       onRoundStartedCleanup,
-      refreshParticipants,
       resetVoteState,
       setRoundState,
       startRoundTimer,
