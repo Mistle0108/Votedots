@@ -151,9 +151,9 @@ export const resources: Record<Locale, Record<string, string>> = {
     "gameSummary.downloadRetry": "이미지 다시 시도",
     "gameSummary.downloadError": "이미지 다운로드에 실패했습니다. 다시 시도해 주세요.",
     "gameSummary.downloading": "다운로드 중...",
-    "gameSummary.downloadHd": "고화질 다운로드",
-    "gameSummary.downloadHdRetry": "고화질 다시 시도",
-    "gameSummary.downloadingHd": "고화질 다운로드 중...",
+    "gameSummary.downloadHd": "HD 다운로드",
+    "gameSummary.downloadHdRetry": "HD 다시 시도",
+    "gameSummary.downloadingHd": "HD 다운로드 중...",
     "gameSummary.stat.totalRounds": "총 라운드 수",
     "gameSummary.stat.participants": "투표 인원 수",
     "gameSummary.stat.ticketUsage": "투표권 사용률",
@@ -212,7 +212,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "coordinate.numbersOnly": "X, Y 좌표는 숫자만 입력할 수 있습니다.",
     "coordinate.range": "이동 가능한 범위는 X: 0-{{maxX}}, Y: 0-{{maxY}} 입니다.",
 
-    "loginBoard.title": "패치 내역 & 로드맵",
+    "loginBoard.title": "업데이트 보드",
     "loginBoard.subtitle": "업데이트 보드",
     "loginBoard.tab.patches": "패치 내역",
     "loginBoard.tab.roadmap": "로드맵",
@@ -433,7 +433,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "coordinate.range":
       "The available range is X: 0-{{maxX}}, Y: 0-{{maxY}}.",
 
-    "loginBoard.title": "Patch Notes & Roadmap",
+    "loginBoard.title": "Update Board",
     "loginBoard.subtitle": "Update board",
     "loginBoard.tab.patches": "Patch Notes",
     "loginBoard.tab.roadmap": "Roadmap",
