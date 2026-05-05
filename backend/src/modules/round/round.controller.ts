@@ -6,18 +6,8 @@ import { RoundSummary } from "../../entities/round-summary.entity";
 import { roundSnapshotService } from "../history/round-snapshot.service";
 import { summaryService } from "../summary/summary.service";
 
-function buildRoundSnapshotUrl(
-  req: Request,
-  canvasId: number,
-  roundId: number,
-): string {
-  const relativePath = roundSnapshotService.buildRoundSnapshotApiPath(
-    canvasId,
-    roundId,
-  );
-  const host = req.get("host");
-
-  return host ? `${req.protocol}://${host}${relativePath}` : relativePath;
+function buildRoundSnapshotUrl(canvasId: number, roundId: number): string {
+  return roundSnapshotService.buildRoundSnapshotApiPath(canvasId, roundId);
 }
 
 // 엔티티를 그대로 노출하지 않고 API 응답 필드를 명시적으로 고정
@@ -122,7 +112,7 @@ export const roundController = {
       return res.json({
         data: serializeRoundSummary(
           summary,
-          snapshot ? buildRoundSnapshotUrl(req, canvasId, roundId) : null,
+          snapshot ? buildRoundSnapshotUrl(canvasId, roundId) : null,
         ),
       });
     } catch (err) {
