@@ -775,7 +775,7 @@ export default function useCanvasScene({
   }, [canvasReady, gridX, gridY]);
 
   const handleWheel = useCallback(
-    (event: React.WheelEvent) => {
+    (event: WheelEvent) => {
       const container = containerRef.current;
 
       if (!container || !canvasReady || gridX === 0 || gridY === 0) {

@@ -1,4 +1,4 @@
-import type { ReactNode, RefObject } from "react";
+import { useEffect, useRef, type ReactNode, type RefObject } from "react";
 import { CANVAS_BACKGROUND_COLOR } from "../model/canvas.constants";
 
 interface CanvasStageProps {
@@ -10,7 +10,7 @@ interface CanvasStageProps {
   onMouseUp: (event: React.MouseEvent) => void;
   onMouseLeave: () => void;
   isDragging: boolean;
-  onWheel: (event: React.WheelEvent) => void;
+  onWheel: (event: WheelEvent) => void;
 }
 
 export default function CanvasStage({
@@ -24,8 +24,29 @@ export default function CanvasStage({
   isDragging,
   onWheel,
 }: CanvasStageProps) {
+  const stageRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const stage = stageRef.current;
+
+    if (!stage) {
+      return;
+    }
+
+    const handleWheel = (event: WheelEvent) => {
+      onWheel(event);
+    };
+
+    stage.addEventListener("wheel", handleWheel, { passive: false });
+
+    return () => {
+      stage.removeEventListener("wheel", handleWheel);
+    };
+  }, [onWheel]);
+
   return (
     <div
+      ref={stageRef}
       className={`relative min-w-0 flex-1 overflow-hidden ${isDragging ? "cursor-grabbing" : ""}`}
       style={{
         backgroundColor: CANVAS_BACKGROUND_COLOR,
@@ -36,17 +57,6 @@ export default function CanvasStage({
       onMouseLeave={onMouseLeave}
       onDragStart={(event) => {
         event.preventDefault();
-      }}
-      onWheel={(event) => {
-        console.log("[canvas-stage:wheel]", {
-          deltaY: event.deltaY,
-          clientX: event.clientX,
-          clientY: event.clientY,
-          target: event.target,
-          currentTarget: event.currentTarget,
-        });
-
-        onWheel(event);
       }}
     >
       {overlay && <div className="absolute left-4 top-4 z-10">{overlay}</div>}
