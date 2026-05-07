@@ -7,7 +7,6 @@ import {
   disconnectRedis,
   redisClient,
 } from "../../../src/config/redis";
-import { InitialSchemaReset1783000000000 } from "../../../src/database/migrations/1783000000000-InitialSchemaReset";
 
 function buildQuotedTableName(tablePath: string): string {
   return tablePath
@@ -64,22 +63,40 @@ async function ensureTestDatabaseExists(): Promise<void> {
   }
 }
 
-async function ensureSchemaExists(): Promise<void> {
+async function resetLegacyTestSchema(): Promise<void> {
+  const queryRunner = AppDataSource.createQueryRunner();
+  await queryRunner.connect();
+
+  try {
+    await queryRunner.query(`DROP SCHEMA IF EXISTS public CASCADE;`);
+    await queryRunner.query(`CREATE SCHEMA public;`);
+    await queryRunner.query(`GRANT ALL ON SCHEMA public TO postgres;`);
+    await queryRunner.query(`GRANT ALL ON SCHEMA public TO public;`);
+  } finally {
+    await queryRunner.release();
+  }
+}
+
+async function ensureSchemaUpToDate(): Promise<void> {
   const queryRunner = AppDataSource.createQueryRunner();
   await queryRunner.connect();
 
   try {
     const hasCanvasTable = await queryRunner.hasTable("canvas");
+    const hasMigrationsTable = await queryRunner.hasTable("migrations");
 
-    if (hasCanvasTable) {
-      return;
+    if (hasCanvasTable && !hasMigrationsTable) {
+      await queryRunner.release();
+      await resetLegacyTestSchema();
+      return AppDataSource.runMigrations();
     }
-
-    const migration = new InitialSchemaReset1783000000000();
-    await migration.up(queryRunner);
   } finally {
-    await queryRunner.release();
+    if (!queryRunner.isReleased) {
+      await queryRunner.release();
+    }
   }
+
+  await AppDataSource.runMigrations();
 }
 
 export async function initializeIntegrationRuntime(): Promise<Express> {
@@ -87,11 +104,10 @@ export async function initializeIntegrationRuntime(): Promise<Express> {
   await connectRedis();
 
   if (!AppDataSource.isInitialized) {
-    AppDataSource.setOptions({ migrations: [] });
     await AppDataSource.initialize();
   }
 
-  await ensureSchemaExists();
+  await ensureSchemaUpToDate();
 
   await resetIntegrationState();
 

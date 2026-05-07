@@ -7,9 +7,10 @@ import {
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
+import { publicLandingPreviewService } from "../public-landing/public-landing-preview.service";
 import { roundService } from "../round/round.service";
-import { summaryService } from "../summary/summary.service"; // 추가: 게임 summary 저장 서비스
 import { GamePhase } from "./game-phase.types";
+import { summaryService } from "../summary/summary.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const roundRepository = AppDataSource.getRepository(VoteRound);
@@ -194,6 +195,8 @@ async function transitionToGameEnd(
   });
 
   const gameSummary = await summaryService.saveGameSummary(canvasId);
+
+  void publicLandingPreviewService.generateForGame(canvasId, gameSummary.id);
 
   io.to(`canvas:${canvasId}`).emit("game-summary:ready", {
     canvasId,

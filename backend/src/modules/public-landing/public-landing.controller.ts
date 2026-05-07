@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { publicLandingPreviewService } from "./public-landing-preview.service";
 import { publicLandingService } from "./public-landing.service";
 
 function parseId(value: string | string[] | undefined): number | null {
@@ -41,6 +42,44 @@ export const publicLandingController = {
 
       const { absolutePath, mimeType } =
         await publicLandingService.getRoundSnapshotAbsolutePath(canvasId, roundId);
+
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.type(mimeType);
+
+      return res.sendFile(absolutePath);
+    } catch (error) {
+      return res.status(404).json({
+        message: String(error),
+      });
+    }
+  },
+
+  async getFeaturedPreviews(_req: Request, res: Response) {
+    try {
+      const payload = await publicLandingPreviewService.getFeaturedPreviewPayload();
+
+      res.setHeader("Cache-Control", "no-store");
+      return res.json(payload);
+    } catch (error) {
+      console.error("[public-landing] failed to load featured previews:", error);
+      return res.status(500).json({
+        message: "Failed to load featured previews.",
+      });
+    }
+  },
+
+  async getPreviewAsset(req: Request, res: Response) {
+    try {
+      const previewId = parseId(req.params["previewId"]);
+
+      if (!previewId) {
+        return res.status(400).json({
+          message: "Invalid preview id.",
+        });
+      }
+
+      const { absolutePath, mimeType } =
+        await publicLandingPreviewService.getPreviewAbsolutePath(previewId);
 
       res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
       res.type(mimeType);
