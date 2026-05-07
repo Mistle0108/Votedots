@@ -30,11 +30,39 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-64x64",
   },
   {
+    id: "fox-front-64x64",
+    name: "Fox Front Template 64x64",
+    gridX: 64,
+    gridY: 64,
+    assetKey: "fox-front-64x64",
+  },
+  {
+    id: "penguin-side-64x64",
+    name: "Penguin Side Template 64x64",
+    gridX: 64,
+    gridY: 64,
+    assetKey: "penguin-side-64x64",
+  },
+  {
+    id: "sheep-side-64x64",
+    name: "Sheep Side Template 64x64",
+    gridX: 64,
+    gridY: 64,
+    assetKey: "sheep-side-64x64",
+  },
+  {
     id: "empty-128x128",
     name: "Default Template 128x128",
     gridX: 128,
     gridY: 128,
     assetKey: "empty-128x128",
+  },
+  {
+    id: "butterfly-128x128",
+    name: "Butterfly Template 128x128",
+    gridX: 128,
+    gridY: 128,
+    assetKey: "butterfly-128x128",
   },
   {
     id: "cat-oblique-128x128",
@@ -56,6 +84,13 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     gridX: 256,
     gridY: 256,
     assetKey: "cat-front-256x256",
+  },
+  {
+    id: "lesserpanda-256x256",
+    name: "Lesser Panda Template 256x256",
+    gridX: 256,
+    gridY: 256,
+    assetKey: "lesserpanda-256x256",
   },
   {
     id: "empty-512x512",
