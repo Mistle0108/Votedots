@@ -53,10 +53,9 @@ describe("vote.utils", () => {
       "3:3:#00ff00": 1,
     };
 
-    expect(buildVotePopupEntries(votes, 1, 1, cells)).toEqual([
+    expect(buildVotePopupEntries(votes, 1, 1)).toEqual([
       { color: "#ffffff", count: 5 },
       { color: "#000000", count: 2 },
-      { color: "#ff0000", count: 0 },
     ]);
 
     expect(buildVotePanelEntries(votes, cells)).toEqual([
