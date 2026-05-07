@@ -77,6 +77,7 @@ export default function useCanvasPage({
     selectedCell,
     displaySelectedCell,
     viewport,
+    surfaceSize,
     cameraX,
     cameraY,
     zoom,
@@ -164,6 +165,7 @@ export default function useCanvasPage({
 
   const handleRoundStartedCleanup = useCallback(() => {
     setRoundSummaryOpen(false);
+    setRoundSummaryModal(null);
     setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
   }, []);
 
@@ -179,25 +181,33 @@ export default function useCanvasPage({
     addGameHistoryItem,
   } = useCanvasHistory(canvasId);
 
-  const handleOpenRoundSummaryModal = useCallback(
-    (summary: RoundSummaryData) => {
-      setRoundSummaryModal(summary);
+  const openRoundSummaryModalNow = useCallback((summary: RoundSummaryData) => {
+    setIntroGuideOpen(false);
+    setGameSummaryModal(null);
+    setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
+    setRoundSummaryModal(summary);
+    setRoundSummaryOpen(true);
+  }, []);
 
-      if (!roundSummaryOpen) {
-        setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
-      }
-
-      setRoundSummaryOpen(true);
-    },
-    [roundSummaryOpen],
-  );
-
-  const handleOpenGameSummaryModal = useCallback((summary: GameSummaryData) => {
+  const openGameSummaryModalNow = useCallback((summary: GameSummaryData) => {
+    setIntroGuideOpen(false);
+    setRoundSummaryOpen(false);
+    setRoundSummaryModal(null);
+    setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
     setGameSummaryModal(summary);
   }, []);
 
+  const handleOpenRoundSummaryModal = useCallback((summary: RoundSummaryData) => {
+    openRoundSummaryModalNow(summary);
+  }, [openRoundSummaryModalNow]);
+
+  const handleOpenGameSummaryModal = useCallback((summary: GameSummaryData) => {
+    openGameSummaryModalNow(summary);
+  }, [openGameSummaryModalNow]);
+
   const handleCloseRoundSummaryModal = useCallback(() => {
     setRoundSummaryOpen(false);
+    setRoundSummaryModal(null);
     setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
   }, []);
 
@@ -205,8 +215,8 @@ export default function useCanvasPage({
     (summary: RoundSummaryData) => {
       addRoundHistoryItem(summary);
 
-      if (roundSummaryOpen) {
-        setRoundSummaryModal(summary);
+      if (introGuideOpen) {
+        lastAutoOpenedRoundIdRef.current = summary.roundId;
         return;
       }
 
@@ -216,17 +226,22 @@ export default function useCanvasPage({
       }
 
       lastAutoOpenedRoundIdRef.current = summary.roundId;
-      handleOpenRoundSummaryModal(summary);
+      openRoundSummaryModalNow(summary);
     },
-    [addRoundHistoryItem, handleOpenRoundSummaryModal, roundSummaryOpen],
+    [addRoundHistoryItem, introGuideOpen, openRoundSummaryModalNow],
   );
 
   const handleReceiveGameSummary = useCallback(
     (summary: GameSummaryData) => {
       addGameHistoryItem(summary);
-      handleOpenGameSummaryModal(summary);
+
+      if (introGuideOpen) {
+        return;
+      }
+
+      openGameSummaryModalNow(summary);
     },
-    [addGameHistoryItem, handleOpenGameSummaryModal],
+    [addGameHistoryItem, introGuideOpen, openGameSummaryModalNow],
   );
 
   const handleCloseGameSummaryModal = useCallback(() => {
@@ -234,6 +249,10 @@ export default function useCanvasPage({
   }, []);
 
   const handleOpenIntroGuide = useCallback(() => {
+    setRoundSummaryOpen(false);
+    setRoundSummaryModal(null);
+    setGameSummaryModal(null);
+    setRoundSummaryPosition(getDefaultRoundSummaryModalPosition());
     setIntroGuideOpen(true);
   }, []);
 
@@ -359,6 +378,7 @@ export default function useCanvasPage({
     playBackgroundImageUrl,
     resultTemplateImageUrl,
     viewport,
+    surfaceSize,
     cameraX,
     cameraY,
     zoom,
