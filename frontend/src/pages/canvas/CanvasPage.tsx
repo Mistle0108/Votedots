@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import {
@@ -26,6 +26,53 @@ const INTRO_GUIDE_SEEN_STORAGE_KEY = "votedots:intro-guide-seen";
 const ROUND_SELECTION_GUIDE_DURATION_MS = 2500;
 const SELECTION_PULSE_DURATION_MS = 1000;
 
+interface SelectionGuideState {
+  roundSelectionGuideVisible: boolean;
+  pulsingSelectionCellKeys: Set<string>;
+}
+
+type SelectionGuideAction =
+  | { type: "reset" }
+  | { type: "announceRound" }
+  | { type: "hideGuide" }
+  | { type: "setPulsing"; cellKeys: string[] }
+  | { type: "clearPulsing" };
+
+const INITIAL_SELECTION_GUIDE_STATE: SelectionGuideState = {
+  roundSelectionGuideVisible: false,
+  pulsingSelectionCellKeys: new Set(),
+};
+
+function selectionGuideReducer(
+  state: SelectionGuideState,
+  action: SelectionGuideAction,
+): SelectionGuideState {
+  switch (action.type) {
+    case "reset":
+      return INITIAL_SELECTION_GUIDE_STATE;
+    case "announceRound":
+      return {
+        roundSelectionGuideVisible: true,
+        pulsingSelectionCellKeys: new Set(),
+      };
+    case "hideGuide":
+      return {
+        ...state,
+        roundSelectionGuideVisible: false,
+      };
+    case "setPulsing":
+      return {
+        ...state,
+        pulsingSelectionCellKeys: new Set(action.cellKeys),
+      };
+    case "clearPulsing":
+      return {
+        ...state,
+        pulsingSelectionCellKeys: new Set(),
+      };
+  }
+}
+
 function buildIntroGuideSeenStorageKey(canvasId: number): string {
   return `${INTRO_GUIDE_SEEN_STORAGE_KEY}:${canvasId}`;
 }
@@ -36,11 +83,10 @@ export default function CanvasPage() {
 
   usePageRootClass("page-shell-root");
   const [currentVoterUuid, setCurrentVoterUuid] = useState<string | null>(null);
-  const [roundSelectionGuideVisible, setRoundSelectionGuideVisible] =
-    useState(false);
-  const [pulsingSelectionCellKeys, setPulsingSelectionCellKeys] = useState<
-    Set<string>
-  >(new Set());
+  const [selectionGuideState, dispatchSelectionGuide] = useReducer(
+    selectionGuideReducer,
+    INITIAL_SELECTION_GUIDE_STATE,
+  );
   const guideTimerRef = useRef<number | null>(null);
   const pulseTimerRef = useRef<number | null>(null);
   const lastAnnouncedRoundIdRef = useRef<number | null>(null);
@@ -209,8 +255,7 @@ export default function CanvasPage() {
 
   useEffect(() => {
     if (phase !== GAME_PHASE.ROUND_ACTIVE || roundId === null) {
-      setRoundSelectionGuideVisible(false);
-      setPulsingSelectionCellKeys(new Set());
+      dispatchSelectionGuide({ type: "reset" });
       hasPulsedSelectionThisRoundRef.current = false;
 
       if (guideTimerRef.current !== null) {
@@ -232,8 +277,7 @@ export default function CanvasPage() {
 
     lastAnnouncedRoundIdRef.current = roundId;
     hasPulsedSelectionThisRoundRef.current = false;
-    setPulsingSelectionCellKeys(new Set());
-    setRoundSelectionGuideVisible(true);
+    dispatchSelectionGuide({ type: "announceRound" });
 
     if (guideTimerRef.current !== null) {
       window.clearTimeout(guideTimerRef.current);
@@ -241,7 +285,7 @@ export default function CanvasPage() {
 
     guideTimerRef.current = window.setTimeout(() => {
       guideTimerRef.current = null;
-      setRoundSelectionGuideVisible(false);
+      dispatchSelectionGuide({ type: "hideGuide" });
     }, ROUND_SELECTION_GUIDE_DURATION_MS);
   }, [phase, roundId]);
 
@@ -255,7 +299,10 @@ export default function CanvasPage() {
     }
 
     hasPulsedSelectionThisRoundRef.current = true;
-    setPulsingSelectionCellKeys(new Set(uniqueSelectionCellKeys));
+    dispatchSelectionGuide({
+      type: "setPulsing",
+      cellKeys: uniqueSelectionCellKeys,
+    });
 
     if (pulseTimerRef.current !== null) {
       window.clearTimeout(pulseTimerRef.current);
@@ -263,7 +310,7 @@ export default function CanvasPage() {
 
     pulseTimerRef.current = window.setTimeout(() => {
       pulseTimerRef.current = null;
-      setPulsingSelectionCellKeys(new Set());
+      dispatchSelectionGuide({ type: "clearPulsing" });
     }, SELECTION_PULSE_DURATION_MS);
   }, [phase, uniqueSelectionCellKeys]);
 
@@ -348,7 +395,7 @@ export default function CanvasPage() {
           </button>
         }
         topCenterOverlay={
-          roundSelectionGuideVisible ? (
+          selectionGuideState.roundSelectionGuideVisible ? (
             <div className="rounded-[1.5rem] border border-[rgba(0,0,0,0.18)] bg-[#FACC15] px-9 py-[18px] text-[1.6875rem] font-semibold leading-none text-black shadow-[0_12px_28px_rgba(0,0,0,0.28)]">
               {t("canvas.roundStartedGuide", { round: roundNumber ?? "" })}
             </div>
@@ -374,7 +421,7 @@ export default function CanvasPage() {
           worldOffset={worldOffset}
           surfaceSize={surfaceSize}
           selectionLabels={selectionLabels}
-          pulsingCellKeys={pulsingSelectionCellKeys}
+          pulsingCellKeys={selectionGuideState.pulsingSelectionCellKeys}
         />
       </CanvasStage>
 
@@ -434,7 +481,6 @@ export default function CanvasPage() {
           remaining={remaining}
           selectedCell={selectedCell}
           votes={votes}
-          cells={cells}
           position={popupPos}
           onVoteSuccess={handleVoteSuccess}
           onColorChange={handleColorChange}

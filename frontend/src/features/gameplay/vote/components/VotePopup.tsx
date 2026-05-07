@@ -29,7 +29,6 @@ interface Props {
   remaining: number | null;
   selectedCell: Cell;
   votes: Record<string, number>;
-  cells: Cell[];
   position: { x: number; y: number };
   onVoteSuccess: (color: string) => void;
   onColorChange: (color: string | null) => void;
@@ -101,7 +100,6 @@ export default function VotePopup({
   remaining,
   selectedCell,
   votes,
-  cells,
   position,
   onVoteSuccess,
   onColorChange,
@@ -126,7 +124,6 @@ export default function VotePopup({
     votes,
     selectedCell.x,
     selectedCell.y,
-    cells,
   );
   const maxCount = voteEntries[0]?.count ?? 1;
   const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;

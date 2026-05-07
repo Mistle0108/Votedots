@@ -55,7 +55,6 @@ export function buildVotePopupEntries(
   votes: Record<string, number>,
   x: number,
   y: number,
-  _cells: Cell[],
 ) {
   const counts = new Map<string, number>();
 
