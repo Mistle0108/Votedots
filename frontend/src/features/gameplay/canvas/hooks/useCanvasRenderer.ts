@@ -1,5 +1,9 @@
-import { useEffect, type RefObject } from "react";
-import { renderOverlayLayer, renderPaintLayer } from "../model/canvas.render";
+import { useEffect, useRef, type RefObject } from "react";
+import {
+  drawPaintLayerFromCache,
+  renderOverlayLayer,
+  renderPaintWorldCache,
+} from "../model/canvas.render";
 import type { Cell, VisibleCellBounds } from "../model/canvas.types";
 
 interface UseCanvasRendererParams {
@@ -17,6 +21,9 @@ interface UseCanvasRendererParams {
   zoom: number;
   worldOffsetX: number;
   worldOffsetY: number;
+  isDraggingCanvas: boolean;
+  worldWidth: number;
+  worldHeight: number;
 }
 
 export function useCanvasRenderer({
@@ -34,7 +41,45 @@ export function useCanvasRenderer({
   zoom,
   worldOffsetX,
   worldOffsetY,
+  isDraggingCanvas,
+  worldWidth,
+  worldHeight,
 }: UseCanvasRendererParams) {
+  const paintWorldCanvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    if (!canvasReady || worldWidth <= 0 || worldHeight <= 0) {
+      paintWorldCanvasRef.current = null;
+      return;
+    }
+
+    const paintWorldCanvas =
+      paintWorldCanvasRef.current ?? document.createElement("canvas");
+
+    paintWorldCanvasRef.current = paintWorldCanvas;
+
+    if (
+      paintWorldCanvas.width !== Math.ceil(worldWidth) ||
+      paintWorldCanvas.height !== Math.ceil(worldHeight)
+    ) {
+      paintWorldCanvas.width = Math.ceil(worldWidth);
+      paintWorldCanvas.height = Math.ceil(worldHeight);
+    }
+
+    const paintWorldCtx = paintWorldCanvas.getContext("2d");
+
+    if (!paintWorldCtx) {
+      return;
+    }
+
+    renderPaintWorldCache({
+      ctx: paintWorldCtx,
+      cells,
+      worldWidth,
+      worldHeight,
+    });
+  }, [canvasReady, cells, worldWidth, worldHeight]);
+
   useEffect(() => {
     if (!canvasReady) {
       return;
@@ -42,18 +87,28 @@ export function useCanvasRenderer({
 
     const paintCanvas = paintCanvasRef.current;
     const paintCtx = paintCanvas?.getContext("2d");
+    const paintWorldCanvas = paintWorldCanvasRef.current;
 
     if (!paintCanvas || !paintCtx) {
       return;
     }
 
-    renderPaintLayer({
+    if (!paintWorldCanvas) {
+      paintCtx.save();
+      paintCtx.setTransform(1, 0, 0, 1, 0, 0);
+      paintCtx.clearRect(0, 0, paintCtx.canvas.width, paintCtx.canvas.height);
+      paintCtx.restore();
+      return;
+    }
+
+    drawPaintLayerFromCache({
       ctx: paintCtx,
-      cells,
-      visibleCellBounds,
+      sourceCanvas: paintWorldCanvas,
       cameraX,
       cameraY,
       zoom,
+      worldWidth,
+      worldHeight,
       worldOffsetX,
       worldOffsetY,
     });
@@ -61,12 +116,13 @@ export function useCanvasRenderer({
     paintCanvasRef,
     canvasReady,
     cells,
-    visibleCellBounds,
     cameraX,
     cameraY,
     zoom,
     worldOffsetX,
     worldOffsetY,
+    worldWidth,
+    worldHeight,
   ]);
 
   useEffect(() => {
@@ -96,13 +152,14 @@ export function useCanvasRenderer({
         zoom,
         worldOffsetX,
         worldOffsetY,
+        isDraggingCanvas,
         timestamp,
       });
     };
 
     drawOverlay();
 
-    if (votingCellIds.size === 0) {
+    if (votingCellIds.size === 0 || isDraggingCanvas) {
       return;
     }
 
@@ -129,5 +186,6 @@ export function useCanvasRenderer({
     zoom,
     worldOffsetX,
     worldOffsetY,
+    isDraggingCanvas,
   ]);
 }

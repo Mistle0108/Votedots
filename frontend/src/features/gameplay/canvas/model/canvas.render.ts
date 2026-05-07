@@ -2,13 +2,21 @@ import { getGameConfig } from "@/shared/config/game-config";
 import { SELECTED_STROKE_COLOR, VOTING_STROKE_COLOR } from "./canvas.constants";
 import type { Cell, VisibleCellBounds } from "./canvas.types";
 
-interface RenderPaintLayerParams {
+interface RenderPaintWorldCacheParams {
   ctx: CanvasRenderingContext2D;
   cells: Cell[];
-  visibleCellBounds: VisibleCellBounds | null;
+  worldWidth: number;
+  worldHeight: number;
+}
+
+interface DrawPaintLayerFromCacheParams {
+  ctx: CanvasRenderingContext2D;
+  sourceCanvas: HTMLCanvasElement;
   cameraX: number;
   cameraY: number;
   zoom: number;
+  worldWidth: number;
+  worldHeight: number;
   worldOffsetX: number;
   worldOffsetY: number;
 }
@@ -24,6 +32,7 @@ interface RenderOverlayLayerParams {
   zoom: number;
   worldOffsetX: number;
   worldOffsetY: number;
+  isDraggingCanvas?: boolean;
   timestamp?: number;
 }
 
@@ -91,43 +100,88 @@ function isScreenRectVisible(
 
   return x + size > 0 && x < rect.width && y + size > 0 && y < rect.height;
 }
-export function renderPaintLayer({
+export function renderPaintWorldCache({
   ctx,
   cells,
-  visibleCellBounds,
-  cameraX,
-  cameraY,
-  zoom,
-  worldOffsetX,
-  worldOffsetY,
-}: RenderPaintLayerParams) {
+  worldWidth,
+  worldHeight,
+}: RenderPaintWorldCacheParams) {
   clearCanvas(ctx);
 
-  if (!visibleCellBounds) {
+  if (worldWidth <= 0 || worldHeight <= 0) {
     return;
   }
 
   const cellSize = getGameConfig().board.cellSize;
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
 
   for (const cell of cells) {
-    if (!cell.color || !isVisible(cell.x, cell.y, visibleCellBounds)) {
+    if (!cell.color) {
       continue;
     }
 
-    const rect = getScreenCellRect(
-      cell.x,
-      cell.y,
-      cellSize,
-      cameraX,
-      cameraY,
-      zoom,
-      worldOffsetX,
-      worldOffsetY,
-    );
-
     ctx.fillStyle = cell.color;
-    ctx.fillRect(rect.x, rect.y, rect.size, rect.size);
+    ctx.fillRect(cell.x * cellSize, cell.y * cellSize, cellSize, cellSize);
   }
+
+  ctx.restore();
+}
+
+export function drawPaintLayerFromCache({
+  ctx,
+  sourceCanvas,
+  cameraX,
+  cameraY,
+  zoom,
+  worldWidth,
+  worldHeight,
+  worldOffsetX,
+  worldOffsetY,
+}: DrawPaintLayerFromCacheParams) {
+  clearCanvas(ctx);
+
+  if (
+    worldWidth <= 0 ||
+    worldHeight <= 0 ||
+    zoom <= 0 ||
+    sourceCanvas.width === 0 ||
+    sourceCanvas.height === 0
+  ) {
+    return;
+  }
+
+  const viewportRect = ctx.canvas.getBoundingClientRect();
+  const viewportWidth = viewportRect.width;
+  const viewportHeight = viewportRect.height;
+
+  if (viewportWidth <= 0 || viewportHeight <= 0) {
+    return;
+  }
+
+  const sourceX = Math.min(Math.max(0, cameraX), worldWidth);
+  const sourceY = Math.min(Math.max(0, cameraY), worldHeight);
+  const sourceWidth = Math.min(worldWidth - sourceX, viewportWidth / zoom);
+  const sourceHeight = Math.min(worldHeight - sourceY, viewportHeight / zoom);
+
+  if (sourceWidth <= 0 || sourceHeight <= 0) {
+    return;
+  }
+
+  ctx.save();
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(
+    sourceCanvas,
+    sourceX,
+    sourceY,
+    sourceWidth,
+    sourceHeight,
+    worldOffsetX,
+    worldOffsetY,
+    sourceWidth * zoom,
+    sourceHeight * zoom,
+  );
+  ctx.restore();
 }
 
 export function renderOverlayLayer({
@@ -142,6 +196,7 @@ export function renderOverlayLayer({
   zoom,
   worldOffsetX,
   worldOffsetY,
+  isDraggingCanvas = false,
   timestamp = 0,
 }: RenderOverlayLayerParams) {
   clearCanvas(ctx);
@@ -151,9 +206,9 @@ export function renderOverlayLayer({
   }
 
   const cellSize = getGameConfig().board.cellSize;
-  const pulse = (Math.sin(timestamp / 220) + 1) / 2;
-  const overlayAlpha = 0.25 + pulse * 0.35;
-  const dashOffset = -((timestamp / 90) % 8);
+  const pulse = isDraggingCanvas ? 0.5 : (Math.sin(timestamp / 220) + 1) / 2;
+  const overlayAlpha = isDraggingCanvas ? 0.4 : 0.25 + pulse * 0.35;
+  const dashOffset = isDraggingCanvas ? 0 : -((timestamp / 90) % 8);
   for (const cellKey of votingCellIds) {
     const [xValue, yValue] = cellKey.split(":");
     const x = Number(xValue);
@@ -193,8 +248,8 @@ export function renderOverlayLayer({
       ctx.save();
       ctx.strokeStyle = VOTING_STROKE_COLOR;
       ctx.lineWidth = lineWidth;
-      ctx.setLineDash(rect.size >= 8 ? [4, 4] : []);
-      ctx.lineDashOffset = rect.size >= 8 ? dashOffset : 0;
+      ctx.setLineDash(!isDraggingCanvas && rect.size >= 8 ? [4, 4] : []);
+      ctx.lineDashOffset = !isDraggingCanvas && rect.size >= 8 ? dashOffset : 0;
       ctx.strokeRect(rect.x + inset, rect.y + inset, strokeSize, strokeSize);
       ctx.restore();
     }
