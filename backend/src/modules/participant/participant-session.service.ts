@@ -13,6 +13,10 @@ interface ParticipantState {
   connected: boolean;
   disconnectedAt: string | null;
   graceUntil: string | null;
+  selectedCell: {
+    x: number;
+    y: number;
+  } | null;
 }
 
 interface SessionVoter {
@@ -35,6 +39,10 @@ export interface ParticipantSummary {
   nickname: string;
   status: ParticipantStatus;
   connected: boolean;
+  selectedCell: {
+    x: number;
+    y: number;
+  } | null;
 }
 
 class ParticipantSessionService {
@@ -63,12 +71,28 @@ class ParticipantSessionService {
       return null;
     }
 
+    const selectedCellXRaw = raw["selectedCellX"];
+    const selectedCellYRaw = raw["selectedCellY"];
+    const hasSelectedCell =
+      selectedCellXRaw !== undefined &&
+      selectedCellXRaw !== "" &&
+      selectedCellYRaw !== undefined &&
+      selectedCellYRaw !== "" &&
+      Number.isFinite(Number(selectedCellXRaw)) &&
+      Number.isFinite(Number(selectedCellYRaw));
+
     return {
       socketId: raw["socketId"] || null,
       status: raw["status"] === "waiting" ? "waiting" : "voting",
       connected: raw["connected"] === "true",
       disconnectedAt: raw["disconnectedAt"] || null,
       graceUntil: raw["graceUntil"] || null,
+      selectedCell: hasSelectedCell
+        ? {
+            x: Number(selectedCellXRaw),
+            y: Number(selectedCellYRaw),
+          }
+        : null,
     };
   }
 
@@ -231,6 +255,8 @@ class ParticipantSessionService {
       connected: "true",
       disconnectedAt: "",
       graceUntil: "",
+      selectedCellX: "",
+      selectedCellY: "",
     });
 
     return {
@@ -291,6 +317,8 @@ class ParticipantSessionService {
         connected: "false",
         disconnectedAt: disconnectedAt.toISOString(),
         graceUntil,
+        selectedCellX: "",
+        selectedCellY: "",
       });
 
       await this.broadcastParticipantsUpdated(io, canvasId);
@@ -318,6 +346,8 @@ class ParticipantSessionService {
         connected: state.connected ? "true" : "false",
         disconnectedAt: state.disconnectedAt ?? "",
         graceUntil: state.graceUntil ?? "",
+        selectedCellX: "",
+        selectedCellY: "",
       });
     }
   }
@@ -381,6 +411,7 @@ class ParticipantSessionService {
         nickname: voter.nickname,
         status: this.getStatusByConnection(state.connected),
         connected: state.connected,
+        selectedCell: state.selectedCell,
       });
     }
 
@@ -425,15 +456,48 @@ class ParticipantSessionService {
     }
   }
 
+  async updateSelectedCell(
+    canvasId: number,
+    sessionId: string,
+    socketId: string,
+    selectedCell: { x: number; y: number } | null,
+    io: Server,
+  ): Promise<void> {
+    const state = await this.getCanvasParticipation(canvasId, sessionId);
+
+    if (!state || !state.connected || state.socketId !== socketId) {
+      return;
+    }
+
+    await redisClient.hSet(this.buildCanvasSessionKey(canvasId, sessionId), {
+      socketId,
+      status: state.status,
+      connected: state.connected ? "true" : "false",
+      disconnectedAt: state.disconnectedAt ?? "",
+      graceUntil: state.graceUntil ?? "",
+      selectedCellX: selectedCell ? String(selectedCell.x) : "",
+      selectedCellY: selectedCell ? String(selectedCell.y) : "",
+    });
+
+    await this.broadcastParticipantsUpdated(io, canvasId);
+  }
+
   async broadcastParticipantsUpdated(
     io: Server,
     canvasId: number,
   ): Promise<void> {
-    const count = await this.getParticipantCount(canvasId);
+    const participants = await this.getParticipantList(canvasId);
 
     io.to(`canvas:${canvasId}`).emit("participants:updated", {
       canvasId,
-      count,
+      count: participants.length,
+      participants: participants.map((participant) => ({
+        sessionId: participant.sessionId,
+        voterUuid: participant.voterUuid,
+        nickname: participant.nickname,
+        status: participant.status,
+        selectedCell: participant.selectedCell,
+      })),
     });
   }
 }

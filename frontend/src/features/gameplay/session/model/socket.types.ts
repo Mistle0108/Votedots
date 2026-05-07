@@ -54,9 +54,23 @@ export interface TimerUpdatePayload {
   gameEndAt: string;
 }
 
+export interface ParticipantSelectionPayload {
+  x: number;
+  y: number;
+}
+
+export interface ParticipantItemPayload {
+  sessionId: string;
+  voterUuid: string;
+  nickname: string;
+  status: "voting" | "waiting";
+  selectedCell: ParticipantSelectionPayload | null;
+}
+
 export interface ParticipantsUpdatedPayload {
   canvasId: number;
   count: number;
+  participants: ParticipantItemPayload[];
 }
 
 export interface SessionEndedPayload {

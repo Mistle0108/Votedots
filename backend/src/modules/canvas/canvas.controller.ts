@@ -169,6 +169,7 @@ export const canvasController = {
           voterUuid: participant.voterUuid,
           nickname: participant.nickname,
           status: participant.status,
+          selectedCell: participant.selectedCell,
         })),
       });
     } catch (err) {

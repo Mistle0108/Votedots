@@ -48,6 +48,16 @@ export default function useParticipantsState() {
     setParticipantCount(count);
   }, []);
 
+  const applyParticipantsSnapshot = useCallback(
+    (count: number, nextParticipants: ParticipantItem[]) => {
+      setParticipantCount(count);
+      setParticipants(nextParticipants);
+      setParticipantError(null);
+      setParticipantLoading(false);
+    },
+    [],
+  );
+
   const clearParticipants = useCallback(() => {
     setParticipantCount(null);
     setParticipants([]);
@@ -80,6 +90,7 @@ export default function useParticipantsState() {
     refreshParticipantCount,
     refreshParticipants,
     applyParticipantCount,
+    applyParticipantsSnapshot,
     clearParticipants,
   };
 }
