@@ -1,6 +1,6 @@
 import { PANEL_WIDTH } from "@/features/gameplay/canvas";
 
-const HISTORY_PANEL_WIDTH = 88;
+export const HISTORY_PANEL_WIDTH = 88;
 const MODAL_EDGE_GAP = 12;
 const MODAL_TOP_OFFSET = 24;
 

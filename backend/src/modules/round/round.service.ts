@@ -215,6 +215,7 @@ export const roundService = {
         totalRounds: canvasGameConfig.rules.totalRounds,
         gameEndAt: gameEndAt.toISOString(),
       });
+      await participantSessionService.broadcastParticipantsUpdated(io, canvasId);
     }
 
     return round;

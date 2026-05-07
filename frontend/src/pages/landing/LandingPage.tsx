@@ -56,8 +56,8 @@ function buildPublicText(locale: PublicSiteLocale) {
     featuredTitle: "Finished games by grid size",
     featuredDescription:
       "These are the finished boards with the highest participant counts for the active rotation sizes.",
-    participants: "Participants",
-    votes: "Total votes",
+    participants: "Players",
+    votes: "Votes",
     topVoter: "Top voter",
     participantList: "Participant list",
     noTopVoter: "No top voter has been recorded yet.",
@@ -151,7 +151,7 @@ function FeaturedGameCard({
     <article className="overflow-hidden rounded-[30px] bg-white shadow-[0_24px_70px_rgba(39,46,55,0.08)]">
       <div className="px-5 pb-5 pt-5">
         <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold text-[#272E37]">
+          <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
             {card.gridX} x {card.gridY}
           </h2>
         </div>
@@ -328,17 +328,23 @@ export default function LandingPage({ locale }: LandingPageProps) {
       <main className="px-4 pb-20 pt-6 sm:px-6 lg:px-10">
         <section className="mx-auto max-w-7xl rounded-[42px] bg-[#DE5548] px-6 py-7 text-white shadow-[0_40px_120px_rgba(39,46,55,0.24)] sm:px-8 sm:py-8">
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_584px] xl:items-stretch">
-            <div className="flex flex-col justify-between text-left">
+            <div className="flex flex-col items-center justify-center text-left xl:items-start">
               <div>
-                <h1 className="max-w-3xl text-4xl font-semibold leading-tight text-white sm:text-5xl">
+                <h1
+                  className="max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl"
+                  style={{ color: "#000000" }}
+                >
                   {copy.heroTitle}
                 </h1>
-                <p className="mt-5 max-w-2xl text-base leading-7 text-white/86 sm:text-lg">
+                <p
+                  className="mt-5 max-w-2xl text-base leading-7 sm:text-lg"
+                  style={{ color: "rgba(0, 0, 0, 0.82)" }}
+                >
                   {copy.heroDescription}
                 </p>
               </div>
 
-              <div className="mt-8 flex justify-end">
+              <div className="mt-8 flex w-full justify-end">
                 <Button
                   type="button"
                   size="lg"
@@ -404,7 +410,10 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
         <section className="mx-auto mt-10 max-w-7xl">
           <div className="text-left">
-            <h2 className="text-3xl font-semibold text-[#272E37] sm:text-4xl">
+            <h2
+              className="text-3xl font-semibold sm:text-4xl"
+              style={{ color: "#000000" }}
+            >
               {copy.featuredTitle}
             </h2>
             <p className="mt-4 max-w-3xl text-base leading-7 text-[#5f6368]">

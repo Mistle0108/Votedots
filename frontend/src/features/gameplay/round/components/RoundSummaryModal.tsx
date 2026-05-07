@@ -1,5 +1,6 @@
 import { useEffect, type MouseEvent } from "react";
 import type { RoundSummaryData } from "@/features/gameplay/session/api/session.api";
+import { HISTORY_PANEL_WIDTH } from "@/pages/canvas/model/modal-position";
 import { useI18n } from "@/shared/i18n";
 import { PixelSnapshotPreview } from "@/shared/ui/pixel-snapshot-preview";
 
@@ -73,70 +74,70 @@ export default function RoundSummaryModal({
   const roundSnapshot = summary.snapshotUrl ?? snapshot;
 
   return (
-    <>
+    <div className="pointer-events-none fixed inset-0 z-50">
       <div
-        className="fixed inset-0 z-50"
+        className="pointer-events-auto fixed inset-y-0 right-0"
+        style={{ left: `${HISTORY_PANEL_WIDTH}px` }}
+        onMouseDown={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      />
+
+      <div
+        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[700px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
+        style={{ top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div
-        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[700px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
-          style={{ top: position.y, left: position.x }}
-          onMouseDown={(event) => event.stopPropagation()}
-          onClick={(event) => event.stopPropagation()}
+          className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4"
+          onMouseDown={onDragStart}
         >
-          <div
-            className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4"
-            onMouseDown={onDragStart}
+          <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
+            {t("roundSummary.title", { round: summary.roundNumber })}
+          </p>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[color:var(--page-theme-text-tertiary)] hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
+            aria-label={t("roundSummary.close")}
           >
-            <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
-              {t("roundSummary.title", { round: summary.roundNumber })}
-            </p>
+            ×
+          </button>
+        </div>
 
-            <button
-              type="button"
-              onClick={onClose}
-              className="absolute right-5 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-[color:var(--page-theme-text-tertiary)] hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
-              aria-label={t("roundSummary.close")}
-            >
-              ×
-            </button>
-          </div>
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <div className="space-y-5">
+            {roundSnapshot && (
+              <PixelSnapshotPreview
+                snapshotUrl={roundSnapshot}
+                alt={t("roundSummary.snapshotAlt", {
+                  round: summary.roundNumber,
+                })}
+                backgroundImageUrl={playBackgroundImageUrl}
+                backgroundAlt="Round summary play background"
+                maxLongestSide={512}
+              />
+            )}
 
-          <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-            <div className="space-y-5">
-              {roundSnapshot && (
-                <PixelSnapshotPreview
-                  snapshotUrl={roundSnapshot}
-                  alt={t("roundSummary.snapshotAlt", {
-                    round: summary.roundNumber,
-                  })}
-                  backgroundImageUrl={playBackgroundImageUrl}
-                  backgroundAlt="Round summary play background"
-                  maxLongestSide={512}
-                />
-              )}
-
-              <section className="mx-auto w-4/6 space-y-3 rounded-2xl border-2 border-[color:var(--page-theme-primary-action)] px-5 py-4 text-center text-[15px] font-bold leading-7 text-[color:var(--page-theme-text-primary)]">
-                <p>{renderParticipantCopy(summary.participantCount, t, locale)}</p>
-                <p>
-                  <span className="text-[22px] text-[color:var(--page-theme-alert)]">
-                    {summary.totalVotes}
-                  </span>{" "}
-                  {t("roundSummary.totalVotes")}
-                </p>
-                <p>
-                  <span className="text-[22px] text-[color:var(--page-theme-alert)]">
-                    {summary.paintedCellCount}
-                  </span>{" "}
-                  {t("roundSummary.paintedCells")}
-                </p>
-              </section>
-            </div>
+            <section className="mx-auto w-4/6 space-y-3 rounded-2xl border-2 border-[color:var(--page-theme-primary-action)] px-5 py-4 text-center text-[15px] font-bold leading-7 text-[color:var(--page-theme-text-primary)]">
+              <p>{renderParticipantCopy(summary.participantCount, t, locale)}</p>
+              <p>
+                <span className="text-[22px] text-[color:var(--page-theme-alert)]">
+                  {summary.totalVotes}
+                </span>{" "}
+                {t("roundSummary.totalVotes")}
+              </p>
+              <p>
+                <span className="text-[22px] text-[color:var(--page-theme-alert)]">
+                  {summary.paintedCellCount}
+                </span>{" "}
+                {t("roundSummary.paintedCells")}
+              </p>
+            </section>
           </div>
         </div>
       </div>
-
-    </>
+    </div>
   );
 }

@@ -15,6 +15,7 @@ import {
 import { calculateWorldScreenOffset } from "@/features/gameplay/canvas/model/viewport";
 import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import { getGameConfig } from "@/shared/config/game-config";
+import socket from "@/shared/lib/socket";
 
 interface UseCanvasSceneParams {
   previewColor: string | null;
@@ -210,6 +211,7 @@ export default function useCanvasScene({
   }, []);
 
   const selectedCellRef = useRef<Cell | null>(null);
+  const canvasIdRef = useRef<number | null>(null);
   const zoomRef = useRef(1);
   const cameraXRef = useRef(0);
   const cameraYRef = useRef(0);
@@ -235,6 +237,10 @@ export default function useCanvasScene({
   useEffect(() => {
     selectedCellRef.current = selectedCell;
   }, [selectedCell]);
+
+  useEffect(() => {
+    canvasIdRef.current = canvasId;
+  }, [canvasId]);
 
   useEffect(() => {
     zoomRef.current = zoom;
@@ -534,15 +540,33 @@ export default function useCanvasScene({
     [worldOffset.x, worldOffset.y],
   );
 
+  const emitSelectionUpdate = useCallback(
+    (nextSelectedCell: Pick<Cell, "x" | "y"> | null) => {
+      const activeCanvasId = canvasIdRef.current;
+
+      if (!socket.connected || !activeCanvasId) {
+        return;
+      }
+
+      socket.emit("selection:update", {
+        canvasId: activeCanvasId,
+        x: nextSelectedCell?.x ?? null,
+        y: nextSelectedCell?.y ?? null,
+      });
+    },
+    [],
+  );
+
   const activateCell = useCallback(
     (cell: Cell, position?: { x: number; y: number }) => {
       resetPreviewColor();
       setSelectedCell(cell);
       selectedCellRef.current = cell;
       setSelectionVisible(true);
+      emitSelectionUpdate(cell);
       openPopup(position ?? getPopupPositionForCell(cell.x, cell.y) ?? { x: 0, y: 0 });
     },
-    [getPopupPositionForCell, openPopup, resetPreviewColor],
+    [emitSelectionUpdate, getPopupPositionForCell, openPopup, resetPreviewColor],
   );
 
   const activateCellAtCoordinate = useCallback(
@@ -905,7 +929,8 @@ export default function useCanvasScene({
     setSelectedCell(null);
     selectedCellRef.current = null;
     setSelectionVisible(false);
-  }, []);
+    emitSelectionUpdate(null);
+  }, [emitSelectionUpdate]);
 
   const applySelectedCellColor = useCallback(
     (color: string) => {
@@ -949,7 +974,8 @@ export default function useCanvasScene({
 
   const hideSelectedCellVisual = useCallback(() => {
     setSelectionVisible(false);
-  }, []);
+    emitSelectionUpdate(null);
+  }, [emitSelectionUpdate]);
 
   return {
     paintCanvasRef,
@@ -963,6 +989,7 @@ export default function useCanvasScene({
     selectedCell,
     displaySelectedCell: selectionVisible ? selectedCell : null,
     viewport,
+    surfaceSize: viewportSize,
     cameraX,
     cameraY,
     zoom,

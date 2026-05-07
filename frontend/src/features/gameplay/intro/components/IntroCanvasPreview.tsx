@@ -29,7 +29,7 @@ export default function IntroCanvasPreview({
 
   return (
     <div className="w-fit">
-      <div className="rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-4 shadow-sm">
+      <div className="rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-2 shadow-sm">
         {playBackgroundImageUrl || resultTemplateImageUrl ? (
           <div
             className="relative overflow-hidden rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-primary)]"

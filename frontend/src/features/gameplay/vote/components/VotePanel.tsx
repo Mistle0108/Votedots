@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { Cell, Viewport } from "@/features/gameplay/canvas";
 import type { PlayBackgroundMode } from "@/features/gameplay/canvas/model/background-assets";
-import { CoordinateNavigator, MiniMap } from "@/features/gameplay/canvas";
+import { MiniMap } from "@/features/gameplay/canvas";
 import { RoundInfo } from "@/features/gameplay/round";
 import { MyInfoCard, ParticipantPanel } from "@/features/gameplay/session";
 import type { ParticipantItem } from "@/features/gameplay/session/api/session.api";
@@ -200,14 +200,6 @@ export default function VotePanel({
           onNavigate={onNavigateToCoordinate}
         />
       </div>
-
-      <CoordinateNavigator
-        gridX={gridX}
-        gridY={gridY}
-        selectedX={selectedCell?.x ?? null}
-        selectedY={selectedCell?.y ?? null}
-        onNavigate={onNavigateToCoordinate}
-      />
 
       <div className="flex flex-col gap-1">
         <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">

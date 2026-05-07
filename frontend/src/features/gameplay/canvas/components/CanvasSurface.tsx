@@ -1,6 +1,13 @@
-import type { Ref } from "react";
+import { Fragment, type Ref } from "react";
 
 import { getGameConfig } from "@/shared/config/game-config";
+interface SelectionLabel {
+  key: string;
+  nickname: string;
+  x: number;
+  y: number;
+  stackIndex: number;
+}
 
 interface CanvasSurfaceProps {
   paintCanvasRef: Ref<HTMLCanvasElement>;
@@ -16,6 +23,12 @@ interface CanvasSurfaceProps {
     x: number;
     y: number;
   };
+  surfaceSize: {
+    width: number;
+    height: number;
+  };
+  selectionLabels: SelectionLabel[];
+  pulsingCellKeys?: ReadonlySet<string>;
 }
 
 export default function CanvasSurface({
@@ -29,12 +42,18 @@ export default function CanvasSurface({
   cameraY,
   zoom,
   worldOffset,
+  surfaceSize,
+  selectionLabels,
+  pulsingCellKeys,
 }: CanvasSurfaceProps) {
   const cellSize = getGameConfig().board.cellSize;
   const backgroundWidth = gridX * cellSize * zoom;
   const backgroundHeight = gridY * cellSize * zoom;
   const backgroundTranslateX = worldOffset.x - cameraX * zoom;
   const backgroundTranslateY = worldOffset.y - cameraY * zoom;
+  const renderedCellSize = cellSize * zoom;
+  const surfaceWidth = surfaceSize.width;
+  const surfaceHeight = surfaceSize.height;
 
   return (
     <div className="relative h-full w-full overflow-hidden border border-[color:var(--page-theme-border-primary)]">
@@ -83,6 +102,58 @@ export default function CanvasSurface({
         ref={canvasRef}
         className="pointer-events-none absolute inset-0 z-[3] block h-full w-full bg-transparent"
       />
+
+      {selectionLabels.map((label) => {
+        const cellKey = `${label.x}:${label.y}`;
+        const left = backgroundTranslateX + label.x * renderedCellSize;
+        const top = backgroundTranslateY + label.y * renderedCellSize;
+
+        if (
+          left + renderedCellSize <= 0 ||
+          left >= surfaceWidth ||
+          top + renderedCellSize <= 0 ||
+          top >= surfaceHeight
+        ) {
+          return null;
+        }
+
+        const labelOffset = Math.max(8, Math.min(16, renderedCellSize * 0.35));
+        const labelHeight = 26;
+        const stackOffset = label.stackIndex * (labelHeight + 6);
+        const placeLeft =
+          left + renderedCellSize + labelOffset + 160 > surfaceWidth;
+        const placeAbove = top - labelOffset - labelHeight - stackOffset >= 0;
+        const boxInset = Math.max(1, Math.min(2, renderedCellSize * 0.1));
+        const boxSize = Math.max(0, renderedCellSize - boxInset * 2);
+        const isPulsing = pulsingCellKeys?.has(cellKey) ?? false;
+
+        return (
+          <Fragment key={label.key}>
+            <div
+              className={`pointer-events-none absolute z-[4] rounded-[2px] border-2 border-dashed border-[#2563EB] shadow-[0_0_0_1px_rgba(255,255,255,0.9)] ${isPulsing ? "animate-pulse bg-[rgba(37,99,235,0.18)]" : ""}`}
+              style={{
+                left: left + boxInset,
+                top: top + boxInset,
+                width: boxSize,
+                height: boxSize,
+              }}
+            />
+            <div
+              className="pointer-events-none absolute z-[5] max-w-40 rounded-sm border border-black bg-white px-2 py-1 text-xs font-semibold leading-none text-black shadow-[0_2px_8px_rgba(0,0,0,0.18)]"
+              style={{
+                left: placeLeft ? left - labelOffset : left + renderedCellSize + labelOffset,
+                top: placeAbove
+                  ? top - labelHeight - labelOffset - stackOffset
+                  : top + renderedCellSize + labelOffset + stackOffset,
+                transform: placeLeft ? "translateX(-100%)" : undefined,
+              }}
+              title={label.nickname}
+            >
+              <span className="block truncate">{label.nickname}</span>
+            </div>
+          </Fragment>
+        );
+      })}
     </div>
   );
 }

@@ -55,7 +55,6 @@ export function buildVotePopupEntries(
   votes: Record<string, number>,
   x: number,
   y: number,
-  cells: Cell[],
 ) {
   const counts = new Map<string, number>();
 
@@ -68,12 +67,6 @@ export function buildVotePopupEntries(
 
     counts.set(color, count);
   });
-
-  const selectedCell = cells.find((cell) => cell.x === x && cell.y === y);
-
-  if (selectedCell?.color) {
-    counts.set(selectedCell.color, counts.get(selectedCell.color) ?? 0);
-  }
 
   return [...counts.entries()]
     .map(([color, count]) => ({ color, count }))

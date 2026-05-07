@@ -10,6 +10,7 @@ import {
 } from "@/features/gameplay/session";
 import type {
   GameSummaryData,
+  ParticipantItem,
   RoundSummaryData,
 } from "@/features/gameplay/session/api/session.api";
 import type {
@@ -144,7 +145,7 @@ export default function useCanvasGameplay({
     participantError,
     participantSummary,
     refreshParticipants,
-    applyParticipantCount,
+    applyParticipantsSnapshot,
     clearParticipants,
   } = useParticipantsState();
 
@@ -496,15 +497,24 @@ export default function useCanvasGameplay({
       startRoundTimer(roundDurationSec);
       clearSessionError();
       resetVoteState();
+      applyParticipantsSnapshot(
+        participants.length,
+        participants.map((participant) => ({
+          ...participant,
+          selectedCell: null,
+        })),
+      );
 
       await fetchTickets(roundId);
     },
     [
+      applyParticipantsSnapshot,
       clearLocalPhaseTransitionTimer,
       clearSessionError,
       clearSnapshotDelayTimer,
       fetchTickets,
       onRoundStartedCleanup,
+      participants,
       resetVoteState,
       setRoundState,
       startRoundTimer,
@@ -654,11 +664,17 @@ export default function useCanvasGameplay({
   );
 
   const handleParticipantsUpdated = useCallback(
-    async ({ count }: { canvasId: number; count: number }) => {
-      applyParticipantCount(count);
-      await refreshParticipants();
+    ({
+      count,
+      participants: nextParticipants,
+    }: {
+      canvasId: number;
+      count: number;
+      participants: ParticipantItem[];
+    }) => {
+      applyParticipantsSnapshot(count, nextParticipants);
     },
-    [applyParticipantCount, refreshParticipants],
+    [applyParticipantsSnapshot],
   );
 
   const handleGameEnded = useCallback(() => {

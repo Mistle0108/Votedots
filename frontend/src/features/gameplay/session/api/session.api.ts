@@ -43,6 +43,10 @@ export interface ParticipantItem {
   voterUuid: string;
   nickname: string;
   status: ParticipantStatus;
+  selectedCell: {
+    x: number;
+    y: number;
+  } | null;
 }
 
 export interface ParticipantListResponse {

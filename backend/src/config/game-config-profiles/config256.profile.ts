@@ -8,5 +8,6 @@ export const config256GameConfigProfile: GameConfigUpdate = {
   },
   rules: {
     totalRounds: 40,
+    votesPerRound: 120,
   },
 };

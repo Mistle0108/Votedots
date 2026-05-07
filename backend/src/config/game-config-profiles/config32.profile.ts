@@ -6,4 +6,7 @@ export const config32GameConfigProfile: GameConfigUpdate = {
     gridSizeY: 32,
     cellSize: 30,
   },
+  rules: {
+    votesPerRound: 50,
+  },
 };

@@ -5,6 +5,7 @@ interface CanvasStageProps {
   containerRef: RefObject<HTMLDivElement | null>;
   children: ReactNode;
   overlay?: ReactNode;
+  topCenterOverlay?: ReactNode;
   onMouseDown: (event: React.MouseEvent) => void;
   onMouseMove: (event: React.MouseEvent) => void;
   onMouseUp: (event: React.MouseEvent) => void;
@@ -17,6 +18,7 @@ export default function CanvasStage({
   containerRef,
   children,
   overlay,
+  topCenterOverlay,
   onMouseDown,
   onMouseMove,
   onMouseUp,
@@ -60,6 +62,11 @@ export default function CanvasStage({
       }}
     >
       {overlay && <div className="absolute left-4 top-4 z-10">{overlay}</div>}
+      {topCenterOverlay && (
+        <div className="pointer-events-none absolute left-1/2 top-4 z-20 -translate-x-1/2">
+          {topCenterOverlay}
+        </div>
+      )}
 
       <div
         ref={containerRef}

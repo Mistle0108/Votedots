@@ -51,6 +51,7 @@ export const resources: Record<Locale, Record<string, string>> = {
 
     "canvas.sessionEnded": "세션이 종료되었습니다. 다시 로그인해 주세요.",
     "canvas.resetZoom": "초기 줌 비율로 복귀",
+    "canvas.roundStartedGuide": "{{round}} 라운드가 시작되었습니다.",
 
     "common.loading": "로딩 중...",
     "common.closeDetails": "상세 닫기",
@@ -95,14 +96,14 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.unit.seconds": "초",
     "intro.unit.votes": "개",
     "intro.section.gameDescription": "게임 설명",
-    "intro.section.voteGuide": "투표 방법",
+    "intro.section.voteGuide": "조작 방법",
     "intro.rule.totalRoundsPrefix": "- 게임은 총 ",
     "intro.rule.totalRoundsSuffix": "라운드로 진행됩니다.",
     "intro.rule.roundDurationPrefix": "- 각 라운드는 ",
     "intro.rule.roundDurationMiddle": "초 동안 진행되며, 라운드마다 ",
     "intro.rule.roundDurationSuffix": "개의 투표권이 주어집니다.",
     "intro.rule.voteFlexibility":
-      "- 투표권은 여러 칸에 나눠 쓰거나, 한 칸에 몰아서 사용할 수 있습니다.",
+      "- 투표권은 여러 칸에 나눠 쓰거나, 한 칸에 여러 번 사용할 수 있습니다.",
     "intro.rule.applyVotes":
       "- 라운드가 끝나면 가장 많은 표를 받은 색으로 해당 칸이 칠해집니다.",
     "intro.rule.tieBreaker": "- 동점일 경우 색상은 무작위로 결정됩니다.",
@@ -207,11 +208,6 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.palette.addSlot": "슬롯에 추가",
     "vote.palette.reset": "초기화",
 
-    "coordinate.move": "이동",
-    "coordinate.required": "X, Y 좌표를 입력해 주세요.",
-    "coordinate.numbersOnly": "X, Y 좌표는 숫자만 입력할 수 있습니다.",
-    "coordinate.range": "이동 가능한 범위는 X: 0-{{maxX}}, Y: 0-{{maxY}} 입니다.",
-
     "loginBoard.title": "업데이트 보드",
     "loginBoard.subtitle": "업데이트 보드",
     "loginBoard.tab.patches": "패치 내역",
@@ -269,6 +265,7 @@ export const resources: Record<Locale, Record<string, string>> = {
 
     "canvas.sessionEnded": "Your session has ended. Please sign in again.",
     "canvas.resetZoom": "Reset to the initial zoom level",
+    "canvas.roundStartedGuide": "Round {{round}} has started.",
 
     "common.loading": "Loading...",
     "common.closeDetails": "Close details",
@@ -313,7 +310,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.unit.seconds": " sec",
     "intro.unit.votes": " votes",
     "intro.section.gameDescription": "How the game works",
-    "intro.section.voteGuide": "How to vote",
+    "intro.section.voteGuide": "Controls",
     "intro.rule.totalRoundsPrefix": "- The game runs for ",
     "intro.rule.totalRoundsSuffix": " rounds in total.",
     "intro.rule.roundDurationPrefix": "- Each round lasts ",
@@ -426,12 +423,6 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.palette.eyeDropper": "Pick color (Esc to cancel)",
     "vote.palette.addSlot": "Add to slot",
     "vote.palette.reset": "Reset",
-
-    "coordinate.move": "Go",
-    "coordinate.required": "Please enter both X and Y coordinates.",
-    "coordinate.numbersOnly": "Only numbers can be used for X and Y coordinates.",
-    "coordinate.range":
-      "The available range is X: 0-{{maxX}}, Y: 0-{{maxY}}.",
 
     "loginBoard.title": "Update Board",
     "loginBoard.subtitle": "Update board",

@@ -345,7 +345,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       stats: {
         grid: "Grid",
         round: "Round",
-        participants: "Current participants",
+        participants: "Participants",
       },
     },
     featured: {

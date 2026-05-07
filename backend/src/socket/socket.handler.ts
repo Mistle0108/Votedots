@@ -96,4 +96,34 @@ export function registerHandlers(socket: Socket, io: Server): void {
       socket.emit("canvas:error", { message: String(err) });
     }
   });
+
+  socket.on(
+    "selection:update",
+    async (payload: { canvasId?: number | string; x?: number | null; y?: number | null }) => {
+      try {
+        const canvasId = Number(payload.canvasId);
+        if (Number.isNaN(canvasId) || !socket.sessionId) {
+          return;
+        }
+
+        const hasSelection =
+          Number.isFinite(payload.x) && Number.isFinite(payload.y);
+
+        await participantSessionService.updateSelectedCell(
+          canvasId,
+          socket.sessionId,
+          socket.id,
+          hasSelection
+            ? {
+                x: Number(payload.x),
+                y: Number(payload.y),
+              }
+            : null,
+          io,
+        );
+      } catch (err) {
+        socket.emit("canvas:error", { message: String(err) });
+      }
+    },
+  );
 }
