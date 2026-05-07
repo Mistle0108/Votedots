@@ -1,4 +1,4 @@
-import { MigrationInterface, QueryRunner } from "typeorm";
+import type { MigrationInterface, QueryRunner } from "typeorm";
 
 export class AddGamePreview1783600000000 implements MigrationInterface {
   name = "AddGamePreview1783600000000";
