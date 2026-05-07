@@ -93,6 +93,17 @@ export const roundSnapshotService = {
     });
   },
 
+  async listRoundSnapshots(canvasId: number): Promise<RoundSnapshot[]> {
+    return roundSnapshotRepository.find({
+      where: {
+        canvas: { id: canvasId },
+      },
+      order: {
+        roundNumber: "ASC",
+      },
+    });
+  },
+
   async getRoundSnapshot(
     canvasId: number,
     roundId: number,
