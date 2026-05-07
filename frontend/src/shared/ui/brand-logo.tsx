@@ -2,6 +2,7 @@ import { cn } from "@/shared/utils";
 
 const BRAND_LOGO_SOURCES = {
   wordmark: "/brand/logo-wordmark.svg",
+  wordmarkLight: "/brand/logo-wordmark-light.svg",
   full: "/brand/logo-full.svg",
   symbol: "/brand/logo-symbol.svg",
 } as const;

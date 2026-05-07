@@ -5,6 +5,7 @@ import { LoginBoardPanel } from "@/features/login-board";
 import { LOGIN_BOARD_THEME_STYLE } from "@/features/login-board/model/board-theme";
 import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { useI18n } from "@/shared/i18n";
+import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
 import LanguageSwitcher from "@/shared/ui/language-switcher";
@@ -12,6 +13,8 @@ import LanguageSwitcher from "@/shared/ui/language-switcher";
 export default function LoginPage() {
   const navigate = useNavigate();
   const { locale, t } = useI18n();
+
+  usePageRootClass("page-shell-root");
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");

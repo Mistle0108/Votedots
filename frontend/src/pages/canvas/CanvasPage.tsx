@@ -16,6 +16,7 @@ import {
 } from "@/features/gameplay/session";
 import { VotePanel, VotePopup } from "@/features/gameplay/vote";
 import { useI18n } from "@/shared/i18n";
+import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import useCanvasPage from "./model/useCanvasPage";
 import { PLAY_THEME_STYLE } from "./model/play-theme";
 
@@ -28,6 +29,8 @@ function buildIntroGuideSeenStorageKey(canvasId: number): string {
 export default function CanvasPage() {
   const navigate = useNavigate();
   const { t } = useI18n();
+
+  usePageRootClass("page-shell-root");
 
   const handleSessionEnded = useCallback(() => {
     window.alert(t("canvas.sessionEnded"));
