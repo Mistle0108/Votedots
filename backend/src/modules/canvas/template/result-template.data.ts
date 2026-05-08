@@ -9,13 +9,6 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-32x32",
   },
   {
-    id: "cat-face-32x32",
-    name: "Cat Face Template 32x32",
-    gridX: 32,
-    gridY: 32,
-    assetKey: "cat-face-32x32",
-  },
-  {
     id: "cat-side-32x32",
     name: "Cat Side Template 32x32",
     gridX: 32,
