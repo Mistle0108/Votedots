@@ -26,13 +26,12 @@ interface LandingPageProps {
 function buildPublicText(locale: PublicSiteLocale) {
   if (locale === "ko") {
     return {
-      heroTitle: "모두의 한 표가 모여, 한 장의 픽셀 캔버스를 완성합니다.",
-      heroDescription:
-        "실시간으로 같은 보드를 바라보며 한 라운드씩 결과를 쌓아 가는 VoteDots의 현재 게임과 종료 게임들을 바로 확인해 보세요.",
+      heroTitle: "직접 그리고,\n함께 투표하는 픽셀 캔버스",
+      heroDescription: "색을 고르고, 투표를 하고, 함께 완성하세요.",
       liveLoadError: "랜딩 데이터를 불러오지 못했습니다.",
       livePanelEmpty: "현재 진행 중인 게임이 없습니다.",
       livePreviewFallback: "기본 템플릿 미리보기",
-      featuredTitle: "그리드 크기별 종료 게임",
+      featuredTitle: "완성된 캔버스",
       featuredDescription:
         "현재 로테이션에 포함된 보드 크기별로 가장 많은 참여자를 모은 종료 게임을 보여줍니다.",
       participants: "참여자",
@@ -40,20 +39,19 @@ function buildPublicText(locale: PublicSiteLocale) {
       topVoter: "최다 투표자",
       participantList: "참여자 목록",
       noTopVoter: "아직 집계된 최다 투표자가 없습니다.",
-      tutorialTitle: "처음 들어와도 바로 이해되는 플레이 흐름",
+      tutorialTitle: "게임 소개",
       footerDescription:
         "서비스 규칙, 개인정보 처리 기준, 커뮤니티 안내, 문의 정책을 이곳에서 확인할 수 있습니다.",
     };
   }
 
   return {
-    heroTitle: "Every vote adds a pixel, and every round reveals more of the canvas.",
-    heroDescription:
-      "See the live board, browse finished games by grid size, and jump into VoteDots when you are ready to shape the next round.",
+    heroTitle: "Draw directly,\na pixel canvas where everyone votes together.",
+    heroDescription: "Pick a color, cast your vote, and complete it together.",
     liveLoadError: "Failed to load landing data.",
     livePanelEmpty: "There is no live game right now.",
     livePreviewFallback: "Default template preview",
-    featuredTitle: "Finished games by grid size",
+    featuredTitle: "Completed canvases",
     featuredDescription:
       "These are the finished boards with the highest participant counts for the active rotation sizes.",
     participants: "Players",
@@ -61,7 +59,7 @@ function buildPublicText(locale: PublicSiteLocale) {
     topVoter: "Top voter",
     participantList: "Participant list",
     noTopVoter: "No top voter has been recorded yet.",
-    tutorialTitle: "A quick way to understand the play loop",
+    tutorialTitle: "Game introduction",
     footerDescription:
       "Review the service rules, privacy handling, community notes, and contact policy in one place.",
   };
@@ -107,13 +105,7 @@ function SnapshotImage({
   );
 }
 
-function InfoStat({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
+function InfoStat({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-2xl bg-[#f6ede5] px-4 py-3 shadow-[0_10px_24px_rgba(39,46,55,0.05)]">
       <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
@@ -143,15 +135,20 @@ function FeaturedGameCard({
 }) {
   const copy = buildPublicText(locale);
   const siteContent = getSiteContent(locale);
-  const formatNumber = new Intl.NumberFormat(locale === "ko" ? "ko-KR" : "en-US");
+  const formatNumber = new Intl.NumberFormat(
+    locale === "ko" ? "ko-KR" : "en-US",
+  );
   const imageUrl = card.game?.snapshotUrl ?? card.fallbackImageUrl;
   const participantNames = getParticipantNames(card.game?.participants ?? null);
 
   return (
     <article className="overflow-hidden rounded-[30px] bg-white shadow-[0_24px_70px_rgba(39,46,55,0.08)]">
       <div className="px-5 pb-5 pt-5">
-        <div className="flex items-center justify-between gap-3">
-          <h2 className="text-xl font-semibold" style={{ color: "#000000" }}>
+        <div className="flex items-center justify-center gap-3">
+          <h2
+            className="w-full text-center text-xl font-semibold"
+            style={{ color: "#000000" }}
+          >
             {card.gridX} x {card.gridY}
           </h2>
         </div>
@@ -175,18 +172,22 @@ function FeaturedGameCard({
           </div>
         ) : (
           <div className="mt-4 space-y-4 rounded-[24px] bg-[#fffaf4] px-4 py-4 text-left">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <InfoStat
-                label={copy.participants}
-                value={formatNumber.format(card.game.participantCount)}
-              />
-              <InfoStat
-                label={copy.votes}
-                value={formatNumber.format(card.game.totalVotes)}
-              />
+            <div className="rounded-2xl bg-[#f6ede5] px-4 py-3 text-center shadow-[0_10px_24px_rgba(39,46,55,0.05)]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
+                {copy.participants}
+              </p>
+              <p className="mt-1 text-base font-semibold text-[#272E37]">
+                {formatNumber.format(card.game.participantCount)}
+              </p>
+              <p className="mt-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
+                {copy.votes}
+              </p>
+              <p className="mt-1 text-base font-semibold text-[#272E37]">
+                {formatNumber.format(card.game.totalVotes)}
+              </p>
             </div>
 
-            <div className="space-y-3 text-sm leading-6 text-[#51545a]">
+            <div className="space-y-3 text-center text-sm leading-6 text-[#51545a]">
               <div>
                 <p className="font-semibold text-[#7b6b62]">{copy.topVoter}</p>
                 <p className="mt-1 text-base font-semibold text-[#272E37]">
@@ -198,10 +199,12 @@ function FeaturedGameCard({
                 </p>
               </div>
               <div>
-                <p className="font-semibold text-[#7b6b62]">{copy.participantList}</p>
+                <p className="font-semibold text-[#7b6b62]">
+                  {copy.participantList}
+                </p>
                 <div className="mt-2 rounded-2xl bg-white px-3 py-3 shadow-[inset_0_0_0_1px_rgba(234,215,200,0.95)]">
                   {participantNames.length > 0 ? (
-                    <div className="flex h-24 flex-wrap content-start gap-2 overflow-y-auto pr-1">
+                    <div className="flex h-24 flex-wrap content-start justify-center gap-2 overflow-y-auto pr-1">
                       {participantNames.map((name, index) => (
                         <span
                           key={`${name}-${index}`}
@@ -212,7 +215,9 @@ function FeaturedGameCard({
                       ))}
                     </div>
                   ) : (
-                    <p className="flex h-24 items-center text-sm text-[#7b6b62]">-</p>
+                    <p className="flex h-24 items-center justify-center text-sm text-[#7b6b62]">
+                      -
+                    </p>
                   )}
                 </div>
               </div>
@@ -308,7 +313,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
   const currentGame = landingData?.currentGame ?? null;
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(222,85,72,0.18),transparent_30%),radial-gradient(circle_at_82%_18%,rgba(61,214,140,0.16),transparent_28%),radial-gradient(circle_at_76%_62%,rgba(70,154,229,0.12),transparent_28%),linear-gradient(180deg,#fbf3ec_0%,#fff8f2_44%,#f6f1ea_100%)] text-[#272E37]">
+    <div className="min-h-screen bg-[#fefbf7] text-[#272E37]">
       <SiteHeader
         locale={locale}
         items={[
@@ -326,12 +331,12 @@ export default function LandingPage({ locale }: LandingPageProps) {
       />
 
       <main className="px-4 pb-20 pt-6 sm:px-6 lg:px-10">
-        <section className="mx-auto max-w-7xl rounded-[42px] bg-[#DE5548] px-6 py-7 text-white shadow-[0_40px_120px_rgba(39,46,55,0.24)] sm:px-8 sm:py-8">
+        <section className="mx-auto max-w-7xl rounded-[42px] bg-[#ff8870] px-6 py-7 text-white shadow-[0_40px_120px_rgba(39,46,55,0.24)] sm:px-8 sm:py-8">
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_584px] xl:items-stretch">
             <div className="flex flex-col items-center justify-center text-left xl:items-start">
               <div>
                 <h1
-                  className="max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl"
+                  className="max-w-3xl whitespace-pre-line text-4xl font-semibold leading-tight sm:text-5xl"
                   style={{ color: "#000000" }}
                 >
                   {copy.heroTitle}
@@ -368,7 +373,9 @@ export default function LandingPage({ locale }: LandingPageProps) {
                   </h2>
 
                   <SnapshotImage
-                    imageUrl={currentGame.snapshotUrl ?? currentGame.fallbackImageUrl}
+                    imageUrl={
+                      currentGame.snapshotUrl ?? currentGame.fallbackImageUrl
+                    }
                     alt={
                       currentGame.snapshotUrl
                         ? siteContent.currentGame.snapshotLabel
@@ -423,7 +430,11 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
           <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
             {(landingData?.featuredGames ?? []).map((card) => (
-              <FeaturedGameCard key={card.profileKey} locale={locale} card={card} />
+              <FeaturedGameCard
+                key={card.profileKey}
+                locale={locale}
+                card={card}
+              />
             ))}
           </div>
         </section>
@@ -442,7 +453,11 @@ export default function LandingPage({ locale }: LandingPageProps) {
                 className="grid gap-5 rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[552px_minmax(0,1fr)]"
               >
                 <div className="bg-[linear-gradient(180deg,#fff4e9_0%,#f6ede5_100%)] p-5">
-                  <SnapshotImage imageUrl={card.imageUrl} alt={card.imageAlt} size={512} />
+                  <SnapshotImage
+                    imageUrl={card.imageUrl}
+                    alt={card.imageAlt}
+                    size={512}
+                  />
                 </div>
 
                 <div className="flex flex-col justify-center px-6 py-6 text-left sm:px-8">

@@ -22,12 +22,18 @@ export const resources: Record<Locale, Record<string, string>> = {
     "auth.register.usernameLabel": "아이디",
     "auth.register.nicknameLabel": "닉네임",
     "auth.register.passwordLabel": "비밀번호",
-    "auth.register.usernameHint": "영문 소문자와 숫자만 사용해 4~20자로 입력해 주세요.",
-    "auth.register.nicknameHint": "한글, 영문, 숫자만 사용해 2~20자로 입력해 주세요.",
-    "auth.register.passwordHint": "8~64자이며 영문과 숫자를 포함해야 하고 공백은 사용할 수 없어요.",
-    "auth.register.usernameRule": "아이디는 영문 소문자와 숫자만 사용하며 4~20자여야 해요.",
-    "auth.register.nicknameRule": "닉네임은 한글, 영문, 숫자만 사용하며 2~20자여야 해요.",
-    "auth.register.passwordRule": "비밀번호는 8~64자이며 영문과 숫자를 포함해야 하고 공백은 사용할 수 없어요.",
+    "auth.register.usernameHint":
+      "영문 소문자와 숫자만 사용해 4~20자로 입력해 주세요.",
+    "auth.register.nicknameHint":
+      "한글, 영문, 숫자만 사용해 2~20자로 입력해 주세요.",
+    "auth.register.passwordHint":
+      "8~64자이며 영문과 숫자를 포함해야 하고 공백은 사용할 수 없어요.",
+    "auth.register.usernameRule":
+      "아이디는 영문 소문자와 숫자만 사용하며 4~20자여야 해요.",
+    "auth.register.nicknameRule":
+      "닉네임은 한글, 영문, 숫자만 사용하며 2~20자여야 해요.",
+    "auth.register.passwordRule":
+      "비밀번호는 8~64자이며 영문과 숫자를 포함해야 하고 공백은 사용할 수 없어요.",
     "auth.register.submit": "회원가입",
     "auth.register.hasAccount": "이미 계정이 있으신가요?",
     "auth.register.login": "로그인",
@@ -38,11 +44,15 @@ export const resources: Record<Locale, Record<string, string>> = {
     "server.auth.invalidCredentials": "아이디 또는 비밀번호가 올바르지 않아요.",
     "server.auth.missingCredentials": "아이디와 비밀번호를 입력해주세요.",
     "server.auth.missingFields": "모든 항목을 입력해주세요.",
-    "server.auth.invalidUsername": "아이디는 영문 소문자와 숫자만 사용하며 4~20자여야 해요.",
-    "server.auth.invalidNickname": "닉네임은 한글, 영문, 숫자만 사용하며 2~20자여야 해요.",
-    "server.auth.invalidPassword": "비밀번호는 8~64자이며 영문과 숫자를 포함해야 하고 공백은 사용할 수 없어요.",
+    "server.auth.invalidUsername":
+      "아이디는 영문 소문자와 숫자만 사용하며 4~20자여야 해요.",
+    "server.auth.invalidNickname":
+      "닉네임은 한글, 영문, 숫자만 사용하며 2~20자여야 해요.",
+    "server.auth.invalidPassword":
+      "비밀번호는 8~64자이며 영문과 숫자를 포함해야 하고 공백은 사용할 수 없어요.",
     "server.vote.missingSession": "세션 정보를 찾을 수 없어요.",
-    "server.vote.missingFields": "캔버스 ID, 라운드 ID, 좌표, 색상을 모두 입력해주세요.",
+    "server.vote.missingFields":
+      "캔버스 ID, 라운드 ID, 좌표, 색상을 모두 입력해주세요.",
     "server.vote.noRound": "진행 중인 라운드가 없어요.",
     "server.vote.canvasNotFound": "캔버스를 찾을 수 없어요.",
     "server.vote.invalidCell": "유효하지 않은 셀 좌표예요.",
@@ -105,16 +115,16 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.rule.voteFlexibility":
       "- 투표권은 여러 칸에 나눠 쓰거나, 한 칸에 여러 번 사용할 수 있습니다.",
     "intro.rule.applyVotes":
-      "- 라운드가 끝나면 가장 많은 표를 받은 색으로 해당 칸이 칠해집니다.",
-    "intro.rule.tieBreaker": "- 동점일 경우 색상은 무작위로 결정됩니다.",
+      "- 라운드가 끝나면 가장 많은 표를 받은 색으로 해당 칸이 선택됩니다.",
+    "intro.rule.tieBreaker": "- 동점일 경우 색상은 무작위로 선택됩니다.",
     "intro.vote.selectCell":
-      "【칸 선택】\n- 원하는 칸을 마우스로 클릭하세요. \n- 이후에는 키보드 방향키로도 이동할 수 있습니다.",
+      "【칸 선택】\n- 원하는 칸을 마우스로 클릭하세요. \n- 이후에는 키보드 방향키로 이동할 수 있습니다.",
     "intro.vote.submit":
       "【색상 선택】\n- 팔레트에서 색을 고른 뒤 '투표하기' 버튼을 클릭하거나 스페이스바를 누르면 투표됩니다.",
     "intro.vote.favorite":
       "【즐겨찾기】\n- 팔레트 칸 선택 후 '+' 버튼을 누르면 자주 쓰는 색을 저장할 수 있습니다.",
     "intro.vote.warning":
-      "【⚠️ 주의】\n- 한 번 투표한 내용은 되돌릴 수 없습니다. 신중하게 선택해 주세요.",
+      "【주의】 투표는 취소할 수 없습니다. 신중하게 선택해 주세요.",
 
     "round.status": "상태",
     "round.round": "라운드",
@@ -150,7 +160,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "gameSummary.noSnapshot": "최종 스냅샷이 없어요.",
     "gameSummary.download": "이미지 다운로드",
     "gameSummary.downloadRetry": "이미지 다시 시도",
-    "gameSummary.downloadError": "이미지 다운로드에 실패했습니다. 다시 시도해 주세요.",
+    "gameSummary.downloadError":
+      "이미지 다운로드에 실패했습니다. 다시 시도해 주세요.",
     "gameSummary.downloading": "다운로드 중...",
     "gameSummary.downloadHd": "HD 다운로드",
     "gameSummary.downloadHdRetry": "HD 다시 시도",
@@ -236,11 +247,16 @@ export const resources: Record<Locale, Record<string, string>> = {
     "auth.register.nicknameLabel": "Nickname",
     "auth.register.passwordLabel": "Password",
     "auth.register.usernameHint": "Use 4-20 lowercase letters or numbers.",
-    "auth.register.nicknameHint": "Use 2-20 Korean, English, or numeric characters without spaces.",
-    "auth.register.passwordHint": "Use 8-64 characters with at least one letter and one number, without spaces.",
-    "auth.register.usernameRule": "Username must be 4-20 characters using only lowercase letters and numbers.",
-    "auth.register.nicknameRule": "Nickname must be 2-20 characters using only Korean, English, or numbers without spaces.",
-    "auth.register.passwordRule": "Password must be 8-64 characters, include at least one letter and one number, and contain no spaces.",
+    "auth.register.nicknameHint":
+      "Use 2-20 Korean, English, or numeric characters without spaces.",
+    "auth.register.passwordHint":
+      "Use 8-64 characters with at least one letter and one number, without spaces.",
+    "auth.register.usernameRule":
+      "Username must be 4-20 characters using only lowercase letters and numbers.",
+    "auth.register.nicknameRule":
+      "Nickname must be 2-20 characters using only Korean, English, or numbers without spaces.",
+    "auth.register.passwordRule":
+      "Password must be 8-64 characters, include at least one letter and one number, and contain no spaces.",
     "auth.register.submit": "Sign up",
     "auth.register.hasAccount": "Already have an account?",
     "auth.register.login": "Sign in",
@@ -249,11 +265,15 @@ export const resources: Record<Locale, Record<string, string>> = {
     "server.auth.requiredLogin": "You need to sign in.",
     "server.auth.usernameTaken": "This username is already in use.",
     "server.auth.invalidCredentials": "Your username or password is incorrect.",
-    "server.auth.missingCredentials": "Please enter your username and password.",
+    "server.auth.missingCredentials":
+      "Please enter your username and password.",
     "server.auth.missingFields": "Please fill in all required fields.",
-    "server.auth.invalidUsername": "Username must be 4-20 characters using only lowercase letters and numbers.",
-    "server.auth.invalidNickname": "Nickname must be 2-20 characters using only Korean, English, or numbers without spaces.",
-    "server.auth.invalidPassword": "Password must be 8-64 characters, include at least one letter and one number, and contain no spaces.",
+    "server.auth.invalidUsername":
+      "Username must be 4-20 characters using only lowercase letters and numbers.",
+    "server.auth.invalidNickname":
+      "Nickname must be 2-20 characters using only Korean, English, or numbers without spaces.",
+    "server.auth.invalidPassword":
+      "Password must be 8-64 characters, include at least one letter and one number, and contain no spaces.",
     "server.vote.missingSession": "We couldn't find your session.",
     "server.vote.missingFields":
       "Please provide the canvas ID, round ID, coordinates, and color.",
@@ -261,7 +281,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "server.vote.canvasNotFound": "We couldn't find the canvas.",
     "server.vote.invalidCell": "The selected cell coordinates are invalid.",
     "server.vote.noTickets": "You don't have any vote tickets left.",
-    "server.vote.submitFailed": "Something went wrong while submitting your vote.",
+    "server.vote.submitFailed":
+      "Something went wrong while submitting your vote.",
 
     "canvas.sessionEnded": "Your session has ended. Please sign in again.",
     "canvas.resetZoom": "Reset to the initial zoom level",
@@ -275,7 +296,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "session.serviceUnavailable":
       "The service is temporarily unavailable. Please try again in a moment.",
     "session.authCheckFailed": "We couldn't verify your sign-in status.",
-    "session.preparingGame": "A new game is being prepared. Please wait a moment.",
+    "session.preparingGame":
+      "A new game is being prepared. Please wait a moment.",
     "session.loadCanvasFailed": "We couldn't load the current canvas.",
     "session.gameEnded": "The game has ended. A new game will start soon.",
     "session.myInfoLoadFailed": "We couldn't load your account information.",
@@ -301,7 +323,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.panel.button": "Open",
     "intro.modal.title": "Game guide",
     "intro.modal.close": "Close game guide",
-    "intro.modal.subtitle": "Color the dots together to complete a single canvas.",
+    "intro.modal.subtitle":
+      "Color the dots together to complete a single canvas.",
     "intro.label.canvasSize": "Canvas size",
     "intro.label.totalRounds": "Total rounds",
     "intro.label.roundDuration": "Round duration",
@@ -319,9 +342,9 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.rule.voteFlexibility":
       "- You can split your vote tickets across multiple cells or focus them on a single cell.",
     "intro.rule.applyVotes":
-      "- When the round ends, each cell is painted with the color that received the most votes.",
+      "- When the round ends, each cell is selected with the color that received the most votes.",
     "intro.rule.tieBreaker":
-      "- If there is a tie, the color is chosen at random.",
+      "- If there is a tie, the color is selected at random.",
     "intro.vote.selectCell":
       "【Select a cell】\n- Click the cell you want with your mouse. \n- After the first click, you can also move with the arrow keys.",
     "intro.vote.submit":
@@ -329,7 +352,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.vote.favorite":
       "【Favorites】\n- Select a palette slot and press the + button to save frequently used colors.",
     "intro.vote.warning":
-      "【⚠️Warning】\n- Once a vote is submitted, it cannot be undone. Please choose carefully.",
+      "【Notice】 Votes cannot be canceled. Please choose carefully.",
 
     "round.status": "Status",
     "round.round": "Round",
@@ -410,9 +433,12 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.remainingVotes": "Votes left",
     "vote.status": "Vote activity",
     "vote.popup.blockedIntro": "Voting is disabled during the intro guide.",
-    "vote.popup.blockedStartWait": "Voting is disabled while waiting for the round to start.",
-    "vote.popup.blockedResult": "Voting is disabled while results are being counted.",
-    "vote.popup.blockedGameEnd": "Voting is disabled because the game has ended.",
+    "vote.popup.blockedStartWait":
+      "Voting is disabled while waiting for the round to start.",
+    "vote.popup.blockedResult":
+      "Voting is disabled while results are being counted.",
+    "vote.popup.blockedGameEnd":
+      "Voting is disabled because the game has ended.",
     "vote.popup.disabled": "Voting unavailable",
     "vote.popup.closed": "Voting closed",
     "vote.popup.loading": "Submitting vote...",
