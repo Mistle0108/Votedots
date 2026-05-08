@@ -126,7 +126,7 @@ export default function IntroGuideModal({
           key: "intro.vote.selectCell",
           highlightPhrases: [
             "마우스로 클릭",
-            "키보드 방향키로도 이동",
+            "키보드 방향키로 이동",
             "with your mouse",
             "with the arrow keys",
           ],
@@ -284,13 +284,13 @@ export default function IntroGuideModal({
 
       <div
         ref={modalRef}
-        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[1400px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
+        className="pointer-events-auto fixed flex max-h-[calc(100vh-24px)] w-[1400px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
         style={{ top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div
-          className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4"
+          className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-4 py-3"
           onMouseDown={(event) => {
             isDraggingRef.current = true;
             dragOffsetRef.current = {
@@ -313,24 +313,24 @@ export default function IntroGuideModal({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
-          <div className="grid gap-6 xl:grid-cols-[max-content_minmax(0,1fr)]">
-            <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-5 xl:w-fit xl:justify-self-start">
-              <div className="mx-auto flex w-fit flex-col items-center gap-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+          <div className="grid gap-4 xl:grid-cols-[max-content_minmax(0,1fr)]">
+            <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4 xl:w-fit xl:justify-self-start">
+              <div className="mx-auto flex w-fit flex-col items-center gap-4">
                 <div className="w-fit">
                   <IntroCanvasPreview
                     playBackgroundImageUrl={playBackgroundImageUrl}
                     resultTemplateImageUrl={resultTemplateImageUrl}
                     gridX={gridX}
                     gridY={gridY}
-                    maxSize={560}
+                    maxSize={500}
                   />
                 </div>
 
-                <div className="w-full rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-5 py-4 text-sm font-bold text-[color:var(--page-theme-text-primary)]">
+                <div className="w-full rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3 text-sm font-bold text-[color:var(--page-theme-text-primary)]">
                   <div className="mx-auto w-fit text-left">
                     {introStats.map((stat) => (
-                      <p key={stat.label} className="py-1">
+                      <p key={stat.label} className="py-0.5">
                         {stat.label} : {stat.value}
                       </p>
                     ))}
@@ -339,13 +339,13 @@ export default function IntroGuideModal({
               </div>
             </section>
 
-            <div className="space-y-6">
-              <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-6 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
+            <div className="space-y-4">
+              <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
                 <h3 className="text-center font-semibold text-[color:var(--page-theme-primary-action)]">
                   {t("intro.section.gameDescription")}
                 </h3>
-                <div className="mt-4 rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-5 py-4">
-                  <ul className="space-y-2 text-left">
+                <div className="mt-3 rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3">
+                  <ul className="space-y-1.5 text-left">
                     <li>
                       {t("intro.rule.totalRoundsPrefix")}
                       <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
@@ -369,12 +369,12 @@ export default function IntroGuideModal({
                     <li>{t("intro.rule.tieBreaker")}</li>
                   </ul>
 
-                  <div className="mt-4 rounded-2xl border border-[#DE5548]/30 bg-[#FFF5F3] px-4 py-3 text-left">
+                  <div className="mt-3 rounded-2xl border border-[#DE5548]/30 bg-[#FFF5F3] px-3 py-2.5 text-left">
                     <p className="font-bold text-[#DE5548]">{warningGuide.title}</p>
                     {warningGuide.bodyLines.map((line, index) => (
                       <p
                         key={`${warningGuide.title}-${index}`}
-                        className="mt-2 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]"
+                        className="mt-1.5 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]"
                       >
                         {line}
                       </p>
@@ -383,23 +383,23 @@ export default function IntroGuideModal({
                 </div>
               </section>
 
-              <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-6">
+              <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4">
                 <h3 className="text-center font-semibold text-[color:var(--page-theme-primary-action)]">
                   {t("intro.section.voteGuide")}
                 </h3>
 
-                <div className="mt-5 space-y-4">
+                <div className="mt-3 space-y-3">
                   {interactionGuides.map((guide) => (
                     <article
                       key={guide.key}
-                      className="rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-5 py-4"
+                      className="rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3"
                     >
-                      <div className="flex items-start gap-4">
-                        <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] text-sm font-bold text-[color:var(--page-theme-primary-action)]">
+                      <div className="flex items-start gap-3">
+                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] text-sm font-bold text-[color:var(--page-theme-primary-action)]">
                           {guide.order}
                         </span>
 
-                        <div className="min-w-0 space-y-2">
+                        <div className="min-w-0 space-y-1.5">
                           <h4 className="text-base font-semibold text-[color:var(--page-theme-text-primary)]">
                             {guide.title}
                           </h4>

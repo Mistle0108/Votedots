@@ -45,11 +45,11 @@ export default function useCanvasPage({
   );
   const [backgroundMode, setBackgroundMode] = useState<PlayBackgroundMode>(() => {
     if (typeof window === "undefined") {
-      return "w";
+      return "g";
     }
 
     const stored = window.localStorage.getItem(PLAY_BACKGROUND_MODE_STORAGE_KEY);
-    return stored === "g" || stored === "b" ? stored : "w";
+    return stored === "w" || stored === "g" || stored === "b" ? stored : "g";
   });
 
   const {
