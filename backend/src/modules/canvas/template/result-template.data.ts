@@ -9,13 +9,6 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-32x32",
   },
   {
-    id: "cat-face-32x32",
-    name: "Cat Face Template 32x32",
-    gridX: 32,
-    gridY: 32,
-    assetKey: "cat-face-32x32",
-  },
-  {
     id: "cat-side-32x32",
     name: "Cat Side Template 32x32",
     gridX: 32,
@@ -30,6 +23,27 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-64x64",
   },
   {
+    id: "fox-front-64x64",
+    name: "Fox Front Template 64x64",
+    gridX: 64,
+    gridY: 64,
+    assetKey: "fox-front-64x64",
+  },
+  {
+    id: "penguin-side-64x64",
+    name: "Penguin Side Template 64x64",
+    gridX: 64,
+    gridY: 64,
+    assetKey: "penguin-side-64x64",
+  },
+  {
+    id: "sheep-side-64x64",
+    name: "Sheep Side Template 64x64",
+    gridX: 64,
+    gridY: 64,
+    assetKey: "sheep-side-64x64",
+  },
+  {
     id: "empty-128x128",
     name: "Default Template 128x128",
     gridX: 128,
@@ -37,11 +51,25 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "empty-128x128",
   },
   {
+    id: "butterfly-128x128",
+    name: "Butterfly Template 128x128",
+    gridX: 128,
+    gridY: 128,
+    assetKey: "butterfly-128x128",
+  },
+  {
     id: "cat-oblique-128x128",
     name: "Cat Oblique Template 128x128",
     gridX: 128,
     gridY: 128,
     assetKey: "cat-oblique-128x128",
+  },
+  {
+    id: "cup-128x128",
+    name: "Cup Template 128x128",
+    gridX: 128,
+    gridY: 128,
+    assetKey: "cup-128x128",
   },
   {
     id: "empty-256x256",
@@ -56,6 +84,20 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     gridX: 256,
     gridY: 256,
     assetKey: "cat-front-256x256",
+  },
+  {
+    id: "lesserpanda-256x256",
+    name: "Lesser Panda Template 256x256",
+    gridX: 256,
+    gridY: 256,
+    assetKey: "lesserpanda-256x256",
+  },
+  {
+    id: "boothpictures-256x256",
+    name: "Boothpictures Template 256x256",
+    gridX: 256,
+    gridY: 256,
+    assetKey: "boothpictures-256x256",
   },
   {
     id: "empty-512x512",
