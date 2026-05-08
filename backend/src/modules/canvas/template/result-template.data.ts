@@ -72,6 +72,13 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "cat-oblique-128x128",
   },
   {
+    id: "cup-128x128",
+    name: "Cup Template 128x128",
+    gridX: 128,
+    gridY: 128,
+    assetKey: "cup-128x128",
+  },
+  {
     id: "empty-256x256",
     name: "Default Template 256x256",
     gridX: 256,
@@ -91,6 +98,13 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     gridX: 256,
     gridY: 256,
     assetKey: "lesserpanda-256x256",
+  },
+  {
+    id: "boothpictures-256x256",
+    name: "Boothpictures Template 256x256",
+    gridX: 256,
+    gridY: 256,
+    assetKey: "boothpictures-256x256",
   },
   {
     id: "empty-512x512",
