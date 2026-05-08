@@ -220,6 +220,8 @@ export default function useCanvasScene({
   const initialCameraYRef = useRef(0);
   const sceneKeyRef = useRef<string | null>(null);
   const pendingZoomAdjustmentRef = useRef<PendingZoomAdjustment | null>(null);
+  const panFrameRef = useRef<number | null>(null);
+  const pendingPanDeltaRef = useRef({ dx: 0, dy: 0 });
 
   const [cells, setCells] = useState<Cell[]>([]);
   const [minimapCells, setMinimapCells] = useState<Cell[]>([]);
@@ -253,6 +255,14 @@ export default function useCanvasScene({
   useEffect(() => {
     cameraYRef.current = cameraY;
   }, [cameraY]);
+
+  useEffect(() => {
+    return () => {
+      if (panFrameRef.current !== null) {
+        cancelAnimationFrame(panFrameRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     let frameId = 0;
@@ -648,23 +658,6 @@ export default function useCanvasScene({
     setCameraY,
   });
 
-  useCanvasRenderer({
-    paintCanvasRef: paintCanvasElementRef,
-    canvasRef: canvasElementRef,
-    canvasReady,
-    cells,
-    selectedCell: selectionVisible ? selectedCell : null,
-    previewColor,
-    votingCellIds,
-    topColorMap,
-    visibleCellBounds,
-    cameraX,
-    cameraY,
-    zoom,
-    worldOffsetX: worldOffset.x,
-    worldOffsetY: worldOffset.y,
-  });
-
   const handlePan = useCallback(
     (dx: number, dy: number) => {
       const container = containerRef.current;
@@ -672,19 +665,42 @@ export default function useCanvasScene({
         return;
       }
 
-      const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
-      const nextCamera = clampCamera(
-        cameraXRef.current - dx / zoomRef.current,
-        cameraYRef.current - dy / zoomRef.current,
-        worldWidth,
-        worldHeight,
-        container.clientWidth,
-        container.clientHeight,
-        zoomRef.current,
-      );
+      pendingPanDeltaRef.current.dx += dx;
+      pendingPanDeltaRef.current.dy += dy;
 
-      setCameraX(nextCamera.x);
-      setCameraY(nextCamera.y);
+      if (panFrameRef.current !== null) {
+        return;
+      }
+
+      panFrameRef.current = requestAnimationFrame(() => {
+        panFrameRef.current = null;
+
+        const {
+          dx: accumulatedDx,
+          dy: accumulatedDy,
+        } = pendingPanDeltaRef.current;
+        pendingPanDeltaRef.current = { dx: 0, dy: 0 };
+
+        if (accumulatedDx === 0 && accumulatedDy === 0) {
+          return;
+        }
+
+        const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+        const nextCamera = clampCamera(
+          cameraXRef.current - accumulatedDx / zoomRef.current,
+          cameraYRef.current - accumulatedDy / zoomRef.current,
+          worldWidth,
+          worldHeight,
+          container.clientWidth,
+          container.clientHeight,
+          zoomRef.current,
+        );
+
+        cameraXRef.current = nextCamera.x;
+        cameraYRef.current = nextCamera.y;
+        setCameraX(nextCamera.x);
+        setCameraY(nextCamera.y);
+      });
     },
     [gridX, gridY],
   );
@@ -707,6 +723,26 @@ export default function useCanvasScene({
     worldOffsetY: worldOffset.y,
     onPan: handlePan,
     onActivateCell: activateCell,
+  });
+
+  useCanvasRenderer({
+    paintCanvasRef: paintCanvasElementRef,
+    canvasRef: canvasElementRef,
+    canvasReady,
+    cells,
+    selectedCell: selectionVisible ? selectedCell : null,
+    previewColor,
+    votingCellIds,
+    topColorMap,
+    visibleCellBounds,
+    cameraX,
+    cameraY,
+    zoom,
+    worldOffsetX: worldOffset.x,
+    worldOffsetY: worldOffset.y,
+    isDraggingCanvas,
+    worldWidth,
+    worldHeight,
   });
 
   useEffect(() => {
