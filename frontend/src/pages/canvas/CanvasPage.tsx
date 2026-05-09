@@ -454,6 +454,7 @@ export default function CanvasPage() {
             gridY={gridY}
             selectedCell={displaySelectedCell}
             viewport={viewport}
+            onOpenIntroGuide={handleOpenIntroGuide}
             onNavigateToCoordinate={navigateToCoordinate}
           />
         )}
