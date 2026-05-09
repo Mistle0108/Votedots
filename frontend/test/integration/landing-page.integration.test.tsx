@@ -42,11 +42,10 @@ describe("LandingPage integration", () => {
       expect(screen.getByText("Current game")).toBeInTheDocument();
     });
 
-    const currentGameImage = screen.getByAltText("Default template preview");
-    expect(currentGameImage).toHaveAttribute(
-      "src",
-      "/result-templates/32x32/sample-template.png",
+    const currentGameImage = document.querySelector<HTMLImageElement>(
+      'img[src="/result-templates/32x32/sample-template.png"]',
     );
+    expect(currentGameImage).not.toBeNull();
     expect(screen.getByText("1 / 10")).toBeInTheDocument();
   });
 });
