@@ -12,6 +12,8 @@ import {
 import { getGameConfig } from "@/shared/config/game-config";
 import { useI18n } from "@/shared/i18n";
 import { BrandLogo } from "@/shared/ui/brand-logo";
+import helpIcon from "@/assets/help-icon.png";
+import homeIcon from "@/assets/home-icon.png";
 import settingsIcon from "@/assets/settings-icon.png";
 import VotePanelSettings from "./VotePanelSettings";
 import { MAX_VOTE_PANEL_ENTRIES } from "../model/vote.constants";
@@ -41,6 +43,7 @@ interface Props {
   gridY: number;
   selectedCell: Cell | null;
   viewport: Viewport | null;
+  onOpenIntroGuide: () => void;
   onNavigateToCoordinate: (
     x: number,
     y: number,
@@ -72,6 +75,7 @@ export default function VotePanel({
   gridY,
   selectedCell,
   viewport,
+  onOpenIntroGuide,
   onNavigateToCoordinate,
 }: Props) {
   const { locale, setLocale, t } = useI18n();
@@ -127,16 +131,50 @@ export default function VotePanel({
     };
   }, [isSettingsOpen]);
 
+  const handleNavigateHome = () => {
+    window.location.assign(`/${locale}`);
+  };
+
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <div className="flex flex-col items-center gap-2">
-        <div className="relative flex w-full justify-end">
+        <div className="relative flex w-full items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleNavigateHome}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-sm font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
+              aria-label={t("vote.panel.home")}
+            >
+              <img
+                src={homeIcon}
+                alt=""
+                className="h-4.5 w-4.5 object-contain"
+                draggable={false}
+              />
+            </button>
+
+            <button
+              type="button"
+              onClick={onOpenIntroGuide}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-sm font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
+              aria-label={t("vote.panel.help")}
+            >
+              <img
+                src={helpIcon}
+                alt=""
+                className="h-4.5 w-4.5 object-contain"
+                draggable={false}
+              />
+            </button>
+          </div>
+
           <button
             ref={settingsButtonRef}
             type="button"
             onClick={() => setIsSettingsOpen((prev) => !prev)}
             className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-sm font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
-            aria-label="Settings"
+            aria-label={t("vote.panel.settings")}
             aria-expanded={isSettingsOpen}
           >
             <img

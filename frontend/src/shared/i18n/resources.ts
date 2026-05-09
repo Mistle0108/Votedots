@@ -218,6 +218,9 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.palette.eyeDropper": "색상 선택 (취소는 Esc)",
     "vote.palette.addSlot": "슬롯에 추가",
     "vote.palette.reset": "초기화",
+    "vote.panel.home": "홈으로 이동",
+    "vote.panel.help": "도움말 열기",
+    "vote.panel.settings": "환경설정 열기",
 
     "loginBoard.title": "업데이트 보드",
     "loginBoard.subtitle": "업데이트 보드",
@@ -449,6 +452,9 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.palette.eyeDropper": "Pick color (Esc to cancel)",
     "vote.palette.addSlot": "Add to slot",
     "vote.palette.reset": "Reset",
+    "vote.panel.home": "Go home",
+    "vote.panel.help": "Open help",
+    "vote.panel.settings": "Open settings",
 
     "loginBoard.title": "Update Board",
     "loginBoard.subtitle": "Update board",
