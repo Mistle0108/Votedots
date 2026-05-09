@@ -13,7 +13,7 @@ vi.mock("@/features/auth", () => ({
 describe("LandingPage integration", () => {
   it("keeps the current game panel visible when preview api fails", async () => {
     server.use(
-      http.get("http://localhost:3000/api/public/landing", async () =>
+      http.get("http://localhost:4000/public/landing", async () =>
         Response.json({
           currentGame: {
             canvasId: 10,
@@ -28,7 +28,7 @@ describe("LandingPage integration", () => {
           featuredGames: [],
         }),
       ),
-      http.get("http://localhost:3000/api/public/landing/previews", async () =>
+      http.get("http://localhost:4000/public/landing/previews", async () =>
         Response.json({ message: "failed" }, { status: 500 }),
       ),
     );
@@ -42,10 +42,12 @@ describe("LandingPage integration", () => {
       expect(screen.getByText("Current game")).toBeInTheDocument();
     });
 
-    const currentGameImage = document.querySelector<HTMLImageElement>(
-      'img[src="/result-templates/32x32/sample-template.png"]',
+    const currentGameImage = Array.from(
+      document.querySelectorAll<HTMLImageElement>("img"),
+    ).find((image) =>
+      image.src.includes("/result-templates/32x32/sample-template.png"),
     );
-    expect(currentGameImage).not.toBeNull();
+    expect(currentGameImage).toBeDefined();
     expect(screen.getByText("1 / 10")).toBeInTheDocument();
   });
 });
