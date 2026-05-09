@@ -43,7 +43,10 @@ interface Props {
   gridY: number;
   selectedCell: Cell | null;
   viewport: Viewport | null;
-  onOpenIntroGuide: () => void;
+  forceSettingsOpen?: boolean;
+  forceParticipantPanelOpen?: boolean;
+  settingsDisabled?: boolean;
+  onOpenTutorial: () => void;
   onNavigateToCoordinate: (
     x: number,
     y: number,
@@ -75,7 +78,10 @@ export default function VotePanel({
   gridY,
   selectedCell,
   viewport,
-  onOpenIntroGuide,
+  forceSettingsOpen = false,
+  forceParticipantPanelOpen = false,
+  settingsDisabled = false,
+  onOpenTutorial,
   onNavigateToCoordinate,
 }: Props) {
   const { locale, setLocale, t } = useI18n();
@@ -92,6 +98,8 @@ export default function VotePanel({
     return voteEntries[index] ?? null;
   });
   const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
+  const isSettingsVisible =
+    forceSettingsOpen || (!settingsDisabled && isSettingsOpen);
 
   useEffect(() => {
     if (!isSettingsOpen) {
@@ -138,7 +146,10 @@ export default function VotePanel({
   return (
     <div className="flex h-full flex-col gap-5 overflow-y-auto px-4 py-5">
       <div className="flex flex-col items-center gap-2">
-        <div className="relative flex w-full items-center justify-between">
+        <div
+          data-tutorial-id="tutorial-top-actions"
+          className="relative flex w-full items-center justify-between"
+        >
           <div className="flex items-center gap-2">
             <button
               type="button"
@@ -156,7 +167,7 @@ export default function VotePanel({
 
             <button
               type="button"
-              onClick={onOpenIntroGuide}
+              onClick={onOpenTutorial}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-sm font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
               aria-label={t("vote.panel.help")}
             >
@@ -172,10 +183,11 @@ export default function VotePanel({
           <button
             ref={settingsButtonRef}
             type="button"
+            disabled={settingsDisabled && !forceSettingsOpen}
             onClick={() => setIsSettingsOpen((prev) => !prev)}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-sm font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)]"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-sm font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-[color:var(--page-theme-surface-primary)] disabled:hover:text-[color:var(--page-theme-text-secondary)]"
             aria-label={t("vote.panel.settings")}
-            aria-expanded={isSettingsOpen}
+            aria-expanded={isSettingsVisible}
           >
             <img
               src={settingsIcon}
@@ -185,13 +197,14 @@ export default function VotePanel({
             />
           </button>
 
-          {isSettingsOpen ? (
+          {isSettingsVisible ? (
             <VotePanelSettings
               ref={settingsMenuRef}
               locale={locale}
               onLocaleChange={setLocale}
               backgroundMode={backgroundMode}
               onBackgroundModeChange={onBackgroundModeChange}
+              tutorialId="tutorial-settings-panel"
             />
           ) : null}
         </div>
@@ -200,33 +213,35 @@ export default function VotePanel({
         <MyInfoCard participants={participants} />
       </div>
 
-      <RoundInfo
-        phase={phase}
-        roundNumber={roundNumber}
-        totalRounds={totalRounds}
-        formattedGameEndTime={formattedGameEndTime}
-        formattedRemainingTime={formattedRemainingTime}
-        remainingSeconds={remainingSeconds}
-        roundDurationSec={roundDurationSec}
-        votingParticipantCount={votingParticipantCount}
-      />
+      <div data-tutorial-id="tutorial-round-info" className="space-y-5">
+        <RoundInfo
+          phase={phase}
+          roundNumber={roundNumber}
+          totalRounds={totalRounds}
+          formattedGameEndTime={formattedGameEndTime}
+          formattedRemainingTime={formattedRemainingTime}
+          remainingSeconds={remainingSeconds}
+          roundDurationSec={roundDurationSec}
+          votingParticipantCount={votingParticipantCount}
+        />
 
-      <div className="flex min-h-2 items-center justify-between gap-3">
-        <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
-          {t("vote.remainingVotes")}
-        </p>
-        {isVotingPhase && remaining !== null ? (
-          <span className="text-sm font-bold text-[color:var(--page-theme-primary-action)]">
-            {remaining}/{votesPerRound}
-          </span>
-        ) : (
-          <span className="text-sm text-[color:var(--page-theme-text-tertiary)]">
-            -
-          </span>
-        )}
+        <div className="flex min-h-2 items-center justify-between gap-3">
+          <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
+            {t("vote.remainingVotes")}
+          </p>
+          {isVotingPhase && remaining !== null ? (
+            <span className="text-sm font-bold text-[color:var(--page-theme-primary-action)]">
+              {remaining}/{votesPerRound}
+            </span>
+          ) : (
+            <span className="text-sm text-[color:var(--page-theme-text-tertiary)]">
+              -
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="shrink-0">
+      <div data-tutorial-id="tutorial-minimap" className="shrink-0">
         <MiniMap
           snapshotUrl={latestRoundSnapshot}
           playBackgroundImageUrl={playBackgroundImageUrl}
@@ -239,7 +254,7 @@ export default function VotePanel({
         />
       </div>
 
-      <div className="flex flex-col gap-1">
+      <div data-tutorial-id="tutorial-live-status" className="flex flex-col gap-1">
         <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
           {t("vote.status")}
         </p>
@@ -274,11 +289,14 @@ export default function VotePanel({
         </div>
       </div>
 
-      <ParticipantPanel
-        participants={participants}
-        loading={participantLoading}
-        error={participantError}
-      />
+      <div data-tutorial-id="tutorial-participants">
+        <ParticipantPanel
+          participants={participants}
+          loading={participantLoading}
+          error={participantError}
+          forceOpen={forceParticipantPanelOpen}
+        />
+      </div>
     </div>
   );
 }

@@ -3,6 +3,7 @@ import type { GameConfig } from "@/shared/config/game-config";
 import {
   getCanvasTopCenterModalPosition,
   HISTORY_PANEL_WIDTH,
+  RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT,
 } from "@/pages/canvas/model/modal-position";
 import { useI18n } from "@/shared/i18n";
 import IntroCanvasPreview from "./IntroCanvasPreview";
@@ -276,8 +277,11 @@ export default function IntroGuideModal({
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
       <div
-        className="pointer-events-auto fixed inset-y-0 right-0"
-        style={{ left: `${HISTORY_PANEL_WIDTH}px` }}
+        className="pointer-events-auto fixed bottom-0 right-0"
+        style={{
+          top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
+          left: `${HISTORY_PANEL_WIDTH}px`,
+        }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       />

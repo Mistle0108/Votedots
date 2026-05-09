@@ -221,6 +221,36 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.panel.home": "홈으로 이동",
     "vote.panel.help": "도움말 열기",
     "vote.panel.settings": "환경설정 열기",
+    "tutorial.control.previous": "이전",
+    "tutorial.control.next": "다음",
+    "tutorial.control.finish": "완료",
+    "tutorial.control.close": "닫기",
+    "tutorial.step.canvas.title": "중앙 캔버스 영역",
+    "tutorial.step.canvas.description":
+      "가운데 캔버스가 게임의 메인 화면입니다.\n현재 라운드에서 어디에 표를 모으고 투표할지 이 영역을 보며 판단하게 됩니다.",
+    "tutorial.step.voteModal.title": "투표 색상 선택",
+    "tutorial.step.voteModal.description":
+      "칸을 선택하면 색상 선택 창이 열리게 됩니다.\n색을 고르고 투표하기 버튼으로 표를 제출합니다.\n색상 스포이드, 색상 즐겨찾기 추가, 즐겨찾기 초기화 기능이 있습니다.",
+    "tutorial.step.roundInfo.title": "라운드 정보와 남은 투표권",
+    "tutorial.step.roundInfo.description":
+      "현재 라운드 상태, 남은 시간, 종료 예정 시각을 이 영역에서 확인합니다.\n이번 라운드에서 사용할 수 있는 투표권 수를 확인할 수 있습니다.",
+    "tutorial.step.minimap.title": "미니맵",
+    "tutorial.step.minimap.description":
+      "전체 캔버스에서 현재 보고 있는 위치를 빠르게 확인할 수 있습니다.\n원하는 위치를 클릭하면 해당 좌표로 바로 이동합니다.",
+    "tutorial.step.liveStatus.title": "실시간 투표 현황",
+    "tutorial.step.liveStatus.description":
+      "이번 라운드에서 투표되고 있는 칸과 대표 색상을 표시합니다.\n어느 좌표에 투표가 몰리는지 파악할 수 있습니다.\n가장 많은 표를 받은 상위 5개를 표시합니다.",
+    "tutorial.step.participants.title": "참여자 패널",
+    "tutorial.step.participants.description":
+      "현재 참여 중인 사람들을 확인할 수 있습니다.",
+    "tutorial.step.topActions.title": "상단 기능 버튼 패널",
+    "tutorial.step.topActions.description":
+      "집 모양 버튼은 홈페이지로 이동합니다.\n물음표 버튼은 지금 보는 튜토리얼을 다시 엽니다.\n환경 설정 버튼을 누르면 언어와 캔버스 배경색을 변경할 수 있습니다.",
+    "tutorial.step.history.title": "히스토리 패널",
+    "tutorial.step.history.description":
+      "게임 안내, 각 라운드 결과, 게임 결과 통계를 확인할 수 있습니다.\n게임 결과 통계 화면에서는 완성된 캔버스를 다운로드 할 수 있습니다.\n다운로드 결과물에 캔버스 배경색은 포함되지 않습니다.",
+    "tutorial.voteModal.previewTitle": "투표 모달 예시",
+    "tutorial.voteModal.previewColor": "색상을 고르고 투표를 제출하세요.",
 
     "loginBoard.title": "업데이트 보드",
     "loginBoard.subtitle": "업데이트 보드",
@@ -455,6 +485,36 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.panel.home": "Go home",
     "vote.panel.help": "Open help",
     "vote.panel.settings": "Open settings",
+    "tutorial.control.previous": "Previous",
+    "tutorial.control.next": "Next",
+    "tutorial.control.finish": "Done",
+    "tutorial.control.close": "Close",
+    "tutorial.step.canvas.title": "Main canvas area",
+    "tutorial.step.canvas.description":
+      "The center canvas is the main play area.\nYou use this area to decide where to gather votes and place your vote during the current round.",
+    "tutorial.step.voteModal.title": "Vote color selection",
+    "tutorial.step.voteModal.description":
+      "When you select a cell, the color selection popup opens.\nChoose a color and submit your vote with the Vote button.\nIt also provides a color picker, add-to-favorites, and reset favorites actions.",
+    "tutorial.step.roundInfo.title": "Round info and votes left",
+    "tutorial.step.roundInfo.description":
+      "This area shows the current round status, remaining time, and scheduled end time.\nYou can check how many vote tickets are available in this round.",
+    "tutorial.step.minimap.title": "Mini-map",
+    "tutorial.step.minimap.description":
+      "Use the mini-map to quickly see your current position on the full canvas.\nClick the location you want to jump there immediately.",
+    "tutorial.step.liveStatus.title": "Live vote status",
+    "tutorial.step.liveStatus.description":
+      "This panel shows the cells receiving votes in the current round and their leading colors.\nYou can see which coordinates are attracting votes.\nIt displays the top 5 entries with the most votes.",
+    "tutorial.step.participants.title": "Participant panel",
+    "tutorial.step.participants.description":
+      "You can check the people currently participating here.",
+    "tutorial.step.topActions.title": "Top action button panel",
+    "tutorial.step.topActions.description":
+      "The home-shaped button takes you to the homepage.\nThe question mark button opens this tutorial again.\nThe settings button lets you change the language and canvas background color.",
+    "tutorial.step.history.title": "History panel",
+    "tutorial.step.history.description":
+      "You can review the game guide, each round result, and the final game stats here.\nIn the game result stats view, you can download the completed canvas.\nThe downloaded image does not include the canvas background color.",
+    "tutorial.voteModal.previewTitle": "Vote popup preview",
+    "tutorial.voteModal.previewColor": "Choose a color and submit your vote.",
 
     "loginBoard.title": "Update Board",
     "loginBoard.subtitle": "Update board",

@@ -33,6 +33,10 @@ interface Props {
   onVoteSuccess: (color: string) => void;
   onColorChange: (color: string | null) => void;
   onClose: () => void;
+  tutorialMode?: boolean;
+  tutorialId?: string;
+  fixedPosition?: { x: number; y: number } | null;
+  layerClassName?: string;
 }
 
 const INITIAL_POINTER_OFFSET_X = 190;
@@ -104,6 +108,10 @@ export default function VotePopup({
   onVoteSuccess,
   onColorChange,
   onClose,
+  tutorialMode = false,
+  tutorialId,
+  fixedPosition = null,
+  layerClassName = "z-50",
 }: Props) {
   const { locale, t } = useI18n();
   const [color, setColor] = useState(() => loadLastPaletteColor());
@@ -133,7 +141,11 @@ export default function VotePopup({
   const visibleLoading = loading && canSubmitVote;
   const visibleError = canSubmitVote ? error : "";
   const isVoteDisabled =
-    !roundId || !canSubmitVote || !hasRemainingVotes || visibleLoading;
+    tutorialMode ||
+    !roundId ||
+    !canSubmitVote ||
+    !hasRemainingVotes ||
+    visibleLoading;
 
   const buttonLabel = getButtonLabel(
     phase,
@@ -173,6 +185,10 @@ export default function VotePopup({
   };
 
   const handleSubmit = useCallback(async () => {
+    if (tutorialMode) {
+      return;
+    }
+
     if (!roundId) {
       return;
     }
@@ -234,9 +250,15 @@ export default function VotePopup({
     onColorChange,
     onVoteSuccess,
     onClose,
+    tutorialMode,
   ]);
 
   const handleDragStart = (event: React.MouseEvent) => {
+    if (tutorialMode) {
+      event.stopPropagation();
+      return;
+    }
+
     isDragging.current = true;
     hasManualPositionRef.current = true;
     dragOffset.current = {
@@ -279,6 +301,10 @@ export default function VotePopup({
   }, []);
 
   useEffect(() => {
+    if (tutorialMode) {
+      return undefined;
+    }
+
     let isActivated = false;
 
     const rafId = window.requestAnimationFrame(() => {
@@ -313,9 +339,13 @@ export default function VotePopup({
       window.cancelAnimationFrame(rafId);
       window.removeEventListener("mousedown", handleClickOutside, true);
     };
-  }, [onClose]);
+  }, [onClose, tutorialMode]);
 
   useLayoutEffect(() => {
+    if (fixedPosition) {
+      return;
+    }
+
     if (!popupRef.current) {
       return;
     }
@@ -344,11 +374,16 @@ export default function VotePopup({
     }
 
     setPos({ x, y });
-  }, [position, error, phaseBlockedMessage, isVotingPhase]);
+  }, [position, error, fixedPosition, phaseBlockedMessage, isVotingPhase]);
 
   useEffect(() => {
+    if (fixedPosition) {
+      hasManualPositionRef.current = false;
+      return;
+    }
+
     hasManualPositionRef.current = false;
-  }, [position.x, position.y, selectedCell.x, selectedCell.y]);
+  }, [fixedPosition, position.x, position.y, selectedCell.x, selectedCell.y]);
 
   useEffect(() => {
     onColorChange(color);
@@ -397,8 +432,12 @@ export default function VotePopup({
   return (
     <div
       ref={popupRef}
-      className="fixed z-50 w-64 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-elevated)] shadow-lg"
-      style={{ top: pos.y, left: pos.x }}
+      data-tutorial-id={tutorialId}
+      className={`fixed ${layerClassName} w-64 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-elevated)] shadow-lg`}
+      style={{
+        top: fixedPosition?.y ?? pos.y,
+        left: fixedPosition?.x ?? pos.x,
+      }}
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
