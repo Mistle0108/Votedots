@@ -107,18 +107,18 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.unit.votes": "개",
     "intro.section.gameDescription": "게임 설명",
     "intro.section.voteGuide": "조작 방법",
-    "intro.rule.totalRoundsPrefix": "- 게임은 총 ",
+    "intro.rule.totalRoundsPrefix": "게임은 총 ",
     "intro.rule.totalRoundsSuffix": "라운드로 진행됩니다.",
-    "intro.rule.roundDurationPrefix": "- 각 라운드는 ",
+    "intro.rule.roundDurationPrefix": "각 라운드는 ",
     "intro.rule.roundDurationMiddle": "초 동안 진행되며, 라운드마다 ",
     "intro.rule.roundDurationSuffix": "개의 투표권이 주어집니다.",
     "intro.rule.voteFlexibility":
-      "- 투표권은 여러 칸에 나눠 쓰거나, 한 칸에 여러 번 사용할 수 있습니다.",
+      "투표권은 여러 칸에 나눠 쓰거나, 한 칸에 여러 번 사용할 수 있습니다.",
     "intro.rule.applyVotes":
-      "- 라운드가 끝나면 가장 많은 표를 받은 색으로 해당 칸이 선택됩니다.",
-    "intro.rule.tieBreaker": "- 동점일 경우 색상은 무작위로 선택됩니다.",
+      "라운드가 끝나면 가장 많은 표를 받은 색으로 해당 칸이 선택됩니다.",
+    "intro.rule.tieBreaker": "동점일 경우 색상은 무작위로 선택됩니다.",
     "intro.vote.selectCell":
-      "【칸 선택】\n- 원하는 칸을 마우스로 클릭하세요. \n- 이후에는 키보드 방향키로 이동할 수 있습니다.",
+      "【칸 선택】\n원하는 칸을 마우스로 클릭하거나 키보드 방향키로 이동할 수 있습니다.",
     "intro.vote.submit":
       "【색상 선택】\n- 팔레트에서 색을 고른 뒤 '투표하기' 버튼을 클릭하거나 스페이스바를 누르면 투표됩니다.",
     "intro.vote.favorite":
@@ -367,19 +367,19 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.unit.votes": " votes",
     "intro.section.gameDescription": "How the game works",
     "intro.section.voteGuide": "Controls",
-    "intro.rule.totalRoundsPrefix": "- The game runs for ",
+    "intro.rule.totalRoundsPrefix": "The game runs for ",
     "intro.rule.totalRoundsSuffix": " rounds in total.",
-    "intro.rule.roundDurationPrefix": "- Each round lasts ",
+    "intro.rule.roundDurationPrefix": "Each round lasts ",
     "intro.rule.roundDurationMiddle": " seconds, and you receive ",
     "intro.rule.roundDurationSuffix": " vote tickets per round.",
     "intro.rule.voteFlexibility":
-      "- You can split your vote tickets across multiple cells or focus them on a single cell.",
+      "You can split your vote tickets across multiple cells or focus them on a single cell.",
     "intro.rule.applyVotes":
-      "- When the round ends, each cell is selected with the color that received the most votes.",
+      "When the round ends, each cell is selected with the color that received the most votes.",
     "intro.rule.tieBreaker":
-      "- If there is a tie, the color is selected at random.",
+      "If there is a tie, the color is selected at random.",
     "intro.vote.selectCell":
-      "【Select a cell】\n- Click the cell you want with your mouse. \n- After the first click, you can also move with the arrow keys.",
+      "【Select a cell】\nClick the cell you want with your mouse or move with the arrow keys.",
     "intro.vote.submit":
       "【Choose a color】\n- Pick a color from the palette, then click the Vote button or press the space bar to cast your vote.",
     "intro.vote.favorite":
