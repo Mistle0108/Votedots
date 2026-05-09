@@ -1,4 +1,12 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import {
@@ -11,6 +19,7 @@ import { IntroGuideModal } from "@/features/gameplay/intro";
 import RoundSummaryModal from "@/features/gameplay/round/components/RoundSummaryModal";
 import { GAME_PHASE } from "@/features/gameplay/session/model/game-phase.types";
 import GameSummaryModal from "@/features/gameplay/session/components/GameSummaryModal";
+import { TutorialOverlay, type TutorialStep } from "@/features/gameplay/tutorial";
 import {
   ErrorScreen,
   GameEndedScreen,
@@ -87,6 +96,12 @@ export default function CanvasPage() {
     selectionGuideReducer,
     INITIAL_SELECTION_GUIDE_STATE,
   );
+  const [tutorialOpen, setTutorialOpen] = useState(false);
+  const [tutorialStepIndex, setTutorialStepIndex] = useState(0);
+  const [tutorialVotePopupPosition, setTutorialVotePopupPosition] = useState({
+    x: 120,
+    y: 120,
+  });
   const guideTimerRef = useRef<number | null>(null);
   const pulseTimerRef = useRef<number | null>(null);
   const lastAnnouncedRoundIdRef = useRef<number | null>(null);
@@ -179,6 +194,119 @@ export default function CanvasPage() {
   });
 
   const canvasPageThemeStyle = PLAY_THEME_STYLE;
+  const tutorialSteps = useMemo<TutorialStep[]>(
+    () => [
+      {
+        id: "canvas",
+        targetIds: ["tutorial-canvas-stage"],
+        title: t("tutorial.step.canvas.title"),
+        description: t("tutorial.step.canvas.description"),
+        padding: 8,
+      },
+      {
+        id: "vote-modal",
+        targetIds: ["tutorial-vote-modal"],
+        title: t("tutorial.step.voteModal.title"),
+        description: t("tutorial.step.voteModal.description"),
+        padding: 8,
+      },
+      {
+        id: "top-actions",
+        targetIds: ["tutorial-top-actions", "tutorial-settings-panel"],
+        title: t("tutorial.step.topActions.title"),
+        description: t("tutorial.step.topActions.description"),
+        padding: 8,
+      },
+      {
+        id: "round-info",
+        targetIds: ["tutorial-round-info"],
+        title: t("tutorial.step.roundInfo.title"),
+        description: t("tutorial.step.roundInfo.description"),
+        padding: 8,
+      },
+      {
+        id: "minimap",
+        targetIds: ["tutorial-minimap"],
+        title: t("tutorial.step.minimap.title"),
+        description: t("tutorial.step.minimap.description"),
+        padding: 8,
+      },
+      {
+        id: "live-status",
+        targetIds: ["tutorial-live-status"],
+        title: t("tutorial.step.liveStatus.title"),
+        description: t("tutorial.step.liveStatus.description"),
+        padding: 8,
+      },
+      {
+        id: "participants",
+        targetIds: ["tutorial-participants"],
+        title: t("tutorial.step.participants.title"),
+        description: t("tutorial.step.participants.description"),
+        padding: 8,
+        scrollTargetIntoView: true,
+      },
+      {
+        id: "history",
+        targetIds: ["tutorial-history-panel"],
+        title: t("tutorial.step.history.title"),
+        description: t("tutorial.step.history.description"),
+        padding: 4,
+      },
+    ],
+    [t],
+  );
+  const tutorialCurrentStepId = tutorialSteps[tutorialStepIndex]?.id ?? null;
+  const tutorialNeedsSettingsPanel =
+    tutorialOpen &&
+    tutorialSteps[tutorialStepIndex]?.targetIds.includes(
+      "tutorial-settings-panel",
+    );
+  const tutorialNeedsParticipantPanel =
+    tutorialOpen && tutorialSteps[tutorialStepIndex]?.id === "participants";
+  const tutorialVoteSelectedCell = useMemo(() => {
+    if (selectedCell) {
+      return selectedCell;
+    }
+
+    const fallbackX = Math.max(0, Math.floor(gridX / 2));
+    const fallbackY = Math.max(0, Math.floor(gridY / 2));
+    const fallbackCell = cells.find(
+      (cell) => cell.x === fallbackX && cell.y === fallbackY,
+    );
+
+    return (
+      fallbackCell ?? {
+        x: fallbackX,
+        y: fallbackY,
+        color: null,
+        status: "idle" as const,
+      }
+    );
+  }, [cells, gridX, gridY, selectedCell]);
+  const tutorialVotePopupVotes = useMemo(
+    () => ({
+      [`${tutorialVoteSelectedCell.x}:${tutorialVoteSelectedCell.y}:#DE5548`]: 5,
+      [`${tutorialVoteSelectedCell.x}:${tutorialVoteSelectedCell.y}:#4F83CC`]: 3,
+      [`${tutorialVoteSelectedCell.x}:${tutorialVoteSelectedCell.y}:#FACC15`]: 2,
+    }),
+    [tutorialVoteSelectedCell.x, tutorialVoteSelectedCell.y],
+  );
+  const shouldShowTutorialVotePopup = Boolean(
+    tutorialOpen &&
+    tutorialCurrentStepId === "vote-modal" &&
+    !(popupOpen && selectedCell && canvasId),
+  );
+  const shouldDecorateLiveVotePopup = Boolean(
+    tutorialOpen &&
+    tutorialCurrentStepId === "vote-modal" &&
+    popupOpen &&
+    selectedCell &&
+    canvasId,
+  );
+  const shouldDisableSettingsButton =
+    (introGuideOpen || roundSummaryOpen || Boolean(gameSummaryModal)) &&
+    !tutorialNeedsSettingsPanel;
   const selectionLabels = useMemo(() => {
     if (!currentVoterUuid) {
       return [];
@@ -314,6 +442,15 @@ export default function CanvasPage() {
     }, SELECTION_PULSE_DURATION_MS);
   }, [phase, uniqueSelectionCellKeys]);
 
+  const handleOpenTutorial = useCallback(() => {
+    setTutorialStepIndex(0);
+    setTutorialOpen(true);
+  }, []);
+
+  const handleCloseTutorial = useCallback(() => {
+    setTutorialOpen(false);
+  }, []);
+
   useEffect(() => {
     if (!canvasId || loading || error || gameEnded) {
       return;
@@ -328,6 +465,51 @@ export default function CanvasPage() {
     window.sessionStorage.setItem(storageKey, "true");
     handleOpenIntroGuide();
   }, [canvasId, error, gameEnded, handleOpenIntroGuide, loading]);
+
+  useLayoutEffect(() => {
+    if (!shouldShowTutorialVotePopup) {
+      return;
+    }
+
+    const popupWidth = 256;
+    const popupHeight = 344;
+    const updatePosition = () => {
+      const containerRect = containerRef.current?.getBoundingClientRect();
+
+      if (containerRect) {
+        const nextX = Math.min(
+          window.innerWidth - popupWidth - 12,
+          Math.max(
+            12,
+            containerRect.left + containerRect.width * 0.66 - popupWidth / 2,
+          ),
+        );
+        const nextY = Math.min(
+          window.innerHeight - popupHeight - 12,
+          Math.max(12, containerRect.top + 56),
+        );
+
+        setTutorialVotePopupPosition({
+          x: Math.round(nextX),
+          y: Math.round(nextY),
+        });
+        return;
+      }
+
+      setTutorialVotePopupPosition({
+        x: Math.round(window.innerWidth - popupWidth - 24),
+        y: 24,
+      });
+    };
+
+    const frameId = window.requestAnimationFrame(updatePosition);
+    window.addEventListener("resize", updatePosition);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener("resize", updatePosition);
+    };
+  }, [containerRef, shouldShowTutorialVotePopup, surfaceSize.height, surfaceSize.width]);
 
   if (loading) {
     return (
@@ -378,6 +560,7 @@ export default function CanvasPage() {
 
       <CanvasStage
         containerRef={containerRef}
+        tutorialId="tutorial-canvas-stage"
         overlay={
           <button
             type="button"
@@ -408,21 +591,43 @@ export default function CanvasPage() {
         isDragging={isDraggingCanvas}
         onWheel={handleWheel}
       >
-        <CanvasSurface
-          paintCanvasRef={paintCanvasRef}
-          canvasRef={canvasRef}
-          playBackgroundImageUrl={playBackgroundImageUrl}
-          resultTemplateImageUrl={resultTemplateImageUrl}
-          gridX={gridX}
-          gridY={gridY}
-          cameraX={cameraX}
-          cameraY={cameraY}
-          zoom={zoom}
-          worldOffset={worldOffset}
-          surfaceSize={surfaceSize}
-          selectionLabels={selectionLabels}
-          pulsingCellKeys={selectionGuideState.pulsingSelectionCellKeys}
-        />
+        <>
+          <CanvasSurface
+            paintCanvasRef={paintCanvasRef}
+            canvasRef={canvasRef}
+            playBackgroundImageUrl={playBackgroundImageUrl}
+            resultTemplateImageUrl={resultTemplateImageUrl}
+            gridX={gridX}
+            gridY={gridY}
+            cameraX={cameraX}
+            cameraY={cameraY}
+            zoom={zoom}
+            worldOffset={worldOffset}
+            surfaceSize={surfaceSize}
+            selectionLabels={selectionLabels}
+            pulsingCellKeys={selectionGuideState.pulsingSelectionCellKeys}
+          />
+
+          {shouldShowTutorialVotePopup ? (
+            <VotePopup
+              canvasId={canvasId ?? 0}
+              roundId={roundId ?? 1}
+              phase={GAME_PHASE.ROUND_ACTIVE}
+              isRoundExpired={false}
+              remaining={remaining ?? 3}
+              selectedCell={tutorialVoteSelectedCell}
+              votes={tutorialVotePopupVotes}
+              position={tutorialVotePopupPosition}
+              onVoteSuccess={() => {}}
+              onColorChange={() => {}}
+              onClose={() => {}}
+              tutorialMode={true}
+              tutorialId="tutorial-vote-modal"
+              fixedPosition={tutorialVotePopupPosition}
+              layerClassName="z-[81]"
+            />
+          ) : null}
+        </>
       </CanvasStage>
 
       <div
@@ -454,7 +659,10 @@ export default function CanvasPage() {
             gridY={gridY}
             selectedCell={displaySelectedCell}
             viewport={viewport}
-            onOpenIntroGuide={handleOpenIntroGuide}
+            forceSettingsOpen={tutorialNeedsSettingsPanel}
+            forceParticipantPanelOpen={tutorialNeedsParticipantPanel}
+            settingsDisabled={shouldDisableSettingsButton}
+            onOpenTutorial={handleOpenTutorial}
             onNavigateToCoordinate={navigateToCoordinate}
           />
         )}
@@ -486,6 +694,9 @@ export default function CanvasPage() {
           onVoteSuccess={handleVoteSuccess}
           onColorChange={handleColorChange}
           onClose={handlePopupClose}
+          tutorialMode={shouldDecorateLiveVotePopup}
+          tutorialId={shouldDecorateLiveVotePopup ? "tutorial-vote-modal" : undefined}
+          layerClassName={shouldDecorateLiveVotePopup ? "z-[81]" : undefined}
         />
       )}
 
@@ -511,6 +722,18 @@ export default function CanvasPage() {
           onClose={handleCloseGameSummaryModal}
         />
       )}
+
+      <TutorialOverlay
+        open={tutorialOpen}
+        steps={tutorialSteps}
+        currentStepIndex={tutorialStepIndex}
+        onStepChange={setTutorialStepIndex}
+        onClose={handleCloseTutorial}
+        previousLabel={t("tutorial.control.previous")}
+        nextLabel={t("tutorial.control.next")}
+        finishLabel={t("tutorial.control.finish")}
+        closeLabel={t("tutorial.control.close")}
+      />
     </div>
   );
 }

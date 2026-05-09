@@ -30,7 +30,7 @@ function HistoryTimelineButton({
       <button
         type="button"
         onClick={() => onOpenGameSummary(item.data)}
-        className="h-11 w-full shrink-0 rounded-xl border border-[color:var(--page-theme-accent-warm)] bg-[color:var(--page-theme-accent-warm-soft)] px-3 text-sm font-bold text-[color:var(--page-theme-accent-warm)] transition hover:opacity-90"
+        className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl border border-[color:var(--page-theme-accent-warm)] bg-[color:var(--page-theme-accent-warm-soft)] px-3 text-center text-sm font-bold text-[color:var(--page-theme-accent-warm)] transition hover:opacity-90"
       >
         {resultLabel}
       </button>
@@ -41,7 +41,7 @@ function HistoryTimelineButton({
     <button
       type="button"
       onClick={() => onOpenRoundSummary(item.data)}
-      className="h-11 w-full shrink-0 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3 text-sm font-bold text-[color:var(--page-theme-text-primary)] transition hover:border-[color:var(--page-theme-primary-action)] hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-primary-action)]"
+      className="inline-flex h-11 w-full shrink-0 items-center justify-center rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3 text-center text-sm font-bold text-[color:var(--page-theme-text-primary)] transition hover:border-[color:var(--page-theme-primary-action)] hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-primary-action)]"
     >
       {item.roundNumber}R
     </button>
@@ -59,41 +59,46 @@ export default function GameHistoryPanel({
   const { t } = useI18n();
 
   return (
-    <aside className="flex h-full min-h-0 w-[176px] max-w-[176px] shrink-0 flex-col gap-3 overflow-hidden border-r border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-panel-background)] p-3">
-      <button
-        type="button"
-        onClick={onOpenIntroGuide}
-        className="h-11 w-full shrink-0 rounded-xl border border-[color:var(--page-theme-primary-action)] bg-[color:var(--page-theme-primary-action)] px-3 text-sm font-bold text-[color:var(--page-theme-primary-action-text)] transition hover:bg-[color:var(--page-theme-primary-action-hover)]"
+    <aside className="flex h-full min-h-0 w-[176px] max-w-[176px] shrink-0 flex-col overflow-hidden border-r border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-panel-background)] p-3">
+      <div
+        data-tutorial-id="tutorial-history-panel"
+        className="flex min-h-0 flex-1 flex-col gap-3"
       >
-        {t("history.introButton")}
-      </button>
+        <button
+          type="button"
+          onClick={onOpenIntroGuide}
+          className="h-11 w-full shrink-0 rounded-xl border border-[color:var(--page-theme-primary-action)] bg-[color:var(--page-theme-primary-action)] px-3 text-sm font-bold text-[color:var(--page-theme-primary-action-text)] transition hover:bg-[color:var(--page-theme-primary-action-hover)]"
+        >
+          {t("history.introButton")}
+        </button>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
-        {historyLoading && (
-          <div className="rounded-xl border border-dashed border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-2 py-3 text-center text-xs font-medium text-[color:var(--page-theme-text-tertiary)]">
-            {t("history.loadingShort")}
-          </div>
-        )}
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-1">
+          {historyLoading && (
+            <div className="rounded-xl border border-dashed border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-2 py-3 text-center text-xs font-medium text-[color:var(--page-theme-text-tertiary)]">
+              {t("history.loadingShort")}
+            </div>
+          )}
 
-        {!historyLoading && historyError && (
-          <div className="rounded-xl border border-[color:var(--page-theme-alert)] bg-[color:var(--page-theme-alert-soft)] px-2 py-3 text-center text-xs font-medium text-[color:var(--page-theme-alert)]">
-            {t("history.errorShort")}
-          </div>
-        )}
+          {!historyLoading && historyError && (
+            <div className="rounded-xl border border-[color:var(--page-theme-alert)] bg-[color:var(--page-theme-alert-soft)] px-2 py-3 text-center text-xs font-medium text-[color:var(--page-theme-alert)]">
+              {t("history.errorShort")}
+            </div>
+          )}
 
-        {!historyLoading && !historyError && historyItems.length > 0 && (
-          <div className="flex min-h-0 flex-col gap-2 pb-1">
-            {historyItems.map((item) => (
-              <HistoryTimelineButton
-                key={item.id}
-                item={item}
-                resultLabel={t("history.resultButton")}
-                onOpenRoundSummary={onOpenRoundSummary}
-                onOpenGameSummary={onOpenGameSummary}
-              />
-            ))}
-          </div>
-        )}
+          {!historyLoading && !historyError && historyItems.length > 0 && (
+            <div className="flex min-h-0 flex-col gap-2 pb-1">
+              {historyItems.map((item) => (
+                <HistoryTimelineButton
+                  key={item.id}
+                  item={item}
+                  resultLabel={t("history.resultButton")}
+                  onOpenRoundSummary={onOpenRoundSummary}
+                  onOpenGameSummary={onOpenGameSummary}
+                />
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );

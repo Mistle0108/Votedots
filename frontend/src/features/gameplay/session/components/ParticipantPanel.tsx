@@ -5,17 +5,22 @@ interface ParticipantPanelProps {
   participants: ParticipantItem[];
   loading: boolean;
   error: string | null;
+  forceOpen?: boolean;
 }
 
 export default function ParticipantPanel({
   participants,
   loading,
   error,
+  forceOpen = false,
 }: ParticipantPanelProps) {
   const { t } = useI18n();
 
   return (
-    <details className="group rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)]">
+    <details
+      open={forceOpen ? true : undefined}
+      className="group rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)]"
+    >
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
         <div className="flex items-center gap-2">
           <h3 className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
