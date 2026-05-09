@@ -349,7 +349,7 @@ export default function IntroGuideModal({
                   {t("intro.section.gameDescription")}
                 </h3>
                 <div className="mt-3 rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3">
-                  <ul className="space-y-1.5 text-left">
+                  <ul className="list-disc space-y-1.5 pl-8 text-left marker:text-[color:var(--page-theme-text-secondary)]">
                     <li>
                       {t("intro.rule.totalRoundsPrefix")}
                       <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
@@ -374,7 +374,9 @@ export default function IntroGuideModal({
                   </ul>
 
                   <div className="mt-3 rounded-2xl border border-[#DE5548]/30 bg-[#FFF5F3] px-3 py-2.5 text-left">
-                    <p className="font-bold text-[#DE5548]">{warningGuide.title}</p>
+                    <p className="font-bold text-[#DE5548]">
+                      {warningGuide.title}
+                    </p>
                     {warningGuide.bodyLines.map((line, index) => (
                       <p
                         key={`${warningGuide.title}-${index}`}
@@ -412,7 +414,10 @@ export default function IntroGuideModal({
                               key={`${guide.key}-${index}`}
                               className="text-sm leading-6 text-[color:var(--page-theme-text-secondary)]"
                             >
-                              {renderHighlightedText(line, guide.highlightPhrases)}
+                              {renderHighlightedText(
+                                line,
+                                guide.highlightPhrases,
+                              )}
                             </p>
                           ))}
                         </div>
