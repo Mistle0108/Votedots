@@ -6,6 +6,7 @@ interface CanvasStageProps {
   children: ReactNode;
   overlay?: ReactNode;
   topCenterOverlay?: ReactNode;
+  tutorialId?: string;
   onMouseDown: (event: React.MouseEvent) => void;
   onMouseMove: (event: React.MouseEvent) => void;
   onMouseUp: (event: React.MouseEvent) => void;
@@ -19,6 +20,7 @@ export default function CanvasStage({
   children,
   overlay,
   topCenterOverlay,
+  tutorialId,
   onMouseDown,
   onMouseMove,
   onMouseUp,
@@ -49,6 +51,7 @@ export default function CanvasStage({
   return (
     <div
       ref={stageRef}
+      data-tutorial-id={tutorialId}
       className={`relative min-w-0 flex-1 overflow-hidden ${isDragging ? "cursor-grabbing" : ""}`}
       style={{
         backgroundColor: CANVAS_BACKGROUND_COLOR,

@@ -107,18 +107,18 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.unit.votes": "개",
     "intro.section.gameDescription": "게임 설명",
     "intro.section.voteGuide": "조작 방법",
-    "intro.rule.totalRoundsPrefix": "- 게임은 총 ",
+    "intro.rule.totalRoundsPrefix": "게임은 총 ",
     "intro.rule.totalRoundsSuffix": "라운드로 진행됩니다.",
-    "intro.rule.roundDurationPrefix": "- 각 라운드는 ",
+    "intro.rule.roundDurationPrefix": "각 라운드는 ",
     "intro.rule.roundDurationMiddle": "초 동안 진행되며, 라운드마다 ",
     "intro.rule.roundDurationSuffix": "개의 투표권이 주어집니다.",
     "intro.rule.voteFlexibility":
-      "- 투표권은 여러 칸에 나눠 쓰거나, 한 칸에 여러 번 사용할 수 있습니다.",
+      "투표권은 여러 칸에 나눠 쓰거나, 한 칸에 여러 번 사용할 수 있습니다.",
     "intro.rule.applyVotes":
-      "- 라운드가 끝나면 가장 많은 표를 받은 색으로 해당 칸이 선택됩니다.",
-    "intro.rule.tieBreaker": "- 동점일 경우 색상은 무작위로 선택됩니다.",
+      "라운드가 끝나면 가장 많은 표를 받은 색으로 해당 칸이 선택됩니다.",
+    "intro.rule.tieBreaker": "동점일 경우 색상은 무작위로 선택됩니다.",
     "intro.vote.selectCell":
-      "【칸 선택】\n- 원하는 칸을 마우스로 클릭하세요. \n- 이후에는 키보드 방향키로 이동할 수 있습니다.",
+      "【칸 선택】\n원하는 칸을 마우스로 클릭하거나 키보드 방향키로 이동할 수 있습니다.",
     "intro.vote.submit":
       "【색상 선택】\n- 팔레트에서 색을 고른 뒤 '투표하기' 버튼을 클릭하거나 스페이스바를 누르면 투표됩니다.",
     "intro.vote.favorite":
@@ -221,6 +221,36 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.panel.home": "홈으로 이동",
     "vote.panel.help": "도움말 열기",
     "vote.panel.settings": "환경설정 열기",
+    "tutorial.control.previous": "이전",
+    "tutorial.control.next": "다음",
+    "tutorial.control.finish": "완료",
+    "tutorial.control.close": "닫기",
+    "tutorial.step.canvas.title": "중앙 캔버스 영역",
+    "tutorial.step.canvas.description":
+      "가운데 캔버스가 게임의 메인 화면입니다.\n현재 라운드에서 어디에 표를 모으고 투표할지 이 영역을 보며 판단하게 됩니다.",
+    "tutorial.step.voteModal.title": "투표 색상 선택",
+    "tutorial.step.voteModal.description":
+      "칸을 선택하면 색상 선택 창이 열리게 됩니다.\n색을 고르고 투표하기 버튼으로 표를 제출합니다.\n색상 스포이드, 색상 즐겨찾기 추가, 즐겨찾기 초기화 기능이 있습니다.",
+    "tutorial.step.roundInfo.title": "라운드 정보와 남은 투표권",
+    "tutorial.step.roundInfo.description":
+      "현재 라운드 상태, 남은 시간, 종료 예정 시각을 이 영역에서 확인합니다.\n이번 라운드에서 사용할 수 있는 투표권 수를 확인할 수 있습니다.",
+    "tutorial.step.minimap.title": "미니맵",
+    "tutorial.step.minimap.description":
+      "전체 캔버스에서 현재 보고 있는 위치를 빠르게 확인할 수 있습니다.\n원하는 위치를 클릭하면 해당 좌표로 바로 이동합니다.",
+    "tutorial.step.liveStatus.title": "실시간 투표 현황",
+    "tutorial.step.liveStatus.description":
+      "이번 라운드에서 투표되고 있는 칸과 대표 색상을 표시합니다.\n어느 좌표에 투표가 몰리는지 파악할 수 있습니다.\n가장 많은 표를 받은 상위 5개를 표시합니다.",
+    "tutorial.step.participants.title": "참여자 패널",
+    "tutorial.step.participants.description":
+      "현재 참여 중인 사람들을 확인할 수 있습니다.",
+    "tutorial.step.topActions.title": "상단 기능 버튼 패널",
+    "tutorial.step.topActions.description":
+      "집 모양 버튼은 홈페이지로 이동합니다.\n물음표 버튼은 지금 보는 튜토리얼을 다시 엽니다.\n환경 설정 버튼을 누르면 언어와 캔버스 배경색을 변경할 수 있습니다.",
+    "tutorial.step.history.title": "히스토리 패널",
+    "tutorial.step.history.description":
+      "게임 안내, 각 라운드 결과, 게임 결과 통계를 확인할 수 있습니다.\n게임 결과 통계 화면에서는 완성된 캔버스를 다운로드 할 수 있습니다.\n다운로드 결과물에 캔버스 배경색은 포함되지 않습니다.",
+    "tutorial.voteModal.previewTitle": "투표 모달 예시",
+    "tutorial.voteModal.previewColor": "색상을 고르고 투표를 제출하세요.",
 
     "loginBoard.title": "업데이트 보드",
     "loginBoard.subtitle": "업데이트 보드",
@@ -337,19 +367,19 @@ export const resources: Record<Locale, Record<string, string>> = {
     "intro.unit.votes": " votes",
     "intro.section.gameDescription": "How the game works",
     "intro.section.voteGuide": "Controls",
-    "intro.rule.totalRoundsPrefix": "- The game runs for ",
+    "intro.rule.totalRoundsPrefix": "The game runs for ",
     "intro.rule.totalRoundsSuffix": " rounds in total.",
-    "intro.rule.roundDurationPrefix": "- Each round lasts ",
+    "intro.rule.roundDurationPrefix": "Each round lasts ",
     "intro.rule.roundDurationMiddle": " seconds, and you receive ",
     "intro.rule.roundDurationSuffix": " vote tickets per round.",
     "intro.rule.voteFlexibility":
-      "- You can split your vote tickets across multiple cells or focus them on a single cell.",
+      "You can split your vote tickets across multiple cells or focus them on a single cell.",
     "intro.rule.applyVotes":
-      "- When the round ends, each cell is selected with the color that received the most votes.",
+      "When the round ends, each cell is selected with the color that received the most votes.",
     "intro.rule.tieBreaker":
-      "- If there is a tie, the color is selected at random.",
+      "If there is a tie, the color is selected at random.",
     "intro.vote.selectCell":
-      "【Select a cell】\n- Click the cell you want with your mouse. \n- After the first click, you can also move with the arrow keys.",
+      "【Select a cell】\nClick the cell you want with your mouse or move with the arrow keys.",
     "intro.vote.submit":
       "【Choose a color】\n- Pick a color from the palette, then click the Vote button or press the space bar to cast your vote.",
     "intro.vote.favorite":
@@ -455,6 +485,36 @@ export const resources: Record<Locale, Record<string, string>> = {
     "vote.panel.home": "Go home",
     "vote.panel.help": "Open help",
     "vote.panel.settings": "Open settings",
+    "tutorial.control.previous": "Previous",
+    "tutorial.control.next": "Next",
+    "tutorial.control.finish": "Done",
+    "tutorial.control.close": "Close",
+    "tutorial.step.canvas.title": "Main canvas area",
+    "tutorial.step.canvas.description":
+      "The center canvas is the main play area.\nYou use this area to decide where to gather votes and place your vote during the current round.",
+    "tutorial.step.voteModal.title": "Vote color selection",
+    "tutorial.step.voteModal.description":
+      "When you select a cell, the color selection popup opens.\nChoose a color and submit your vote with the Vote button.\nIt also provides a color picker, add-to-favorites, and reset favorites actions.",
+    "tutorial.step.roundInfo.title": "Round info and votes left",
+    "tutorial.step.roundInfo.description":
+      "This area shows the current round status, remaining time, and scheduled end time.\nYou can check how many vote tickets are available in this round.",
+    "tutorial.step.minimap.title": "Mini-map",
+    "tutorial.step.minimap.description":
+      "Use the mini-map to quickly see your current position on the full canvas.\nClick the location you want to jump there immediately.",
+    "tutorial.step.liveStatus.title": "Live vote status",
+    "tutorial.step.liveStatus.description":
+      "This panel shows the cells receiving votes in the current round and their leading colors.\nYou can see which coordinates are attracting votes.\nIt displays the top 5 entries with the most votes.",
+    "tutorial.step.participants.title": "Participant panel",
+    "tutorial.step.participants.description":
+      "You can check the people currently participating here.",
+    "tutorial.step.topActions.title": "Top action button panel",
+    "tutorial.step.topActions.description":
+      "The home-shaped button takes you to the homepage.\nThe question mark button opens this tutorial again.\nThe settings button lets you change the language and canvas background color.",
+    "tutorial.step.history.title": "History panel",
+    "tutorial.step.history.description":
+      "You can review the game guide, each round result, and the final game stats here.\nIn the game result stats view, you can download the completed canvas.\nThe downloaded image does not include the canvas background color.",
+    "tutorial.voteModal.previewTitle": "Vote popup preview",
+    "tutorial.voteModal.previewColor": "Choose a color and submit your vote.",
 
     "loginBoard.title": "Update Board",
     "loginBoard.subtitle": "Update board",

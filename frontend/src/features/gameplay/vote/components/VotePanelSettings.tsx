@@ -6,10 +6,20 @@ interface Props {
   onLocaleChange: (locale: "ko" | "en") => void;
   backgroundMode: PlayBackgroundMode;
   onBackgroundModeChange: (mode: PlayBackgroundMode) => void;
+  tutorialId?: string;
 }
 
 const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
-  ({ locale, onLocaleChange, backgroundMode, onBackgroundModeChange }, ref) => {
+  (
+    {
+      locale,
+      onLocaleChange,
+      backgroundMode,
+      onBackgroundModeChange,
+      tutorialId,
+    },
+    ref,
+  ) => {
     const labels =
       locale === "ko"
         ? {
@@ -30,6 +40,7 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
     return (
       <div
         ref={ref}
+        data-tutorial-id={tutorialId}
         className="absolute right-0 top-11 z-10 w-56 rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-3 shadow-lg"
       >
         <div className="flex flex-col gap-2">

@@ -4,7 +4,10 @@ import type {
   GameSummaryParticipant,
   GameSummaryTopVoter,
 } from "@/features/gameplay/session/api/session.api";
-import { HISTORY_PANEL_WIDTH } from "@/pages/canvas/model/modal-position";
+import {
+  HISTORY_PANEL_WIDTH,
+  RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT,
+} from "@/pages/canvas/model/modal-position";
 import { useI18n } from "@/shared/i18n";
 import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
 import { PixelSnapshotPreview } from "@/shared/ui/pixel-snapshot-preview";
@@ -168,8 +171,11 @@ export default function GameSummaryModal({
       className="pointer-events-none fixed inset-0 z-50 bg-[color:var(--page-theme-overlay)] px-3 py-6"
     >
       <div
-        className="pointer-events-auto fixed inset-y-0 right-0 bg-[color:var(--page-theme-overlay)]"
-        style={{ left: `${HISTORY_PANEL_WIDTH}px` }}
+        className="pointer-events-auto fixed bottom-0 right-0 bg-[color:var(--page-theme-overlay)]"
+        style={{
+          top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
+          left: `${HISTORY_PANEL_WIDTH}px`,
+        }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       />
