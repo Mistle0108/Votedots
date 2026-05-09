@@ -1,12 +1,19 @@
 import type { PublicSiteLocale } from "@/shared/hooks/use-public-site-locale";
-import type { LandingFeaturedGameCard } from "../model/landing.types";
+import type { LandingFeaturedPreviewItem } from "../model/landing.types";
 import FeaturedPreviewCard, {
   type FeaturedPreviewCardLabels,
 } from "./FeaturedPreviewCard";
 
+const FEATURED_PREVIEW_SLOTS = [
+  { gridX: 32, gridY: 32, size: "32x32" },
+  { gridX: 64, gridY: 64, size: "64x64" },
+  { gridX: 128, gridY: 128, size: "128x128" },
+  { gridX: 256, gridY: 256, size: "256x256" },
+] as const;
+
 interface FeaturedPreviewSectionProps {
   locale: PublicSiteLocale;
-  cards: LandingFeaturedGameCard[];
+  items: LandingFeaturedPreviewItem[];
   labels: FeaturedPreviewCardLabels & {
     title: string;
     description: string;
@@ -15,9 +22,11 @@ interface FeaturedPreviewSectionProps {
 
 export default function FeaturedPreviewSection({
   locale,
-  cards,
+  items,
   labels,
 }: FeaturedPreviewSectionProps) {
+  const previewBySize = new Map(items.map((item) => [item.preview.size, item]));
+
   return (
     <section className="mx-auto mt-10 max-w-7xl">
       <div className="text-left">
@@ -33,11 +42,13 @@ export default function FeaturedPreviewSection({
       </div>
 
       <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-        {cards.map((card) => (
+        {FEATURED_PREVIEW_SLOTS.map((slot) => (
           <FeaturedPreviewCard
-            key={card.profileKey}
+            key={slot.size}
             locale={locale}
-            card={card}
+            gridX={slot.gridX}
+            gridY={slot.gridY}
+            item={previewBySize.get(slot.size) ?? null}
             labels={labels}
           />
         ))}

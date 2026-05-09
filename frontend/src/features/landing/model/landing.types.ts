@@ -47,3 +47,28 @@ export interface LandingPayload {
   currentGame: LandingCurrentGame | null;
   featuredGames: LandingFeaturedGameCard[];
 }
+
+export interface LandingFeaturedPreviewTopVoter {
+  name: string | null;
+  voteCount: number;
+}
+
+export interface LandingFeaturedPreviewMeta {
+  size: string;
+  gridX: number;
+  gridY: number;
+  endedAt: string;
+  participantCount: number;
+  participants: string[];
+  topVoter: LandingFeaturedPreviewTopVoter;
+  totalVotes: number;
+}
+
+export interface LandingFeaturedPreviewItem {
+  webpUrl: string;
+  preview: LandingFeaturedPreviewMeta;
+}
+
+export interface LandingFeaturedPreviewPayload {
+  items: LandingFeaturedPreviewItem[];
+}

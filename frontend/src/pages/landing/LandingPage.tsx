@@ -3,7 +3,10 @@ import { Link } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import { landingApi } from "@/features/landing/api/landing.api";
 import FeaturedPreviewSection from "@/features/landing/components/FeaturedPreviewSection";
-import type { LandingPayload } from "@/features/landing/model/landing.types";
+import type {
+  LandingFeaturedPreviewItem,
+  LandingPayload,
+} from "@/features/landing/model/landing.types";
 import { getSiteContent } from "@/shared/content/site-content";
 import {
   type PublicSiteLocale,
@@ -125,6 +128,9 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
   const [authState, setAuthState] = useState<AuthState>("unknown");
   const [landingData, setLandingData] = useState<LandingPayload | null>(null);
+  const [featuredPreviewItems, setFeaturedPreviewItems] = useState<
+    LandingFeaturedPreviewItem[]
+  >([]);
   const [landingError, setLandingError] = useState("");
 
   usePageRootClass("page-shell-root");
@@ -157,15 +163,32 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
     const loadLanding = async () => {
       try {
-        const { data } = await landingApi.getLandingPayload();
+        const [{ status: landingStatus, value: landingValue }, previewResult] =
+          await Promise.allSettled([
+            landingApi.getLandingPayload(),
+            landingApi.getLandingPreviews(),
+          ]);
 
-        if (!cancelled) {
-          setLandingData(data);
+        if (cancelled) {
+          return;
+        }
+
+        if (landingStatus === "fulfilled") {
+          setLandingData(landingValue.data);
           setLandingError("");
+        } else {
+          setLandingError(copy.liveLoadError);
+        }
+
+        if (previewResult.status === "fulfilled") {
+          setFeaturedPreviewItems(previewResult.value.data.items);
+        } else {
+          setFeaturedPreviewItems([]);
         }
       } catch {
         if (!cancelled) {
           setLandingError(copy.liveLoadError);
+          setFeaturedPreviewItems([]);
         }
       }
     };
@@ -303,17 +326,14 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
         <FeaturedPreviewSection
           locale={locale}
-          cards={landingData?.featuredGames ?? []}
+          items={featuredPreviewItems}
           labels={{
             title: copy.featuredTitle,
             description: copy.featuredDescription,
-            emptyTitle: siteContent.featured.emptyTitle,
-            emptyDescription: siteContent.featured.emptyDescription,
             participants: copy.participants,
             votes: copy.votes,
             topVoter: copy.topVoter,
             participantList: copy.participantList,
-            noTopVoter: copy.noTopVoter,
           }}
         />
 
