@@ -435,6 +435,10 @@ export const publicLandingPreviewService = {
       return;
     }
 
+    if (summary.totalVotes <= 0) {
+      return;
+    }
+
     const size = buildPreviewSize(summary.canvas.gridX, summary.canvas.gridY);
     const previewBase = {
       canvasId,
