@@ -14,7 +14,12 @@ import {
   ensureLandingPreviewDirectory,
   resolveGameHistoryAbsolutePath,
 } from "../history/history-storage.service";
+import { roundSnapshotRenderService } from "../history/round-snapshot-render.service";
 import { roundSnapshotService } from "../history/round-snapshot.service";
+import {
+  loadResultTemplateAsset,
+  resolveResultTemplateAssetKey,
+} from "../canvas/template/result-template.service";
 
 const WebP: any = require("../../vendor/node-webpmux/webp.js");
 
@@ -24,6 +29,7 @@ const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
 const PREVIEW_FRAME_COUNT = 6;
 const PREVIEW_TARGET_LONGEST_SIDE = 256;
 const PREVIEW_FRAME_DELAY_MS = 600;
+const PREVIEW_FINAL_FRAME_DELAY_MS = 1600;
 const PREVIEW_FINAL_FRAME_MIN_DIFFERENCE_RATIO = 0.03;
 const SAVE_RETRY_ATTEMPTS = 3;
 const SAVE_RETRY_DELAY_MS = 250;
@@ -179,8 +185,33 @@ async function loadGridFrameImage(
   };
 }
 
+async function buildResultTemplateFrameImage(params: {
+  gridX: number;
+  gridY: number;
+  resultTemplateAssetKey: string | null;
+}): Promise<GridFrameImage> {
+  const assetBuffer = await loadResultTemplateAsset(
+    resolveResultTemplateAssetKey({
+      resultTemplateAssetKey: params.resultTemplateAssetKey,
+    }),
+  );
+  const rendered = roundSnapshotRenderService.renderPngBuffer({
+    gridWidth: params.gridX,
+    gridHeight: params.gridY,
+    cells: [],
+    backgroundImageBuffer: assetBuffer,
+  });
+  const png = PNG.sync.read(rendered.buffer);
+
+  return {
+    width: png.width,
+    height: png.height,
+    data: Buffer.from(png.data),
+  };
+}
+
 async function selectPreviewFrames(
-  canvasId: number,
+  canvas: Pick<GameSummary["canvas"], "id" | "gridX" | "gridY" | "resultTemplateAssetKey">,
   snapshots: Awaited<ReturnType<typeof roundSnapshotService.listRoundSnapshots>>,
 ): Promise<SelectedFrame[]> {
   const frameCache = new Map<number, GridFrameImage>();
@@ -198,34 +229,39 @@ async function selectPreviewFrames(
       throw new Error(`Round snapshot was not found. (round=${roundNumber})`);
     }
 
-    const image = await loadGridFrameImage(canvasId, snapshot);
+    const image = await loadGridFrameImage(canvas.id, snapshot);
     frameCache.set(roundNumber, image);
     return image;
   };
 
-  if (snapshots.length <= PREVIEW_FRAME_COUNT) {
-    return Promise.all(
+  const templateFrame: SelectedFrame = {
+    roundNumber: 0,
+    image: await buildResultTemplateFrameImage({
+      gridX: canvas.gridX,
+      gridY: canvas.gridY,
+      resultTemplateAssetKey: canvas.resultTemplateAssetKey,
+    }),
+  };
+
+  if (snapshots.length <= PREVIEW_FRAME_COUNT - 1) {
+    const snapshotFrames = await Promise.all(
       snapshots.map(async (snapshot) => ({
         roundNumber: snapshot.roundNumber,
         image: await getFrameImage(snapshot.roundNumber),
       })),
     );
+
+    return [templateFrame, ...snapshotFrames];
   }
 
-  const firstSnapshot = snapshots[0];
   const lastSnapshot = snapshots[snapshots.length - 1];
-  const middleSnapshots = snapshots.slice(1, -1);
+  const middleSnapshots = snapshots.slice(0, -1);
   const finalFrameImage = await getFrameImage(lastSnapshot.roundNumber);
   const minimumFinalFrameDifference = Math.max(
     1,
     Math.floor(finalFrameImage.width * finalFrameImage.height * PREVIEW_FINAL_FRAME_MIN_DIFFERENCE_RATIO),
   );
-  const selected: SelectedFrame[] = [
-    {
-      roundNumber: firstSnapshot.roundNumber,
-      image: await getFrameImage(firstSnapshot.roundNumber),
-    },
-  ];
+  const selected: SelectedFrame[] = [templateFrame];
 
   for (let segmentIndex = 0; segmentIndex < PREVIEW_FRAME_COUNT - 2; segmentIndex += 1) {
     const start = Math.floor(
@@ -300,7 +336,7 @@ async function buildAnimatedPreviewBuffer(params: {
   const { width, height } = calculateTargetSize(params.gridX, params.gridY);
   const frames = [];
 
-  for (const frame of params.frames) {
+  for (const [index, frame] of params.frames.entries()) {
     const image = await WebP.Image.getEmptyImage();
     const scaledPixels = upscaleNearest(frame.image, width, height);
     const encodeResult = await image.setImageData(scaledPixels, {
@@ -318,7 +354,10 @@ async function buildAnimatedPreviewBuffer(params: {
     frames.push(
       await WebP.Image.generateFrame({
         img: image,
-        delay: PREVIEW_FRAME_DELAY_MS,
+        delay:
+          index === params.frames.length - 1
+            ? PREVIEW_FINAL_FRAME_DELAY_MS
+            : PREVIEW_FRAME_DELAY_MS,
       }),
     );
   }
@@ -435,6 +474,10 @@ export const publicLandingPreviewService = {
       return;
     }
 
+    if (summary.totalVotes <= 0) {
+      return;
+    }
+
     const size = buildPreviewSize(summary.canvas.gridX, summary.canvas.gridY);
     const previewBase = {
       canvasId,
@@ -457,7 +500,7 @@ export const publicLandingPreviewService = {
         throw new Error("missing_round_snapshots");
       }
 
-      const frames = await selectPreviewFrames(canvasId, snapshots);
+      const frames = await selectPreviewFrames(summary.canvas, snapshots);
 
       if (frames.length === 0) {
         throw new Error("no_preview_frames_selected");

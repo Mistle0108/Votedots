@@ -9,6 +9,17 @@ export interface LandingCurrentGame {
   fallbackImageUrl: string | null;
 }
 
+export interface LandingParticipant {
+  voterId: number;
+  name: string;
+}
+
+export interface LandingTopVoterSummary {
+  voterId: number;
+  name: string;
+  voteCount: number;
+}
+
 export interface LandingFeaturedGameSummary {
   canvasId: number;
   totalRounds: number;
@@ -17,15 +28,8 @@ export interface LandingFeaturedGameSummary {
   canvasCompletionPercent: string;
   topVoterName: string | null;
   topVoterVoteCount: number;
-  topVoters: Array<{
-    voterId: number;
-    name: string;
-    voteCount: number;
-  }> | null;
-  participants: Array<{
-    voterId: number;
-    name: string;
-  }> | null;
+  topVoters: LandingTopVoterSummary[] | null;
+  participants: LandingParticipant[] | null;
   endedAt: string | null;
   snapshotUrl: string | null;
 }
@@ -42,4 +46,29 @@ export interface LandingFeaturedGameCard {
 export interface LandingPayload {
   currentGame: LandingCurrentGame | null;
   featuredGames: LandingFeaturedGameCard[];
+}
+
+export interface LandingFeaturedPreviewTopVoter {
+  name: string | null;
+  voteCount: number;
+}
+
+export interface LandingFeaturedPreviewMeta {
+  size: string;
+  gridX: number;
+  gridY: number;
+  endedAt: string;
+  participantCount: number;
+  participants: string[];
+  topVoter: LandingFeaturedPreviewTopVoter;
+  totalVotes: number;
+}
+
+export interface LandingFeaturedPreviewItem {
+  webpUrl: string;
+  preview: LandingFeaturedPreviewMeta;
+}
+
+export interface LandingFeaturedPreviewPayload {
+  items: LandingFeaturedPreviewItem[];
 }
