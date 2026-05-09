@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import type { PublicSiteLocale } from "@/shared/hooks/use-public-site-locale";
 
 interface FeaturedPreviewImageProps {
@@ -19,11 +19,9 @@ export default function FeaturedPreviewImage({
   alt,
 }: FeaturedPreviewImageProps) {
   const fallbackImageUrl = useMemo(() => getFallbackImageUrl(locale), [locale]);
-  const [imageUrl, setImageUrl] = useState(webpUrl ?? fallbackImageUrl);
-
-  useEffect(() => {
-    setImageUrl(webpUrl ?? fallbackImageUrl);
-  }, [fallbackImageUrl, webpUrl]);
+  const [failedWebpUrl, setFailedWebpUrl] = useState<string | null>(null);
+  const imageUrl =
+    !webpUrl || failedWebpUrl === webpUrl ? fallbackImageUrl : webpUrl;
 
   return (
     <div className="mx-auto flex w-fit justify-center">
@@ -45,8 +43,8 @@ export default function FeaturedPreviewImage({
           style={{ imageRendering: "pixelated" }}
           draggable={false}
           onError={() => {
-            if (imageUrl !== fallbackImageUrl) {
-              setImageUrl(fallbackImageUrl);
+            if (webpUrl && imageUrl !== fallbackImageUrl) {
+              setFailedWebpUrl(webpUrl);
             }
           }}
         />

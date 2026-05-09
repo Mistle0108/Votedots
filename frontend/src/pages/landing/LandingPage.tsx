@@ -163,18 +163,17 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
     const loadLanding = async () => {
       try {
-        const [{ status: landingStatus, value: landingValue }, previewResult] =
-          await Promise.allSettled([
-            landingApi.getLandingPayload(),
-            landingApi.getLandingPreviews(),
-          ]);
+        const [landingResult, previewResult] = await Promise.allSettled([
+          landingApi.getLandingPayload(),
+          landingApi.getLandingPreviews(),
+        ]);
 
         if (cancelled) {
           return;
         }
 
-        if (landingStatus === "fulfilled") {
-          setLandingData(landingValue.data);
+        if (landingResult.status === "fulfilled") {
+          setLandingData(landingResult.value.data);
           setLandingError("");
         } else {
           setLandingError(copy.liveLoadError);
