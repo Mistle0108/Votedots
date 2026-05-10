@@ -20,11 +20,23 @@ interface PublicUpdatesPageProps {
   tab: LoginBoardTab;
 }
 
+const PUBLIC_UPDATES_TEXT = {
+  ko: {
+    loading: "업데이트 보드를 불러오는 중입니다...",
+    loadError: "업데이트 보드를 불러오지 못했습니다.",
+  },
+  en: {
+    loading: "Loading the update board...",
+    loadError: "Failed to load the update board.",
+  },
+} satisfies Record<PublicSiteLocale, { loading: string; loadError: string }>;
+
 export default function PublicUpdatesPage({
   locale,
   tab,
 }: PublicUpdatesPageProps) {
   const content = useMemo(() => getSiteContent(locale), [locale]);
+  const updatesText = useMemo(() => PUBLIC_UPDATES_TEXT[locale], [locale]);
   const [boardData, setBoardData] = useState<LoginBoardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -47,7 +59,7 @@ export default function PublicUpdatesPage({
         }
       } catch {
         if (!cancelled) {
-          setError(content.updates.loadError);
+          setError(updatesText.loadError);
         }
       } finally {
         if (!cancelled) {
@@ -61,7 +73,7 @@ export default function PublicUpdatesPage({
     return () => {
       cancelled = true;
     };
-  }, [content.updates.loadError]);
+  }, [updatesText.loadError]);
 
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(222,85,72,0.14),transparent_28%),radial-gradient(circle_at_86%_18%,rgba(61,214,140,0.12),transparent_28%),linear-gradient(180deg,#fbf3ec_0%,#fff8f2_44%,#f6f1ea_100%)] text-[#272E37]">
@@ -92,7 +104,7 @@ export default function PublicUpdatesPage({
           <div className="h-full rounded-[28px] border border-[#ead7c8] bg-white p-4">
             {loading ? (
               <div className="flex h-full items-center justify-center text-sm text-slate-500">
-                {content.updates.loading}
+                {updatesText.loading}
               </div>
             ) : error ? (
               <div className="flex h-full items-center justify-center text-sm text-rose-600">
