@@ -312,9 +312,9 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
     },
     hero: {
       title:
-        "VoteDots is a round-based canvas game where each cell is decided by votes.",
+        "Draw and vote together\non a shared pixel canvas.",
       description:
-        "Every round turns votes into visible progress on a shared canvas. Check the current game, browse standout finished boards, and jump in when you are ready.",
+        "Pick a color, cast your vote, and complete it together.",
       cta: "Join the game",
     },
     currentGame: {
@@ -328,13 +328,13 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       stats: {
         grid: "Grid",
         round: "Round",
-        participants: "Participants",
+        participants: "Current participants",
       },
     },
     featured: {
       title: "Completed canvases",
       description:
-        "These are the finished boards with the highest participant counts for the active rotation sizes.",
+        "Shows the game with the most participants for each board size in the current rotation.",
       stats: {
         participants: "Participants",
         votes: "Total votes",
@@ -345,50 +345,50 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
     tutorial: {
       title: "Game introduction",
       description:
-        "These cards explain the core features in the same order players usually discover them in the game.",
+        "",
       cards: [
         {
           id: "place-dot",
           label: "Step 1",
-          title: "You can place dots directly on the canvas",
+          title: "You can vote with the color you want.",
           description:
-            "Pick a cell and a color, then cast your vote directly onto the board. The picture is built one pixel at a time as everyone contributes together.",
+            "Choose the cell and color you want, then cast your vote directly.\nEach cell is decided by the single color that receives the most votes.",
           imageUrl: "/landing/guide/place-dot-demo.webp",
           imageAlt: "Dot placement demo",
         },
         {
           id: "live-presence",
           label: "Step 2",
-          title: "You play alongside other people in real time",
+          title: "You can play together with other people.",
           description:
-            "You can see where other players are focusing and how votes are gathering on the board. The live canvas makes the group activity visible as it happens.",
+            "You can see in real time which cells and colors other people are voting on.\nIf you do not like the color someone else picked, you can use more votes to change the outcome.",
           imageUrl: "/landing/guide/live-presence-demo.webp",
           imageAlt: "Live presence demo",
         },
         {
           id: "template-rotation",
           label: "Step 3",
-          title: "A variety of templates keep rotating in",
+          title: "You can explore a variety of templates.",
           description:
-            "The game rotates through different board sizes and templates over time. Even with the same rules, each board can feel different depending on the template and scale.",
+            "Different board sizes and templates rotate over time.\nThe template is only a guideline, and you can always draw whatever image you want.",
           imageUrl: "/landing/guide/template-rotation.webp",
           imageAlt: "Template rotation demo",
         },
         {
           id: "round-history",
           label: "Step 4",
-          title: "You can revisit round results later",
+          title: "You can revisit round results.",
           description:
-            "A snapshot is recorded whenever a round ends. You can look back through earlier rounds to see how the canvas changed over time.",
+            "A result snapshot is recorded whenever a round ends.\nYou can look back at previous rounds to see which choices were reflected on the canvas.",
           imageUrl: "/landing/guide/round-history-demo.webp",
           imageAlt: "Round history demo",
         },
         {
           id: "download-result",
           label: "Step 5",
-          title: "You can download the finished image",
+          title: "You can download the finished image.",
           description:
-            "When the game ends, the final result can be saved as an image. The download is provided as a transparent PNG without the background template dots.",
+            "When the game ends, you can save the final result image.\nThe download is provided as a transparent PNG without the background template dots.",
           imageUrl: "/landing/guide/download-result-demo.webp",
           imageAlt: "Download finished image demo",
           iconUrl: "/landing/guide/download-result-fox.png",
@@ -397,7 +397,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
     },
     footer: {
       description:
-        "Review the service rules, privacy handling, community notes, and contact policy in one place.",
+        "You can review the service rules, privacy policy, community guide, and contact policy here.",
       links: {
         terms: "Terms of Service",
         privacy: "Privacy Policy",
