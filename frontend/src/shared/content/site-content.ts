@@ -7,6 +7,7 @@ interface TutorialCardContent {
   description: string;
   imageUrl: string;
   imageAlt: string;
+  iconUrl?: string;
 }
 
 interface InfoSectionContent {
@@ -27,7 +28,6 @@ interface SiteContent {
     home: string;
   };
   hero: {
-    eyebrow: string;
     title: string;
     description: string;
     cta: string;
@@ -37,6 +37,8 @@ interface SiteContent {
     emptyTitle: string;
     emptyDescription: string;
     snapshotLabel: string;
+    loadError: string;
+    fallbackPreviewAlt: string;
     stats: {
       grid: string;
       round: string;
@@ -46,22 +48,12 @@ interface SiteContent {
   featured: {
     title: string;
     description: string;
-    emptyTitle: string;
-    emptyDescription: string;
     stats: {
       participants: string;
       votes: string;
-      completion: string;
       topVoter: string;
       participantList: string;
-      endedAt: string;
     };
-  };
-  updates: {
-    title: string;
-    description: string;
-    loading: string;
-    loadError: string;
   };
   tutorial: {
     title: string;
@@ -93,18 +85,19 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       home: "홈",
     },
     hero: {
-      eyebrow: "같이 칠하는 실시간 픽셀 캔버스",
-      title: "VoteDots는 한 라운드씩 모여 완성되는 투표형 캔버스 게임입니다.",
+      title: "직접 그리고\n함께 투표하는 픽셀 캔버스",
       description:
-        "매 라운드마다 표를 모아 한 칸씩 색이 확정됩니다. 지금 진행 중인 게임과 최근 인기 게임을 먼저 보고, 준비되면 바로 참여하세요.",
+        "색을 고르고, 투표를 하고, 함께 완성하세요.",
       cta: "참여하기",
     },
     currentGame: {
       title: "현재 진행 중인 게임",
-      emptyTitle: "현재 진행 중인 게임이 없습니다",
+      emptyTitle: "현재 진행 중인 게임이 없습니다.",
       emptyDescription:
         "다음 게임이 준비되면 이 영역에 최신 라운드 스냅샷과 진행 정보가 표시됩니다.",
       snapshotLabel: "마지막 완료 라운드 스냅샷",
+      loadError: "랜딩 데이터를 불러오지 못했습니다.",
+      fallbackPreviewAlt: "기본 템플릿 미리보기",
       stats: {
         grid: "그리드",
         round: "라운드",
@@ -112,83 +105,72 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       },
     },
     featured: {
-      title: "그리드 크기별 대표 종료 게임",
+      title: "완성된 캔버스",
       description:
-        "현재 로테이션에 포함된 32, 64, 128, 256 보드에서 가장 많은 참여자를 모은 게임을 모아 봅니다.",
-      emptyTitle: "아직 종료된 게임이 없습니다",
-      emptyDescription:
-        "이 그리드 크기의 첫 결과가 나오면 여기에서 최종 스냅샷과 통계를 확인할 수 있습니다.",
+        "현재 로테이션에 포함된 보드 크기별로 참여자가 가장 많았던 게임을 보여줍니다.",
       stats: {
         participants: "참여자",
         votes: "총 투표 수",
-        completion: "완성도",
         topVoter: "최다 투표자",
         participantList: "참여자 목록",
-        endedAt: "종료 시각",
       },
     },
-    updates: {
-      title: "패치노트와 로드맵",
-      description:
-        "현재 서비스의 변경 사항과 앞으로의 계획을 같은 자리에서 바로 확인할 수 있습니다.",
-      loading: "업데이트 보드를 불러오는 중입니다...",
-      loadError: "업데이트 보드를 불러오지 못했습니다.",
-    },
     tutorial: {
-      title: "게임을 이해하는 가장 빠른 흐름",
+      title: "게임 소개",
       description:
-        "처음 들어오는 사용자가 규칙과 리듬을 빠르게 파악할 수 있도록, 실제 플레이 흐름 기준으로 핵심만 정리했습니다.",
+        "",
       cards: [
         {
-          id: "intro",
+          id: "place-dot",
           label: "Step 1",
-          title: "게임은 한 장의 템플릿에서 시작합니다",
+          title: "원하는 색으로 투표할 수 있습니다.",
           description:
-            "각 게임은 미리 정해진 그리드 크기와 템플릿을 가지고 시작합니다. 첫 라운드 결과가 나오기 전에는 기본 템플릿이 기준 화면이 됩니다.",
-          imageUrl: "/result-templates/32x32/cat-face-32x32.png",
-          imageAlt: "32x32 template preview",
+            "원하는 칸과 색을 골라 직접 표를 던질 수 있습니다.\n가장 많은 표를 받은 한 가지 색으로 결정됩니다.",
+          imageUrl: "/landing/guide/place-dot-demo.webp",
+          imageAlt: "도트 배치 데모",
         },
         {
-          id: "vote",
+          id: "live-presence",
           label: "Step 2",
-          title: "라운드마다 칸과 색을 선택해 표를 씁니다",
+          title: "다른 사람과 함께할 수 있습니다.",
           description:
-            "참여자는 매 라운드마다 원하는 칸과 색에 표를 분배할 수 있습니다. 한 칸에 몰아주거나 여러 칸에 나눠 쓰는 것도 가능합니다.",
-          imageUrl: "/play-backgrounds/64x64/grid-g-64x64.png",
-          imageAlt: "Grid background preview",
+            "다른 사람이 투표한 칸과 색을 실시간으로 확인할 수 있습니다.\n상대방이 고른 색이 마음에 들지 않으면 표를 더 사용하면 됩니다.",
+          imageUrl: "/landing/guide/live-presence-demo.webp",
+          imageAlt: "실시간 참여 데모",
         },
         {
-          id: "result",
+          id: "template-rotation",
           label: "Step 3",
-          title: "가장 많은 표를 받은 결과가 캔버스에 반영됩니다",
+          title: "다양한 템플릿을 만나볼 수 있습니다.",
           description:
-            "라운드가 끝나면 셀마다 가장 많은 표를 받은 색이 반영되고, 그 시점의 스냅샷이 누적됩니다. 이 기록이 게임 히스토리가 됩니다.",
-          imageUrl: "/result-templates/256x256/cat-front-256x256.png",
-          imageAlt: "Result template preview",
+            "시간에 따라 다른 크기와 템플릿으로 교체됩니다.\n템플릿은 가이드라인일 뿐, 언제나 원하는 그림을 그릴 수 있습니다.",
+          imageUrl: "/landing/guide/template-rotation.webp",
+          imageAlt: "템플릿 순환 데모",
         },
         {
-          id: "rotation",
+          id: "round-history",
           label: "Step 4",
-          title: "게임은 로테이션되는 그리드 크기로 이어집니다",
+          title: "라운드 결과를 다시 확인할 수 있습니다.",
           description:
-            "VoteDots는 32, 64, 128, 256 크기를 중심으로 로테이션됩니다. 같은 규칙이더라도 보드 크기에 따라 전략과 체감 속도가 달라집니다.",
-          imageUrl: "/play-backgrounds/128x128/grid-b-128x128.png",
-          imageAlt: "128x128 grid preview",
+            "각 라운드가 끝날 때마다 결과 스냅샷이 기록됩니다.\n이전 라운드의 진행 과정을 다시 보면서 어떤 선택이 반영됐는지 확인할 수 있습니다.",
+          imageUrl: "/landing/guide/round-history-demo.webp",
+          imageAlt: "라운드 결과 히스토리 데모",
         },
         {
-          id: "summary",
+          id: "download-result",
           label: "Step 5",
-          title: "종료 후에는 최종 스냅샷과 통계를 함께 봅니다",
+          title: "완성된 그림을 다운로드할 수 있습니다.",
           description:
-            "게임이 끝나면 최종 이미지뿐 아니라 참여자 수, 최다 투표자, 전체 투표량 같은 요약 정보로 결과를 다시 해석할 수 있습니다.",
-          imageUrl: "/result-templates/512x512/smile-512x512.png",
-          imageAlt: "Summary preview",
+            "게임이 종료되면 최종 결과 이미지를 저장할 수 있습니다.\n다운로드 파일은 배경 템플릿 도트가 제외된 투명 PNG로 제공됩니다.",
+          imageUrl: "/landing/guide/download-result-demo.webp",
+          imageAlt: "완성 이미지 다운로드 데모",
+          iconUrl: "/landing/guide/download-result-fox.png",
         },
       ],
     },
     footer: {
       description:
-        "VoteDots의 운영 기준, 개인정보 처리 기준, 커뮤니티 안내, 문의 정책을 한 곳에서 확인하세요.",
+        "서비스 규칙, 개인정보 처리 기준, 커뮤니티 안내, 문의 정책을 이곳에서 확인할 수 있습니다.",
       links: {
         terms: "이용약관",
         privacy: "개인정보처리방침",
@@ -329,7 +311,6 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       home: "Home",
     },
     hero: {
-      eyebrow: "A real-time collaborative pixel canvas",
       title:
         "VoteDots is a round-based canvas game where each cell is decided by votes.",
       description:
@@ -338,10 +319,12 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
     },
     currentGame: {
       title: "Current game",
-      emptyTitle: "No game is running right now",
+      emptyTitle: "There is no live game right now.",
       emptyDescription:
         "Once the next game is ready, this panel will show the latest finished round snapshot and live progress details.",
       snapshotLabel: "Latest completed round snapshot",
+      loadError: "Failed to load landing data.",
+      fallbackPreviewAlt: "Default template preview",
       stats: {
         grid: "Grid",
         round: "Round",
@@ -349,77 +332,66 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       },
     },
     featured: {
-      title: "Featured finished games by grid size",
+      title: "Completed canvases",
       description:
-        "See the most crowded finished game from each rotating board size: 32, 64, 128, and 256.",
-      emptyTitle: "No finished game yet",
-      emptyDescription:
-        "When the first finished result is available for this board size, the final snapshot and stats will appear here.",
+        "These are the finished boards with the highest participant counts for the active rotation sizes.",
       stats: {
         participants: "Participants",
         votes: "Total votes",
-        completion: "Completion",
         topVoter: "Top voter",
         participantList: "Participant list",
-        endedAt: "Ended at",
       },
     },
-    updates: {
-      title: "Patch notes and roadmap",
-      description:
-        "Follow what changed recently and what the team plans to build next without leaving the landing page.",
-      loading: "Loading the update board...",
-      loadError: "We could not load the update board.",
-    },
     tutorial: {
-      title: "The fastest way to understand the loop",
+      title: "Game introduction",
       description:
-        "These cards summarize the game flow for first-time visitors, using the same rhythm players see inside the live canvas.",
+        "These cards explain the core features in the same order players usually discover them in the game.",
       cards: [
         {
-          id: "intro",
+          id: "place-dot",
           label: "Step 1",
-          title: "Each game starts from a fixed template",
+          title: "You can place dots directly on the canvas",
           description:
-            "Every session begins with a specific grid size and template image. Before the first round result is captured, the default template acts as the reference canvas.",
-          imageUrl: "/result-templates/32x32/cat-face-32x32.png",
-          imageAlt: "32x32 template preview",
+            "Pick a cell and a color, then cast your vote directly onto the board. The picture is built one pixel at a time as everyone contributes together.",
+          imageUrl: "/landing/guide/place-dot-demo.webp",
+          imageAlt: "Dot placement demo",
         },
         {
-          id: "vote",
+          id: "live-presence",
           label: "Step 2",
-          title: "Players spend votes on cells and colors",
+          title: "You play alongside other people in real time",
           description:
-            "During each round, players choose where to place their votes. You can focus all tickets on one cell or spread them across the board.",
-          imageUrl: "/play-backgrounds/64x64/grid-g-64x64.png",
-          imageAlt: "Grid background preview",
+            "You can see where other players are focusing and how votes are gathering on the board. The live canvas makes the group activity visible as it happens.",
+          imageUrl: "/landing/guide/live-presence-demo.webp",
+          imageAlt: "Live presence demo",
         },
         {
-          id: "result",
+          id: "template-rotation",
           label: "Step 3",
-          title: "The winning color becomes visible on the canvas",
+          title: "A variety of templates keep rotating in",
           description:
-            "When the round ends, the top-voted color for each contested cell is applied to the board, and a fresh snapshot is recorded for history.",
-          imageUrl: "/result-templates/256x256/cat-front-256x256.png",
-          imageAlt: "Result template preview",
+            "The game rotates through different board sizes and templates over time. Even with the same rules, each board can feel different depending on the template and scale.",
+          imageUrl: "/landing/guide/template-rotation.webp",
+          imageAlt: "Template rotation demo",
         },
         {
-          id: "rotation",
+          id: "round-history",
           label: "Step 4",
-          title: "Board size rotation changes the pace",
+          title: "You can revisit round results later",
           description:
-            "VoteDots rotates through 32, 64, 128, and 256 boards. The same rules feel very different as the canvas gets larger and harder to complete.",
-          imageUrl: "/play-backgrounds/128x128/grid-b-128x128.png",
-          imageAlt: "128x128 grid preview",
+            "A snapshot is recorded whenever a round ends. You can look back through earlier rounds to see how the canvas changed over time.",
+          imageUrl: "/landing/guide/round-history-demo.webp",
+          imageAlt: "Round history demo",
         },
         {
-          id: "summary",
+          id: "download-result",
           label: "Step 5",
-          title: "Finished games come with snapshots and stats",
+          title: "You can download the finished image",
           description:
-            "After a game ends, the final board is paired with activity stats such as participants, top voters, and overall vote volume.",
-          imageUrl: "/result-templates/512x512/smile-512x512.png",
-          imageAlt: "Summary preview",
+            "When the game ends, the final result can be saved as an image. The download is provided as a transparent PNG without the background template dots.",
+          imageUrl: "/landing/guide/download-result-demo.webp",
+          imageAlt: "Download finished image demo",
+          iconUrl: "/landing/guide/download-result-fox.png",
         },
       ],
     },

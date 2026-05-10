@@ -24,48 +24,6 @@ interface LandingPageProps {
   locale: PublicSiteLocale;
 }
 
-function buildPublicText(locale: PublicSiteLocale) {
-  if (locale === "ko") {
-    return {
-      heroTitle: "직접 그리고,\n함께 투표하는 픽셀 캔버스",
-      heroDescription: "색을 고르고, 투표를 하고, 함께 완성하세요.",
-      liveLoadError: "랜딩 데이터를 불러오지 못했습니다.",
-      livePanelEmpty: "현재 진행 중인 게임이 없습니다.",
-      livePreviewFallback: "기본 템플릿 미리보기",
-      featuredTitle: "완성된 캔버스",
-      featuredDescription:
-        "현재 로테이션에 포함된 보드 크기별로 가장 많은 참여자를 모은 종료 게임을 보여줍니다.",
-      participants: "참여자",
-      votes: "총 투표 수",
-      topVoter: "최다 투표자",
-      participantList: "참여자 목록",
-      noTopVoter: "아직 집계된 최다 투표자가 없습니다.",
-      tutorialTitle: "게임 소개",
-      footerDescription:
-        "서비스 규칙, 개인정보 처리 기준, 커뮤니티 안내, 문의 정책을 이곳에서 확인할 수 있습니다.",
-    };
-  }
-
-  return {
-    heroTitle: "Draw directly,\na pixel canvas where everyone votes together.",
-    heroDescription: "Pick a color, cast your vote, and complete it together.",
-    liveLoadError: "Failed to load landing data.",
-    livePanelEmpty: "There is no live game right now.",
-    livePreviewFallback: "Default template preview",
-    featuredTitle: "Completed canvases",
-    featuredDescription:
-      "These are the finished boards with the highest participant counts for the active rotation sizes.",
-    participants: "Players",
-    votes: "Votes",
-    topVoter: "Top voter",
-    participantList: "Participant list",
-    noTopVoter: "No top voter has been recorded yet.",
-    tutorialTitle: "Game introduction",
-    footerDescription:
-      "Review the service rules, privacy handling, community notes, and contact policy in one place.",
-  };
-}
-
 function SnapshotImage({
   imageUrl,
   alt,
@@ -120,7 +78,6 @@ function InfoStat({ label, value }: { label: string; value: string }) {
 
 export default function LandingPage({ locale }: LandingPageProps) {
   const siteContent = useMemo(() => getSiteContent(locale), [locale]);
-  const copy = useMemo(() => buildPublicText(locale), [locale]);
   const formatNumber = useMemo(
     () => new Intl.NumberFormat(locale === "ko" ? "ko-KR" : "en-US"),
     [locale],
@@ -176,7 +133,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
           setLandingData(landingResult.value.data);
           setLandingError("");
         } else {
-          setLandingError(copy.liveLoadError);
+          setLandingError(siteContent.currentGame.loadError);
         }
 
         if (previewResult.status === "fulfilled") {
@@ -186,7 +143,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
         }
       } catch {
         if (!cancelled) {
-          setLandingError(copy.liveLoadError);
+          setLandingError(siteContent.currentGame.loadError);
           setFeaturedPreviewItems([]);
         }
       }
@@ -197,7 +154,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [copy.liveLoadError]);
+  }, [siteContent.currentGame.loadError]);
 
   const handleParticipate = async () => {
     if (authState === "authenticated") {
@@ -247,13 +204,13 @@ export default function LandingPage({ locale }: LandingPageProps) {
                   className="max-w-3xl whitespace-pre-line text-4xl font-semibold leading-tight sm:text-5xl"
                   style={{ color: "#000000" }}
                 >
-                  {copy.heroTitle}
+                  {siteContent.hero.title}
                 </h1>
                 <p
-                  className="mt-5 max-w-2xl text-base leading-7 sm:text-lg"
+                  className="mt-5 max-w-2xl whitespace-pre-line text-base leading-7 sm:text-lg"
                   style={{ color: "rgba(0, 0, 0, 0.82)" }}
                 >
-                  {copy.heroDescription}
+                  {siteContent.hero.description}
                 </p>
               </div>
 
@@ -287,7 +244,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
                     alt={
                       currentGame.snapshotUrl
                         ? siteContent.currentGame.snapshotLabel
-                        : copy.livePreviewFallback
+                        : siteContent.currentGame.fallbackPreviewAlt
                     }
                     size={512}
                   />
@@ -312,10 +269,10 @@ export default function LandingPage({ locale }: LandingPageProps) {
               ) : (
                 <div className="flex min-h-[420px] flex-col items-start justify-center rounded-[28px] bg-[#f6ede5] px-6 text-left">
                   <h2 className="text-2xl font-semibold text-[#272E37]">
-                    {siteContent.currentGame.title}
+                    {siteContent.currentGame.emptyTitle}
                   </h2>
-                  <p className="mt-4 text-base leading-7 text-[#5f6368]">
-                    {copy.livePanelEmpty}
+                  <p className="mt-4 whitespace-pre-line text-base leading-7 text-[#5f6368]">
+                    {siteContent.currentGame.emptyDescription}
                   </p>
                 </div>
               )}
@@ -327,41 +284,61 @@ export default function LandingPage({ locale }: LandingPageProps) {
           locale={locale}
           items={featuredPreviewItems}
           labels={{
-            title: copy.featuredTitle,
-            description: copy.featuredDescription,
-            participants: copy.participants,
-            votes: copy.votes,
-            topVoter: copy.topVoter,
-            participantList: copy.participantList,
+            title: siteContent.featured.title,
+            description: siteContent.featured.description,
+            participants: siteContent.featured.stats.participants,
+            votes: siteContent.featured.stats.votes,
+            topVoter: siteContent.featured.stats.topVoter,
+            participantList: siteContent.featured.stats.participantList,
           }}
         />
 
         <section className="mx-auto mt-10 max-w-7xl">
           <div className="text-left">
-            <h2 className="text-3xl font-semibold text-[#272E37] sm:text-4xl">
-              {copy.tutorialTitle}
-            </h2>
+            <div className="text-[24px] font-semibold leading-[118%] text-[#272E37] lg:text-[24px]">
+              {siteContent.tutorial.title}
+            </div>
+            <p className="mt-3 max-w-3xl whitespace-pre-line text-base leading-7 text-[#5f6368] sm:text-lg">
+              {siteContent.tutorial.description}
+            </p>
           </div>
 
           <div className="mt-8 space-y-6">
             {siteContent.tutorial.cards.map((card) => (
               <article
                 key={card.id}
-                className="grid gap-5 rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[552px_minmax(0,1fr)]"
+                className="grid gap-5 rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[auto_minmax(0,1fr)]"
+                //className="grid gap-5 rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[minmax(0,5fr)_minmax(0,3fr)]"
               >
                 <div className="bg-[linear-gradient(180deg,#fff4e9_0%,#f6ede5_100%)] p-5">
-                  <SnapshotImage
-                    imageUrl={card.imageUrl}
-                    alt={card.imageAlt}
-                    size={512}
-                  />
+                  <div className="mx-auto h-[405px] w-fit overflow-hidden rounded-[24px] shadow-[0_24px_60px_rgba(39,46,55,0.10)]">
+                    <div className="aspect-video h-full">
+                      <img
+                        src={card.imageUrl}
+                        alt={card.imageAlt}
+                        className="block h-full w-full object-contain"
+                        draggable={false}
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <div className="flex flex-col justify-center px-6 py-6 text-left sm:px-8">
-                  <h3 className="text-2xl font-semibold text-[#272E37]">
-                    {card.title}
-                  </h3>
-                  <p className="mt-4 text-base leading-7 text-[#5f6368]">
+                  <div className="flex items-center gap-3">
+                    <h3 className="text-2xl font-semibold text-[#272E37]">
+                      {card.title}
+                    </h3>
+                    {card.iconUrl ? (
+                      <img
+                        src={card.iconUrl}
+                        alt=""
+                        aria-hidden="true"
+                        className="h-16 w-16 flex-none object-contain"
+                        draggable={false}
+                      />
+                    ) : null}
+                  </div>
+                  <p className="mt-4 whitespace-pre-line text-base leading-7 text-[#5f6368]">
                     {card.description}
                   </p>
                 </div>
@@ -378,8 +355,8 @@ export default function LandingPage({ locale }: LandingPageProps) {
               <BrandLogo variant="symbol" className="w-7" />
               <BrandLogo variant="wordmarkLight" className="w-20" />
             </div>
-            <p className="max-w-2xl text-sm leading-6 text-slate-300">
-              {copy.footerDescription}
+            <p className="max-w-2xl whitespace-pre-line text-sm leading-6 text-slate-300">
+              {siteContent.footer.description}
             </p>
           </div>
 
