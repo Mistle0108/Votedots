@@ -305,13 +305,13 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
           <div className="mt-8 space-y-6">
             {siteContent.tutorial.cards.map((card) => (
-              <article
-                key={card.id}
-                className="grid gap-5 rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[auto_minmax(0,1fr)]"
+                <article
+                  key={card.id}
+                  className="grid gap-5 overflow-hidden rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[auto_minmax(0,1fr)]"
                 //className="grid gap-5 rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[minmax(0,5fr)_minmax(0,3fr)]"
               >
-                <div className="bg-[linear-gradient(180deg,#fff4e9_0%,#f6ede5_100%)] p-5">
-                  <div className="mx-auto h-[405px] w-fit overflow-hidden rounded-[24px] shadow-[0_24px_60px_rgba(39,46,55,0.10)]">
+                  <div className="bg-[linear-gradient(180deg,#fff4e9_0%,#f6ede5_100%)] p-5">
+                    <div className="mx-auto h-[405px] w-fit overflow-hidden rounded-[24px] shadow-[0_24px_60px_rgba(39,46,55,0.10)]">
                     <div className="aspect-video h-full">
                       <img
                         src={card.imageUrl}
