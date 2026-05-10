@@ -30,13 +30,10 @@ export default function FeaturedPreviewSection({
   return (
     <section className="mx-auto mt-10 max-w-7xl">
       <div className="text-left">
-        <h2
-          className="text-3xl font-semibold sm:text-4xl"
-          style={{ color: "#000000" }}
-        >
+        <div className="text-[24px] font-semibold leading-[118%] lg:text-[24px]" style={{ color: "#000000" }}>
           {labels.title}
-        </h2>
-        <p className="mt-4 max-w-3xl text-base leading-7 text-[#5f6368]">
+        </div>
+        <p className="mt-4 max-w-3xl whitespace-pre-line text-base leading-7 text-[#5f6368]">
           {labels.description}
         </p>
       </div>
