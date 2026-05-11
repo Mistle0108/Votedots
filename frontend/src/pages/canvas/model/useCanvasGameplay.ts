@@ -98,6 +98,16 @@ export default function useCanvasGameplay({
   const hasJoinedCanvasRef = useRef(false);
   const localPhaseTransitionTimerRef = useRef<number | null>(null);
   const snapshotDelayTimerRef = useRef<number | null>(null);
+  const latestRoundSummaryRequestKeyRef = useRef<string | null>(null);
+  const inFlightRoundSummaryRequestRef = useRef<{
+    key: string;
+    promise: Promise<RoundSummaryData | null>;
+  } | null>(null);
+  const latestGameSummaryRequestKeyRef = useRef<string | null>(null);
+  const inFlightGameSummaryRequestRef = useRef<{
+    key: string;
+    promise: Promise<GameSummaryData | null>;
+  } | null>(null);
   const pendingRoundResultRef = useRef<{
     roundId: number;
     roundNumber: number;
@@ -137,7 +147,7 @@ export default function useCanvasGameplay({
     snapshotDelayTimerRef.current = null;
   }, []);
 
-  const { remaining, setRemaining, fetchTickets, clearTickets } =
+  const { remaining, applyRemainingSnapshot, fetchTickets, clearTickets } =
     useVoteTickets();
 
   const {
@@ -153,21 +163,51 @@ export default function useCanvasGameplay({
 
   const requestGameSummary = useCallback(
     async (targetCanvasId: number) => {
+      const requestKey = `canvas:${targetCanvasId}`;
+      latestGameSummaryRequestKeyRef.current = requestKey;
+
+      if (inFlightGameSummaryRequestRef.current?.key === requestKey) {
+        return inFlightGameSummaryRequestRef.current.promise;
+      }
+
       setGameSummaryLoading(true);
 
-      try {
-        const response = await sessionApi.getGameSummary(targetCanvasId);
-        const nextSummary = response.data.data;
+      const promise = (async () => {
+        try {
+          const response = await sessionApi.getGameSummary(targetCanvasId);
+          const nextSummary = response.data.data;
 
-        setGameSummary(nextSummary);
-        onOpenGameSummaryModal(nextSummary);
-      } catch (error) {
-        console.error("[summary] failed to load game summary:", error);
-      } finally {
-        setGameSummaryLoading(false);
-      }
+          if (latestGameSummaryRequestKeyRef.current === requestKey) {
+            setGameSummary(nextSummary);
+          }
+
+          return nextSummary;
+        } catch (error) {
+          if (latestGameSummaryRequestKeyRef.current === requestKey) {
+            setGameSummary(null);
+          }
+
+          console.error("[summary] failed to load game summary:", error);
+          return null;
+        } finally {
+          if (latestGameSummaryRequestKeyRef.current === requestKey) {
+            setGameSummaryLoading(false);
+          }
+
+          if (inFlightGameSummaryRequestRef.current?.key === requestKey) {
+            inFlightGameSummaryRequestRef.current = null;
+          }
+        }
+      })();
+
+      inFlightGameSummaryRequestRef.current = {
+        key: requestKey,
+        promise,
+      };
+
+      return promise;
     },
-    [onOpenGameSummaryModal],
+    [],
   );
 
   const handleGameSummaryReady = useCallback(
@@ -178,32 +218,65 @@ export default function useCanvasGameplay({
         return;
       }
 
-      void requestGameSummary(readyCanvasId);
+      void requestGameSummary(readyCanvasId).then((summary) => {
+        if (summary) {
+          onOpenGameSummaryModal(summary);
+        }
+      });
     },
-    [canvasId, requestGameSummary],
+    [canvasId, onOpenGameSummaryModal, requestGameSummary],
   );
 
   const requestRoundSummary = useCallback(
     async (targetCanvasId: number, targetRoundId: number) => {
+      const requestKey = `canvas:${targetCanvasId}:round:${targetRoundId}`;
+      latestRoundSummaryRequestKeyRef.current = requestKey;
+
+      if (inFlightRoundSummaryRequestRef.current?.key === requestKey) {
+        return inFlightRoundSummaryRequestRef.current.promise;
+      }
+
       setRoundSummaryLoading(true);
 
-      try {
-        const response = await sessionApi.getRoundSummary(
-          targetCanvasId,
-          targetRoundId,
-        );
+      const promise = (async () => {
+        try {
+          const response = await sessionApi.getRoundSummary(
+            targetCanvasId,
+            targetRoundId,
+          );
 
-        const nextSummary = response.data.data;
-        setRoundSummary(nextSummary);
-        setLatestRoundSnapshotState(nextSummary.snapshotUrl);
-        return nextSummary;
-      } catch (error) {
-        console.error("[summary] failed to load round summary:", error);
-        setLatestRoundSnapshotState(null);
-        return null;
-      } finally {
-        setRoundSummaryLoading(false);
-      }
+          const nextSummary = response.data.data;
+
+          if (latestRoundSummaryRequestKeyRef.current === requestKey) {
+            setRoundSummary(nextSummary);
+            setLatestRoundSnapshotState(nextSummary.snapshotUrl);
+          }
+
+          return nextSummary;
+        } catch (error) {
+          if (latestRoundSummaryRequestKeyRef.current === requestKey) {
+            setLatestRoundSnapshotState(null);
+          }
+
+          console.error("[summary] failed to load round summary:", error);
+          return null;
+        } finally {
+          if (latestRoundSummaryRequestKeyRef.current === requestKey) {
+            setRoundSummaryLoading(false);
+          }
+
+          if (inFlightRoundSummaryRequestRef.current?.key === requestKey) {
+            inFlightRoundSummaryRequestRef.current = null;
+          }
+        }
+      })();
+
+      inFlightRoundSummaryRequestRef.current = {
+        key: requestKey,
+        promise,
+      };
+
+      return promise;
     },
     [],
   );
@@ -263,7 +336,7 @@ export default function useCanvasGameplay({
       }
 
       applyVoteUpdate(result.votes);
-      setRemaining(result.remaining);
+      applyRemainingSnapshot(result.round.roundId, result.remaining);
 
       if (
         result.round.phase === GAME_PHASE.ROUND_RESULT &&
@@ -273,16 +346,21 @@ export default function useCanvasGameplay({
       }
 
       if (result.round.phase === GAME_PHASE.GAME_END) {
-        void requestGameSummary(result.canvasId);
+        void requestGameSummary(result.canvasId).then((summary) => {
+          if (summary) {
+            onOpenGameSummaryModal(summary);
+          }
+        });
       }
     },
     [
+      applyRemainingSnapshot,
       applyVoteUpdate,
       onBootstrapScene,
+      onOpenGameSummaryModal,
       requestGameSummary,
       requestRoundSummary,
       setPhaseTimerState,
-      setRemaining,
       setRoundState,
       setRoundTimerState,
     ],
