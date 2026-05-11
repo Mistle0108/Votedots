@@ -1,7 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { http } from "msw/core/http";
 import { useGameplayBootstrap } from "@/features/gameplay/session/hooks/useGameplayBootstrap";
-import { getGameConfig } from "@/shared/config/game-config";
 import { server } from "../setup/msw/server";
 
 describe("useGameplayBootstrap integration", () => {
@@ -108,6 +107,6 @@ describe("useGameplayBootstrap integration", () => {
       "1:1:#111111": 2,
       "1:1:#ffffff": 4,
     });
-    expect(getGameConfig().rules.totalRounds).toBe(5);
+    expect(bootstrapResult.gameConfig.rules.totalRounds).toBe(5);
   });
 });
