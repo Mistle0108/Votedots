@@ -95,6 +95,7 @@ export default function useCanvasGameplay({
   } = useRoundTimer();
 
   const phaseTimingRef = useRef<PhaseTimingState>(DEFAULT_PHASE_TIMING);
+  const hasJoinedCanvasRef = useRef(false);
   const localPhaseTransitionTimerRef = useRef<number | null>(null);
   const snapshotDelayTimerRef = useRef<number | null>(null);
   const pendingRoundResultRef = useRef<{
@@ -321,13 +322,9 @@ export default function useCanvasGameplay({
   }, [initializeSession]);
 
   useEffect(() => {
-    if (!canvasId) {
-      clearParticipants();
-      return;
-    }
-
-    void refreshParticipants();
-  }, [canvasId, clearParticipants, refreshParticipants]);
+    hasJoinedCanvasRef.current = false;
+    clearParticipants();
+  }, [canvasId, clearParticipants]);
 
   useEffect(() => {
     if (isRoundActivePhase(phase)) {
@@ -458,8 +455,20 @@ export default function useCanvasGameplay({
     totalRounds,
   ]);
 
-  const handleCanvasJoined = useCallback(() => {
-  }, []);
+  const handleCanvasJoined = useCallback(
+    ({ restored }: { restored: boolean }) => {
+      const isInitialJoin = !hasJoinedCanvasRef.current;
+
+      hasJoinedCanvasRef.current = true;
+
+      if (!isInitialJoin && !restored) {
+        return;
+      }
+
+      void refreshParticipants();
+    },
+    [refreshParticipants],
+  );
 
   const handleRoundStarted = useCallback(
     async ({
