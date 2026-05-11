@@ -31,6 +31,7 @@ const PREVIEW_TARGET_LONGEST_SIDE = 256;
 const PREVIEW_FRAME_DELAY_MS = 600;
 const PREVIEW_FINAL_FRAME_DELAY_MS = 1600;
 const PREVIEW_FINAL_FRAME_MIN_DIFFERENCE_RATIO = 0.03;
+const PREVIEW_GENERATION_ATTEMPTS = 2;
 const SAVE_RETRY_ATTEMPTS = 3;
 const SAVE_RETRY_DELAY_MS = 250;
 
@@ -167,14 +168,10 @@ async function ensureWebPLibInitialized(): Promise<void> {
 }
 
 async function loadGridFrameImage(
-  canvasId: number,
   snapshot: Awaited<ReturnType<typeof roundSnapshotService.getRoundSnapshot>>,
 ): Promise<GridFrameImage> {
-  const absolutePath = await roundSnapshotService.ensureRoundDownloadSnapshotByVariant(
-    canvasId,
-    snapshot,
-    "grid",
-  );
+  const absolutePath =
+    roundSnapshotService.resolveRoundSnapshotAbsolutePath(snapshot);
   const buffer = await readFile(absolutePath);
   const png = PNG.sync.read(buffer);
 
@@ -229,7 +226,7 @@ async function selectPreviewFrames(
       throw new Error(`Round snapshot was not found. (round=${roundNumber})`);
     }
 
-    const image = await loadGridFrameImage(canvas.id, snapshot);
+    const image = await loadGridFrameImage(snapshot);
     frameCache.set(roundNumber, image);
     return image;
   };
@@ -453,8 +450,84 @@ async function persistPreview(params: {
   );
 }
 
+type PreviewGenerationResult = {
+  relativePath: string;
+  mimeType: string;
+  format: string;
+  width: number;
+  height: number;
+  byteSize: number;
+  frameCount: number;
+};
+
 function serializeParticipants(summary: GameSummary): string[] {
   return (summary.participantsJson ?? []).map((participant) => participant.name);
+}
+
+async function generatePreviewAsset(params: {
+  canvasId: number;
+  endedAt: Date;
+  gridX: number;
+  gridY: number;
+  frames: SelectedFrame[];
+}): Promise<PreviewGenerationResult> {
+  const rendered = await buildAnimatedPreviewBuffer({
+    gridX: params.gridX,
+    gridY: params.gridY,
+    frames: params.frames,
+  });
+
+  await ensureLandingPreviewDirectory({
+    endedAt: params.endedAt,
+  });
+
+  const relativePath = buildLandingPreviewRelativePath({
+    endedAt: params.endedAt,
+    canvasId: params.canvasId,
+    format: "webp",
+  });
+  const absolutePath = resolveGameHistoryAbsolutePath(relativePath);
+
+  await writeFile(absolutePath, rendered.buffer);
+
+  return {
+    relativePath,
+    mimeType: "image/webp",
+    format: "webp",
+    width: rendered.width,
+    height: rendered.height,
+    byteSize: rendered.buffer.byteLength,
+    frameCount: rendered.frameCount,
+  };
+}
+
+async function generatePreviewWithRetry(params: {
+  canvasId: number;
+  endedAt: Date;
+  gridX: number;
+  gridY: number;
+  frames: SelectedFrame[];
+}): Promise<PreviewGenerationResult> {
+  let lastError: unknown;
+
+  for (
+    let attempt = 1;
+    attempt <= PREVIEW_GENERATION_ATTEMPTS;
+    attempt += 1
+  ) {
+    try {
+      return await generatePreviewAsset(params);
+    } catch (error) {
+      lastError = error;
+
+      console.error(
+        `[public-landing-preview] preview generation attempt failed (${attempt}/${PREVIEW_GENERATION_ATTEMPTS}) (canvasId=${params.canvasId}):`,
+        error,
+      );
+    }
+  }
+
+  throw lastError;
 }
 
 export const publicLandingPreviewService = {
@@ -493,6 +566,9 @@ export const publicLandingPreviewService = {
       totalVotes: summary.totalVotes,
     };
 
+    let generatedPreview: PreviewGenerationResult | null = null;
+    let generationError: unknown = null;
+
     try {
       const snapshots = await roundSnapshotService.listRoundSnapshots(canvasId);
 
@@ -506,50 +582,61 @@ export const publicLandingPreviewService = {
         throw new Error("no_preview_frames_selected");
       }
 
-      const rendered = await buildAnimatedPreviewBuffer({
+      generatedPreview = await generatePreviewWithRetry({
+        canvasId,
+        endedAt: summary.canvas.endedAt,
         gridX: summary.canvas.gridX,
         gridY: summary.canvas.gridY,
         frames,
       });
-
-      await ensureLandingPreviewDirectory({
-        endedAt: summary.canvas.endedAt,
-      });
-
-      const relativePath = buildLandingPreviewRelativePath({
-        endedAt: summary.canvas.endedAt,
-        canvasId,
-        format: "webp",
-      });
-      const absolutePath = resolveGameHistoryAbsolutePath(relativePath);
-
-      await writeFile(absolutePath, rendered.buffer);
-
-      await persistPreview({
-        ...previewBase,
-        status: GamePreviewStatus.READY,
-        storagePath: relativePath,
-        mimeType: "image/webp",
-        format: "webp",
-        width: rendered.width,
-        height: rendered.height,
-        byteSize: rendered.buffer.byteLength,
-        frameCount: rendered.frameCount,
-        failureReason: null,
-      });
     } catch (error) {
-      console.error(
-        `[public-landing-preview] failed to generate preview (canvasId=${canvasId}, gameSummaryId=${gameSummaryId}):`,
-        error,
-      );
+      generationError = error;
+    }
 
+    if (generatedPreview) {
+      try {
+        await persistPreview({
+          ...previewBase,
+          status: GamePreviewStatus.READY,
+          storagePath: generatedPreview.relativePath,
+          mimeType: generatedPreview.mimeType,
+          format: generatedPreview.format,
+          width: generatedPreview.width,
+          height: generatedPreview.height,
+          byteSize: generatedPreview.byteSize,
+          frameCount: generatedPreview.frameCount,
+          failureReason: null,
+        });
+      } catch (persistError) {
+        console.error(
+          `[public-landing-preview] failed to persist ready preview status (canvasId=${canvasId}, gameSummaryId=${gameSummaryId}):`,
+          persistError,
+        );
+      }
+
+      return;
+    }
+
+    console.error(
+      `[public-landing-preview] failed to generate preview after retries (canvasId=${canvasId}, gameSummaryId=${gameSummaryId}):`,
+      generationError,
+    );
+
+    try {
       await persistPreview({
         ...previewBase,
         status: GamePreviewStatus.FAILED,
         failureReason: truncateFailureReason(
-          error instanceof Error ? error.message : String(error),
+          generationError instanceof Error
+            ? generationError.message
+            : String(generationError),
         ),
       });
+    } catch (persistError) {
+      console.error(
+        `[public-landing-preview] failed to persist failed preview status (canvasId=${canvasId}, gameSummaryId=${gameSummaryId}):`,
+        persistError,
+      );
     }
   },
 
