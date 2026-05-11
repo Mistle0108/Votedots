@@ -167,14 +167,10 @@ async function ensureWebPLibInitialized(): Promise<void> {
 }
 
 async function loadGridFrameImage(
-  canvasId: number,
   snapshot: Awaited<ReturnType<typeof roundSnapshotService.getRoundSnapshot>>,
 ): Promise<GridFrameImage> {
-  const absolutePath = await roundSnapshotService.ensureRoundDownloadSnapshotByVariant(
-    canvasId,
-    snapshot,
-    "grid",
-  );
+  const absolutePath =
+    roundSnapshotService.resolveRoundSnapshotAbsolutePath(snapshot);
   const buffer = await readFile(absolutePath);
   const png = PNG.sync.read(buffer);
 
@@ -229,7 +225,7 @@ async function selectPreviewFrames(
       throw new Error(`Round snapshot was not found. (round=${roundNumber})`);
     }
 
-    const image = await loadGridFrameImage(canvas.id, snapshot);
+    const image = await loadGridFrameImage(snapshot);
     frameCache.set(roundNumber, image);
     return image;
   };
