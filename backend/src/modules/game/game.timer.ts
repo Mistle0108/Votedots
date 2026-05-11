@@ -147,6 +147,17 @@ async function transitionToRoundStartWait(
     reason: "round start wait transition",
   });
 
+  emitPhaseUpdated(io, {
+    canvasId,
+    phase: GamePhase.ROUND_START_WAIT,
+    roundId: null,
+    roundNumber,
+    roundDurationSec: canvasGameConfig.phases.roundStartWaitSec,
+    totalRounds: canvasGameConfig.rules.totalRounds,
+    phaseStartedAt,
+    phaseEndsAt,
+  });
+
   scheduleTimer(
     canvasId,
     () => {
@@ -194,6 +205,17 @@ async function transitionToGameEnd(
     reason: "game end transition",
   });
 
+  emitPhaseUpdated(io, {
+    canvasId,
+    phase: GamePhase.GAME_END,
+    roundId: null,
+    roundNumber,
+    roundDurationSec: canvasGameConfig.phases.gameEndWaitSec,
+    totalRounds: canvasGameConfig.rules.totalRounds,
+    phaseStartedAt,
+    phaseEndsAt,
+  });
+
   const gameSummary = await summaryService.saveGameSummary(canvasId);
 
   void publicLandingPreviewService.generateForGame(canvasId, gameSummary.id);
@@ -236,6 +258,31 @@ function scheduleGameEnd(
     },
     delayMs,
   );
+}
+
+function emitPhaseUpdated(
+  io: Server,
+  payload: {
+    canvasId: number;
+    phase: GamePhase;
+    roundId: number | null;
+    roundNumber: number | null;
+    roundDurationSec: number | null;
+    totalRounds: number;
+    phaseStartedAt: Date | null;
+    phaseEndsAt: Date | null;
+  },
+): void {
+  io.to(`canvas:${payload.canvasId}`).emit("canvas:phase-updated", {
+    canvasId: payload.canvasId,
+    phase: payload.phase,
+    roundId: payload.roundId,
+    roundNumber: payload.roundNumber,
+    roundDurationSec: payload.roundDurationSec,
+    totalRounds: payload.totalRounds,
+    phaseStartedAt: payload.phaseStartedAt?.toISOString() ?? null,
+    phaseEndsAt: payload.phaseEndsAt?.toISOString() ?? null,
+  });
 }
 
 function startRoundBroadcast(
@@ -412,6 +459,17 @@ async function resumeRoundStartWaitFromBoundary(
     reason: "round start wait resume",
   });
 
+  emitPhaseUpdated(io, {
+    canvasId: canvas.id,
+    phase: GamePhase.ROUND_START_WAIT,
+    roundId: null,
+    roundNumber: nextRoundNumber,
+    roundDurationSec: canvasGameConfig.phases.roundStartWaitSec,
+    totalRounds: canvasGameConfig.rules.totalRounds,
+    phaseStartedAt: waitStartedAt,
+    phaseEndsAt: waitEndsAt,
+  });
+
   const delayMs = Math.max(0, waitEndsAt.getTime() - Date.now());
 
   if (delayMs === 0) {
@@ -456,6 +514,17 @@ async function resumeGameEndFromBoundary(
     phaseStartedAt: gameEndStartedAt,
     phaseEndsAt: gameEndEndsAt,
     reason: "game end resume",
+  });
+
+  emitPhaseUpdated(io, {
+    canvasId: canvas.id,
+    phase: GamePhase.GAME_END,
+    roundId: null,
+    roundNumber,
+    roundDurationSec: canvasGameConfig.phases.gameEndWaitSec,
+    totalRounds: canvasGameConfig.rules.totalRounds,
+    phaseStartedAt: gameEndStartedAt,
+    phaseEndsAt: gameEndEndsAt,
   });
 
   if (gameEndEndsAt.getTime() <= Date.now()) {

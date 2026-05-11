@@ -71,6 +71,31 @@ function logPhaseChange(params: {
   );
 }
 
+function emitPhaseUpdated(
+  io: Server,
+  payload: {
+    canvasId: number;
+    phase: GamePhase;
+    roundId: number | null;
+    roundNumber: number | null;
+    roundDurationSec: number | null;
+    totalRounds: number;
+    phaseStartedAt: Date | null;
+    phaseEndsAt: Date | null;
+  },
+): void {
+  io.to(`canvas:${payload.canvasId}`).emit("canvas:phase-updated", {
+    canvasId: payload.canvasId,
+    phase: payload.phase,
+    roundId: payload.roundId,
+    roundNumber: payload.roundNumber,
+    roundDurationSec: payload.roundDurationSec,
+    totalRounds: payload.totalRounds,
+    phaseStartedAt: payload.phaseStartedAt?.toISOString() ?? null,
+    phaseEndsAt: payload.phaseEndsAt?.toISOString() ?? null,
+  });
+}
+
 function getActiveGameEndAt(
   config: GameConfigSnapshot,
   roundStartedAt: Date,
@@ -214,6 +239,16 @@ export const roundService = {
         roundDurationSec: canvasGameConfig.phases.roundDurationSec,
         totalRounds: canvasGameConfig.rules.totalRounds,
         gameEndAt: gameEndAt.toISOString(),
+      });
+      emitPhaseUpdated(io, {
+        canvasId,
+        phase: GamePhase.ROUND_ACTIVE,
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        roundDurationSec: canvasGameConfig.phases.roundDurationSec,
+        totalRounds: canvasGameConfig.rules.totalRounds,
+        phaseStartedAt: round.startedAt,
+        phaseEndsAt: roundEndsAt,
       });
       await participantSessionService.broadcastParticipantsUpdated(io, canvasId);
     }
@@ -421,6 +456,16 @@ export const roundService = {
 
     await redisClient.del(redisKey);
     if (io) {
+      emitPhaseUpdated(io, {
+        canvasId,
+        phase: GamePhase.ROUND_RESULT,
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        roundDurationSec: canvasGameConfig.phases.roundResultDelaySec,
+        totalRounds: canvasGameConfig.rules.totalRounds,
+        phaseStartedAt: round.endedAt,
+        phaseEndsAt: roundResultEndsAt,
+      });
       io.to(`canvas:${canvasId}`).emit("round:ended", {
         roundId: round.id,
         roundNumber: round.roundNumber,
