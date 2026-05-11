@@ -4,10 +4,10 @@ export const testGameConfigProfile: GameConfigUpdate = {
   phases: {
     introPhaseSec: 2,
     roundStartWaitSec: 2,
-    roundDurationSec: 2,
+    roundDurationSec: 5,
     roundResultDelaySec: 2,
-    gameEndWaitSec: 2,
-    restartDelaySec: 4,
+    gameEndWaitSec: 5,
+    restartDelaySec: 3,
   },
   rules: {
     totalRounds: 2,
@@ -15,8 +15,8 @@ export const testGameConfigProfile: GameConfigUpdate = {
     participantGracePeriodSec: 15,
   },
   board: {
-    gridSizeX: 30,
-    gridSizeY: 30,
-    cellSize: 50,
+    gridSizeX: 32,
+    gridSizeY: 32,
+    cellSize: 30,
   },
 };
