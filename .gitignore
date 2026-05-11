@@ -28,4 +28,3 @@ Thumbs.db
 .vscode/
 backend/src/tmp
 .local/
-backend/src/config/game-config-profiles/configtest.profile.ts
