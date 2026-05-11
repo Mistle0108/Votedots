@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { voteApi } from "@/features/gameplay/vote";
 import { resolveResultTemplateImageUrl } from "@/features/gameplay/canvas/model/background-assets";
-import { setGameConfig } from "@/shared/config/game-config";
 import { GAME_PHASE, isRoundActivePhase } from "../model/game-phase.types";
 import { sessionApi, type RoundStateResponse } from "../api/session.api";
 import { RoundInfoState, SessionBootstrapResult } from "../model/session.types";
@@ -238,8 +237,6 @@ export function useGameplayBootstrap() {
     const { data } = await sessionApi.getCurrentCanvas();
     const { canvas, gameConfig } = data;
     const { phases, rules } = gameConfig;
-
-    setGameConfig(gameConfig);
 
     let roundState: RoundStateResponse | null = null;
     let remaining: number | null = null;

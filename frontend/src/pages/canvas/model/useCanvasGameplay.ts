@@ -23,6 +23,7 @@ import {
   isRoundActivePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
 import type { GameConfig } from "@/shared/config/game-config";
+import { setGameConfig } from "@/shared/config/game-config";
 import { useVoteTickets } from "@/features/gameplay/vote";
 
 function formatClockTime(date: Date): string {
@@ -231,6 +232,7 @@ export default function useCanvasGameplay({
 
   const applyBootstrap = useCallback(
     (result: SessionBootstrapResult) => {
+      setGameConfig(result.gameConfig);
       phaseTimingRef.current = result.phaseTiming;
       setGameConfigState(result.gameConfig);
       onBootstrapScene(result);
