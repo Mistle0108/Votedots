@@ -36,6 +36,12 @@ export class Voter extends BaseEntity {
   @Column({ type: "boolean", default: false })
   isAge14OrOlderConfirmed!: boolean;
 
+  @Column({ type: "boolean", name: "is_withdrawn", default: false })
+  isWithdrawn!: boolean;
+
+  @Column({ type: "timestamptz", name: "withdrawn_at", nullable: true })
+  withdrawnAt!: Date | null;
+
   @Column({
     type: "varchar",
     length: 16,

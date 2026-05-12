@@ -1,4 +1,5 @@
 import { Request, Response } from "express";
+import { participantSessionService } from "../participant/participant-session.service";
 import { authSessionService } from "./auth-session.service";
 import { authService } from "./auth.service";
 import { validateLoginInput, validateRegisterInput } from "./auth.validation";
@@ -121,6 +122,52 @@ export const authController = {
       return res.json({ message: "LOGOUT_SUCCESS" });
     } catch {
       return res.status(500).json({ message: "LOGOUT_FAILED" });
+    }
+  },
+
+  async withdraw(req: Request, res: Response) {
+    try {
+      const voterId = req.session.voter?.id;
+      const currentSessionId = req.sessionID;
+
+      if (!voterId) {
+        return res.status(401).json({ message: "AUTH_REQUIRED_LOGIN" });
+      }
+
+      await authService.withdraw(voterId);
+
+      const activeSessionId = await authSessionService.revokeActiveSession(
+        voterId,
+      );
+      const sessionIdsToClose = Array.from(
+        new Set(
+          [currentSessionId, activeSessionId].filter(
+            (sessionId): sessionId is string => Boolean(sessionId),
+          ),
+        ),
+      );
+      const io = req.app.get("io");
+
+      for (const sessionId of sessionIdsToClose) {
+        await participantSessionService.removeAllParticipationsForSession(
+          sessionId,
+          io,
+        );
+
+        io.to(getSessionRoom(sessionId)).emit("auth:session-ended");
+        io.in(getSessionRoom(sessionId)).disconnectSockets(true);
+
+        if (sessionId !== currentSessionId) {
+          await authSessionService.destroySession(sessionId);
+        }
+      }
+
+      await destroyRequestSession(req);
+
+      res.clearCookie("connect.sid");
+      return res.json({ message: "WITHDRAW_SUCCESS" });
+    } catch {
+      return res.status(500).json({ message: "WITHDRAW_FAILED" });
     }
   },
 

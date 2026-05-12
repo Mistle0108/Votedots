@@ -37,6 +37,14 @@ class AuthSessionService {
     return true;
   }
 
+  async revokeActiveSession(voterId: number): Promise<string | null> {
+    const key = this.buildActiveSessionKey(voterId);
+    const activeSessionId = await redisClient.get(key);
+
+    await redisClient.del(key);
+    return activeSessionId;
+  }
+
   async destroySession(sessionId: string): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       sessionStore.destroy(sessionId, (error) => {
