@@ -2,6 +2,7 @@ import bcrypt from "bcrypt";
 import { QueryFailedError } from "typeorm";
 import { AppDataSource } from "../../database/data-source";
 import { Voter, VoterRole } from "../../entities/voter.entity";
+import { CURRENT_TERMS_VERSION } from "./auth.constants";
 import { AUTH_ERROR_MESSAGES } from "./auth.validation";
 
 const voterRepository = AppDataSource.getRepository(Voter);
@@ -19,7 +20,15 @@ function isUsernameUniqueViolation(error: unknown): boolean {
 }
 
 export const authService = {
-  async register(username: string, password: string, nickname: string) {
+  async register(
+    username: string,
+    password: string,
+    nickname: string,
+    params: {
+      termsAcceptedLocale: string;
+      isAge14OrOlderConfirmed: boolean;
+    },
+  ) {
     const existing = await voterRepository.findOne({ where: { username } });
     if (existing) {
       throw new Error(AUTH_ERROR_MESSAGES.USERNAME_TAKEN);
@@ -31,6 +40,10 @@ export const authService = {
       username,
       password: hashedPassword,
       nickname,
+      termsAcceptedAt: new Date(),
+      termsAcceptedLocale: params.termsAcceptedLocale,
+      termsVersion: CURRENT_TERMS_VERSION,
+      isAge14OrOlderConfirmed: params.isAge14OrOlderConfirmed,
       role: VoterRole.USER,
     });
 

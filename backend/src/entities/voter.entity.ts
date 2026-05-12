@@ -24,6 +24,18 @@ export class Voter extends BaseEntity {
   @Column({ type: "varchar", length: 32 })
   nickname!: string;
 
+  @Column({ type: "timestamptz", nullable: true })
+  termsAcceptedAt!: Date | null;
+
+  @Column({ type: "varchar", length: 8, nullable: true })
+  termsAcceptedLocale!: string | null;
+
+  @Column({ type: "varchar", length: 32, nullable: true })
+  termsVersion!: string | null;
+
+  @Column({ type: "boolean", default: false })
+  isAge14OrOlderConfirmed!: boolean;
+
   @Column({
     type: "varchar",
     length: 16,
