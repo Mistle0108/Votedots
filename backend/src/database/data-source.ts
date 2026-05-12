@@ -13,6 +13,7 @@ import { GameSummary } from "../entities/game-summary.entity";
 import { GamePreview } from "../entities/game-preview.entity";
 import { RoundSummary } from "../entities/round-summary.entity";
 import { RoundSnapshot } from "../entities/round-snapshot.entity";
+import { VisitEvent } from "../entities/visit-event.entity";
 
 loadEnvironment();
 
@@ -42,6 +43,7 @@ export const AppDataSource = new DataSource({
     GamePreview,
     RoundSummary,
     RoundSnapshot,
+    VisitEvent,
   ],
   migrations: [path.join(__dirname, "migrations/*.{js,ts}")],
 });
