@@ -14,6 +14,7 @@ export enum VisitDeviceType {
 
 @Entity("visit_event")
 @Index("IDX_visit_event_type_entered_at", ["eventType", "enteredAt"])
+@Index("IDX_visit_event_rolled_up_at_entered_at", ["rolledUpAt", "enteredAt"])
 export class VisitEvent {
   @PrimaryGeneratedColumn()
   id!: number;
@@ -32,4 +33,7 @@ export class VisitEvent {
 
   @CreateDateColumn({ type: "timestamptz", name: "entered_at" })
   enteredAt!: Date;
+
+  @Column({ type: "timestamptz", name: "rolled_up_at", nullable: true })
+  rolledUpAt!: Date | null;
 }
