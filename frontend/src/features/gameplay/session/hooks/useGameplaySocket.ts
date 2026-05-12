@@ -5,6 +5,7 @@ import {
   CanvasJoinedPayload,
   CanvasUpdatedPayload,
   GameSummaryReadyPayload,
+  PhaseUpdatedPayload,
   ParticipantsUpdatedPayload,
   RoundEndedPayload,
   RoundStartedPayload,
@@ -17,6 +18,7 @@ import {
 interface UseGameplaySocketParams {
   canvasId: number | null;
   onCanvasJoined: (payload: CanvasJoinedPayload) => void;
+  onPhaseUpdated: (payload: PhaseUpdatedPayload) => void;
   onRoundStarted: (payload: RoundStartedPayload) => void;
   onRoundEnded: (payload: RoundEndedPayload) => void;
   onRoundSummaryReady: (payload: RoundSummaryReadyPayload) => void;
@@ -35,6 +37,7 @@ type GameplaySocketHandlers = Omit<UseGameplaySocketParams, "canvasId">;
 export function useGameplaySocket({
   canvasId,
   onCanvasJoined,
+  onPhaseUpdated,
   onRoundStarted,
   onRoundEnded,
   onRoundSummaryReady,
@@ -49,6 +52,7 @@ export function useGameplaySocket({
 }: UseGameplaySocketParams) {
   const handlersRef = useRef<GameplaySocketHandlers>({
     onCanvasJoined,
+    onPhaseUpdated,
     onRoundStarted,
     onRoundEnded,
     onRoundSummaryReady,
@@ -65,6 +69,7 @@ export function useGameplaySocket({
   useEffect(() => {
     handlersRef.current = {
       onCanvasJoined,
+      onPhaseUpdated,
       onRoundStarted,
       onRoundEnded,
       onRoundSummaryReady,
@@ -79,6 +84,7 @@ export function useGameplaySocket({
     };
   }, [
     onCanvasJoined,
+    onPhaseUpdated,
     onRoundStarted,
     onRoundEnded,
     onRoundSummaryReady,
@@ -95,6 +101,9 @@ export function useGameplaySocket({
   useEffect(() => {
     const handleCanvasJoined = (payload: CanvasJoinedPayload) => {
       handlersRef.current.onCanvasJoined(payload);
+    };
+    const handlePhaseUpdated = (payload: PhaseUpdatedPayload) => {
+      handlersRef.current.onPhaseUpdated(payload);
     };
     const handleRoundStarted = (payload: RoundStartedPayload) => {
       handlersRef.current.onRoundStarted(payload);
@@ -131,6 +140,7 @@ export function useGameplaySocket({
     };
 
     socket.on("canvas:joined", handleCanvasJoined);
+    socket.on("canvas:phase-updated", handlePhaseUpdated);
     socket.on("round:started", handleRoundStarted);
     socket.on("round:ended", handleRoundEnded);
     socket.on("round-summary:ready", handleRoundSummaryReady);
@@ -146,6 +156,7 @@ export function useGameplaySocket({
 
     return () => {
       socket.off("canvas:joined", handleCanvasJoined);
+      socket.off("canvas:phase-updated", handlePhaseUpdated);
       socket.off("round:started", handleRoundStarted);
       socket.off("round:ended", handleRoundEnded);
       socket.off("round-summary:ready", handleRoundSummaryReady);

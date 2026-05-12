@@ -9,6 +9,7 @@ const EXACT_KEY_MAP: Record<string, string> = {
   AUTH_INVALID_USERNAME: "server.auth.invalidUsername",
   AUTH_INVALID_NICKNAME: "server.auth.invalidNickname",
   AUTH_INVALID_PASSWORD: "server.auth.invalidPassword",
+  "Network Error": "server.common.networkError",
   "No active round was found.": "server.vote.noRound",
   "Canvas was not found.": "server.vote.canvasNotFound",
   "Invalid cell coordinate.": "server.vote.invalidCell",

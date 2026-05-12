@@ -6,6 +6,7 @@ import type { GamePhase } from "../model/game-phase.types";
 
 export interface CanvasCurrentResponse {
   canvas: Canvas;
+  serverNow: string;
   gameConfig: GameConfig;
 }
 
@@ -26,6 +27,8 @@ export interface RoundStateResponse {
   timer: {
     remainingSeconds: number;
     isRoundExpired: boolean;
+    serverNow: string;
+    roundEndsAt: string;
     roundDurationSec: number;
     totalRounds: number;
     gameEndAt: string;

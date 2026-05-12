@@ -1,13 +1,30 @@
+import type { GamePhase } from "./game-phase.types";
+
 export interface CanvasJoinedPayload {
   canvasId: number;
   status: "voting" | "waiting";
   restored: boolean;
 }
 
+export interface PhaseUpdatedPayload {
+  canvasId: number;
+  phase: GamePhase;
+  roundId: number | null;
+  roundNumber: number | null;
+  roundDurationSec: number | null;
+  remainingSeconds: number | null;
+  serverNow: string;
+  totalRounds: number;
+  phaseStartedAt: string | null;
+  phaseEndsAt: string | null;
+}
+
 export interface RoundStartedPayload {
   roundId: number;
   roundNumber: number;
   startedAt: string;
+  serverNow: string;
+  roundEndsAt: string;
   roundDurationSec: number;
   totalRounds: number;
   gameEndAt: string;
@@ -49,6 +66,8 @@ export interface TimerUpdatePayload {
   roundNumber: number;
   remainingSeconds: number;
   isRoundExpired: boolean;
+  serverNow: string;
+  roundEndsAt: string;
   roundDurationSec: number;
   totalRounds: number;
   gameEndAt: string;

@@ -23,10 +23,13 @@ function getRemainingSeconds(phaseEndsAt: string | null): number | null {
     return null;
   }
 
-  return Math.max(
-    0,
-    Math.ceil((new Date(phaseEndsAt).getTime() - Date.now()) / 1000),
-  );
+  const diffMs = new Date(phaseEndsAt).getTime() - Date.now();
+
+  if (diffMs <= 0) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil((diffMs - 10) / 1000));
 }
 
 function getPhaseDurationSeconds(
@@ -235,7 +238,7 @@ function getFallbackPhaseDuration(
 export function useGameplayBootstrap() {
   const bootstrap = useCallback(async (): Promise<SessionBootstrapResult> => {
     const { data } = await sessionApi.getCurrentCanvas();
-    const { canvas, gameConfig } = data;
+    const { canvas, serverNow, gameConfig } = data;
     const { phases, rules } = gameConfig;
 
     let roundState: RoundStateResponse | null = null;
@@ -317,6 +320,7 @@ export function useGameplayBootstrap() {
           : (roundState?.timer?.isRoundExpired ?? false),
       phaseStartedAt: canvas.phaseStartedAt,
       phaseEndsAt: canvas.phaseEndsAt,
+      timerServerNow: roundState?.timer?.serverNow ?? serverNow,
     };
 
     return {

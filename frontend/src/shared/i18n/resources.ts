@@ -8,6 +8,8 @@ export const LOCALE_STORAGE_KEY = "votedots-locale";
 
 export const resources: Record<Locale, Record<string, string>> = {
   ko: {
+    "server.common.networkError":
+      "네트워크 오류가 발생했습니다.",
     "language.switcher": "언어 변경",
     "language.ko": "한국어",
     "language.en": "English",
@@ -265,6 +267,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "loginBoard.patchType.breaking": "Breaking",
   },
   en: {
+    "server.common.networkError":
+      "We couldn't connect to the server. Please check your network connection.",
     "language.switcher": "Change language",
     "language.ko": "Korean",
     "language.en": "English",

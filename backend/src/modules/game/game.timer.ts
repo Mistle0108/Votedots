@@ -147,6 +147,19 @@ async function transitionToRoundStartWait(
     reason: "round start wait transition",
   });
 
+  emitPhaseUpdated(io, {
+    canvasId,
+    phase: GamePhase.ROUND_START_WAIT,
+    roundId: null,
+    roundNumber,
+    roundDurationSec: canvasGameConfig.phases.roundStartWaitSec,
+    remainingSeconds: canvasGameConfig.phases.roundStartWaitSec,
+    serverNow: phaseStartedAt,
+    totalRounds: canvasGameConfig.rules.totalRounds,
+    phaseStartedAt,
+    phaseEndsAt,
+  });
+
   scheduleTimer(
     canvasId,
     () => {
@@ -194,6 +207,19 @@ async function transitionToGameEnd(
     reason: "game end transition",
   });
 
+  emitPhaseUpdated(io, {
+    canvasId,
+    phase: GamePhase.GAME_END,
+    roundId: null,
+    roundNumber,
+    roundDurationSec: canvasGameConfig.phases.gameEndWaitSec,
+    remainingSeconds: canvasGameConfig.phases.gameEndWaitSec,
+    serverNow: phaseStartedAt,
+    totalRounds: canvasGameConfig.rules.totalRounds,
+    phaseStartedAt,
+    phaseEndsAt,
+  });
+
   const gameSummary = await summaryService.saveGameSummary(canvasId);
 
   void publicLandingPreviewService.generateForGame(canvasId, gameSummary.id);
@@ -238,6 +264,44 @@ function scheduleGameEnd(
   );
 }
 
+function emitPhaseUpdated(
+  io: Server,
+  payload: {
+    canvasId: number;
+    phase: GamePhase;
+    roundId: number | null;
+    roundNumber: number | null;
+    roundDurationSec: number | null;
+    remainingSeconds: number | null;
+    serverNow: Date;
+    totalRounds: number;
+    phaseStartedAt: Date | null;
+    phaseEndsAt: Date | null;
+  },
+): void {
+  io.to(`canvas:${payload.canvasId}`).emit("canvas:phase-updated", {
+    canvasId: payload.canvasId,
+    phase: payload.phase,
+    roundId: payload.roundId,
+    roundNumber: payload.roundNumber,
+    roundDurationSec: payload.roundDurationSec,
+    remainingSeconds: payload.remainingSeconds,
+    serverNow: payload.serverNow.toISOString(),
+    totalRounds: payload.totalRounds,
+    phaseStartedAt: payload.phaseStartedAt?.toISOString() ?? null,
+    phaseEndsAt: payload.phaseEndsAt?.toISOString() ?? null,
+  });
+}
+
+function getPhaseRemainingSeconds(phaseEndsAt: Date | null): number | null {
+  if (!phaseEndsAt) {
+    return null;
+  }
+
+  const diffMs = phaseEndsAt.getTime() - Date.now();
+  return diffMs <= 0 ? 0 : Math.max(1, Math.floor(diffMs / 1000));
+}
+
 function startRoundBroadcast(
   io: Server,
   canvas: Canvas,
@@ -272,6 +336,11 @@ function startRoundBroadcast(
       roundNumber: round.roundNumber,
       remainingSeconds,
       isRoundExpired,
+      serverNow: new Date().toISOString(),
+      roundEndsAt: new Date(
+        round.startedAt.getTime() +
+          canvasGameConfig.phases.roundDurationSec * 1000,
+      ).toISOString(),
       roundDurationSec: canvasGameConfig.phases.roundDurationSec,
       totalRounds: canvasGameConfig.rules.totalRounds,
       gameEndAt: gameEndAt.toISOString(),
@@ -412,6 +481,19 @@ async function resumeRoundStartWaitFromBoundary(
     reason: "round start wait resume",
   });
 
+  emitPhaseUpdated(io, {
+    canvasId: canvas.id,
+    phase: GamePhase.ROUND_START_WAIT,
+    roundId: null,
+    roundNumber: nextRoundNumber,
+    roundDurationSec: canvasGameConfig.phases.roundStartWaitSec,
+    remainingSeconds: getPhaseRemainingSeconds(waitEndsAt),
+    serverNow: new Date(),
+    totalRounds: canvasGameConfig.rules.totalRounds,
+    phaseStartedAt: waitStartedAt,
+    phaseEndsAt: waitEndsAt,
+  });
+
   const delayMs = Math.max(0, waitEndsAt.getTime() - Date.now());
 
   if (delayMs === 0) {
@@ -456,6 +538,19 @@ async function resumeGameEndFromBoundary(
     phaseStartedAt: gameEndStartedAt,
     phaseEndsAt: gameEndEndsAt,
     reason: "game end resume",
+  });
+
+  emitPhaseUpdated(io, {
+    canvasId: canvas.id,
+    phase: GamePhase.GAME_END,
+    roundId: null,
+    roundNumber,
+    roundDurationSec: canvasGameConfig.phases.gameEndWaitSec,
+    remainingSeconds: getPhaseRemainingSeconds(gameEndEndsAt),
+    serverNow: new Date(),
+    totalRounds: canvasGameConfig.rules.totalRounds,
+    phaseStartedAt: gameEndStartedAt,
+    phaseEndsAt: gameEndEndsAt,
   });
 
   if (gameEndEndsAt.getTime() <= Date.now()) {

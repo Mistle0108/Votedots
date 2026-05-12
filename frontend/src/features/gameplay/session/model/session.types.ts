@@ -13,6 +13,7 @@ export interface RoundInfoState {
   isRoundExpired: boolean;
   phaseStartedAt: string | null;
   phaseEndsAt: string | null;
+  timerServerNow: string | null;
 }
 
 export interface PhaseTimingState {

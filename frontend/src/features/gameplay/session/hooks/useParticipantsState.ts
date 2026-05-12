@@ -7,17 +7,6 @@ export default function useParticipantsState() {
   const [participantLoading, setParticipantLoading] = useState(false);
   const [participantError, setParticipantError] = useState<string | null>(null);
 
-  const refreshParticipantCount = useCallback(async () => {
-    try {
-      const { data } = await sessionApi.getCurrentParticipantCount();
-      setParticipantCount(data.count);
-      return data.count;
-    } catch {
-      setParticipantCount(null);
-      return null;
-    }
-  }, []);
-
   const refreshParticipants = useCallback(async () => {
     setParticipantLoading(true);
     setParticipantError(null);
@@ -42,10 +31,6 @@ export default function useParticipantsState() {
     } finally {
       setParticipantLoading(false);
     }
-  }, []);
-
-  const applyParticipantCount = useCallback((count: number) => {
-    setParticipantCount(count);
   }, []);
 
   const applyParticipantsSnapshot = useCallback(
@@ -87,9 +72,7 @@ export default function useParticipantsState() {
     participantLoading,
     participantError,
     participantSummary,
-    refreshParticipantCount,
     refreshParticipants,
-    applyParticipantCount,
     applyParticipantsSnapshot,
     clearParticipants,
   };
