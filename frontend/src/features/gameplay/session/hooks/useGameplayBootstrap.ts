@@ -238,7 +238,7 @@ function getFallbackPhaseDuration(
 export function useGameplayBootstrap() {
   const bootstrap = useCallback(async (): Promise<SessionBootstrapResult> => {
     const { data } = await sessionApi.getCurrentCanvas();
-    const { canvas, gameConfig } = data;
+    const { canvas, serverNow, gameConfig } = data;
     const { phases, rules } = gameConfig;
 
     let roundState: RoundStateResponse | null = null;
@@ -320,7 +320,7 @@ export function useGameplayBootstrap() {
           : (roundState?.timer?.isRoundExpired ?? false),
       phaseStartedAt: canvas.phaseStartedAt,
       phaseEndsAt: canvas.phaseEndsAt,
-      timerServerNow: roundState?.timer?.serverNow ?? null,
+      timerServerNow: roundState?.timer?.serverNow ?? serverNow,
     };
 
     return {

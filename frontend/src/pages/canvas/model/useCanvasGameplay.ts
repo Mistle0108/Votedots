@@ -136,6 +136,7 @@ export default function useCanvasGameplay({
   const {
     clearActiveRoundTimer,
     syncActiveRoundTimer,
+    syncPhaseTimer,
     resetJoinedState,
     handleCanvasJoined,
     handleRoundEnded,
@@ -177,11 +178,14 @@ export default function useCanvasGameplay({
       } else {
         clearActiveRoundTimer();
 
-        if (result.round.phaseEndsAt) {
-          setPhaseTimerState(
-            result.round.phaseEndsAt,
-            result.round.isRoundExpired,
-          );
+        if (result.round.phaseEndsAt && result.round.timerServerNow) {
+          syncPhaseTimer({
+            phaseEndsAt: result.round.phaseEndsAt,
+            serverNow: result.round.timerServerNow,
+            isRoundExpired: result.round.isRoundExpired,
+          });
+        } else if (result.round.phaseEndsAt) {
+          setPhaseTimerState(result.round.phaseEndsAt, 0, result.round.isRoundExpired);
         } else {
           applyPhaseTimerSnapshot(
             result.round.remainingSeconds,
@@ -205,6 +209,7 @@ export default function useCanvasGameplay({
       setRoundState,
       setRoundTimerState,
       syncActiveRoundTimer,
+      syncPhaseTimer,
     ],
   );
 
@@ -219,7 +224,10 @@ export default function useCanvasGameplay({
     onBootstrap: applyBootstrap,
     onUnauthorized,
   });
-  silentSessionResyncRef.current = () => initializeSession({ silent: true });
+
+  useEffect(() => {
+    silentSessionResyncRef.current = () => initializeSession({ silent: true });
+  }, [initializeSession]);
 
   const sessionCleanup = useGameplaySessionCleanup({
     clearActiveRoundTimer,

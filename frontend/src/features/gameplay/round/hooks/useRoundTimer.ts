@@ -20,6 +20,19 @@ function getRemainingSecondsFromPhaseEnd(phaseEndsAt: string): number {
   return Math.max(1, Math.ceil((diffMs - 10) / 1000));
 }
 
+function getRemainingSecondsFromServerPhaseClock(
+  endsAt: string,
+  serverOffsetMs: number,
+): number {
+  const diffMs = new Date(endsAt).getTime() - (Date.now() + serverOffsetMs);
+
+  if (diffMs <= 0) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil((diffMs - 10) / 1000));
+}
+
 function getRemainingSecondsFromServerClock(
   endsAt: string,
   serverOffsetMs: number,
@@ -78,7 +91,11 @@ export default function useRoundTimer() {
   );
 
   const setPhaseTimerState = useCallback(
-    (phaseEndsAt: string | null, expired: boolean) => {
+    (
+      phaseEndsAt: string | null,
+      serverOffsetMs: number,
+      expired: boolean,
+    ) => {
       if (!phaseEndsAt) {
         setRoundTimerState({
           remainingSeconds: null,
@@ -88,7 +105,13 @@ export default function useRoundTimer() {
         return;
       }
 
-      const remaining = getRemainingSecondsFromPhaseEnd(phaseEndsAt);
+      const remaining =
+        serverOffsetMs === 0
+          ? getRemainingSecondsFromPhaseEnd(phaseEndsAt)
+          : getRemainingSecondsFromServerPhaseClock(
+              phaseEndsAt,
+              serverOffsetMs,
+            );
 
       setRoundTimerState({
         remainingSeconds: remaining,

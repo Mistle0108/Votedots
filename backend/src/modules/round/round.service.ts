@@ -82,6 +82,7 @@ function emitPhaseUpdated(
     roundNumber: number | null;
     roundDurationSec: number | null;
     remainingSeconds: number | null;
+    serverNow: Date;
     totalRounds: number;
     phaseStartedAt: Date | null;
     phaseEndsAt: Date | null;
@@ -94,6 +95,7 @@ function emitPhaseUpdated(
     roundNumber: payload.roundNumber,
     roundDurationSec: payload.roundDurationSec,
     remainingSeconds: payload.remainingSeconds,
+    serverNow: payload.serverNow.toISOString(),
     totalRounds: payload.totalRounds,
     phaseStartedAt: payload.phaseStartedAt?.toISOString() ?? null,
     phaseEndsAt: payload.phaseEndsAt?.toISOString() ?? null,
@@ -253,6 +255,7 @@ export const roundService = {
         roundNumber: round.roundNumber,
         roundDurationSec: canvasGameConfig.phases.roundDurationSec,
         remainingSeconds: canvasGameConfig.phases.roundDurationSec,
+        serverNow: roundStartedAt,
         totalRounds: canvasGameConfig.rules.totalRounds,
         phaseStartedAt: round.startedAt,
         phaseEndsAt: roundEndsAt,
@@ -470,6 +473,7 @@ export const roundService = {
         roundNumber: round.roundNumber,
         roundDurationSec: canvasGameConfig.phases.roundResultDelaySec,
         remainingSeconds: canvasGameConfig.phases.roundResultDelaySec,
+        serverNow: round.endedAt,
         totalRounds: canvasGameConfig.rules.totalRounds,
         phaseStartedAt: round.endedAt,
         phaseEndsAt: roundResultEndsAt,

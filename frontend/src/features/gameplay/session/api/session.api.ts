@@ -6,6 +6,7 @@ import type { GamePhase } from "../model/game-phase.types";
 
 export interface CanvasCurrentResponse {
   canvas: Canvas;
+  serverNow: string;
   gameConfig: GameConfig;
 }
 

@@ -154,6 +154,7 @@ async function transitionToRoundStartWait(
     roundNumber,
     roundDurationSec: canvasGameConfig.phases.roundStartWaitSec,
     remainingSeconds: canvasGameConfig.phases.roundStartWaitSec,
+    serverNow: phaseStartedAt,
     totalRounds: canvasGameConfig.rules.totalRounds,
     phaseStartedAt,
     phaseEndsAt,
@@ -213,6 +214,7 @@ async function transitionToGameEnd(
     roundNumber,
     roundDurationSec: canvasGameConfig.phases.gameEndWaitSec,
     remainingSeconds: canvasGameConfig.phases.gameEndWaitSec,
+    serverNow: phaseStartedAt,
     totalRounds: canvasGameConfig.rules.totalRounds,
     phaseStartedAt,
     phaseEndsAt,
@@ -271,6 +273,7 @@ function emitPhaseUpdated(
     roundNumber: number | null;
     roundDurationSec: number | null;
     remainingSeconds: number | null;
+    serverNow: Date;
     totalRounds: number;
     phaseStartedAt: Date | null;
     phaseEndsAt: Date | null;
@@ -283,6 +286,7 @@ function emitPhaseUpdated(
     roundNumber: payload.roundNumber,
     roundDurationSec: payload.roundDurationSec,
     remainingSeconds: payload.remainingSeconds,
+    serverNow: payload.serverNow.toISOString(),
     totalRounds: payload.totalRounds,
     phaseStartedAt: payload.phaseStartedAt?.toISOString() ?? null,
     phaseEndsAt: payload.phaseEndsAt?.toISOString() ?? null,
@@ -484,6 +488,7 @@ async function resumeRoundStartWaitFromBoundary(
     roundNumber: nextRoundNumber,
     roundDurationSec: canvasGameConfig.phases.roundStartWaitSec,
     remainingSeconds: getPhaseRemainingSeconds(waitEndsAt),
+    serverNow: new Date(),
     totalRounds: canvasGameConfig.rules.totalRounds,
     phaseStartedAt: waitStartedAt,
     phaseEndsAt: waitEndsAt,
@@ -542,6 +547,7 @@ async function resumeGameEndFromBoundary(
     roundNumber,
     roundDurationSec: canvasGameConfig.phases.gameEndWaitSec,
     remainingSeconds: getPhaseRemainingSeconds(gameEndEndsAt),
+    serverNow: new Date(),
     totalRounds: canvasGameConfig.rules.totalRounds,
     phaseStartedAt: gameEndStartedAt,
     phaseEndsAt: gameEndEndsAt,

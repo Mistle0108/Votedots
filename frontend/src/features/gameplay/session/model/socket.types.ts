@@ -13,6 +13,7 @@ export interface PhaseUpdatedPayload {
   roundNumber: number | null;
   roundDurationSec: number | null;
   remainingSeconds: number | null;
+  serverNow: string;
   totalRounds: number;
   phaseStartedAt: string | null;
   phaseEndsAt: string | null;

@@ -35,7 +35,11 @@ interface UseGameplayPhaseSyncParams {
     remainingSeconds: number | null,
     expired: boolean,
   ) => void;
-  setPhaseTimerState: (phaseEndsAt: string | null, expired: boolean) => void;
+  setPhaseTimerState: (
+    phaseEndsAt: string | null,
+    serverOffsetMs: number,
+    expired: boolean,
+  ) => void;
   setActiveRoundTimerState: (
     roundEndsAt: string | null,
     serverOffsetMs: number,
@@ -72,9 +76,18 @@ export default function useGameplayPhaseSync({
     serverOffsetMs: number;
     isRoundExpired: boolean;
   } | null>(null);
+  const phaseTimerRef = useRef<{
+    phaseEndsAt: string;
+    serverOffsetMs: number;
+    isRoundExpired: boolean;
+  } | null>(null);
 
   const clearActiveRoundTimer = useCallback(() => {
     activeRoundTimerRef.current = null;
+  }, []);
+
+  const clearPhaseTimer = useCallback(() => {
+    phaseTimerRef.current = null;
   }, []);
 
   const syncActiveRoundTimer = useCallback(
@@ -103,7 +116,8 @@ export default function useGameplayPhaseSync({
   const resetJoinedState = useCallback(() => {
     hasJoinedCanvasRef.current = false;
     clearActiveRoundTimer();
-  }, [clearActiveRoundTimer]);
+    clearPhaseTimer();
+  }, [clearActiveRoundTimer, clearPhaseTimer]);
 
   useEffect(() => {
     if (!isRoundActivePhase(phase)) {
@@ -138,23 +152,65 @@ export default function useGameplayPhaseSync({
       return;
     }
 
-    if (!phaseEndsAt) {
+    const timerState = phaseTimerRef.current;
+
+    if (!phaseEndsAt || !timerState) {
       return;
     }
 
-    const expired =
-      phase === GAME_PHASE.ROUND_RESULT || phase === GAME_PHASE.GAME_END;
-
-    setPhaseTimerState(phaseEndsAt, expired);
+    setPhaseTimerState(
+      timerState.phaseEndsAt,
+      timerState.serverOffsetMs,
+      timerState.isRoundExpired,
+    );
 
     const timer = window.setInterval(() => {
-      setPhaseTimerState(phaseEndsAt, expired);
+      const nextTimerState = phaseTimerRef.current;
+
+      if (!nextTimerState) {
+        return;
+      }
+
+      setPhaseTimerState(
+        nextTimerState.phaseEndsAt,
+        nextTimerState.serverOffsetMs,
+        nextTimerState.isRoundExpired,
+      );
     }, 250);
 
     return () => {
       window.clearInterval(timer);
     };
   }, [phase, phaseEndsAt, setPhaseTimerState]);
+
+  const syncPhaseTimer = useCallback(
+    ({
+      phaseEndsAt,
+      serverNow,
+      isRoundExpired,
+    }: {
+      phaseEndsAt: string | null;
+      serverNow: string;
+      isRoundExpired: boolean;
+    }) => {
+      if (!phaseEndsAt) {
+        clearPhaseTimer();
+        setPhaseTimerState(null, 0, isRoundExpired);
+        return;
+      }
+
+      const serverOffsetMs = new Date(serverNow).getTime() - Date.now();
+
+      phaseTimerRef.current = {
+        phaseEndsAt,
+        serverOffsetMs,
+        isRoundExpired,
+      };
+
+      setPhaseTimerState(phaseEndsAt, serverOffsetMs, isRoundExpired);
+    },
+    [clearPhaseTimer, setPhaseTimerState],
+  );
 
   const handleCanvasJoined = useCallback(
     ({ restored }: CanvasJoinedPayload) => {
@@ -197,6 +253,7 @@ export default function useGameplayPhaseSync({
       roundNumber: nextRoundNumber,
       roundDurationSec: nextRoundDurationSec,
       remainingSeconds: nextRemainingSeconds,
+      serverNow,
       totalRounds: nextTotalRounds,
       phaseStartedAt: nextPhaseStartedAt,
       phaseEndsAt: nextPhaseEndsAt,
@@ -206,6 +263,7 @@ export default function useGameplayPhaseSync({
       }
 
       if (nextPhase === GAME_PHASE.ROUND_ACTIVE) {
+        clearPhaseTimer();
         return;
       }
 
@@ -222,33 +280,36 @@ export default function useGameplayPhaseSync({
         phaseEndsAt: nextPhaseEndsAt,
       });
 
+      const expired = nextPhase === GAME_PHASE.GAME_END && nextRemainingSeconds === 0;
+
       if (nextRemainingSeconds !== null) {
         if (nextPhaseEndsAt) {
-          setPhaseTimerState(
-            nextPhaseEndsAt,
-            nextPhase === GAME_PHASE.GAME_END && nextRemainingSeconds === 0,
-          );
+          syncPhaseTimer({
+            phaseEndsAt: nextPhaseEndsAt,
+            serverNow,
+            isRoundExpired: expired,
+          });
         } else {
-          applyPhaseTimerSnapshot(
-            nextRemainingSeconds,
-            nextPhase === GAME_PHASE.GAME_END && nextRemainingSeconds === 0,
-          );
+          clearPhaseTimer();
+          applyPhaseTimerSnapshot(nextRemainingSeconds, expired);
         }
         return;
       }
 
-      setPhaseTimerState(
-        nextPhaseEndsAt,
-        nextPhase === GAME_PHASE.GAME_END && nextRemainingSeconds === 0,
-      );
+      syncPhaseTimer({
+        phaseEndsAt: nextPhaseEndsAt,
+        serverNow,
+        isRoundExpired: expired,
+      });
     },
     [
       applyPhaseTimerSnapshot,
       canvasId,
       clearActiveRoundTimer,
+      clearPhaseTimer,
       formattedGameEndTime,
-      setPhaseTimerState,
       setRoundState,
+      syncPhaseTimer,
     ],
   );
 
@@ -274,6 +335,7 @@ export default function useGameplayPhaseSync({
   return {
     clearActiveRoundTimer,
     syncActiveRoundTimer,
+    syncPhaseTimer,
     resetJoinedState,
     handleCanvasJoined,
     handleRoundEnded,
