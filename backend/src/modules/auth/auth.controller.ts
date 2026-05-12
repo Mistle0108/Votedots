@@ -33,18 +33,31 @@ function destroyRequestSession(req: Request): Promise<void> {
 export const authController = {
   async register(req: Request, res: Response) {
     try {
-      const { username, password, nickname } = req.body;
+      const {
+        username,
+        password,
+        nickname,
+        acceptedTerms,
+        isAge14OrOlderConfirmed,
+        termsAcceptedLocale,
+      } = req.body;
       const validationError = validateRegisterInput({
         username,
         password,
         nickname,
+        acceptedTerms,
+        isAge14OrOlderConfirmed,
+        termsAcceptedLocale,
       });
 
       if (validationError) {
         return res.status(400).json({ message: validationError });
       }
 
-      await authService.register(username, password, nickname);
+      await authService.register(username, password, nickname, {
+        termsAcceptedLocale,
+        isAge14OrOlderConfirmed,
+      });
       return res.status(201).json({ message: "REGISTER_SUCCESS" });
     } catch (err) {
       return res.status(400).json({
