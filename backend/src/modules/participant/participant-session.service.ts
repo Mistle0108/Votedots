@@ -281,6 +281,31 @@ class ParticipantSessionService {
     return true;
   }
 
+  async removeAllParticipationsForSession(
+    sessionId: string,
+    io: Server,
+  ): Promise<number[]> {
+    const canvasIds = await redisClient.sMembers(
+      this.buildSessionCanvasesKey(sessionId),
+    );
+
+    const affectedCanvasIds: number[] = [];
+
+    for (const canvasIdValue of canvasIds) {
+      const canvasId = Number(canvasIdValue);
+
+      if (Number.isNaN(canvasId)) {
+        continue;
+      }
+
+      await this.cleanupParticipation(canvasId, sessionId);
+      await this.broadcastParticipantsUpdated(io, canvasId);
+      affectedCanvasIds.push(canvasId);
+    }
+
+    return affectedCanvasIds;
+  }
+
   async handleSocketDisconnect(
     sessionId: string,
     socketId: string,

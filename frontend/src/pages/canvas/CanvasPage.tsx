@@ -110,6 +110,22 @@ export default function CanvasPage() {
   const hasPulsedSelectionThisRoundRef = useRef(false);
 
   const handleSessionEnded = useCallback(() => {
+    if (
+      (
+        window as Window & {
+          __votedotsWithdrawPending?: boolean;
+        }
+      ).__votedotsWithdrawPending
+    ) {
+      (
+        window as Window & {
+          __votedotsWithdrawPending?: boolean;
+        }
+      ).__votedotsWithdrawPending = false;
+      navigate("/login", { replace: true });
+      return;
+    }
+
     window.alert(t("canvas.sessionEnded"));
     navigate("/login", { replace: true });
   }, [navigate, t]);
