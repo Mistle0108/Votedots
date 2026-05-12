@@ -9,6 +9,11 @@ interface UseGameSessionParams {
   onUnauthorized: (message: string) => void;
 }
 
+type SessionAccessResult =
+  | { status: "authorized" }
+  | { status: "unauthorized" }
+  | { status: "failed" };
+
 const BOOTSTRAP_RETRY_DELAY_MS = 2000;
 const BOOTSTRAP_RETRY_MAX_MS = 30000;
 
@@ -161,6 +166,74 @@ export function useGameSession({
     window.location.href = "/login";
   }, [t]);
 
+  const handleBootstrapSuccess = useCallback(
+    (result: SessionBootstrapResult) => {
+      restartDelaySecRef.current = result.gameConfig.phases.restartDelaySec;
+      onBootstrap(result);
+      setError(null);
+      setRetryNonce(0);
+      serviceAlertShownRef.current = false;
+      clearRestartPending();
+      return result;
+    },
+    [onBootstrap],
+  );
+
+  const verifySessionAccess = useCallback(
+    async (): Promise<SessionAccessResult> => {
+      try {
+        await authApi.me();
+        unauthorizedRedirectHandled = false;
+        return { status: "authorized" };
+      } catch (error) {
+        const status = getErrorStatus(error);
+
+        setRetryNonce(0);
+        clearRestartPending();
+
+        if (status === 401) {
+          if (!unauthorizedRedirectHandled) {
+            unauthorizedRedirectHandled = true;
+            onUnauthorized(t("server.auth.requiredLogin"));
+          }
+
+          return { status: "unauthorized" };
+        }
+
+        setError(t("session.authCheckFailed"));
+        return { status: "failed" };
+      }
+    },
+    [onUnauthorized, t],
+  );
+
+  const runBootstrap = useCallback(async (): Promise<SessionBootstrapResult | null> => {
+    try {
+      const result = await bootstrap();
+      return handleBootstrapSuccess(result);
+    } catch (error) {
+      if (isRestartPending() && isRetryableBootstrapError(error)) {
+        const elapsedMs = getRestartElapsedMs();
+
+        if (elapsedMs < BOOTSTRAP_RETRY_MAX_MS) {
+          setError(t("session.preparingGame"));
+          setRetryNonce((prev) => prev + 1);
+          return null;
+        }
+
+        setError(t("session.serviceUnavailable"));
+        setRetryNonce(0);
+        showServiceUnavailableAlert();
+        return null;
+      }
+
+      setError(t("session.loadCanvasFailed"));
+      setRetryNonce(0);
+      clearRestartPending();
+      return null;
+    }
+  }, [bootstrap, handleBootstrapSuccess, showServiceUnavailableAlert, t]);
+
   const initializeSession = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {
       if (!silent) {
@@ -169,64 +242,20 @@ export function useGameSession({
       }
 
       try {
-        try {
-          await authApi.me();
-          unauthorizedRedirectHandled = false;
-        } catch (error) {
-          const status = getErrorStatus(error);
+        const sessionAccess = await verifySessionAccess();
 
-          setRetryNonce(0);
-          clearRestartPending();
-
-          if (status === 401) {
-            if (!unauthorizedRedirectHandled) {
-              unauthorizedRedirectHandled = true;
-              onUnauthorized(t("server.auth.requiredLogin"));
-            }
-            return null;
-          }
-
-          setError(t("session.authCheckFailed"));
+        if (sessionAccess.status !== "authorized") {
           return null;
         }
 
-        try {
-          const result = await bootstrap();
-          restartDelaySecRef.current = result.gameConfig.phases.restartDelaySec;
-          onBootstrap(result);
-          setError(null);
-          setRetryNonce(0);
-          serviceAlertShownRef.current = false;
-          clearRestartPending();
-          return result;
-        } catch (error) {
-          if (isRestartPending() && isRetryableBootstrapError(error)) {
-            const elapsedMs = getRestartElapsedMs();
-
-            if (elapsedMs < BOOTSTRAP_RETRY_MAX_MS) {
-              setError(t("session.preparingGame"));
-              setRetryNonce((prev) => prev + 1);
-              return null;
-            }
-
-            setError(t("session.serviceUnavailable"));
-            setRetryNonce(0);
-            showServiceUnavailableAlert();
-            return null;
-          }
-
-          setError(t("session.loadCanvasFailed"));
-          setRetryNonce(0);
-          clearRestartPending();
-          return null;
-        }
+        return runBootstrap();
       } finally {
         if (!silent) {
           setLoading(false);
         }
       }
     },
-    [bootstrap, onBootstrap, onUnauthorized, showServiceUnavailableAlert, t],
+    [runBootstrap, verifySessionAccess],
   );
 
   useEffect(() => {

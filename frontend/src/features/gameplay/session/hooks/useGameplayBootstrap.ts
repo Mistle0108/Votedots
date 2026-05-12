@@ -1,7 +1,6 @@
 import { useCallback } from "react";
 import { voteApi } from "@/features/gameplay/vote";
 import { resolveResultTemplateImageUrl } from "@/features/gameplay/canvas/model/background-assets";
-import { setGameConfig } from "@/shared/config/game-config";
 import { GAME_PHASE, isRoundActivePhase } from "../model/game-phase.types";
 import { sessionApi, type RoundStateResponse } from "../api/session.api";
 import { RoundInfoState, SessionBootstrapResult } from "../model/session.types";
@@ -24,10 +23,13 @@ function getRemainingSeconds(phaseEndsAt: string | null): number | null {
     return null;
   }
 
-  return Math.max(
-    0,
-    Math.ceil((new Date(phaseEndsAt).getTime() - Date.now()) / 1000),
-  );
+  const diffMs = new Date(phaseEndsAt).getTime() - Date.now();
+
+  if (diffMs <= 0) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil((diffMs - 10) / 1000));
 }
 
 function getPhaseDurationSeconds(
@@ -236,10 +238,8 @@ function getFallbackPhaseDuration(
 export function useGameplayBootstrap() {
   const bootstrap = useCallback(async (): Promise<SessionBootstrapResult> => {
     const { data } = await sessionApi.getCurrentCanvas();
-    const { canvas, gameConfig } = data;
+    const { canvas, serverNow, gameConfig } = data;
     const { phases, rules } = gameConfig;
-
-    setGameConfig(gameConfig);
 
     let roundState: RoundStateResponse | null = null;
     let remaining: number | null = null;
@@ -320,6 +320,7 @@ export function useGameplayBootstrap() {
           : (roundState?.timer?.isRoundExpired ?? false),
       phaseStartedAt: canvas.phaseStartedAt,
       phaseEndsAt: canvas.phaseEndsAt,
+      timerServerNow: roundState?.timer?.serverNow ?? serverNow,
     };
 
     return {

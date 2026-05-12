@@ -40,6 +40,8 @@ interface RoundStateResponse {
   timer: {
     remainingSeconds: number;
     isRoundExpired: boolean;
+    serverNow: string;
+    roundEndsAt: string;
     roundDurationSec: number;
     totalRounds: number;
     gameEndAt: string;
@@ -69,6 +71,35 @@ function logPhaseChange(params: {
   console.log(
     `[phase] ${reason} | 캔버스=${canvasId} 단계=${phase} 라운드=${roundNumber} 시작=${phaseStartedAt.toISOString()} 종료=${phaseEndsAt?.toISOString() ?? "null"}`,
   );
+}
+
+function emitPhaseUpdated(
+  io: Server,
+  payload: {
+    canvasId: number;
+    phase: GamePhase;
+    roundId: number | null;
+    roundNumber: number | null;
+    roundDurationSec: number | null;
+    remainingSeconds: number | null;
+    serverNow: Date;
+    totalRounds: number;
+    phaseStartedAt: Date | null;
+    phaseEndsAt: Date | null;
+  },
+): void {
+  io.to(`canvas:${payload.canvasId}`).emit("canvas:phase-updated", {
+    canvasId: payload.canvasId,
+    phase: payload.phase,
+    roundId: payload.roundId,
+    roundNumber: payload.roundNumber,
+    roundDurationSec: payload.roundDurationSec,
+    remainingSeconds: payload.remainingSeconds,
+    serverNow: payload.serverNow.toISOString(),
+    totalRounds: payload.totalRounds,
+    phaseStartedAt: payload.phaseStartedAt?.toISOString() ?? null,
+    phaseEndsAt: payload.phaseEndsAt?.toISOString() ?? null,
+  });
 }
 
 function getActiveGameEndAt(
@@ -211,9 +242,23 @@ export const roundService = {
         roundId: round.id,
         roundNumber: round.roundNumber,
         startedAt: round.startedAt,
+        serverNow: new Date().toISOString(),
+        roundEndsAt: roundEndsAt.toISOString(),
         roundDurationSec: canvasGameConfig.phases.roundDurationSec,
         totalRounds: canvasGameConfig.rules.totalRounds,
         gameEndAt: gameEndAt.toISOString(),
+      });
+      emitPhaseUpdated(io, {
+        canvasId,
+        phase: GamePhase.ROUND_ACTIVE,
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        roundDurationSec: canvasGameConfig.phases.roundDurationSec,
+        remainingSeconds: canvasGameConfig.phases.roundDurationSec,
+        serverNow: roundStartedAt,
+        totalRounds: canvasGameConfig.rules.totalRounds,
+        phaseStartedAt: round.startedAt,
+        phaseEndsAt: roundEndsAt,
       });
       await participantSessionService.broadcastParticipantsUpdated(io, canvasId);
     }
@@ -421,6 +466,18 @@ export const roundService = {
 
     await redisClient.del(redisKey);
     if (io) {
+      emitPhaseUpdated(io, {
+        canvasId,
+        phase: GamePhase.ROUND_RESULT,
+        roundId: round.id,
+        roundNumber: round.roundNumber,
+        roundDurationSec: canvasGameConfig.phases.roundResultDelaySec,
+        remainingSeconds: canvasGameConfig.phases.roundResultDelaySec,
+        serverNow: round.endedAt,
+        totalRounds: canvasGameConfig.rules.totalRounds,
+        phaseStartedAt: round.endedAt,
+        phaseEndsAt: roundResultEndsAt,
+      });
       io.to(`canvas:${canvasId}`).emit("round:ended", {
         roundId: round.id,
         roundNumber: round.roundNumber,
@@ -490,6 +547,11 @@ export const roundService = {
         timer: {
           remainingSeconds,
           isRoundExpired: remainingSeconds === 0,
+          serverNow: now.toISOString(),
+          roundEndsAt: new Date(
+            activeRound.startedAt.getTime() +
+              canvasGameConfig.phases.roundDurationSec * 1000,
+          ).toISOString(),
           roundDurationSec: canvasGameConfig.phases.roundDurationSec,
           totalRounds: canvasGameConfig.rules.totalRounds,
           gameEndAt: gameEndAt.toISOString(),
@@ -535,6 +597,8 @@ export const roundService = {
       timer: {
         remainingSeconds: 0,
         isRoundExpired: true,
+        serverNow: now.toISOString(),
+        roundEndsAt: waitingDeadline.toISOString(),
         roundDurationSec: canvasGameConfig.phases.roundDurationSec,
         totalRounds: canvasGameConfig.rules.totalRounds,
         gameEndAt: gameEndAt.toISOString(),

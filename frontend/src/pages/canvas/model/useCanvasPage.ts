@@ -33,6 +33,8 @@ export default function useCanvasPage({
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
   const lastAutoOpenedRoundIdRef = useRef<number | null>(null);
+  const handledRoundSummaryEventRef = useRef(0);
+  const handledGameSummaryEventRef = useRef(0);
 
   const [roundSummaryModal, setRoundSummaryModal] =
     useState<RoundSummaryData | null>(null);
@@ -290,8 +292,6 @@ export default function useCanvasPage({
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
     onCanvasBatchUpdated: handleCanvasBatchUpdatedForRoundResult,
-    onOpenRoundSummaryModal: handleReceiveRoundSummary,
-    onOpenGameSummaryModal: handleReceiveGameSummary,
     onRoundStartedCleanup: handleRoundStartedCleanup,
     onRoundEndedCleanup: handleRoundEndedCleanup,
     onGameEndedCleanup: handleGameEndedCleanup,
@@ -304,6 +304,32 @@ export default function useCanvasPage({
   useEffect(() => {
     isRoundExpiredRef.current = gameplay.isRoundExpiredRefValue;
   }, [gameplay.isRoundExpiredRefValue]);
+
+  useEffect(() => {
+    if (!gameplay.roundSummaryEvent) {
+      return;
+    }
+
+    if (handledRoundSummaryEventRef.current === gameplay.roundSummaryEvent.sequence) {
+      return;
+    }
+
+    handledRoundSummaryEventRef.current = gameplay.roundSummaryEvent.sequence;
+    handleReceiveRoundSummary(gameplay.roundSummaryEvent.summary);
+  }, [gameplay.roundSummaryEvent, handleReceiveRoundSummary]);
+
+  useEffect(() => {
+    if (!gameplay.gameSummaryEvent) {
+      return;
+    }
+
+    if (handledGameSummaryEventRef.current === gameplay.gameSummaryEvent.sequence) {
+      return;
+    }
+
+    handledGameSummaryEventRef.current = gameplay.gameSummaryEvent.sequence;
+    handleReceiveGameSummary(gameplay.gameSummaryEvent.summary);
+  }, [gameplay.gameSummaryEvent, handleReceiveGameSummary]);
 
   const handleOpenLatestRoundSummary = useCallback(() => {
     if (!gameplay.roundSummary || !gameplay.canOpenLatestRoundSummary) {

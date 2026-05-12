@@ -140,6 +140,7 @@ export const canvasController = {
 
       return res.json({
         canvas: serializeCanvas(canvas),
+        serverNow: new Date().toISOString(),
         gameConfig: getCanvasGameConfigSnapshot(canvas),
       });
     } catch (err) {

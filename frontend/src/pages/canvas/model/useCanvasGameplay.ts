@@ -1,29 +1,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRoundState, useRoundTimer } from "@/features/gameplay/round";
 import {
-  sessionApi,
   useGameSession,
   useGameplaySocket,
   useParticipantsState,
-  type PhaseTimingState,
   type SessionBootstrapResult,
 } from "@/features/gameplay/session";
-import type {
-  GameSummaryData,
-  ParticipantItem,
-  RoundSummaryData,
-} from "@/features/gameplay/session/api/session.api";
+import type { ParticipantItem } from "@/features/gameplay/session/api/session.api";
 import type {
   CanvasBatchUpdatedPayload,
-  GameSummaryReadyPayload,
-  RoundSummaryReadyPayload,
+  RoundStartedPayload,
 } from "@/features/gameplay/session/model/socket.types";
 import {
   GAME_PHASE,
   isRoundActivePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
 import type { GameConfig } from "@/shared/config/game-config";
+import { setGameConfig } from "@/shared/config/game-config";
 import { useVoteTickets } from "@/features/gameplay/vote";
+import useGameplaySummaries from "../hooks/useGameplaySummaries";
+import useGameplayPhaseSync from "../hooks/useGameplayPhaseSync";
+import useGameplaySessionCleanup from "../hooks/useGameplaySessionCleanup";
 
 function formatClockTime(date: Date): string {
   const hours = String(date.getHours()).padStart(2, "0");
@@ -36,8 +33,6 @@ interface UseCanvasGameplayParams {
   onBootstrapScene: (result: SessionBootstrapResult) => void;
   onCanvasUpdated: (payload: { x: number; y: number; color: string }) => void;
   onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void;
-  onOpenRoundSummaryModal: (summary: RoundSummaryData) => void;
-  onOpenGameSummaryModal: (summary: GameSummaryData) => void;
   onRoundStartedCleanup: () => void;
   onRoundEndedCleanup: () => void;
   onGameEndedCleanup: () => void;
@@ -47,20 +42,11 @@ interface UseCanvasGameplayParams {
   resetVoteState: () => void;
 }
 
-const DEFAULT_PHASE_TIMING: PhaseTimingState = {
-  introPhaseSec: 0,
-  roundStartWaitSec: 0,
-  roundResultDelaySec: 0,
-  gameEndWaitSec: 0,
-};
-
 export default function useCanvasGameplay({
   canvasId,
   onBootstrapScene,
   onCanvasUpdated,
   onCanvasBatchUpdated,
-  onOpenRoundSummaryModal,
-  onOpenGameSummaryModal,
   onRoundStartedCleanup,
   onRoundEndedCleanup,
   onGameEndedCleanup,
@@ -87,55 +73,15 @@ export default function useCanvasGameplay({
     formattedRemainingTime,
     isRoundExpired,
     setRoundTimerState,
-    applyRoundTimer,
+    applyPhaseTimerSnapshot,
     setPhaseTimerState,
-    startRoundTimer,
+    setActiveRoundTimerState,
     resetRoundTimer,
   } = useRoundTimer();
 
-  const phaseTimingRef = useRef<PhaseTimingState>(DEFAULT_PHASE_TIMING);
-  const localPhaseTransitionTimerRef = useRef<number | null>(null);
-  const snapshotDelayTimerRef = useRef<number | null>(null);
-  const pendingRoundResultRef = useRef<{
-    roundId: number;
-    roundNumber: number;
-    summaryReady: boolean;
-    canvasApplied: boolean;
-    summary: RoundSummaryData | null;
-  } | null>(null);
   const [gameConfig, setGameConfigState] = useState<GameConfig | null>(null);
-  const [roundSummary, setRoundSummary] = useState<RoundSummaryData | null>(
-    null,
-  );
-  const [gameSummary, setGameSummary] = useState<GameSummaryData | null>(null);
-  const [roundSummaryLoading, setRoundSummaryLoading] = useState(false);
-  const [gameSummaryLoading, setGameSummaryLoading] = useState(false);
-  const [latestRoundSnapshot, setLatestRoundSnapshotState] = useState<
-    string | null
-  >(null);
 
-  const [canOpenLatestRoundSummary, setCanOpenLatestRoundSummary] =
-    useState(false);
-
-  const clearLocalPhaseTransitionTimer = useCallback(() => {
-    if (localPhaseTransitionTimerRef.current === null) {
-      return;
-    }
-
-    window.clearTimeout(localPhaseTransitionTimerRef.current);
-    localPhaseTransitionTimerRef.current = null;
-  }, []);
-
-  const clearSnapshotDelayTimer = useCallback(() => {
-    if (snapshotDelayTimerRef.current === null) {
-      return;
-    }
-
-    window.clearTimeout(snapshotDelayTimerRef.current);
-    snapshotDelayTimerRef.current = null;
-  }, []);
-
-  const { remaining, setRemaining, fetchTickets, clearTickets } =
+  const { remaining, applyRemainingSnapshot, fetchTickets, clearTickets } =
     useVoteTickets();
 
   const {
@@ -148,90 +94,59 @@ export default function useCanvasGameplay({
     applyParticipantsSnapshot,
     clearParticipants,
   } = useParticipantsState();
-
-  const requestGameSummary = useCallback(
-    async (targetCanvasId: number) => {
-      setGameSummaryLoading(true);
-
-      try {
-        const response = await sessionApi.getGameSummary(targetCanvasId);
-        const nextSummary = response.data.data;
-
-        setGameSummary(nextSummary);
-        onOpenGameSummaryModal(nextSummary);
-      } catch (error) {
-        console.error("[summary] failed to load game summary:", error);
-      } finally {
-        setGameSummaryLoading(false);
-      }
-    },
-    [onOpenGameSummaryModal],
+  const silentSessionResyncRef = useRef<() => Promise<unknown>>(
+    async () => null,
   );
 
-  const handleGameSummaryReady = useCallback(
-    (payload: GameSummaryReadyPayload) => {
-      const readyCanvasId = payload.canvasId;
-
-      if (!canvasId || canvasId !== readyCanvasId) {
-        return;
-      }
-
-      void requestGameSummary(readyCanvasId);
-    },
-    [canvasId, requestGameSummary],
-  );
-
-  const requestRoundSummary = useCallback(
-    async (targetCanvasId: number, targetRoundId: number) => {
-      setRoundSummaryLoading(true);
-
-      try {
-        const response = await sessionApi.getRoundSummary(
-          targetCanvasId,
-          targetRoundId,
-        );
-
-        const nextSummary = response.data.data;
-        setRoundSummary(nextSummary);
-        setLatestRoundSnapshotState(nextSummary.snapshotUrl);
-        return nextSummary;
-      } catch (error) {
-        console.error("[summary] failed to load round summary:", error);
-        setLatestRoundSnapshotState(null);
-        return null;
-      } finally {
-        setRoundSummaryLoading(false);
-      }
-    },
-    [],
-  );
-
-  const completePendingRoundResult = useCallback(() => {
-    const pending = pendingRoundResultRef.current;
-
-    if (!pending || !pending.summaryReady || !pending.canvasApplied) {
-      return;
-    }
-
-    clearSnapshotDelayTimer();
-
-    snapshotDelayTimerRef.current = window.setTimeout(() => {
-      snapshotDelayTimerRef.current = null;
-
-      setLatestRoundSnapshotState(pending.summary?.snapshotUrl ?? null);
-
-      if (pending.summary) {
-        onOpenRoundSummaryModal(pending.summary);
-      }
-
-      setCanOpenLatestRoundSummary(true);
-      pendingRoundResultRef.current = null;
-    }, 150);
-  }, [clearSnapshotDelayTimer, onOpenRoundSummaryModal]);
+  const summaries = useGameplaySummaries({ canvasId });
+  const {
+    roundSummary,
+    latestRoundSnapshot,
+    canOpenLatestRoundSummary,
+    gameSummary,
+    roundSummaryEvent,
+    gameSummaryEvent,
+    roundSummaryLoading,
+    gameSummaryLoading,
+    handleBootstrapSummaryRequests,
+    handleRoundSummaryReady,
+    handleGameSummaryReady,
+    beginPendingRoundResult,
+    markPendingRoundResultCanvasApplied,
+    resetForRoundStart,
+    resetAll: resetSummaries,
+  } = summaries;
+  const phaseSync = useGameplayPhaseSync({
+    canvasId,
+    phase,
+    phaseEndsAt,
+    formattedGameEndTime,
+    refreshParticipants,
+    resyncSession: () => silentSessionResyncRef.current(),
+    clearTickets,
+    resetVoteState,
+    onRoundEndedCleanup,
+    setRoundState,
+    applyPhaseTimerSnapshot,
+    setPhaseTimerState,
+    setActiveRoundTimerState,
+    applyRoundMeta,
+    beginPendingRoundResult,
+  });
+  const {
+    clearActiveRoundTimer,
+    syncActiveRoundTimer,
+    syncPhaseTimer,
+    resetJoinedState,
+    handleCanvasJoined,
+    handleRoundEnded,
+    handlePhaseUpdated,
+    handleTimerUpdate,
+  } = phaseSync;
 
   const applyBootstrap = useCallback(
     (result: SessionBootstrapResult) => {
-      phaseTimingRef.current = result.phaseTiming;
+      setGameConfig(result.gameConfig);
       setGameConfigState(result.gameConfig);
       onBootstrapScene(result);
 
@@ -247,41 +162,54 @@ export default function useCanvasGameplay({
       });
 
       if (isRoundActivePhase(result.round.phase)) {
-        setRoundTimerState({
-          remainingSeconds: result.round.remainingSeconds,
-          formattedRemainingTime: result.round.formattedRemainingTime,
-          isRoundExpired: result.round.isRoundExpired,
-        });
+        if (result.round.phaseEndsAt && result.round.timerServerNow) {
+          syncActiveRoundTimer({
+            roundEndsAt: result.round.phaseEndsAt,
+            serverNow: result.round.timerServerNow,
+            isRoundExpired: result.round.isRoundExpired,
+          });
+        } else {
+          setRoundTimerState({
+            remainingSeconds: result.round.remainingSeconds,
+            formattedRemainingTime: result.round.formattedRemainingTime,
+            isRoundExpired: result.round.isRoundExpired,
+          });
+        }
       } else {
-        setPhaseTimerState(
-          result.round.phaseEndsAt,
-          result.round.isRoundExpired,
-        );
+        clearActiveRoundTimer();
+
+        if (result.round.phaseEndsAt && result.round.timerServerNow) {
+          syncPhaseTimer({
+            phaseEndsAt: result.round.phaseEndsAt,
+            serverNow: result.round.timerServerNow,
+            isRoundExpired: result.round.isRoundExpired,
+          });
+        } else if (result.round.phaseEndsAt) {
+          setPhaseTimerState(result.round.phaseEndsAt, 0, result.round.isRoundExpired);
+        } else {
+          applyPhaseTimerSnapshot(
+            result.round.remainingSeconds,
+            result.round.isRoundExpired,
+          );
+        }
       }
 
       applyVoteUpdate(result.votes);
-      setRemaining(result.remaining);
-
-      if (
-        result.round.phase === GAME_PHASE.ROUND_RESULT &&
-        result.round.roundId !== null
-      ) {
-        void requestRoundSummary(result.canvasId, result.round.roundId);
-      }
-
-      if (result.round.phase === GAME_PHASE.GAME_END) {
-        void requestGameSummary(result.canvasId);
-      }
+      applyRemainingSnapshot(result.round.roundId, result.remaining);
+      handleBootstrapSummaryRequests(result);
     },
     [
+      applyRemainingSnapshot,
       applyVoteUpdate,
+      clearActiveRoundTimer,
+      handleBootstrapSummaryRequests,
       onBootstrapScene,
-      requestGameSummary,
-      requestRoundSummary,
+      applyPhaseTimerSnapshot,
       setPhaseTimerState,
-      setRemaining,
       setRoundState,
       setRoundTimerState,
+      syncActiveRoundTimer,
+      syncPhaseTimer,
     ],
   );
 
@@ -298,11 +226,21 @@ export default function useCanvasGameplay({
   });
 
   useEffect(() => {
-    return () => {
-      clearLocalPhaseTransitionTimer();
-      clearSnapshotDelayTimer();
-    };
-  }, [clearLocalPhaseTransitionTimer, clearSnapshotDelayTimer]);
+    silentSessionResyncRef.current = () => initializeSession({ silent: true });
+  }, [initializeSession]);
+
+  const sessionCleanup = useGameplaySessionCleanup({
+    clearActiveRoundTimer,
+    clearTickets,
+    clearParticipants,
+    resetRoundState,
+    resetRoundTimer,
+    resetVoteState,
+    resetSummaries,
+    markGameEnded,
+    onGameEndedCleanup,
+    onSessionEnded,
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -319,145 +257,9 @@ export default function useCanvasGameplay({
   }, [initializeSession]);
 
   useEffect(() => {
-    if (!canvasId) {
-      clearParticipants();
-      return;
-    }
-
-    void refreshParticipants();
-  }, [canvasId, clearParticipants, refreshParticipants]);
-
-  useEffect(() => {
-    if (isRoundActivePhase(phase)) {
-      return;
-    }
-
-    setPhaseTimerState(
-      phaseEndsAt,
-      phase === GAME_PHASE.ROUND_RESULT || phase === GAME_PHASE.GAME_END,
-    );
-
-    if (!phaseEndsAt) {
-      return;
-    }
-
-    const timer = window.setInterval(() => {
-      setPhaseTimerState(
-        phaseEndsAt,
-        phase === GAME_PHASE.ROUND_RESULT || phase === GAME_PHASE.GAME_END,
-      );
-    }, 1000);
-
-    return () => {
-      window.clearInterval(timer);
-    };
-  }, [phase, phaseEndsAt, setPhaseTimerState]);
-
-  useEffect(() => {
-    clearLocalPhaseTransitionTimer();
-
-    if (!phaseEndsAt || roundNumber === null) {
-      return;
-    }
-
-    if (phase === GAME_PHASE.INTRO) {
-      const delayMs = Math.max(0, new Date(phaseEndsAt).getTime() - Date.now());
-
-      localPhaseTransitionTimerRef.current = window.setTimeout(() => {
-        localPhaseTransitionTimerRef.current = null;
-
-        const waitStartedAt = phaseEndsAt;
-        const waitEndsAt = new Date(
-          new Date(waitStartedAt).getTime() +
-            phaseTimingRef.current.roundStartWaitSec * 1000,
-        ).toISOString();
-
-        setRoundState({
-          phase: GAME_PHASE.ROUND_START_WAIT,
-          roundId: null,
-          roundNumber: 1,
-          roundDurationSec: phaseTimingRef.current.roundStartWaitSec,
-          totalRounds,
-          formattedGameEndTime,
-          phaseStartedAt: waitStartedAt,
-          phaseEndsAt: waitEndsAt,
-        });
-
-        setPhaseTimerState(waitEndsAt, false);
-      }, delayMs);
-
-      return () => {
-        clearLocalPhaseTransitionTimer();
-      };
-    }
-
-    if (phase !== GAME_PHASE.ROUND_RESULT) {
-      return;
-    }
-
-    const delayMs = Math.max(0, new Date(phaseEndsAt).getTime() - Date.now());
-
-    localPhaseTransitionTimerRef.current = window.setTimeout(() => {
-      localPhaseTransitionTimerRef.current = null;
-
-      if (roundNumber >= totalRounds) {
-        const gameEndStartedAt = phaseEndsAt;
-        const gameEndEndsAt = new Date(
-          new Date(gameEndStartedAt).getTime() +
-            phaseTimingRef.current.gameEndWaitSec * 1000,
-        ).toISOString();
-
-        setRoundState({
-          phase: GAME_PHASE.GAME_END,
-          roundId: null,
-          roundNumber,
-          roundDurationSec: phaseTimingRef.current.gameEndWaitSec,
-          totalRounds,
-          formattedGameEndTime,
-          phaseStartedAt: gameEndStartedAt,
-          phaseEndsAt: gameEndEndsAt,
-        });
-
-        setPhaseTimerState(gameEndEndsAt, true);
-        return;
-      }
-
-      const waitStartedAt = phaseEndsAt;
-      const waitEndsAt = new Date(
-        new Date(waitStartedAt).getTime() +
-          phaseTimingRef.current.roundStartWaitSec * 1000,
-      ).toISOString();
-
-      setRoundState({
-        phase: GAME_PHASE.ROUND_START_WAIT,
-        roundId: null,
-        roundNumber: roundNumber + 1,
-        roundDurationSec: phaseTimingRef.current.roundStartWaitSec,
-        totalRounds,
-        formattedGameEndTime,
-        phaseStartedAt: waitStartedAt,
-        phaseEndsAt: waitEndsAt,
-      });
-
-      setPhaseTimerState(waitEndsAt, false);
-    }, delayMs);
-
-    return () => {
-      clearLocalPhaseTransitionTimer();
-    };
-  }, [
-    clearLocalPhaseTransitionTimer,
-    formattedGameEndTime,
-    phase,
-    phaseEndsAt,
-    roundNumber,
-    setPhaseTimerState,
-    setRoundState,
-    totalRounds,
-  ]);
-
-  const handleCanvasJoined = useCallback(() => {
-  }, []);
+    resetJoinedState();
+    clearParticipants();
+  }, [canvasId, clearParticipants, resetJoinedState]);
 
   const handleRoundStarted = useCallback(
     async ({
@@ -467,20 +269,10 @@ export default function useCanvasGameplay({
       gameEndAt,
       roundDurationSec,
       startedAt,
-    }: {
-      roundId: number;
-      roundNumber: number;
-      startedAt: string;
-      roundDurationSec: number;
-      totalRounds: number;
-      gameEndAt: string;
-    }) => {
-      clearLocalPhaseTransitionTimer();
-      clearSnapshotDelayTimer();
-      pendingRoundResultRef.current = null;
-      setGameSummary(null);
-      setRoundSummaryLoading(false);
-      setGameSummaryLoading(false);
+      roundEndsAt,
+      serverNow,
+    }: RoundStartedPayload) => {
+      resetForRoundStart();
       onRoundStartedCleanup();
 
       setRoundState({
@@ -491,10 +283,14 @@ export default function useCanvasGameplay({
         totalRounds,
         formattedGameEndTime: formatClockTime(new Date(gameEndAt)),
         phaseStartedAt: startedAt,
-        phaseEndsAt: null,
+        phaseEndsAt: roundEndsAt,
       });
 
-      startRoundTimer(roundDurationSec);
+      syncActiveRoundTimer({
+        roundEndsAt,
+        serverNow,
+        isRoundExpired: false,
+      });
       clearSessionError();
       resetVoteState();
       applyParticipantsSnapshot(
@@ -509,158 +305,22 @@ export default function useCanvasGameplay({
     },
     [
       applyParticipantsSnapshot,
-      clearLocalPhaseTransitionTimer,
       clearSessionError,
-      clearSnapshotDelayTimer,
       fetchTickets,
       onRoundStartedCleanup,
       participants,
       resetVoteState,
       setRoundState,
-      startRoundTimer,
+      resetForRoundStart,
+      syncActiveRoundTimer,
     ],
   );
-
-  const handleRoundEnded = useCallback(
-    ({
-      roundId,
-      roundNumber,
-      endedAt,
-    }: {
-      roundId: number;
-      roundNumber: number;
-      endedAt: string;
-    }) => {
-      clearLocalPhaseTransitionTimer();
-      clearSnapshotDelayTimer();
-      onRoundEndedCleanup();
-      clearTickets();
-      resetVoteState();
-      setRoundSummaryLoading(true);
-      setCanOpenLatestRoundSummary(false);
-      pendingRoundResultRef.current = {
-        roundId,
-        roundNumber,
-        summaryReady: false,
-        canvasApplied: false,
-        summary: null,
-      };
-
-      const resultEndsAt = new Date(
-        new Date(endedAt).getTime() +
-          phaseTimingRef.current.roundResultDelaySec * 1000,
-      ).toISOString();
-
-      setRoundState({
-        phase: GAME_PHASE.ROUND_RESULT,
-        roundId,
-        roundNumber,
-        roundDurationSec: phaseTimingRef.current.roundResultDelaySec,
-        totalRounds,
-        formattedGameEndTime,
-        phaseStartedAt: endedAt,
-        phaseEndsAt: resultEndsAt,
-      });
-
-      setPhaseTimerState(resultEndsAt, true);
-    },
-    [
-      clearLocalPhaseTransitionTimer,
-      clearSnapshotDelayTimer,
-      onRoundEndedCleanup,
-      clearTickets,
-      formattedGameEndTime,
-      resetVoteState,
-      setPhaseTimerState,
-      setRoundState,
-      totalRounds,
-    ],
-  );
-
-  const handleRoundSummaryReady = useCallback(
-    (payload: RoundSummaryReadyPayload) => {
-      const readyCanvasId = payload.canvasId;
-      const readyRoundId = payload.roundId;
-
-      if (!canvasId || canvasId !== readyCanvasId) {
-        return;
-      }
-
-      void requestRoundSummary(readyCanvasId, readyRoundId).then((summary) => {
-        if (!summary) {
-          return;
-        }
-
-        if (
-          pendingRoundResultRef.current &&
-          pendingRoundResultRef.current.roundId === readyRoundId
-        ) {
-          pendingRoundResultRef.current = {
-            ...pendingRoundResultRef.current,
-            summaryReady: true,
-            summary,
-          };
-          completePendingRoundResult();
-          return;
-        }
-
-        setCanOpenLatestRoundSummary(true);
-      });
-    },
-    [canvasId, completePendingRoundResult, requestRoundSummary],
-  );
-
-  const handleSessionEnded = useCallback(() => {
-    clearLocalPhaseTransitionTimer();
-    clearSnapshotDelayTimer();
-    pendingRoundResultRef.current = null;
-    setCanOpenLatestRoundSummary(false);
-    clearTickets();
-    clearParticipants();
-    resetRoundState();
-    resetRoundTimer();
-    resetVoteState();
-    setRoundSummary(null);
-    setGameSummary(null);
-    setRoundSummaryLoading(false);
-    setGameSummaryLoading(false);
-    onSessionEnded();
-  }, [
-    clearLocalPhaseTransitionTimer,
-    clearParticipants,
-    clearSnapshotDelayTimer,
-    clearTickets,
-    onSessionEnded,
-    resetRoundState,
-    resetRoundTimer,
-    resetVoteState,
-  ]);
 
   const handleVoteUpdate = useCallback(
     ({ votes }: { votes: Record<string, number> }) => {
       applyVoteUpdate(votes);
     },
     [applyVoteUpdate],
-  );
-
-  const handleTimerUpdate = useCallback(
-    ({
-      remainingSeconds,
-      isRoundExpired,
-      gameEndAt,
-      roundDurationSec,
-      totalRounds,
-    }: {
-      remainingSeconds: number;
-      isRoundExpired: boolean;
-      gameEndAt: string;
-      roundDurationSec: number;
-      totalRounds: number;
-    }) => {
-      applyRoundTimer({ remainingSeconds, isRoundExpired });
-      applyRoundMeta({ roundDurationSec, totalRounds, gameEndAt });
-    },
-    [applyRoundMeta, applyRoundTimer],
   );
 
   const handleParticipantsUpdated = useCallback(
@@ -677,34 +337,6 @@ export default function useCanvasGameplay({
     [applyParticipantsSnapshot],
   );
 
-  const handleGameEnded = useCallback(() => {
-    clearLocalPhaseTransitionTimer();
-    clearSnapshotDelayTimer();
-    pendingRoundResultRef.current = null;
-    setCanOpenLatestRoundSummary(false);
-    markGameEnded();
-    clearTickets();
-    clearParticipants();
-    onGameEndedCleanup();
-    resetRoundState();
-    resetRoundTimer();
-    resetVoteState();
-    setRoundSummary(null);
-    setGameSummary(null);
-    setRoundSummaryLoading(false);
-    setGameSummaryLoading(false);
-  }, [
-    clearLocalPhaseTransitionTimer,
-    clearParticipants,
-    clearSnapshotDelayTimer,
-    clearTickets,
-    markGameEnded,
-    onGameEndedCleanup,
-    resetRoundState,
-    resetRoundTimer,
-    resetVoteState,
-  ]);
-
   const handleCanvasUpdatedWithSnapshot = useCallback(
     (payload: { x: number; y: number; color: string }) => {
       onCanvasUpdated(payload);
@@ -715,26 +347,15 @@ export default function useCanvasGameplay({
   const handleCanvasBatchUpdatedWithSnapshot = useCallback(
     (payload: CanvasBatchUpdatedPayload) => {
       onCanvasBatchUpdated(payload);
-
-      if (!pendingRoundResultRef.current) {
-        return;
-      }
-
-      pendingRoundResultRef.current = {
-        ...pendingRoundResultRef.current,
-        canvasApplied: true,
-      };
-
-      window.requestAnimationFrame(() => {
-        completePendingRoundResult();
-      });
+      markPendingRoundResultCanvasApplied();
     },
-    [completePendingRoundResult, onCanvasBatchUpdated],
+    [markPendingRoundResultCanvasApplied, onCanvasBatchUpdated],
   );
 
   useGameplaySocket({
     canvasId,
     onCanvasJoined: handleCanvasJoined,
+    onPhaseUpdated: handlePhaseUpdated,
     onRoundStarted: handleRoundStarted,
     onRoundEnded: handleRoundEnded,
     onRoundSummaryReady: handleRoundSummaryReady,
@@ -744,8 +365,8 @@ export default function useCanvasGameplay({
     onVoteUpdate: handleVoteUpdate,
     onTimerUpdate: handleTimerUpdate,
     onParticipantsUpdated: handleParticipantsUpdated,
-    onSessionEnded: handleSessionEnded,
-    onGameEnded: handleGameEnded,
+    onSessionEnded: sessionCleanup.handleSessionEnded,
+    onGameEnded: sessionCleanup.handleGameEnded,
   });
 
   const handleVoteSuccess = useCallback(() => {
@@ -781,6 +402,8 @@ export default function useCanvasGameplay({
     latestRoundSnapshot,
     canOpenLatestRoundSummary,
     gameSummary,
+    roundSummaryEvent,
+    gameSummaryEvent,
     roundSummaryLoading,
     gameSummaryLoading,
     isRoundExpiredRefValue: isRoundExpired,
