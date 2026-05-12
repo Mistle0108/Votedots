@@ -10,6 +10,29 @@ interface RoundTimerStateValue {
   isRoundExpired: boolean;
 }
 
+function getRemainingSecondsFromPhaseEnd(phaseEndsAt: string): number {
+  const diffMs = new Date(phaseEndsAt).getTime() - Date.now();
+
+  if (diffMs <= 0) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil((diffMs - 10) / 1000));
+}
+
+function getRemainingSecondsFromServerClock(
+  endsAt: string,
+  serverOffsetMs: number,
+): number {
+  const diffMs = new Date(endsAt).getTime() - (Date.now() + serverOffsetMs);
+
+  if (diffMs <= 0) {
+    return 0;
+  }
+
+  return Math.max(1, Math.ceil((diffMs - 10) / 1000));
+}
+
 export default function useRoundTimer() {
   const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null);
   const [formattedRemainingTime, setFormattedRemainingTime] = useState<
@@ -34,6 +57,26 @@ export default function useRoundTimer() {
     [setRoundTimerState],
   );
 
+  const applyPhaseTimerSnapshot = useCallback(
+    (remainingSeconds: number | null, expired: boolean) => {
+      if (remainingSeconds === null) {
+        setRoundTimerState({
+          remainingSeconds: null,
+          formattedRemainingTime: null,
+          isRoundExpired: expired,
+        });
+        return;
+      }
+
+      setRoundTimerState({
+        remainingSeconds,
+        formattedRemainingTime: formatDuration(remainingSeconds),
+        isRoundExpired: expired,
+      });
+    },
+    [setRoundTimerState],
+  );
+
   const setPhaseTimerState = useCallback(
     (phaseEndsAt: string | null, expired: boolean) => {
       if (!phaseEndsAt) {
@@ -45,9 +88,31 @@ export default function useRoundTimer() {
         return;
       }
 
-      const remaining = Math.max(
-        0,
-        Math.ceil((new Date(phaseEndsAt).getTime() - Date.now()) / 1000),
+      const remaining = getRemainingSecondsFromPhaseEnd(phaseEndsAt);
+
+      setRoundTimerState({
+        remainingSeconds: remaining,
+        formattedRemainingTime: formatDuration(remaining),
+        isRoundExpired: expired || remaining === 0,
+      });
+    },
+    [setRoundTimerState],
+  );
+
+  const setActiveRoundTimerState = useCallback(
+    (roundEndsAt: string | null, serverOffsetMs: number, expired: boolean) => {
+      if (!roundEndsAt) {
+        setRoundTimerState({
+          remainingSeconds: null,
+          formattedRemainingTime: null,
+          isRoundExpired: expired,
+        });
+        return;
+      }
+
+      const remaining = getRemainingSecondsFromServerClock(
+        roundEndsAt,
+        serverOffsetMs,
       );
 
       setRoundTimerState({
@@ -92,7 +157,9 @@ export default function useRoundTimer() {
     isRoundExpired,
     setRoundTimerState,
     applyRoundTimer,
+    applyPhaseTimerSnapshot,
     setPhaseTimerState,
+    setActiveRoundTimerState,
     startRoundTimer,
     expireRoundTimer,
     resetRoundTimer,

@@ -153,6 +153,7 @@ async function transitionToRoundStartWait(
     roundId: null,
     roundNumber,
     roundDurationSec: canvasGameConfig.phases.roundStartWaitSec,
+    remainingSeconds: canvasGameConfig.phases.roundStartWaitSec,
     totalRounds: canvasGameConfig.rules.totalRounds,
     phaseStartedAt,
     phaseEndsAt,
@@ -211,6 +212,7 @@ async function transitionToGameEnd(
     roundId: null,
     roundNumber,
     roundDurationSec: canvasGameConfig.phases.gameEndWaitSec,
+    remainingSeconds: canvasGameConfig.phases.gameEndWaitSec,
     totalRounds: canvasGameConfig.rules.totalRounds,
     phaseStartedAt,
     phaseEndsAt,
@@ -268,6 +270,7 @@ function emitPhaseUpdated(
     roundId: number | null;
     roundNumber: number | null;
     roundDurationSec: number | null;
+    remainingSeconds: number | null;
     totalRounds: number;
     phaseStartedAt: Date | null;
     phaseEndsAt: Date | null;
@@ -279,10 +282,20 @@ function emitPhaseUpdated(
     roundId: payload.roundId,
     roundNumber: payload.roundNumber,
     roundDurationSec: payload.roundDurationSec,
+    remainingSeconds: payload.remainingSeconds,
     totalRounds: payload.totalRounds,
     phaseStartedAt: payload.phaseStartedAt?.toISOString() ?? null,
     phaseEndsAt: payload.phaseEndsAt?.toISOString() ?? null,
   });
+}
+
+function getPhaseRemainingSeconds(phaseEndsAt: Date | null): number | null {
+  if (!phaseEndsAt) {
+    return null;
+  }
+
+  const diffMs = phaseEndsAt.getTime() - Date.now();
+  return diffMs <= 0 ? 0 : Math.max(1, Math.floor(diffMs / 1000));
 }
 
 function startRoundBroadcast(
@@ -319,6 +332,11 @@ function startRoundBroadcast(
       roundNumber: round.roundNumber,
       remainingSeconds,
       isRoundExpired,
+      serverNow: new Date().toISOString(),
+      roundEndsAt: new Date(
+        round.startedAt.getTime() +
+          canvasGameConfig.phases.roundDurationSec * 1000,
+      ).toISOString(),
       roundDurationSec: canvasGameConfig.phases.roundDurationSec,
       totalRounds: canvasGameConfig.rules.totalRounds,
       gameEndAt: gameEndAt.toISOString(),
@@ -465,6 +483,7 @@ async function resumeRoundStartWaitFromBoundary(
     roundId: null,
     roundNumber: nextRoundNumber,
     roundDurationSec: canvasGameConfig.phases.roundStartWaitSec,
+    remainingSeconds: getPhaseRemainingSeconds(waitEndsAt),
     totalRounds: canvasGameConfig.rules.totalRounds,
     phaseStartedAt: waitStartedAt,
     phaseEndsAt: waitEndsAt,
@@ -522,6 +541,7 @@ async function resumeGameEndFromBoundary(
     roundId: null,
     roundNumber,
     roundDurationSec: canvasGameConfig.phases.gameEndWaitSec,
+    remainingSeconds: getPhaseRemainingSeconds(gameEndEndsAt),
     totalRounds: canvasGameConfig.rules.totalRounds,
     phaseStartedAt: gameEndStartedAt,
     phaseEndsAt: gameEndEndsAt,

@@ -40,6 +40,8 @@ interface RoundStateResponse {
   timer: {
     remainingSeconds: number;
     isRoundExpired: boolean;
+    serverNow: string;
+    roundEndsAt: string;
     roundDurationSec: number;
     totalRounds: number;
     gameEndAt: string;
@@ -79,6 +81,7 @@ function emitPhaseUpdated(
     roundId: number | null;
     roundNumber: number | null;
     roundDurationSec: number | null;
+    remainingSeconds: number | null;
     totalRounds: number;
     phaseStartedAt: Date | null;
     phaseEndsAt: Date | null;
@@ -90,6 +93,7 @@ function emitPhaseUpdated(
     roundId: payload.roundId,
     roundNumber: payload.roundNumber,
     roundDurationSec: payload.roundDurationSec,
+    remainingSeconds: payload.remainingSeconds,
     totalRounds: payload.totalRounds,
     phaseStartedAt: payload.phaseStartedAt?.toISOString() ?? null,
     phaseEndsAt: payload.phaseEndsAt?.toISOString() ?? null,
@@ -236,6 +240,8 @@ export const roundService = {
         roundId: round.id,
         roundNumber: round.roundNumber,
         startedAt: round.startedAt,
+        serverNow: new Date().toISOString(),
+        roundEndsAt: roundEndsAt.toISOString(),
         roundDurationSec: canvasGameConfig.phases.roundDurationSec,
         totalRounds: canvasGameConfig.rules.totalRounds,
         gameEndAt: gameEndAt.toISOString(),
@@ -246,6 +252,7 @@ export const roundService = {
         roundId: round.id,
         roundNumber: round.roundNumber,
         roundDurationSec: canvasGameConfig.phases.roundDurationSec,
+        remainingSeconds: canvasGameConfig.phases.roundDurationSec,
         totalRounds: canvasGameConfig.rules.totalRounds,
         phaseStartedAt: round.startedAt,
         phaseEndsAt: roundEndsAt,
@@ -462,6 +469,7 @@ export const roundService = {
         roundId: round.id,
         roundNumber: round.roundNumber,
         roundDurationSec: canvasGameConfig.phases.roundResultDelaySec,
+        remainingSeconds: canvasGameConfig.phases.roundResultDelaySec,
         totalRounds: canvasGameConfig.rules.totalRounds,
         phaseStartedAt: round.endedAt,
         phaseEndsAt: roundResultEndsAt,
@@ -535,6 +543,11 @@ export const roundService = {
         timer: {
           remainingSeconds,
           isRoundExpired: remainingSeconds === 0,
+          serverNow: now.toISOString(),
+          roundEndsAt: new Date(
+            activeRound.startedAt.getTime() +
+              canvasGameConfig.phases.roundDurationSec * 1000,
+          ).toISOString(),
           roundDurationSec: canvasGameConfig.phases.roundDurationSec,
           totalRounds: canvasGameConfig.rules.totalRounds,
           gameEndAt: gameEndAt.toISOString(),
@@ -580,6 +593,8 @@ export const roundService = {
       timer: {
         remainingSeconds: 0,
         isRoundExpired: true,
+        serverNow: now.toISOString(),
+        roundEndsAt: waitingDeadline.toISOString(),
         roundDurationSec: canvasGameConfig.phases.roundDurationSec,
         totalRounds: canvasGameConfig.rules.totalRounds,
         gameEndAt: gameEndAt.toISOString(),

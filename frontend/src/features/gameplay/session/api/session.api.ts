@@ -26,6 +26,8 @@ export interface RoundStateResponse {
   timer: {
     remainingSeconds: number;
     isRoundExpired: boolean;
+    serverNow: string;
+    roundEndsAt: string;
     roundDurationSec: number;
     totalRounds: number;
     gameEndAt: string;
