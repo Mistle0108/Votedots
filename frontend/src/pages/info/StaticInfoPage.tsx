@@ -12,6 +12,13 @@ interface StaticInfoPageProps {
   locale: PublicSiteLocale;
 }
 
+const documentHeadingStyle = {
+  fontFamily:
+    'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", "Malgun Gothic", sans-serif',
+  letterSpacing: "0",
+  color: "#111111",
+} as const;
+
 export default function StaticInfoPage({
   pageKey,
   locale,
@@ -23,7 +30,7 @@ export default function StaticInfoPage({
   usePublicSiteLocale(locale);
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(222,85,72,0.12),transparent_26%),linear-gradient(180deg,#fbf3ec_0%,#ffffff_100%)] text-[#272E37]">
+    <div className="document-force-light min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(222,85,72,0.12),transparent_26%),linear-gradient(180deg,#fbf3ec_0%,#ffffff_100%)] text-[#272E37]">
       <SiteHeader
         locale={locale}
         pathSuffix={`/${pageKey}`}
@@ -43,11 +50,14 @@ export default function StaticInfoPage({
       />
 
       <main className="px-4 pb-20 pt-8 sm:px-6 lg:px-10">
-        <section className="mx-auto max-w-4xl rounded-[36px] border border-[#ead7c8] bg-white px-6 py-8 shadow-[0_24px_80px_rgba(39,46,55,0.06)] sm:px-8 sm:py-10">
+        <section className="document-readable-font mx-auto max-w-4xl rounded-[36px] border border-[#ead7c8] bg-white px-6 py-8 shadow-[0_24px_80px_rgba(39,46,55,0.06)] sm:px-8 sm:py-10">
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#d36844]">
             VoteDots
           </p>
-          <h1 className="mt-4 text-left text-4xl font-semibold text-[#272E37] sm:text-5xl">
+          <h1
+            className="mt-4 text-left text-4xl font-semibold tracking-normal text-[#111111] dark:text-[#111111] sm:text-5xl"
+            style={documentHeadingStyle}
+          >
             {page.title}
           </h1>
           <p className="mt-5 max-w-3xl text-left text-base leading-7 text-[#5f6368] sm:text-lg">
@@ -60,7 +70,10 @@ export default function StaticInfoPage({
                 key={section.heading}
                 className="rounded-[28px] border border-[#ead7c8] bg-[#fffaf4] px-5 py-5 text-left"
               >
-                <h2 className="text-2xl font-semibold text-[#272E37]">
+                <h2
+                  className="text-2xl font-semibold tracking-normal text-[#111111] dark:text-[#111111]"
+                  style={documentHeadingStyle}
+                >
                   {section.heading}
                 </h2>
                 <div className="mt-4 space-y-3 text-base leading-7 text-[#5f6368]">

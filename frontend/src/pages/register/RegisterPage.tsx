@@ -77,7 +77,7 @@ function RegisterAccordion({
   children: ReactNode;
 }) {
   return (
-    <details className="group rounded border border-gray-200 bg-white">
+    <details className="document-readable-font group rounded border border-gray-200 bg-white">
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-sm [&::-webkit-details-marker]:hidden">
         <span className="font-medium text-gray-700">{title}</span>
         <span className="inline-flex items-center rounded-full border border-gray-300 px-3 py-1 text-xs font-medium text-gray-600 transition group-hover:border-gray-400 group-hover:text-gray-800">

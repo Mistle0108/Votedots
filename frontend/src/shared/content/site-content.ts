@@ -217,34 +217,76 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       privacy: {
         title: "개인정보처리방침",
         lead:
-          "VoteDots는 서비스 운영에 필요한 최소한의 계정 정보와 세션 정보를 처리합니다. 이 문서는 어떤 정보를 왜 처리하는지 설명합니다.",
+          "VoteDots는 서비스 운영 과정에서 이용자의 개인정보를 어떤 기준과 목적에 따라 처리하는지 안내하기 위하여 이 개인정보처리방침을 마련합니다. 이용자는 본 방침을 통해 처리 항목, 이용 목적, 보유 기간, 보호조치 및 권리 행사 방법을 확인할 수 있습니다.",
         sections: [
           {
-            heading: "수집하는 정보",
+            heading: "1. 개인정보처리방침의 의의",
             paragraphs: [
-              "회원가입 과정에서 사용자명, 닉네임, 비밀번호가 처리됩니다. 비밀번호는 원문 그대로 저장하지 않고 인증을 위한 보호 처리 후 저장합니다.",
-              "로그인 상태 유지를 위해 세션 식별자와 세션 쿠키가 사용됩니다. 서비스 이용 과정에서 게임 참여 기록, 투표 결과, 닉네임 기반 통계가 생성될 수 있습니다.",
+              "개인정보처리방침은 VoteDots가 서비스 운영 과정에서 어떤 개인정보를 어떤 기준으로 처리하는지 설명하는 문서입니다.",
+              "VoteDots는 필요한 범위 내에서만 개인정보를 처리하고, 관련 법령에 따라 안전하게 관리하기 위하여 본 방침을 수립하고 공개합니다.",
             ],
           },
           {
-            heading: "이용 목적",
+            heading: "2. 개인정보의 처리 목적",
             paragraphs: [
-              "계정 식별, 로그인 유지, 게임 참여 관리, 결과 집계, 부정 이용 방지, 운영상 장애 대응을 위해 정보를 처리합니다.",
-              "공개 랜딩 페이지에는 게임 스냅샷, 참여자 수, 닉네임 기반 요약 통계 같은 운영 정보를 표시할 수 있습니다.",
+              "VoteDots는 회원가입 및 계정 관리, 로그인 세션 유지 및 인증 처리, 서비스 접속 통계 분석 및 서비스 개선을 위하여 개인정보를 처리합니다.",
+              "또한 서비스 이용약관 동의 이력 관리와 만 14세 이상 여부 확인을 위하여 필요한 범위의 정보를 처리합니다.",
             ],
           },
           {
-            heading: "세션과 쿠키",
+            heading: "3. 처리하는 개인정보의 항목",
             paragraphs: [
-              "로그인 유지와 보안 처리를 위해 세션 쿠키가 사용됩니다.",
-              "향후 공개 페이지에 광고 기능이 활성화되는 경우 Google AdSense 같은 제3자 서비스가 쿠키를 사용할 수 있으며, 이 경우 관련 고지와 정책 반영 범위를 계속 업데이트합니다.",
+              "회원가입 및 계정 관리 과정에서는 아이디, 닉네임, 비밀번호, 약관 동의 시각, 약관 동의 언어, 약관 버전, 만 14세 이상 여부 확인 정보를 처리합니다.",
+              "로그인 세션 유지 및 인증 처리 과정에서는 세션 쿠키와 세션 식별 정보를 처리합니다. 서비스 접속 통계 분석 및 서비스 개선 과정에서는 브라우저 언어, 타임존, 기기 정보, 입장 시간을 처리합니다.",
             ],
           },
           {
-            heading: "보관과 보호",
+            heading: "4. 개인정보의 처리 및 보유 기간",
             paragraphs: [
-              "서비스 운영에 필요한 기간 동안 정보가 보관될 수 있으며, 관련 법령 또는 운영상 필요가 사라지면 삭제 또는 비식별화를 검토합니다.",
-              "세션 보안, 접근 제어, 저장소 보호를 위한 기술적 조치를 적용하지만 모든 위험을 완전히 제거할 수는 없습니다.",
+              "회원가입 및 계정 관리 정보와 서비스 이용약관 동의 이력은 회원 탈퇴 시까지 보유합니다. 만 14세 이상 여부 확인 정보도 회원 탈퇴 시까지 보유합니다.",
+              "세션 쿠키와 세션 식별 정보는 로그아웃 시 또는 세션 만료 시까지 보유합니다. 서비스 접속 통계 원본 데이터는 수집일로부터 90일간 보관 후 파기하며, 특정 개인을 식별할 수 없도록 집계된 통계 정보는 서비스 운영 및 분석 목적으로 장기 보관할 수 있습니다. 법령상 보관 의무가 적용되는 인터넷 로그기록자료 및 접속지 추적자료는 관련 법령에 따라 3개월간 보관할 수 있습니다.",
+            ],
+          },
+          {
+            heading: "5. 개인정보의 파기절차 및 파기방법",
+            paragraphs: [
+              "VoteDots는 개인정보 보유기간이 경과하거나 처리 목적이 달성되어 개인정보가 불필요하게 되었을 때 지체 없이 해당 개인정보를 파기합니다.",
+              "관계 법령에 따라 별도 보관이 필요한 정보는 법령에서 정한 기간 동안 별도로 보관한 후 파기하며, 전자적 파일 형태의 개인정보는 복구 또는 재생이 불가능한 방법으로 삭제합니다. 회원 탈퇴 시 관련 법령 또는 보관 의무가 없는 개인정보는 삭제되며, 이미 생성된 게임 결과 및 공개 정보는 개인을 식별할 수 없도록 비식별 처리될 수 있습니다.",
+            ],
+          },
+          {
+            heading: "6. 정보주체와 법정대리인의 권리·의무 및 행사방법",
+            paragraphs: [
+              "이용자는 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요구할 수 있으며, 법정대리인 또는 위임을 받은 대리인을 통하여 권리를 행사할 수 있습니다.",
+              "권리 행사는 전자우편 등으로 요청할 수 있으며, VoteDots는 관련 법령에 따라 지체 없이 필요한 조치를 합니다. VoteDots는 만 14세 미만 아동을 대상으로 서비스를 제공하지 않으며, 만 14세 미만 아동의 개인정보가 수집된 사실을 인지한 경우 지체 없이 해당 정보를 삭제합니다.",
+            ],
+          },
+          {
+            heading: "7. 개인정보 보호책임자",
+            paragraphs: [
+              "VoteDots는 개인정보 처리에 관한 업무를 총괄하고 관련 문의를 처리하기 위하여 개인정보 보호책임자를 지정하고 있습니다.",
+              "개인정보 보호책임자의 직책은 운영자이며, 문의 연락처는 privacy@votedots.space 입니다. 개인정보 보호 관련 문의, 불만처리, 피해구제 요청은 위 연락처로 할 수 있습니다.",
+            ],
+          },
+          {
+            heading: "8. 개인정보 자동 수집 장치의 설치·운영 및 거부에 관한 사항",
+            paragraphs: [
+              "VoteDots는 로그인 상태 유지, 이용자 인증, 세션 관리 및 보안상 필요한 접속 상태 확인을 위하여 세션 쿠키를 사용합니다.",
+              "세션 쿠키는 로그아웃 시 또는 세션 만료 시까지 유지됩니다. 이용자는 웹 브라우저 설정을 통하여 쿠키 저장을 거부할 수 있으나, 쿠키 저장을 거부할 경우 로그인 유지 등 일부 서비스 이용에 어려움이 발생할 수 있습니다. VoteDots는 현재 광고, 마케팅, 맞춤형 광고를 위한 제3자 쿠키를 사용하지 않습니다.",
+            ],
+          },
+          {
+            heading: "9. 개인정보의 안전성 확보조치에 관한 사항",
+            paragraphs: [
+              "VoteDots는 비밀번호를 원문 그대로 저장하지 않고 보호된 형태로 저장합니다. 또한 세션 쿠키에 HttpOnly, Secure, SameSite 속성을 적용하고 로그인 시 세션을 재생성하며 로그아웃 시 세션을 종료합니다.",
+              "로그인한 이용자만 접근할 수 있는 기능에는 인증 절차를 적용하고, 회원가입 및 로그인 요청에 대해서는 반복적인 비정상 요청을 제한하는 등 개인정보의 안전성 확보를 위한 기술적 조치를 적용합니다.",
+            ],
+          },
+          {
+            heading: "10. 개인정보 처리방침의 변경에 관한 사항",
+            paragraphs: [
+              "이 개인정보처리방침은 시행일로부터 적용됩니다. VoteDots는 법령, 서비스 내용 또는 개인정보 처리 방식의 변경이 있는 경우 본 방침을 수정할 수 있습니다.",
+              "중요한 변경사항이 있는 경우에는 시행일자, 변경 사유 및 주요 변경 내용을 서비스 내 페이지를 통하여 안내합니다. 시행일자는 2026년 5월 12일입니다.",
             ],
           },
         ],
@@ -444,34 +486,76 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       privacy: {
         title: "Privacy Policy",
         lead:
-          "VoteDots processes a minimal set of account and session data required to operate the service. This page explains what is handled and why.",
+          "VoteDots provides this Privacy Policy to explain how personal information is processed in connection with the service. You can use this page to review the categories of information we handle, why we handle it, how long we keep it, what safeguards are applied, and how you can exercise your rights.",
         sections: [
           {
-            heading: "Information we process",
+            heading: "1. Purpose of this policy",
             paragraphs: [
-              "During registration, the service processes a username, nickname, and password. Passwords are not stored in raw form and are protected for authentication purposes.",
-              "Session identifiers and session cookies are used to keep users signed in. Gameplay activity, vote results, and nickname-based statistics may be generated while the service is used.",
+              "This Privacy Policy explains what personal information VoteDots processes and the standards used when handling that information during service operation.",
+              "VoteDots processes personal information only within the scope needed for the service and publishes this policy so that users can understand how their information is handled.",
             ],
           },
           {
-            heading: "Why we use it",
+            heading: "2. Purposes of processing",
             paragraphs: [
-              "We process data to identify accounts, maintain sign-in state, manage gameplay, calculate results, prevent abuse, and respond to operational issues.",
-              "The public landing page may display snapshots, participant counts, and nickname-based summary statistics generated by the game.",
+              "VoteDots processes personal information for account registration and management, sign-in session maintenance and authentication, service access analytics, and service improvement.",
+              "We also process limited information to keep a record of acceptance of the Terms of Service and to confirm whether a registrant has affirmed that they are at least 14 years old.",
             ],
           },
           {
-            heading: "Sessions and cookies",
+            heading: "3. Categories of personal information processed",
             paragraphs: [
-              "Session cookies are used for sign-in persistence and security handling.",
-              "If public advertising features such as Google AdSense are enabled later, third-party cookies may also be used, and this policy will be updated to reflect that scope.",
+              "For account registration and management, VoteDots processes the username, nickname, password, terms acceptance timestamp, terms acceptance locale, terms version, and confirmation that the registrant affirmed they are at least 14 years old.",
+              "For sign-in session maintenance and authentication, VoteDots processes session cookies and session identifiers. For service access analytics and improvement, VoteDots processes browser language, time zone, device information, and entry time.",
             ],
           },
           {
-            heading: "Retention and protection",
+            heading: "4. Retention periods",
             paragraphs: [
-              "Information may be kept for as long as it is needed to operate the service, comply with law, or maintain operational records, and may later be deleted or anonymized.",
-              "Technical safeguards such as session security, access control, and protected storage are applied, but no system can remove all risk completely.",
+              "Account registration and management information, terms acceptance records, and the confirmation that the registrant affirmed they are at least 14 years old are retained until account withdrawal.",
+              "Session cookies and session identifiers are retained until logout or session expiration. Raw service access analytics events are retained for 90 days from collection and then deleted, while aggregated statistics that no longer identify a specific person may be retained for a longer period for service operation and analysis. Internet log records and access trace data subject to legal retention requirements may be retained for 3 months as required by applicable law.",
+            ],
+          },
+          {
+            heading: "5. Deletion procedures and methods",
+            paragraphs: [
+              "VoteDots deletes personal information without delay once the retention period expires or once the information is no longer needed for the stated processing purpose.",
+              "When separate retention is required by law, the relevant information is retained separately for the required period and then deleted. Electronic files containing personal information are removed using methods intended to prevent recovery or restoration. When an account is withdrawn, personal information that is not subject to a legal retention duty is deleted, and game results or public records that have already been generated may be de-identified so that the former member can no longer be identified.",
+            ],
+          },
+          {
+            heading: "6. Rights of data subjects and how to exercise them",
+            paragraphs: [
+              "Users may request access to, correction of, deletion of, or suspension of processing of their personal information at any time. Those rights may also be exercised by a legal representative or a duly authorized agent.",
+              "Requests may be submitted by email or another designated contact method, and VoteDots will respond in accordance with applicable law. VoteDots does not provide the service to children under the age of 14 and does not intentionally collect their personal information. If we become aware that such information has been collected, it will be deleted without delay.",
+            ],
+          },
+          {
+            heading: "7. Privacy officer",
+            paragraphs: [
+              "VoteDots has designated a privacy officer to oversee personal information processing and to handle related inquiries and complaints.",
+              "The privacy officer role is operated by the service operator, and the contact address is privacy@votedots.space. Privacy-related inquiries, complaints, and requests for relief may be sent to that address.",
+            ],
+          },
+          {
+            heading: "8. Automatic collection devices, cookies, and refusal methods",
+            paragraphs: [
+              "VoteDots uses session cookies to maintain sign-in state, authenticate users, manage sessions, and confirm connection state where needed for security.",
+              "Session cookies are retained until logout or session expiration. Users may refuse cookie storage through their browser settings, but doing so may make some features, including persistent sign-in, unavailable. VoteDots does not currently use third-party cookies for advertising, marketing, or personalized advertising.",
+            ],
+          },
+          {
+            heading: "9. Security measures",
+            paragraphs: [
+              "VoteDots does not store passwords in raw form and instead stores them in a protected format. Session cookies are configured with HttpOnly, Secure, and SameSite protections, sessions are regenerated on sign-in, and sessions are terminated on logout.",
+              "Authentication is required for restricted service features, and technical measures such as abnormal request limiting are applied to help protect personal information and maintain service security.",
+            ],
+          },
+          {
+            heading: "10. Changes to this Privacy Policy",
+            paragraphs: [
+              "This Privacy Policy applies from its effective date. VoteDots may revise this policy when laws, service features, or personal information processing practices change.",
+              "If a material change occurs, VoteDots will announce the effective date, the reason for the change, and the main revised points on the service page. The effective date of this version is May 12, 2026.",
             ],
           },
         ],
