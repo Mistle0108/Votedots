@@ -11,6 +11,7 @@ import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/s
 import type { ParticipantItem } from "@/features/gameplay/session/api/session.api";
 import type {
   CanvasBatchUpdatedPayload,
+  RoomExpiredPayload,
   RoundStartedPayload,
 } from "@/features/gameplay/session/model/socket.types";
 import {
@@ -40,6 +41,7 @@ interface UseCanvasGameplayParams {
   onRoundEndedCleanup: () => void;
   onGameEndedCleanup: () => void;
   onSessionEnded: () => void;
+  onRoomExpired: (payload: RoomExpiredPayload) => void;
   onContextMissing?: () => void;
   onUnauthorized: (message: string) => void;
   applyVoteUpdate: (votes: Record<string, number>) => void;
@@ -56,6 +58,7 @@ export default function useCanvasGameplay({
   onRoundEndedCleanup,
   onGameEndedCleanup,
   onSessionEnded,
+  onRoomExpired,
   onContextMissing,
   onUnauthorized,
   applyVoteUpdate,
@@ -377,6 +380,7 @@ export default function useCanvasGameplay({
     onParticipantsUpdated: handleParticipantsUpdated,
     onSessionEnded: sessionCleanup.handleSessionEnded,
     onGameEnded: sessionCleanup.handleGameEnded,
+    onRoomExpired,
   });
 
   const handleVoteSuccess = useCallback(() => {

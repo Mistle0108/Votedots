@@ -3,12 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { authApi, logoutToLobby } from "@/features/auth";
 import {
   roomApi,
+  type RoomConfigProfile,
   toRoomSessionContext,
 } from "@/features/room/api/room.api";
 import RoomCreateModal from "@/features/room/components/RoomCreateModal";
 import RoomEnterModal from "@/features/room/components/RoomEnterModal";
 import RoomListSection from "@/features/room/components/RoomListSection";
 import useLobbyRooms from "@/features/room/hooks/useLobbyRooms";
+import { consumeStoredRoomLifecycleNotice } from "@/features/room/model/room-lifecycle-notice";
 import {
   clearStoredRoomSessionContext,
   setStoredRoomSessionContext,
@@ -60,11 +62,17 @@ export default function LobbyPage() {
   const [generatedAccessCode, setGeneratedAccessCode] = useState<string | null>(
     null,
   );
+  const [roomConfigProfiles, setRoomConfigProfiles] = useState<RoomConfigProfile[]>(
+    [],
+  );
   const [createdPrivateAccessCode, setCreatedPrivateAccessCode] = useState<
     string | null
   >(null);
   const [privateAccessCode, setPrivateAccessCode] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
+  const [roomLifecycleNoticeReason, setRoomLifecycleNoticeReason] = useState<
+    "expired" | "terminated_by_owner" | null
+  >(() => consumeStoredRoomLifecycleNotice());
 
   const {
     rooms,
@@ -93,6 +101,31 @@ export default function LobbyPage() {
   useEffect(() => {
     void Promise.resolve().then(refreshAuthState);
   }, [refreshAuthState]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void roomApi
+      .getConfigProfiles()
+      .then(({ data }) => {
+        if (cancelled) {
+          return;
+        }
+
+        setRoomConfigProfiles(data.profiles);
+      })
+      .catch(() => {
+        if (cancelled) {
+          return;
+        }
+
+        setRoomConfigProfiles([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const handleWindowFocus = () => {
@@ -483,11 +516,33 @@ export default function LobbyPage() {
         </div>
       ) : null}
 
+      {roomLifecycleNoticeReason ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
+          <div className="w-full max-w-sm rounded-[28px] bg-white p-7 shadow-[0_30px_100px_rgba(39,46,55,0.28)]">
+            <h2 className="text-xl font-semibold text-[#272E37]">
+              {roomLifecycleNoticeReason === "terminated_by_owner"
+                ? "방이 종료되었습니다."
+                : "방이 만료되었습니다."}
+            </h2>
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setRoomLifecycleNoticeReason(null)}
+                className="rounded-2xl bg-[#272E37] px-4 py-3 text-sm font-semibold text-white"
+              >
+                확인
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <RoomCreateModal
         open={createModalOpen}
         loading={createLoading}
         error={modalError}
         generatedAccessCode={generatedAccessCode}
+        profiles={roomConfigProfiles}
         onClose={handleCloseCreateModal}
         onCopyAccessCode={handleCopyAccessCode}
         onEnterCreatedPrivateRoom={handleEnterCreatedPrivateRoom}

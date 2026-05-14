@@ -5,6 +5,7 @@ import { roomController } from "./room.controller";
 const router = Router();
 
 router.get("/", roomController.list);
+router.get("/config-profiles", roomController.getConfigProfiles);
 router.get("/current", authMiddleware, roomController.getCurrent);
 router.get(
   "/current/participants/count",
@@ -17,6 +18,7 @@ router.get(
   roomController.getCurrentParticipantList,
 );
 router.get("/current/manage", authMiddleware, roomController.getCurrentManage);
+router.post("/current/terminate", authMiddleware, roomController.terminateCurrent);
 router.get("/:publicRoomNumber", roomController.getDetail);
 router.post("/", authMiddleware, roomController.create);
 router.post("/enter", authMiddleware, roomController.enter);

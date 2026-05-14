@@ -91,6 +91,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "session.participantCount": "{{count}}명",
     "session.loadingParticipants": "참여자 정보를 불러오는 중...",
     "session.noParticipants": "현재 참여자가 없습니다.",
+    "room.expiredRedirect": "방이 만료되었습니다. 잠시 후 로비로 이동됩니다.",
+    "room.terminatedRedirect": "방이 종료되었습니다. 잠시 후 로비로 이동됩니다.",
 
     "history.introButton": "안내",
     "history.resultButton": "결과",
@@ -358,6 +360,10 @@ export const resources: Record<Locale, Record<string, string>> = {
     "session.participantCount": "{{count}}",
     "session.loadingParticipants": "Loading participant information...",
     "session.noParticipants": "There are no participants right now.",
+    "room.expiredRedirect":
+      "This room has expired. You will be moved to the lobby shortly.",
+    "room.terminatedRedirect":
+      "This room was closed. You will be moved to the lobby shortly.",
 
     "history.introButton": "Guide",
     "history.resultButton": "Result",

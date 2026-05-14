@@ -1,7 +1,4 @@
-import type {
-  RoomDetailResponse,
-  RoomListItem,
-} from "../api/room.api";
+import type { RoomDetailResponse, RoomListItem } from "../api/room.api";
 
 interface RoomListSectionProps {
   rooms: RoomListItem[];
@@ -88,9 +85,22 @@ export default function RoomListSection({
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className="text-sm font-semibold">
-                      #{room.publicRoomNumber}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold">
+                        #{room.publicRoomNumber}
+                      </span>
+                      {room.isOwner ? (
+                        <span
+                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                            selected
+                              ? "bg-white/16 text-white"
+                              : "bg-[#272E37] text-white"
+                          }`}
+                        >
+                          내 방
+                        </span>
+                      ) : null}
+                    </div>
                     <span
                       className={`text-xs font-medium ${
                         selected ? "text-white/80" : "text-[#7b6b62]"
@@ -131,9 +141,16 @@ export default function RoomListSection({
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
               Private Room
             </p>
-            <h3 className="mt-2 text-2xl font-semibold text-[#272E37]">
-              #{selectedRoomDetail.room.publicRoomNumber}
-            </h3>
+            <div className="mt-2 flex items-center gap-2">
+              <h3 className="text-2xl font-semibold text-[#272E37]">
+                #{selectedRoomDetail.room.publicRoomNumber}
+              </h3>
+              {selectedRoomDetail.room.manage ? (
+                <span className="rounded-full bg-[#272E37] px-2 py-0.5 text-xs font-semibold text-white">
+                  내 방
+                </span>
+              ) : null}
+            </div>
             <p className="mt-3 text-sm leading-6 text-[#5f6368]">
               프라이빗방은 입장 코드를 입력해야 참여할 수 있습니다.
             </p>
@@ -160,17 +177,22 @@ export default function RoomListSection({
         ) : (
           <div className="grid gap-5 xl:grid-cols-[256px_minmax(0,1fr)]">
             <div className="overflow-hidden rounded-[24px] border border-[#e3d9cf] bg-white">
-              {selectedRoomDetail.room.canvas.snapshotUrl ? (
+              {selectedRoomDetail.room.canvas.snapshotUrl ||
+              selectedRoomDetail.room.canvas.templateImageUrl ? (
                 <img
-                  src={selectedRoomDetail.room.canvas.snapshotUrl}
-                  alt="최근 라운드 스냅샷"
+                  src={
+                    selectedRoomDetail.room.canvas.snapshotUrl ??
+                    selectedRoomDetail.room.canvas.templateImageUrl ??
+                    undefined
+                  }
+                  alt="room preview"
                   className="block h-[256px] w-[256px]"
                   style={{ imageRendering: "pixelated" }}
                   draggable={false}
                 />
               ) : (
                 <div className="flex h-[256px] w-[256px] items-center justify-center text-sm text-[#7b6b62]">
-                  최근 스냅샷 없음
+                  최근 스냅샷이 없습니다
                 </div>
               )}
             </div>
@@ -179,10 +201,17 @@ export default function RoomListSection({
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
                 Public Room
               </p>
-              <h3 className="mt-2 text-2xl font-semibold text-[#272E37]">
-                #{selectedRoomDetail.room.publicRoomNumber}{" "}
-                {selectedRoomDetail.room.title}
-              </h3>
+              <div className="mt-2 flex items-center gap-2">
+                <h3 className="text-2xl font-semibold text-[#272E37]">
+                  #{selectedRoomDetail.room.publicRoomNumber}{" "}
+                  {selectedRoomDetail.room.title}
+                </h3>
+                {selectedRoomDetail.room.manage ? (
+                  <span className="rounded-full bg-[#272E37] px-2 py-0.5 text-xs font-semibold text-white">
+                    내 방
+                  </span>
+                ) : null}
+              </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">

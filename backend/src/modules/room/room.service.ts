@@ -1,14 +1,26 @@
 import { randomBytes } from "node:crypto";
 import type { Server } from "socket.io";
 import { AppDataSource } from "../../database/data-source";
-import { buildGameConfigSnapshot, type GameConfigUpdate } from "../../config/game.config";
+import {
+  buildGameConfigSnapshot,
+  getGameConfigSnapshot,
+  type GameConfigUpdate,
+} from "../../config/game.config";
 import { Canvas } from "../../entities/canvas.entity";
-import { Room, RoomStatus, RoomType } from "../../entities/room.entity";
+import {
+  Room,
+  RoomStatus,
+  RoomTerminationReason,
+  RoomType,
+} from "../../entities/room.entity";
+import { VoteRound } from "../../entities/vote-round.entity";
 import { Voter } from "../../entities/voter.entity";
 import { buildCanvasCreationData, startCanvasGame } from "../canvas/canvas.service";
+import { GamePhase } from "../game/game-phase.types";
 import { participantSessionService } from "../participant/participant-session.service";
 
 const roomRepository = AppDataSource.getRepository(Room);
+const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 
 export interface CreateRoomInput {
   title: string;
@@ -26,24 +38,69 @@ export interface RoomSessionContext {
   type: RoomType;
 }
 
-const FIXED_ROUND_START_WAIT_SEC = 5;
-const FIXED_ROUND_DURATION_SEC = 60;
-const FIXED_ROUND_RESULT_DELAY_SEC = 10;
-const FIXED_GAME_END_WAIT_SEC = 60 * 10;
 const MAX_INTRO_PHASE_SEC = 60 * 5;
 const MAX_VOTES_PER_ROUND = 120;
 const MAX_GAME_DURATION_SEC = 60 * 60;
-const ROUND_CYCLE_SEC =
-  FIXED_ROUND_START_WAIT_SEC +
-  FIXED_ROUND_DURATION_SEC +
-  FIXED_ROUND_RESULT_DELAY_SEC;
 const MAX_ACTIVE_ROOMS_PER_OWNER = 2;
+
+async function expireElapsedRooms(): Promise<void> {
+  await roomRepository
+    .createQueryBuilder()
+    .update(Room)
+    .set({
+      status: RoomStatus.EXPIRED,
+      terminationReason: RoomTerminationReason.EXPIRED,
+    })
+    .where("type IN (:...types)", {
+      types: [RoomType.PUBLIC, RoomType.PRIVATE],
+    })
+    .andWhere("status = :status", { status: RoomStatus.GAME_END_WAIT })
+    .andWhere("expiresAt IS NOT NULL")
+    .andWhere("expiresAt <= :now", { now: new Date() })
+    .execute();
+}
+
+async function reconcileRoomLifecycle(room: Room): Promise<Room> {
+  if (room.type === RoomType.PLAZA || room.status === RoomStatus.EXPIRED) {
+    return room;
+  }
+
+  const now = Date.now();
+  const phaseEndsAt = room.canvas.phaseEndsAt;
+
+  if (
+    room.canvas.phase === GamePhase.GAME_END &&
+    phaseEndsAt &&
+    phaseEndsAt.getTime() <= now
+  ) {
+    room.status = RoomStatus.EXPIRED;
+    room.terminationReason = RoomTerminationReason.EXPIRED;
+    room.expiresAt = room.expiresAt ?? phaseEndsAt;
+    return roomRepository.save(room);
+  }
+
+  if (
+    room.canvas.phase === GamePhase.GAME_END &&
+    phaseEndsAt &&
+    room.status !== RoomStatus.GAME_END_WAIT
+  ) {
+    room.status = RoomStatus.GAME_END_WAIT;
+    room.expiresAt = phaseEndsAt;
+    room.terminationReason = null;
+    return roomRepository.save(room);
+  }
+
+  return room;
+}
 
 function normalizeTitle(title: string): string {
   return title.trim();
 }
 
-function validateCreateRoomInput(input: CreateRoomInput): void {
+function validateCreateRoomInput(
+  input: CreateRoomInput,
+  profileSnapshot: ReturnType<typeof getGameConfigSnapshot>,
+): void {
   if (!normalizeTitle(input.title)) {
     throw new Error("ROOM_TITLE_REQUIRED");
   }
@@ -73,8 +130,12 @@ function validateCreateRoomInput(input: CreateRoomInput): void {
     throw new Error("ROOM_VOTES_PER_ROUND_INVALID");
   }
 
+  const roundCycleSec =
+    profileSnapshot.phases.roundStartWaitSec +
+    profileSnapshot.phases.roundDurationSec +
+    profileSnapshot.phases.roundResultDelaySec;
   const maxRounds = Math.floor(
-    (MAX_GAME_DURATION_SEC - input.introPhaseSec) / ROUND_CYCLE_SEC,
+    (MAX_GAME_DURATION_SEC - input.introPhaseSec) / roundCycleSec,
   );
 
   if (
@@ -90,10 +151,6 @@ function buildRoomConfigUpdate(input: CreateRoomInput): GameConfigUpdate {
   return {
     phases: {
       introPhaseSec: input.introPhaseSec,
-      roundStartWaitSec: FIXED_ROUND_START_WAIT_SEC,
-      roundDurationSec: FIXED_ROUND_DURATION_SEC,
-      roundResultDelaySec: FIXED_ROUND_RESULT_DELAY_SEC,
-      gameEndWaitSec: FIXED_GAME_END_WAIT_SEC,
     },
     rules: {
       totalRounds: input.totalRounds,
@@ -154,6 +211,44 @@ function buildRoomSessionContext(room: Room): RoomSessionContext {
 }
 
 export const roomService = {
+  async markGameEndWaitByCanvas(canvasId: number, expiresAt: Date): Promise<void> {
+    const room = await roomRepository.findOne({
+      where: { canvas: { id: canvasId } },
+      relations: { canvas: true },
+    });
+
+    if (!room || room.type === RoomType.PLAZA) {
+      return;
+    }
+
+    await roomRepository.update(room.id, {
+      status: RoomStatus.GAME_END_WAIT,
+      expiresAt,
+      terminationReason: null,
+    });
+  },
+
+  async expireAfterGameEndByCanvas(canvasId: number): Promise<Room | null> {
+    const room = await roomRepository.findOne({
+      where: { canvas: { id: canvasId } },
+      relations: { canvas: true },
+    });
+
+    if (!room || room.type === RoomType.PLAZA) {
+      return null;
+    }
+
+    if (room.status === RoomStatus.EXPIRED) {
+      return room;
+    }
+
+    room.status = RoomStatus.EXPIRED;
+    room.terminationReason = RoomTerminationReason.EXPIRED;
+    room.expiresAt = room.expiresAt ?? new Date();
+
+    return roomRepository.save(room);
+  },
+
   async create(
     io: Server,
     ownerId: number,
@@ -163,7 +258,8 @@ export const roomService = {
     sessionContext: RoomSessionContext | null;
     accessCode: string | null;
   }> {
-    validateCreateRoomInput(input);
+    const profileSnapshot = getGameConfigSnapshot(input.profileKey);
+    validateCreateRoomInput(input, profileSnapshot);
     await assertOwnerActiveRoomLimit(ownerId);
 
     const config = buildGameConfigSnapshot(
@@ -200,7 +296,7 @@ export const roomService = {
           introPhaseSec: input.introPhaseSec,
           totalRounds: input.totalRounds,
           votesPerRound: input.votesPerRound,
-          gameEndWaitSec: FIXED_GAME_END_WAIT_SEC,
+          gameEndWaitSec: config.snapshot.phases.gameEndWaitSec,
         },
         canvas,
         expiresAt: null,
@@ -228,7 +324,9 @@ export const roomService = {
   },
 
   async list(): Promise<Room[]> {
-    return roomRepository.find({
+    await expireElapsedRooms();
+
+    const rooms = await roomRepository.find({
       where: [
         { type: RoomType.PUBLIC, status: RoomStatus.ACTIVE },
         { type: RoomType.PUBLIC, status: RoomStatus.GAME_END_WAIT },
@@ -238,6 +336,9 @@ export const roomService = {
       relations: { canvas: true },
       order: { publicRoomNumber: "DESC" },
     });
+
+    const reconciledRooms = await Promise.all(rooms.map(reconcileRoomLifecycle));
+    return reconciledRooms.filter((room) => room.status !== RoomStatus.EXPIRED);
   },
 
   async getListWithParticipantCount() {
@@ -263,12 +364,16 @@ export const roomService = {
   },
 
   async getPublicDetail(publicRoomNumber: number): Promise<Room> {
-    const room = await roomRepository.findOne({
+    await expireElapsedRooms();
+
+    const foundRoom = await roomRepository.findOne({
       where: {
         publicRoomNumber,
       },
       relations: { canvas: true, owner: true },
     });
+
+    const room = foundRoom ? await reconcileRoomLifecycle(foundRoom) : null;
 
     if (!room || room.status === RoomStatus.EXPIRED) {
       throw new Error("ROOM_NOT_FOUND");
@@ -287,13 +392,17 @@ export const roomService = {
   },
 
   async enterPrivate(accessCode: string) {
-    const room = await roomRepository.findOne({
+    await expireElapsedRooms();
+
+    const foundRoom = await roomRepository.findOne({
       where: {
         accessCode,
         type: RoomType.PRIVATE,
       },
       relations: { canvas: true },
     });
+
+    const room = foundRoom ? await reconcileRoomLifecycle(foundRoom) : null;
 
     if (!room || room.status === RoomStatus.EXPIRED) {
       throw new Error("ROOM_EXPIRED");
@@ -306,10 +415,14 @@ export const roomService = {
   },
 
   async getCurrent(roomId: number): Promise<Room> {
-    const room = await roomRepository.findOne({
+    await expireElapsedRooms();
+
+    const foundRoom = await roomRepository.findOne({
       where: { id: roomId },
       relations: { canvas: true },
     });
+
+    const room = foundRoom ? await reconcileRoomLifecycle(foundRoom) : null;
 
     if (!room || room.status === RoomStatus.EXPIRED) {
       throw new Error("ROOM_CONTEXT_NOT_FOUND");
@@ -319,7 +432,9 @@ export const roomService = {
   },
 
   async getCurrentManage(roomId: number, ownerId: number): Promise<Room> {
-    const room = await roomRepository.findOne({
+    await expireElapsedRooms();
+
+    const foundRoom = await roomRepository.findOne({
       where: {
         id: roomId,
         owner: { id: ownerId },
@@ -327,10 +442,31 @@ export const roomService = {
       relations: { canvas: true, owner: true },
     });
 
+    const room = foundRoom ? await reconcileRoomLifecycle(foundRoom) : null;
+
     if (!room || room.type === RoomType.PLAZA) {
       throw new Error("ROOM_MANAGE_FORBIDDEN");
     }
 
     return room;
+  },
+
+  async getActiveRound(canvasId: number): Promise<VoteRound | null> {
+    return voteRoundRepository.findOne({
+      where: { canvas: { id: canvasId }, isActive: true },
+    });
+  },
+
+  async expireByOwner(roomId: number): Promise<Room> {
+    const room = await roomRepository.findOneOrFail({
+      where: { id: roomId },
+      relations: { canvas: true },
+    });
+
+    room.status = RoomStatus.EXPIRED;
+    room.terminationReason = RoomTerminationReason.TERMINATED_BY_OWNER;
+    room.expiresAt = new Date();
+
+    return roomRepository.save(room);
   },
 };

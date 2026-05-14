@@ -1,6 +1,30 @@
 import api from "@/shared/api/client";
 import type { RoomSessionContext } from "../model/room-session-context";
 
+export interface RoomConfigProfile {
+  key: string;
+  snapshot: {
+    phases: {
+      introPhaseSec: number;
+      roundStartWaitSec: number;
+      roundDurationSec: number;
+      roundResultDelaySec: number;
+      gameEndWaitSec: number;
+      restartDelaySec: number;
+    };
+    rules: {
+      totalRounds: number;
+      votesPerRound: number;
+      participantGracePeriodSec: number;
+    };
+    board: {
+      gridSizeX: number;
+      gridSizeY: number;
+      cellSize: number;
+    };
+  };
+}
+
 export interface RoomListItem {
   roomId: number;
   publicRoomNumber: number;
@@ -8,6 +32,7 @@ export interface RoomListItem {
   type: "public" | "private";
   status: "active" | "game_end_wait" | "expired";
   participantCount: number;
+  isOwner: boolean;
 }
 
 export interface PublicRoomDetailResponse {
@@ -24,6 +49,7 @@ export interface PublicRoomDetailResponse {
       currentRoundNumber: number | null;
       totalRounds: number;
       snapshotUrl: string | null;
+      templateImageUrl: string | null;
     };
     participantCount: number;
     manage: {
@@ -95,8 +121,29 @@ export interface RoomEnterResponse {
   };
 }
 
+export interface RoomCurrentManageResponse {
+  room: {
+    roomId: number;
+    publicRoomNumber: number;
+    title: string;
+    type: "public" | "private";
+    settings: {
+      title: string;
+      type: "public" | "private";
+      profileKey: string;
+      introPhaseSec: number;
+      totalRounds: number;
+      votesPerRound: number;
+      gameEndWaitSec: number;
+    };
+    accessCode: string | null;
+  };
+}
+
 export const roomApi = {
   getRooms: () => api.get<{ rooms: RoomListItem[] }>("/rooms"),
+  getConfigProfiles: () =>
+    api.get<{ profiles: RoomConfigProfile[] }>("/rooms/config-profiles"),
   getRoomDetail: (publicRoomNumber: number) =>
     api.get<RoomDetailResponse>(`/rooms/${publicRoomNumber}`),
   createRoom: (payload: RoomCreateRequest) =>
@@ -111,6 +158,9 @@ export const roomApi = {
       type: "private",
       accessCode,
     }),
+  getCurrentManage: () =>
+    api.get<RoomCurrentManageResponse>("/rooms/current/manage"),
+  terminateCurrent: () => api.post<{ ok: true }>("/rooms/current/terminate"),
 };
 
 export function toRoomSessionContext(

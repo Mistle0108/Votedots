@@ -1,7 +1,14 @@
 import type { Request, Response } from "express";
 import { Room, RoomType } from "../../entities/room.entity";
-import { getCanvasGameConfigSnapshot } from "../../config/game.config";
+import {
+  getCanvasGameConfigSnapshot,
+  getGameConfigProfiles,
+} from "../../config/game.config";
+import { GamePhase } from "../game/game-phase.types";
+import { forceGameEnd, stopGameTimer } from "../game/game.timer";
 import { roundSnapshotService } from "../history/round-snapshot.service";
+import { resolveResultTemplateAssetKey } from "../canvas/template/result-template.service";
+import { roundService } from "../round/round.service";
 import { roomService, type CreateRoomInput } from "./room.service";
 
 function parsePublicRoomNumber(raw: unknown): number | null {
@@ -9,7 +16,11 @@ function parsePublicRoomNumber(raw: unknown): number | null {
   return Number.isInteger(value) && value > 0 ? value : null;
 }
 
-function serializeRoomListItem(room: Room, participantCount: number) {
+function serializeRoomListItem(
+  room: Room,
+  participantCount: number,
+  isOwner: boolean,
+) {
   return {
     roomId: room.id,
     publicRoomNumber: room.publicRoomNumber,
@@ -17,6 +28,7 @@ function serializeRoomListItem(room: Room, participantCount: number) {
     type: room.type,
     status: room.status,
     participantCount,
+    isOwner,
   };
 }
 
@@ -42,6 +54,10 @@ function serializeRoomDetail(
   participantCount: number,
   snapshotUrl: string | null,
 ) {
+  const resultTemplateAssetKey = resolveResultTemplateAssetKey({
+    resultTemplateAssetKey: room.canvas.resultTemplateAssetKey,
+  });
+
   return {
     roomId: room.id,
     publicRoomNumber: room.publicRoomNumber,
@@ -55,6 +71,9 @@ function serializeRoomDetail(
       currentRoundNumber: room.canvas.currentRoundNumber,
       totalRounds: room.canvas.configSnapshot.rules.totalRounds,
       snapshotUrl,
+      templateImageUrl: resultTemplateAssetKey
+        ? `/result-templates/${resultTemplateAssetKey}.png`
+        : null,
     },
     participantCount,
   };
@@ -94,6 +113,12 @@ async function applyRoomSessionContext(
 }
 
 export const roomController = {
+  async getConfigProfiles(_req: Request, res: Response) {
+    return res.json({
+      profiles: getGameConfigProfiles(),
+    });
+  },
+
   async create(req: Request, res: Response) {
     try {
       const body = req.body as Partial<CreateRoomInput>;
@@ -129,9 +154,14 @@ export const roomController = {
   async list(_req: Request, res: Response) {
     try {
       const rooms = await roomService.getListWithParticipantCount();
+      const currentVoterId = _req.session.voter?.id;
       return res.json({
         rooms: rooms.map(({ room, participantCount }) =>
-          serializeRoomListItem(room, participantCount),
+          serializeRoomListItem(
+            room,
+            participantCount,
+            currentVoterId !== undefined && room.owner?.id === currentVoterId,
+          ),
         ),
       });
     } catch (error) {
@@ -362,6 +392,118 @@ export const roomController = {
           : message === "ROOM_CONTEXT_NOT_FOUND"
             ? 404
             : 400;
+
+      return res.status(status).json({ message });
+    }
+  },
+
+  async terminateCurrent(req: Request, res: Response) {
+    try {
+      const sessionRoom = req.session.room;
+
+      if (!sessionRoom?.roomId) {
+        return res.status(404).json({ message: "ROOM_CONTEXT_NOT_FOUND" });
+      }
+
+      const room = await roomService.getCurrentManage(
+        sessionRoom.roomId,
+        req.session.voter!.id,
+      );
+      const io = req.app.get("io");
+
+      if (room.type === RoomType.PLAZA) {
+        return res.status(403).json({ message: "ROOM_MANAGE_FORBIDDEN" });
+      }
+
+      if (room.status === "expired") {
+        return res.status(410).json({ message: "ROOM_EXPIRED" });
+      }
+
+      stopGameTimer(room.canvas.id);
+
+      if (room.canvas.phase === GamePhase.INTRO || room.canvas.phase === GamePhase.GAME_END) {
+        const expiredRoom = await roomService.expireByOwner(room.id);
+
+        io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
+          canvasId: room.canvas.id,
+          roomId: expiredRoom.id,
+          reason: "terminated_by_owner",
+        });
+
+        return res.json({ ok: true });
+      }
+
+      if (room.canvas.phase === GamePhase.ROUND_ACTIVE) {
+        const activeRound = await roomService.getActiveRound(room.canvas.id);
+
+        if (!activeRound) {
+          return res.status(400).json({ message: "ROOM_ACTIVE_ROUND_NOT_FOUND" });
+        }
+
+        await roundService.endRound(room.canvas.id, activeRound.id, io);
+        await forceGameEnd(io, room.canvas.id, activeRound.roundNumber);
+        stopGameTimer(room.canvas.id);
+        const expiredRoom = await roomService.expireByOwner(room.id);
+
+        io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
+          canvasId: room.canvas.id,
+          roomId: expiredRoom.id,
+          reason: "terminated_by_owner",
+        });
+        return res.json({ ok: true });
+      }
+
+      if (room.canvas.phase === GamePhase.ROUND_RESULT) {
+        await forceGameEnd(io, room.canvas.id, room.canvas.currentRoundNumber);
+        stopGameTimer(room.canvas.id);
+        const expiredRoom = await roomService.expireByOwner(room.id);
+
+        io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
+          canvasId: room.canvas.id,
+          roomId: expiredRoom.id,
+          reason: "terminated_by_owner",
+        });
+        return res.json({ ok: true });
+      }
+
+      if (room.canvas.phase === GamePhase.ROUND_START_WAIT) {
+        const lastValidRoundNumber = Math.max(0, room.canvas.currentRoundNumber - 1);
+
+        if (lastValidRoundNumber === 0) {
+          const expiredRoom = await roomService.expireByOwner(room.id);
+
+          io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
+            canvasId: room.canvas.id,
+            roomId: expiredRoom.id,
+            reason: "terminated_by_owner",
+          });
+
+          return res.json({ ok: true });
+        }
+
+        await forceGameEnd(io, room.canvas.id, lastValidRoundNumber);
+        stopGameTimer(room.canvas.id);
+        const expiredRoom = await roomService.expireByOwner(room.id);
+
+        io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
+          canvasId: room.canvas.id,
+          roomId: expiredRoom.id,
+          reason: "terminated_by_owner",
+        });
+        return res.json({ ok: true });
+      }
+
+      return res.status(400).json({ message: "ROOM_TERMINATION_PHASE_UNSUPPORTED" });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status =
+        message === "ROOM_MANAGE_FORBIDDEN"
+          ? 403
+          : message === "ROOM_CONTEXT_NOT_FOUND"
+            ? 404
+            : message === "ROOM_EXPIRED"
+              ? 410
+              : 400;
 
       return res.status(status).json({ message });
     }

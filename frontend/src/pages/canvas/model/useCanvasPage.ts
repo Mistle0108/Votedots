@@ -13,6 +13,7 @@ import type {
 import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
 import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
+import type { RoomExpiredPayload } from "@/features/gameplay/session/model/socket.types";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
 import { getCanvasTopCenterModalPosition } from "./modal-position";
@@ -20,6 +21,7 @@ import { getCanvasTopCenterModalPosition } from "./modal-position";
 interface UseCanvasPageParams {
   sessionSourceApi: GameplaySessionSourceApi;
   onSessionEnded: () => void;
+  onRoomExpired: (payload: RoomExpiredPayload) => void;
   onContextMissing?: () => void;
   onUnauthorized: (message: string) => void;
 }
@@ -33,6 +35,7 @@ function getDefaultRoundSummaryModalPosition() {
 export default function useCanvasPage({
   sessionSourceApi,
   onSessionEnded,
+  onRoomExpired,
   onContextMissing,
   onUnauthorized,
 }: UseCanvasPageParams) {
@@ -302,6 +305,7 @@ export default function useCanvasPage({
     onRoundEndedCleanup: handleRoundEndedCleanup,
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
+    onRoomExpired,
     onContextMissing,
     onUnauthorized,
     applyVoteUpdate,

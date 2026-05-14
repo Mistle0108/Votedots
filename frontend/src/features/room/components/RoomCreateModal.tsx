@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import type { RoomConfigProfile } from "../api/room.api";
 
 interface RoomCreateSubmitPayload {
   title: string;
@@ -14,24 +15,19 @@ interface RoomCreateModalProps {
   loading: boolean;
   error: string | null;
   generatedAccessCode: string | null;
+  profiles: RoomConfigProfile[];
   onClose: () => void;
   onCopyAccessCode: () => void;
   onEnterCreatedPrivateRoom: () => void;
   onSubmit: (payload: RoomCreateSubmitPayload) => void;
 }
 
-const PROFILE_OPTIONS = [
-  { key: "config32", label: "32 x 32" },
-  { key: "config64", label: "64 x 64" },
-  { key: "config128", label: "128 x 128" },
-  { key: "config256", label: "256 x 256" },
-];
-
 export default function RoomCreateModal({
   open,
   loading,
   error,
   generatedAccessCode,
+  profiles,
   onClose,
   onCopyAccessCode,
   onEnterCreatedPrivateRoom,
@@ -43,6 +39,48 @@ export default function RoomCreateModal({
   const [introPhaseSec, setIntroPhaseSec] = useState(30);
   const [totalRounds, setTotalRounds] = useState(10);
   const [votesPerRound, setVotesPerRound] = useState(20);
+
+  const selectedProfile =
+    profiles.find((profile) => profile.key === profileKey) ?? profiles[0] ?? null;
+
+  useEffect(() => {
+    if (profiles.length === 0) {
+      return;
+    }
+
+    if (profiles.some((profile) => profile.key === profileKey)) {
+      return;
+    }
+
+    setProfileKey(profiles[0]!.key);
+  }, [profileKey, profiles]);
+
+  const maxRounds = useMemo(() => {
+    if (!selectedProfile) {
+      return 1;
+    }
+
+    const roundCycleSec =
+      selectedProfile.snapshot.phases.roundStartWaitSec +
+      selectedProfile.snapshot.phases.roundDurationSec +
+      selectedProfile.snapshot.phases.roundResultDelaySec;
+
+    return Math.max(1, Math.floor((60 * 60 - introPhaseSec) / roundCycleSec));
+  }, [introPhaseSec, selectedProfile]);
+
+  useEffect(() => {
+    if (!open || !selectedProfile) {
+      return;
+    }
+
+    setIntroPhaseSec(selectedProfile.snapshot.phases.introPhaseSec);
+    setTotalRounds(selectedProfile.snapshot.rules.totalRounds);
+    setVotesPerRound(selectedProfile.snapshot.rules.votesPerRound);
+  }, [open, profileKey, selectedProfile]);
+
+  useEffect(() => {
+    setTotalRounds((current) => Math.min(current, maxRounds));
+  }, [maxRounds]);
 
   if (!open) {
     return null;
@@ -119,11 +157,14 @@ export default function RoomCreateModal({
                 <select
                   value={profileKey}
                   onChange={(event) => setProfileKey(event.target.value)}
+                  disabled={profiles.length === 0}
                   className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
                 >
-                  {PROFILE_OPTIONS.map((option) => (
-                    <option key={option.key} value={option.key}>
-                      {option.label}
+                  {profiles.map((profile) => (
+                    <option key={profile.key} value={profile.key}>
+                      {profile.key === "test"
+                        ? "Test config"
+                        : `${profile.snapshot.board.gridSizeX} x ${profile.snapshot.board.gridSizeY}`}
                     </option>
                   ))}
                 </select>
@@ -144,7 +185,7 @@ export default function RoomCreateModal({
                 <input
                   type="number"
                   min={1}
-                  max={48}
+                  max={maxRounds}
                   value={totalRounds}
                   onChange={(event) =>
                     setTotalRounds(Number(event.target.value))
@@ -166,7 +207,7 @@ export default function RoomCreateModal({
 
             <button
               type="button"
-              disabled={loading}
+              disabled={loading || profiles.length === 0}
               onClick={() =>
                 onSubmit({
                   title,
@@ -181,6 +222,11 @@ export default function RoomCreateModal({
             >
               {loading ? "Creating..." : "Create"}
             </button>
+            {profiles.length === 0 ? (
+              <p className="mt-4 text-sm text-[#d14d28]">
+                프로필 정보를 불러오지 못했습니다.
+              </p>
+            ) : null}
             {error ? (
               <p className="mt-4 text-sm text-[#d14d28]">{error}</p>
             ) : null}
