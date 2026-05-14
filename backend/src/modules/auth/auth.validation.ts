@@ -11,6 +11,7 @@ export const AUTH_ERROR_MESSAGES = {
 const USERNAME_REGEX = /^[a-z0-9]{4,20}$/;
 const NICKNAME_REGEX = /^[A-Za-z0-9가-힣]{2,20}$/;
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)\S{8,64}$/;
+const SUPPORTED_REGISTER_LOCALES = new Set(["ko", "en"]);
 
 function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
@@ -20,13 +21,27 @@ export function validateRegisterInput(params: {
   username: unknown;
   password: unknown;
   nickname: unknown;
+  acceptedTerms: unknown;
+  isAge14OrOlderConfirmed: unknown;
+  termsAcceptedLocale: unknown;
 }): string | null {
-  const { username, password, nickname } = params;
+  const {
+    username,
+    password,
+    nickname,
+    acceptedTerms,
+    isAge14OrOlderConfirmed,
+    termsAcceptedLocale,
+  } = params;
 
   if (
     !isNonEmptyString(username) ||
     !isNonEmptyString(password) ||
-    !isNonEmptyString(nickname)
+    !isNonEmptyString(nickname) ||
+    acceptedTerms !== true ||
+    isAge14OrOlderConfirmed !== true ||
+    !isNonEmptyString(termsAcceptedLocale) ||
+    !SUPPORTED_REGISTER_LOCALES.has(termsAcceptedLocale)
   ) {
     return AUTH_ERROR_MESSAGES.MISSING_FIELDS;
   }

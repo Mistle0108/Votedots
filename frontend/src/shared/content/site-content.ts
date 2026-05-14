@@ -182,34 +182,68 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       terms: {
         title: "이용약관",
         lead:
-          "이 약관은 VoteDots 서비스의 이용 조건, 계정 운영 기준, 금지 행위, 서비스 변경 가능성에 대한 기본 원칙을 설명합니다.",
+          "이 약관은 VoteDots가 제공하는 실시간 협업형 캔버스 게임 서비스 및 이에 부수되는 제반 서비스의 이용과 관련하여 VoteDots와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정합니다.",
         sections: [
           {
-            heading: "서비스 이용",
+            heading: "1. 목적",
             paragraphs: [
-              "VoteDots는 다수의 사용자가 같은 캔버스를 함께 완성하는 실시간 투표형 게임 서비스입니다.",
-              "서비스 기능, 게임 규칙, 라운드 운영 방식은 서비스 개선과 안정화를 위해 변경될 수 있습니다.",
+              "이 약관은 VoteDots가 제공하는 실시간 협업형 캔버스 게임 서비스 및 이에 부수되는 제반 서비스의 이용과 관련하여 VoteDots와 회원 간의 권리, 의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.",
             ],
           },
           {
-            heading: "계정과 접근",
+            heading: "2. 용어의 정의",
             paragraphs: [
-              "일부 기능은 회원가입과 로그인이 필요합니다. 사용자는 자신의 계정 정보를 안전하게 관리해야 하며, 계정 보안 문제로 발생한 손해에 대해 서비스가 항상 책임을 지는 것은 아닙니다.",
-              "운영상 필요한 경우 중복 세션 정리, 계정 접근 제한, 인증 세션 종료가 발생할 수 있습니다.",
+              "이 약관에서 `서비스`란 VoteDots가 온라인으로 제공하는 게임 및 이에 부수되는 제반 서비스를 말하며, `회원`이란 이 약관에 동의하고 VoteDots와 이용계약을 체결하여 서비스 이용자격을 부여받은 자를 말합니다.",
+              "`계정`은 회원 식별과 서비스 이용을 위하여 회원이 설정하고 VoteDots가 승인한 아이디를 말합니다. `게임 결과`는 서비스 이용 과정에서 생성되는 캔버스 이미지, 라운드 진행 내역, 통계, 스냅샷 등 결과물을 말하며, `공개 정보`는 닉네임, 게임 결과, 통계 정보 등 서비스 내 또는 VoteDots가 정한 범위에서 공개될 수 있는 정보를 말합니다.",
             ],
           },
           {
-            heading: "금지 행위",
+            heading: "3. 약관의 게시와 개정",
             paragraphs: [
-              "서비스의 정상 동작을 방해하는 자동화, 비정상적인 요청, 타인의 계정 사용, 운영 방해, 악성 코드 배포는 허용되지 않습니다.",
-              "다른 이용자에게 피해를 주거나 운영 정책에 반하는 행위가 확인되면 서비스 이용이 제한될 수 있습니다.",
+              "VoteDots는 이 약관의 내용을 회원이 쉽게 확인할 수 있도록 서비스 내 화면 또는 연결화면을 통하여 게시합니다.",
+              "VoteDots는 관련 법령을 위반하지 않는 범위에서 이 약관을 개정할 수 있으며, 개정 시 적용일자, 개정 내용 및 개정 사유를 공지합니다. 회원은 개정약관에 동의하지 않을 경우 서비스 이용을 중단하고 회원 탈퇴를 요청할 수 있습니다.",
             ],
           },
           {
-            heading: "콘텐츠와 책임",
+            heading: "4. 회원가입 및 계정 관리",
             paragraphs: [
-              "게임 결과 스냅샷, 통계, 닉네임 등 서비스 내에서 생성된 일부 정보는 서비스 소개와 운영 기록 목적으로 노출될 수 있습니다.",
-              "VoteDots는 서비스의 연속성, 특정 목적 적합성, 무중단 운영을 보장하지 않으며, 예기치 않은 장애나 데이터 손실 가능성을 완전히 배제하지 않습니다.",
+              "회원가입을 희망하는 자는 VoteDots가 정한 절차에 따라 필요한 정보를 입력하고 이 약관에 동의한 후 가입을 신청할 수 있습니다. VoteDots는 허위 정보 사용, 만 14세 미만 가입 신청, 기술상 승인 곤란, 이용 자격 제한 이력 등 일정한 사유가 있는 경우 가입 신청을 승낙하지 않거나 사후에 이용계약을 해지할 수 있습니다.",
+              "회원은 자신의 정보를 정확하게 입력하고 변경 시 적절한 방법으로 수정하거나 갱신하여야 합니다. 계정과 비밀번호는 회원이 스스로 관리하여야 하며, 제3자에게 양도, 대여 또는 공유할 수 없습니다. VoteDots는 계정 보호와 보안상 필요에 따라 로그인 세션 관리 또는 계정 이용 제한 조치를 할 수 있습니다.",
+            ],
+          },
+          {
+            heading: "5. VoteDots의 의무 및 회원의 의무",
+            paragraphs: [
+              "VoteDots는 관련 법령과 이 약관을 준수하며 지속적이고 안정적으로 서비스를 제공하기 위하여 노력합니다. 또한 개인정보 보호, 계정 보안, 서비스 안정성 확보를 위하여 합리적인 범위의 기술적·관리적 조치를 적용합니다.",
+              "회원은 관련 법령, 이 약관, 서비스 내 안내 및 운영정책을 준수하여야 합니다. 허위 정보 사용, 타인의 계정 사용, 비정상적인 요청, 자동화 도구·매크로·봇 사용, 서비스 운영 방해, 악성 코드 배포, 음란물·폭력적 표현·혐오 표현·차별 표현·불법정보·타인의 권리를 침해하는 내용 기타 공서양속에 반하거나 서비스 운영상 부적절하다고 판단되는 이미지를 생성·표시·유도하는 행위는 허용되지 않습니다.",
+            ],
+          },
+          {
+            heading: "6. 서비스의 제공, 변경 및 중단",
+            paragraphs: [
+              "VoteDots는 회원에게 VoteDots 서비스 및 이에 부수되는 제반 서비스를 제공합니다.",
+              "VoteDots는 운영상, 기술상 또는 서비스 개선이 필요한 경우 서비스의 전부 또는 일부를 변경할 수 있으며, 시스템 점검, 유지보수, 장애 대응, 외부 연계 서비스 장애, 천재지변 기타 이에 준하는 사유가 발생한 경우 서비스의 전부 또는 일부를 일시적으로 중단할 수 있습니다. 무료로 제공되는 서비스의 일부 또는 전부는 운영정책에 따라 수정, 중단 또는 변경될 수 있습니다.",
+            ],
+          },
+          {
+            heading: "7. 게임 결과, 닉네임 및 공개 정보의 이용",
+            paragraphs: [
+              "VoteDots는 서비스 운영, 게임 결과 안내, 서비스 소개 및 기록 보관을 위하여 회원의 닉네임, 게임 결과, 참여 통계 및 이에 부수되는 공개 정보를 서비스 내에 표시할 수 있습니다. 게임 결과에는 캔버스 이미지, 라운드 진행 내역, 참여 인원, 투표 통계, 닉네임 기반 요약 정보, 스냅샷 및 이에 준하는 정보가 포함될 수 있습니다.",
+              "회원은 서비스 이용 과정에서 자신의 닉네임 및 게임 참여 결과가 위와 같은 범위에서 공개될 수 있음을 이해하고 이에 동의합니다. 다만 VoteDots는 관련 법령, 회원 탈퇴, 운영상 필요 또는 권리 보호를 위하여 공개 정보의 전부 또는 일부를 수정, 비공개 처리, 삭제 또는 비식별 처리할 수 있으며, 유해하거나 부적절하다고 판단되는 이미지, 결과물 또는 관련 공개 정보를 숨김 또는 삭제할 수 있습니다.",
+            ],
+          },
+          {
+            heading: "8. 회원 탈퇴, 이용제한 및 계약 종료",
+            paragraphs: [
+              "회원은 언제든지 VoteDots가 정한 절차에 따라 회원 탈퇴를 요청할 수 있으며, VoteDots는 관련 법령 또는 별도의 보관 의무가 없는 범위에서 지체 없이 필요한 조치를 합니다. 탈퇴 후 개인정보는 개인정보처리방침에 따라 처리되며, 이미 생성된 게임 결과 및 공개 기록은 개인을 식별할 수 없도록 비식별 처리된 범위에서 남을 수 있습니다.",
+              "VoteDots는 허위 정보 사용, 만 14세 미만 가입, 계정 도용, 서비스 운영 방해, 자동화 도구 또는 부정한 방법을 통한 이용, 관련 법령·약관·운영정책 위반, 유해하거나 위법한 이미지 또는 표현 생성 등 일정한 사유가 있는 경우 서비스 이용을 제한하거나 이용계약을 종료할 수 있습니다. 회원은 이용제한 조치에 이의가 있는 경우 VoteDots가 정한 방법에 따라 이의를 제기할 수 있습니다.",
+            ],
+          },
+          {
+            heading: "9. 면책 및 분쟁해결",
+            paragraphs: [
+              "VoteDots는 천재지변, 전쟁, 테러, 정전, 통신망 장애, 서버 장애, 제3자 서비스 장애 기타 이에 준하는 불가항력적 사유로 서비스를 제공할 수 없는 경우 책임을 지지 않습니다. 또한 회원의 귀책사유, 계정정보 관리 소홀, 단말기 또는 네트워크 환경 문제로 발생한 손해에 대하여 책임을 지지 않습니다.",
+              "VoteDots는 무료로 제공되는 서비스와 관련하여 관련 법령에 특별한 규정이 없는 한 특별한 손해에 대하여 책임을 지지 않을 수 있습니다. 이 약관은 대한민국 법률에 따라 해석되고 적용되며, 서비스 이용과 관련하여 분쟁이 발생한 경우 관련 법령에 따른 관할 법원을 제1심 관할 법원으로 합니다.",
             ],
           },
         ],
@@ -217,34 +251,76 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       privacy: {
         title: "개인정보처리방침",
         lead:
-          "VoteDots는 서비스 운영에 필요한 최소한의 계정 정보와 세션 정보를 처리합니다. 이 문서는 어떤 정보를 왜 처리하는지 설명합니다.",
+          "VoteDots는 서비스 운영 과정에서 이용자의 개인정보를 어떤 기준과 목적에 따라 처리하는지 안내하기 위하여 이 개인정보처리방침을 마련합니다. 이용자는 본 방침을 통해 처리 항목, 이용 목적, 보유 기간, 보호조치 및 권리 행사 방법을 확인할 수 있습니다.",
         sections: [
           {
-            heading: "수집하는 정보",
+            heading: "1. 개인정보처리방침의 의의",
             paragraphs: [
-              "회원가입 과정에서 사용자명, 닉네임, 비밀번호가 처리됩니다. 비밀번호는 원문 그대로 저장하지 않고 인증을 위한 보호 처리 후 저장합니다.",
-              "로그인 상태 유지를 위해 세션 식별자와 세션 쿠키가 사용됩니다. 서비스 이용 과정에서 게임 참여 기록, 투표 결과, 닉네임 기반 통계가 생성될 수 있습니다.",
+              "개인정보처리방침은 VoteDots가 서비스 운영 과정에서 어떤 개인정보를 어떤 기준으로 처리하는지 설명하는 문서입니다.",
+              "VoteDots는 필요한 범위 내에서만 개인정보를 처리하고, 관련 법령에 따라 안전하게 관리하기 위하여 본 방침을 수립하고 공개합니다.",
             ],
           },
           {
-            heading: "이용 목적",
+            heading: "2. 개인정보의 처리 목적",
             paragraphs: [
-              "계정 식별, 로그인 유지, 게임 참여 관리, 결과 집계, 부정 이용 방지, 운영상 장애 대응을 위해 정보를 처리합니다.",
-              "공개 랜딩 페이지에는 게임 스냅샷, 참여자 수, 닉네임 기반 요약 통계 같은 운영 정보를 표시할 수 있습니다.",
+              "VoteDots는 회원가입 및 계정 관리, 로그인 세션 유지 및 인증 처리, 서비스 접속 통계 분석 및 서비스 개선을 위하여 개인정보를 처리합니다.",
+              "또한 서비스 이용약관 동의 이력 관리와 만 14세 이상 여부 확인을 위하여 필요한 범위의 정보를 처리합니다.",
             ],
           },
           {
-            heading: "세션과 쿠키",
+            heading: "3. 처리하는 개인정보의 항목",
             paragraphs: [
-              "로그인 유지와 보안 처리를 위해 세션 쿠키가 사용됩니다.",
-              "향후 공개 페이지에 광고 기능이 활성화되는 경우 Google AdSense 같은 제3자 서비스가 쿠키를 사용할 수 있으며, 이 경우 관련 고지와 정책 반영 범위를 계속 업데이트합니다.",
+              "회원가입 및 계정 관리 과정에서는 아이디, 닉네임, 비밀번호, 약관 동의 시각, 약관 동의 언어, 약관 버전, 만 14세 이상 여부 확인 정보를 처리합니다.",
+              "로그인 세션 유지 및 인증 처리 과정에서는 세션 쿠키와 세션 식별 정보를 처리합니다. 서비스 접속 통계 분석 및 서비스 개선 과정에서는 브라우저 언어, 타임존, 기기 정보, 입장 시간을 처리합니다.",
             ],
           },
           {
-            heading: "보관과 보호",
+            heading: "4. 개인정보의 처리 및 보유 기간",
             paragraphs: [
-              "서비스 운영에 필요한 기간 동안 정보가 보관될 수 있으며, 관련 법령 또는 운영상 필요가 사라지면 삭제 또는 비식별화를 검토합니다.",
-              "세션 보안, 접근 제어, 저장소 보호를 위한 기술적 조치를 적용하지만 모든 위험을 완전히 제거할 수는 없습니다.",
+              "회원가입 및 계정 관리 정보와 서비스 이용약관 동의 이력은 회원 탈퇴 시까지 보유합니다. 만 14세 이상 여부 확인 정보도 회원 탈퇴 시까지 보유합니다.",
+              "세션 쿠키와 세션 식별 정보는 로그아웃 시 또는 세션 만료 시까지 보유합니다. 서비스 접속 통계 원본 데이터는 수집일로부터 90일간 보관 후 파기하며, 특정 개인을 식별할 수 없도록 집계된 통계 정보는 서비스 운영 및 분석 목적으로 장기 보관할 수 있습니다. 법령상 보관 의무가 적용되는 인터넷 로그기록자료 및 접속지 추적자료는 관련 법령에 따라 3개월간 보관할 수 있습니다.",
+            ],
+          },
+          {
+            heading: "5. 개인정보의 파기절차 및 파기방법",
+            paragraphs: [
+              "VoteDots는 개인정보 보유기간이 경과하거나 처리 목적이 달성되어 개인정보가 불필요하게 되었을 때 지체 없이 해당 개인정보를 파기합니다.",
+              "관계 법령에 따라 별도 보관이 필요한 정보는 법령에서 정한 기간 동안 별도로 보관한 후 파기하며, 전자적 파일 형태의 개인정보는 복구 또는 재생이 불가능한 방법으로 삭제합니다. 회원 탈퇴 시 관련 법령 또는 보관 의무가 없는 개인정보는 삭제되며, 이미 생성된 게임 결과 및 공개 정보는 개인을 식별할 수 없도록 비식별 처리될 수 있습니다.",
+            ],
+          },
+          {
+            heading: "6. 정보주체와 법정대리인의 권리·의무 및 행사방법",
+            paragraphs: [
+              "이용자는 언제든지 자신의 개인정보에 대한 열람, 정정, 삭제, 처리정지를 요구할 수 있으며, 법정대리인 또는 위임을 받은 대리인을 통하여 권리를 행사할 수 있습니다.",
+              "권리 행사는 전자우편 등으로 요청할 수 있으며, VoteDots는 관련 법령에 따라 지체 없이 필요한 조치를 합니다. VoteDots는 만 14세 미만 아동을 대상으로 서비스를 제공하지 않으며, 만 14세 미만 아동의 개인정보가 수집된 사실을 인지한 경우 지체 없이 해당 정보를 삭제합니다.",
+            ],
+          },
+          {
+            heading: "7. 개인정보 보호책임자",
+            paragraphs: [
+              "VoteDots는 개인정보 처리에 관한 업무를 총괄하고 관련 문의를 처리하기 위하여 개인정보 보호책임자를 지정하고 있습니다.",
+              "개인정보 보호책임자의 직책은 운영자이며, 문의 연락처는 privacy@votedots.space 입니다. 개인정보 보호 관련 문의, 불만처리, 피해구제 요청은 위 연락처로 할 수 있습니다.",
+            ],
+          },
+          {
+            heading: "8. 개인정보 자동 수집 장치의 설치·운영 및 거부에 관한 사항",
+            paragraphs: [
+              "VoteDots는 로그인 상태 유지, 이용자 인증, 세션 관리 및 보안상 필요한 접속 상태 확인을 위하여 세션 쿠키를 사용합니다.",
+              "세션 쿠키는 로그아웃 시 또는 세션 만료 시까지 유지됩니다. 이용자는 웹 브라우저 설정을 통하여 쿠키 저장을 거부할 수 있으나, 쿠키 저장을 거부할 경우 로그인 유지 등 일부 서비스 이용에 어려움이 발생할 수 있습니다. VoteDots는 현재 광고, 마케팅, 맞춤형 광고를 위한 제3자 쿠키를 사용하지 않습니다.",
+            ],
+          },
+          {
+            heading: "9. 개인정보의 안전성 확보조치에 관한 사항",
+            paragraphs: [
+              "VoteDots는 비밀번호를 원문 그대로 저장하지 않고 보호된 형태로 저장합니다. 또한 세션 쿠키에 HttpOnly, Secure, SameSite 속성을 적용하고 로그인 시 세션을 재생성하며 로그아웃 시 세션을 종료합니다.",
+              "로그인한 이용자만 접근할 수 있는 기능에는 인증 절차를 적용하고, 회원가입 및 로그인 요청에 대해서는 반복적인 비정상 요청을 제한하는 등 개인정보의 안전성 확보를 위한 기술적 조치를 적용합니다.",
+            ],
+          },
+          {
+            heading: "10. 개인정보 처리방침의 변경에 관한 사항",
+            paragraphs: [
+              "이 개인정보처리방침은 시행일로부터 적용됩니다. VoteDots는 법령, 서비스 내용 또는 개인정보 처리 방식의 변경이 있는 경우 본 방침을 수정할 수 있습니다.",
+              "중요한 변경사항이 있는 경우에는 시행일자, 변경 사유 및 주요 변경 내용을 서비스 내 페이지를 통하여 안내합니다. 시행일자는 2026년 5월 12일입니다.",
             ],
           },
         ],
@@ -409,34 +485,68 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       terms: {
         title: "Terms of Service",
         lead:
-          "These terms outline the basic rules for using VoteDots, including account access, prohibited behavior, and the service's ability to change over time.",
+          "These Terms of Service govern the rights, obligations, responsibilities, and other necessary matters between VoteDots and its members in connection with the real-time collaborative canvas game service and related services provided by VoteDots.",
         sections: [
           {
-            heading: "Using the service",
+            heading: "1. Purpose",
             paragraphs: [
-              "VoteDots is a real-time collaborative game where multiple players complete a shared canvas through voting.",
-              "Features, game rules, and round operations may change to improve the service or maintain stability.",
+              "These Terms of Service govern the rights, obligations, responsibilities, and other necessary matters between VoteDots and its members in connection with the real-time collaborative canvas game service and related services provided by VoteDots.",
             ],
           },
           {
-            heading: "Accounts and access",
+            heading: "2. Definitions",
             paragraphs: [
-              "Some features require registration and sign-in. Users are responsible for keeping their credentials safe, and the service cannot guarantee recovery from every account security issue.",
-              "For operational reasons, the service may clear duplicate sessions, restrict access, or end authentication sessions.",
+              "In these terms, `Service` means the online game and related services provided by VoteDots, and `Member` means a person who has agreed to these terms and entered into a service agreement with VoteDots.",
+              "`Account` means the username approved by VoteDots for member identification and service use. `Game results` means outputs such as the canvas image, round progression records, statistics, and snapshots generated through use of the service. `Public information` means nicknames, game results, statistics, and other information that may be displayed within the service or within a scope designated by VoteDots.",
             ],
           },
           {
-            heading: "Prohibited behavior",
+            heading: "3. Posting and amendment of the terms",
             paragraphs: [
-              "Automation that disrupts the service, abnormal request patterns, use of someone else's account, operational interference, and malicious code distribution are not allowed.",
-              "Access may be restricted if behavior harms other users or violates operational policy.",
+              "VoteDots posts these terms in a place where members can easily review them within the service or through a linked screen.",
+              "VoteDots may revise these terms to the extent permitted by applicable law. When the terms are revised, VoteDots will announce the effective date, the revised content, and the reason for the revision. A member who does not agree to the revised terms may stop using the service and request account withdrawal.",
             ],
           },
           {
-            heading: "Content and liability",
+            heading: "4. Registration and account management",
             paragraphs: [
-              "Snapshots, statistics, and nickname-based summaries generated in the game may be displayed for service history and public presentation purposes.",
-              "VoteDots does not guarantee uninterrupted availability, fitness for a specific purpose, or complete protection from outages and data loss.",
+              "A person who wishes to register may apply for membership by following the procedure designated by VoteDots, providing the required information, and agreeing to these terms. VoteDots may refuse registration or terminate the agreement afterward when there is false information, an application by a person under the age of 14, technical difficulty, or a prior history of restriction.",
+              "Members must provide accurate information and update it when changes occur. Members are responsible for managing their own account credentials and may not transfer, lend, or share their account with a third party. VoteDots may manage sessions or restrict account use when necessary for account protection or security.",
+            ],
+          },
+          {
+            heading: "5. Obligations of VoteDots and members",
+            paragraphs: [
+              "VoteDots complies with applicable law and these terms and makes reasonable efforts to provide a stable service. VoteDots also applies reasonable technical and administrative measures for privacy protection, account security, and service stability.",
+              "Members must comply with applicable law, these terms, notices within the service, and operational policies. False information, use of another person's account, abnormal requests, automation tools, macros, bots, service interference, malicious code distribution, and the creation, display, or inducement of obscene, violent, hateful, discriminatory, illegal, rights-infringing, or otherwise inappropriate images or expressions are prohibited.",
+            ],
+          },
+          {
+            heading: "6. Provision, change, and suspension of the service",
+            paragraphs: [
+              "VoteDots provides the VoteDots service and related services to members.",
+              "VoteDots may change all or part of the service when required for operational, technical, or improvement reasons. VoteDots may temporarily suspend all or part of the service in the event of maintenance, failures, external service outages, natural disasters, or similar circumstances. Free service features may also be modified, suspended, or discontinued under operational policy.",
+            ],
+          },
+          {
+            heading: "7. Use of game results, nicknames, and public information",
+            paragraphs: [
+              "VoteDots may display member nicknames, game results, participation statistics, and related public information within the service for service operation, game result guidance, service presentation, and record keeping. Game results may include the canvas image, round history, participant counts, voting statistics, nickname-based summaries, snapshots, and similar information.",
+              "Members understand and agree that their nickname and gameplay results may be displayed within that scope. However, VoteDots may modify, hide, delete, or de-identify all or part of public information when required by law, account withdrawal, operational needs, or protection of rights, and may hide or delete images, results, or public records considered harmful or inappropriate.",
+            ],
+          },
+          {
+            heading: "8. Withdrawal, restriction of use, and termination",
+            paragraphs: [
+              "A member may request account withdrawal at any time through the procedure designated by VoteDots, and VoteDots will take necessary measures without delay to the extent there is no legal retention duty. After withdrawal, personal information is handled in accordance with the Privacy Policy, and previously generated game results or public records may remain only within a de-identified scope that no longer identifies the former member.",
+              "VoteDots may restrict use of the service or terminate the service agreement when there is false information, registration by a person under the age of 14, account misuse, service interference, automated or improper use, violation of law, these terms, or operational policy, or creation of harmful or unlawful images or expressions. A member may raise an objection to a restriction in the manner designated by VoteDots.",
+            ],
+          },
+          {
+            heading: "9. Disclaimer and dispute resolution",
+            paragraphs: [
+              "VoteDots is not liable when the service cannot be provided because of force majeure circumstances such as natural disasters, war, terrorism, power failure, network outage, server failure, or third-party service failure. VoteDots is also not liable for damage caused by a member's own fault, poor credential management, or device or network conditions.",
+              "To the extent permitted by applicable law, VoteDots may not be liable for special damages related to a free service. These terms are governed by the laws of the Republic of Korea, and disputes arising from service use shall be subject to the court of competent jurisdiction under applicable law.",
             ],
           },
         ],
@@ -444,34 +554,76 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       privacy: {
         title: "Privacy Policy",
         lead:
-          "VoteDots processes a minimal set of account and session data required to operate the service. This page explains what is handled and why.",
+          "VoteDots provides this Privacy Policy to explain how personal information is processed in connection with the service. You can use this page to review the categories of information we handle, why we handle it, how long we keep it, what safeguards are applied, and how you can exercise your rights.",
         sections: [
           {
-            heading: "Information we process",
+            heading: "1. Purpose of this policy",
             paragraphs: [
-              "During registration, the service processes a username, nickname, and password. Passwords are not stored in raw form and are protected for authentication purposes.",
-              "Session identifiers and session cookies are used to keep users signed in. Gameplay activity, vote results, and nickname-based statistics may be generated while the service is used.",
+              "This Privacy Policy explains what personal information VoteDots processes and the standards used when handling that information during service operation.",
+              "VoteDots processes personal information only within the scope needed for the service and publishes this policy so that users can understand how their information is handled.",
             ],
           },
           {
-            heading: "Why we use it",
+            heading: "2. Purposes of processing",
             paragraphs: [
-              "We process data to identify accounts, maintain sign-in state, manage gameplay, calculate results, prevent abuse, and respond to operational issues.",
-              "The public landing page may display snapshots, participant counts, and nickname-based summary statistics generated by the game.",
+              "VoteDots processes personal information for account registration and management, sign-in session maintenance and authentication, service access analytics, and service improvement.",
+              "We also process limited information to keep a record of acceptance of the Terms of Service and to confirm whether a registrant has affirmed that they are at least 14 years old.",
             ],
           },
           {
-            heading: "Sessions and cookies",
+            heading: "3. Categories of personal information processed",
             paragraphs: [
-              "Session cookies are used for sign-in persistence and security handling.",
-              "If public advertising features such as Google AdSense are enabled later, third-party cookies may also be used, and this policy will be updated to reflect that scope.",
+              "For account registration and management, VoteDots processes the username, nickname, password, terms acceptance timestamp, terms acceptance locale, terms version, and confirmation that the registrant affirmed they are at least 14 years old.",
+              "For sign-in session maintenance and authentication, VoteDots processes session cookies and session identifiers. For service access analytics and improvement, VoteDots processes browser language, time zone, device information, and entry time.",
             ],
           },
           {
-            heading: "Retention and protection",
+            heading: "4. Retention periods",
             paragraphs: [
-              "Information may be kept for as long as it is needed to operate the service, comply with law, or maintain operational records, and may later be deleted or anonymized.",
-              "Technical safeguards such as session security, access control, and protected storage are applied, but no system can remove all risk completely.",
+              "Account registration and management information, terms acceptance records, and the confirmation that the registrant affirmed they are at least 14 years old are retained until account withdrawal.",
+              "Session cookies and session identifiers are retained until logout or session expiration. Raw service access analytics events are retained for 90 days from collection and then deleted, while aggregated statistics that no longer identify a specific person may be retained for a longer period for service operation and analysis. Internet log records and access trace data subject to legal retention requirements may be retained for 3 months as required by applicable law.",
+            ],
+          },
+          {
+            heading: "5. Deletion procedures and methods",
+            paragraphs: [
+              "VoteDots deletes personal information without delay once the retention period expires or once the information is no longer needed for the stated processing purpose.",
+              "When separate retention is required by law, the relevant information is retained separately for the required period and then deleted. Electronic files containing personal information are removed using methods intended to prevent recovery or restoration. When an account is withdrawn, personal information that is not subject to a legal retention duty is deleted, and game results or public records that have already been generated may be de-identified so that the former member can no longer be identified.",
+            ],
+          },
+          {
+            heading: "6. Rights of data subjects and how to exercise them",
+            paragraphs: [
+              "Users may request access to, correction of, deletion of, or suspension of processing of their personal information at any time. Those rights may also be exercised by a legal representative or a duly authorized agent.",
+              "Requests may be submitted by email or another designated contact method, and VoteDots will respond in accordance with applicable law. VoteDots does not provide the service to children under the age of 14 and does not intentionally collect their personal information. If we become aware that such information has been collected, it will be deleted without delay.",
+            ],
+          },
+          {
+            heading: "7. Privacy officer",
+            paragraphs: [
+              "VoteDots has designated a privacy officer to oversee personal information processing and to handle related inquiries and complaints.",
+              "The privacy officer role is operated by the service operator, and the contact address is privacy@votedots.space. Privacy-related inquiries, complaints, and requests for relief may be sent to that address.",
+            ],
+          },
+          {
+            heading: "8. Automatic collection devices, cookies, and refusal methods",
+            paragraphs: [
+              "VoteDots uses session cookies to maintain sign-in state, authenticate users, manage sessions, and confirm connection state where needed for security.",
+              "Session cookies are retained until logout or session expiration. Users may refuse cookie storage through their browser settings, but doing so may make some features, including persistent sign-in, unavailable. VoteDots does not currently use third-party cookies for advertising, marketing, or personalized advertising.",
+            ],
+          },
+          {
+            heading: "9. Security measures",
+            paragraphs: [
+              "VoteDots does not store passwords in raw form and instead stores them in a protected format. Session cookies are configured with HttpOnly, Secure, and SameSite protections, sessions are regenerated on sign-in, and sessions are terminated on logout.",
+              "Authentication is required for restricted service features, and technical measures such as abnormal request limiting are applied to help protect personal information and maintain service security.",
+            ],
+          },
+          {
+            heading: "10. Changes to this Privacy Policy",
+            paragraphs: [
+              "This Privacy Policy applies from its effective date. VoteDots may revise this policy when laws, service features, or personal information processing practices change.",
+              "If a material change occurs, VoteDots will announce the effective date, the reason for the change, and the main revised points on the service page. The effective date of this version is May 12, 2026.",
             ],
           },
         ],

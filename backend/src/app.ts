@@ -8,6 +8,7 @@ import { sessionMiddleware } from "./config/session";
 import { redisClient } from "./config/redis";
 
 import authRouter from "./modules/auth/auth.router";
+import analyticsRouter from "./modules/analytics/analytics.router";
 import canvasRouter from "./modules/canvas/canvas.router";
 import loginBoardRouter from "./modules/login-board/login-board.router";
 import publicLandingRouter from "./modules/public-landing/public-landing.router";
@@ -85,6 +86,7 @@ export function createApp() {
   });
 
   app.use("/auth", authRouter);
+  app.use("/analytics", analyticsRouter);
   app.use("/canvas", canvasRouter);
   app.use("/public/login-board", loginBoardRouter);
   app.use("/public/landing", publicLandingRouter);

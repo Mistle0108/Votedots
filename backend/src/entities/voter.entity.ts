@@ -24,6 +24,24 @@ export class Voter extends BaseEntity {
   @Column({ type: "varchar", length: 32 })
   nickname!: string;
 
+  @Column({ type: "timestamptz", nullable: true })
+  termsAcceptedAt!: Date | null;
+
+  @Column({ type: "varchar", length: 8, nullable: true })
+  termsAcceptedLocale!: string | null;
+
+  @Column({ type: "varchar", length: 32, nullable: true })
+  termsVersion!: string | null;
+
+  @Column({ type: "boolean", default: false })
+  isAge14OrOlderConfirmed!: boolean;
+
+  @Column({ type: "boolean", name: "is_withdrawn", default: false })
+  isWithdrawn!: boolean;
+
+  @Column({ type: "timestamptz", name: "withdrawn_at", nullable: true })
+  withdrawnAt!: Date | null;
+
   @Column({
     type: "varchar",
     length: 16,

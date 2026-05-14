@@ -2,12 +2,16 @@ export interface RegisterFormValues {
   username: string;
   nickname: string;
   password: string;
+  acceptedTerms: boolean;
+  isAge14OrOlderConfirmed: boolean;
 }
 
 export interface RegisterFormErrorKeys {
   username: string | null;
   nickname: string | null;
   password: string | null;
+  acceptedTerms: string | null;
+  isAge14OrOlderConfirmed: string | null;
 }
 
 const USERNAME_REGEX = /^[a-z0-9]{4,20}$/;
@@ -27,11 +31,23 @@ export function validateRegisterForm(
     password: PASSWORD_REGEX.test(values.password)
       ? null
       : "auth.register.passwordRule",
+    acceptedTerms: values.acceptedTerms
+      ? null
+      : "auth.register.termsAgreementRequired",
+    isAge14OrOlderConfirmed: values.isAge14OrOlderConfirmed
+      ? null
+      : "auth.register.ageConfirmationRequired",
   };
 }
 
 export function isRegisterFormValid(values: RegisterFormValues): boolean {
   const errors = validateRegisterForm(values);
 
-  return !errors.username && !errors.nickname && !errors.password;
+  return (
+    !errors.username &&
+    !errors.nickname &&
+    !errors.password &&
+    !errors.acceptedTerms &&
+    !errors.isAge14OrOlderConfirmed
+  );
 }

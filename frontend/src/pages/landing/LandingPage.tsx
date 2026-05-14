@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { authApi } from "@/features/auth";
 import { landingApi } from "@/features/landing/api/landing.api";
 import FeaturedPreviewSection from "@/features/landing/components/FeaturedPreviewSection";
@@ -93,6 +94,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
   usePageRootClass("page-shell-root");
   usePublicSiteLocale(locale);
   useAdsenseScript();
+  useTrackVisitEvent("site_visit");
 
   useEffect(() => {
     let cancelled = false;

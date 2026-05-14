@@ -76,9 +76,12 @@ function VoterList({
 
   if (listStyle === "list") {
     return (
-      <ul className="space-y-1">
-        {visibleVoters.map((voter) => (
-          <li key={voter.voterId} className="list-none">
+        <ul className="space-y-1">
+          {visibleVoters.map((voter, index) => (
+          <li
+            key={`${voter.voterId ?? "ghost"}-${voter.name}-${index}`}
+            className="list-none"
+          >
             - <VoterName voter={voter} />
           </li>
         ))}
@@ -90,7 +93,7 @@ function VoterList({
   return (
     <>
       {visibleVoters.map((voter, index) => (
-        <span key={voter.voterId}>
+        <span key={`${voter.voterId ?? "ghost"}-${voter.name}-${index}`}>
           {index > 0 ? ", " : ""}
           <VoterName voter={voter} />
         </span>

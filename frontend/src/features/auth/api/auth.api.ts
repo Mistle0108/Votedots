@@ -9,6 +9,7 @@ export const authApi = {
     api.post<{ message: string }>("/auth/login", data),
 
   logout: () => api.post<{ message: string }>("/auth/logout"),
+  withdraw: () => api.post<{ message: string }>("/auth/withdraw"),
 
   me: () => api.get<{ voter: Voter }>("/auth/me"),
 };
