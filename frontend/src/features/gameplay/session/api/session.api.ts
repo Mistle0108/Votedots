@@ -78,13 +78,13 @@ export interface RoundSummaryData {
 }
 
 export interface GameSummaryTopVoter {
-  voterId: number;
+  voterId: number | null;
   name: string;
   voteCount: number;
 }
 
 export interface GameSummaryParticipant {
-  voterId: number;
+  voterId: number | null;
   name: string;
 }
 

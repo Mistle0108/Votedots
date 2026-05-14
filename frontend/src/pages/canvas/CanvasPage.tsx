@@ -8,6 +8,7 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { authApi } from "@/features/auth";
 import {
   CanvasStage,
@@ -91,6 +92,7 @@ export default function CanvasPage() {
   const { t } = useI18n();
 
   usePageRootClass("page-shell-root");
+  useTrackVisitEvent("game_entry");
   const [currentVoterUuid, setCurrentVoterUuid] = useState<string | null>(null);
   const [selectionGuideState, dispatchSelectionGuide] = useReducer(
     selectionGuideReducer,
@@ -108,6 +110,22 @@ export default function CanvasPage() {
   const hasPulsedSelectionThisRoundRef = useRef(false);
 
   const handleSessionEnded = useCallback(() => {
+    if (
+      (
+        window as Window & {
+          __votedotsWithdrawPending?: boolean;
+        }
+      ).__votedotsWithdrawPending
+    ) {
+      (
+        window as Window & {
+          __votedotsWithdrawPending?: boolean;
+        }
+      ).__votedotsWithdrawPending = false;
+      navigate("/login", { replace: true });
+      return;
+    }
+
     window.alert(t("canvas.sessionEnded"));
     navigate("/login", { replace: true });
   }, [navigate, t]);

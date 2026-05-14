@@ -10,14 +10,14 @@ import {
 } from "typeorm";
 import { Canvas } from "./canvas.entity";
 
-type TopVoterSummary = {
-  voterId: number;
+export type TopVoterSummary = {
+  voterId: number | null;
   name: string;
   voteCount: number;
 };
 
-type ParticipantSummary = {
-  voterId: number;
+export type ParticipantSummary = {
+  voterId: number | null;
   name: string;
 };
 

@@ -18,6 +18,7 @@ const registerRateLimit = createRateLimitMiddleware({
 router.post("/register", registerRateLimit, authController.register);
 router.post("/login", loginRateLimit, authController.login);
 router.post("/logout", authMiddleware, authController.logout);
+router.post("/withdraw", authMiddleware, authController.withdraw);
 router.get("/me", authMiddleware, authController.me);
 
 export default router;

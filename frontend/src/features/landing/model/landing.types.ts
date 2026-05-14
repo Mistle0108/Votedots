@@ -10,12 +10,12 @@ export interface LandingCurrentGame {
 }
 
 export interface LandingParticipant {
-  voterId: number;
+  voterId: number | null;
   name: string;
 }
 
 export interface LandingTopVoterSummary {
-  voterId: number;
+  voterId: number | null;
   name: string;
   voteCount: number;
 }
