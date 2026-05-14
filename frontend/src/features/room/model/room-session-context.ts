@@ -3,7 +3,6 @@ const ROOM_SESSION_STORAGE_KEY = "votedots:room-session-context";
 export interface RoomSessionContext {
   roomId: number;
   publicRoomNumber: number | null;
-  canvasId: number;
   type: "public" | "private";
 }
 
@@ -25,7 +24,6 @@ export function getStoredRoomSessionContext(): RoomSessionContext | null {
       typeof parsed.roomId !== "number" ||
       (parsed.publicRoomNumber !== null &&
         typeof parsed.publicRoomNumber !== "number") ||
-      typeof parsed.canvasId !== "number" ||
       (parsed.type !== "public" && parsed.type !== "private")
     ) {
       return null;
@@ -34,7 +32,6 @@ export function getStoredRoomSessionContext(): RoomSessionContext | null {
     return {
       roomId: parsed.roomId,
       publicRoomNumber: parsed.publicRoomNumber ?? null,
-      canvasId: parsed.canvasId,
       type: parsed.type,
     };
   } catch {

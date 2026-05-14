@@ -29,6 +29,7 @@ export interface RoomSessionContext {
 const FIXED_ROUND_START_WAIT_SEC = 5;
 const FIXED_ROUND_DURATION_SEC = 60;
 const FIXED_ROUND_RESULT_DELAY_SEC = 10;
+const FIXED_GAME_END_WAIT_SEC = 60 * 10;
 const MAX_INTRO_PHASE_SEC = 60 * 5;
 const MAX_VOTES_PER_ROUND = 120;
 const MAX_GAME_DURATION_SEC = 60 * 60;
@@ -92,6 +93,7 @@ function buildRoomConfigUpdate(input: CreateRoomInput): GameConfigUpdate {
       roundStartWaitSec: FIXED_ROUND_START_WAIT_SEC,
       roundDurationSec: FIXED_ROUND_DURATION_SEC,
       roundResultDelaySec: FIXED_ROUND_RESULT_DELAY_SEC,
+      gameEndWaitSec: FIXED_GAME_END_WAIT_SEC,
     },
     rules: {
       totalRounds: input.totalRounds,
@@ -198,6 +200,7 @@ export const roomService = {
           introPhaseSec: input.introPhaseSec,
           totalRounds: input.totalRounds,
           votesPerRound: input.votesPerRound,
+          gameEndWaitSec: FIXED_GAME_END_WAIT_SEC,
         },
         canvas,
         expiresAt: null,
@@ -264,7 +267,7 @@ export const roomService = {
       where: {
         publicRoomNumber,
       },
-      relations: { canvas: true },
+      relations: { canvas: true, owner: true },
     });
 
     if (!room || room.status === RoomStatus.EXPIRED) {

@@ -1,4 +1,5 @@
 import api from "@/shared/api/client";
+import type { RoomSessionContext } from "../model/room-session-context";
 
 export interface RoomListItem {
   roomId: number;
@@ -25,6 +26,18 @@ export interface PublicRoomDetailResponse {
       snapshotUrl: string | null;
     };
     participantCount: number;
+    manage: {
+      settings: {
+        title: string;
+        type: "public" | "private";
+        profileKey: string;
+        introPhaseSec: number;
+        totalRounds: number;
+        votesPerRound: number;
+        gameEndWaitSec: number;
+      };
+      accessCode: string | null;
+    } | null;
   };
 }
 
@@ -35,8 +48,24 @@ export interface PrivateRoomDetailResponse {
     title: string;
     type: "private";
     status: "active" | "game_end_wait" | "expired";
+    manage: {
+      settings: {
+        title: string;
+        type: "public" | "private";
+        profileKey: string;
+        introPhaseSec: number;
+        totalRounds: number;
+        votesPerRound: number;
+        gameEndWaitSec: number;
+      };
+      accessCode: string | null;
+    } | null;
   };
 }
+
+export type RoomDetailResponse =
+  | PublicRoomDetailResponse
+  | PrivateRoomDetailResponse;
 
 export interface RoomCreateRequest {
   title: string;
@@ -69,9 +98,7 @@ export interface RoomEnterResponse {
 export const roomApi = {
   getRooms: () => api.get<{ rooms: RoomListItem[] }>("/rooms"),
   getRoomDetail: (publicRoomNumber: number) =>
-    api.get<PublicRoomDetailResponse | PrivateRoomDetailResponse>(
-      `/rooms/${publicRoomNumber}`,
-    ),
+    api.get<RoomDetailResponse>(`/rooms/${publicRoomNumber}`),
   createRoom: (payload: RoomCreateRequest) =>
     api.post<RoomCreateResponse>("/rooms", payload),
   enterPublicRoom: (publicRoomNumber: number) =>
@@ -85,3 +112,13 @@ export const roomApi = {
       accessCode,
     }),
 };
+
+export function toRoomSessionContext(
+  room: RoomCreateResponse["room"] | RoomEnterResponse["room"],
+): RoomSessionContext {
+  return {
+    roomId: room.roomId,
+    publicRoomNumber: room.publicRoomNumber,
+    type: room.type,
+  };
+}

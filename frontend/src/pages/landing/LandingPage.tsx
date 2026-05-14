@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
-import { authApi } from "@/features/auth";
 import { landingApi } from "@/features/landing/api/landing.api";
 import FeaturedPreviewSection from "@/features/landing/components/FeaturedPreviewSection";
 import type {
@@ -18,8 +17,6 @@ import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
 import { SiteHeader } from "@/shared/ui/site-header";
-
-type AuthState = "authenticated" | "guest" | "unknown";
 
 interface LandingPageProps {
   locale: PublicSiteLocale;
@@ -84,7 +81,6 @@ export default function LandingPage({ locale }: LandingPageProps) {
     [locale],
   );
 
-  const [authState, setAuthState] = useState<AuthState>("unknown");
   const [landingData, setLandingData] = useState<LandingPayload | null>(null);
   const [featuredPreviewItems, setFeaturedPreviewItems] = useState<
     LandingFeaturedPreviewItem[]
@@ -95,27 +91,6 @@ export default function LandingPage({ locale }: LandingPageProps) {
   usePublicSiteLocale(locale);
   useAdsenseScript();
   useTrackVisitEvent("site_visit");
-
-  useEffect(() => {
-    let cancelled = false;
-
-    void authApi
-      .me()
-      .then(() => {
-        if (!cancelled) {
-          setAuthState("authenticated");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setAuthState("guest");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,23 +133,8 @@ export default function LandingPage({ locale }: LandingPageProps) {
     };
   }, [siteContent.currentGame.loadError]);
 
-  const handleParticipate = async () => {
-    if (authState === "authenticated") {
-      window.location.assign("/lobby");
-      return;
-    }
-
-    if (authState === "guest") {
-      window.location.assign("/login");
-      return;
-    }
-
-    try {
-      await authApi.me();
-      window.location.assign("/lobby");
-    } catch {
-      window.location.assign("/login");
-    }
+  const handleParticipate = () => {
+    window.location.assign("/lobby");
   };
 
   const currentGame = landingData?.currentGame ?? null;

@@ -4,7 +4,7 @@ import { roomController } from "./room.controller";
 
 const router = Router();
 
-router.get("/", authMiddleware, roomController.list);
+router.get("/", roomController.list);
 router.get("/current", authMiddleware, roomController.getCurrent);
 router.get(
   "/current/participants/count",
@@ -17,7 +17,7 @@ router.get(
   roomController.getCurrentParticipantList,
 );
 router.get("/current/manage", authMiddleware, roomController.getCurrentManage);
-router.get("/:publicRoomNumber", authMiddleware, roomController.getDetail);
+router.get("/:publicRoomNumber", roomController.getDetail);
 router.post("/", authMiddleware, roomController.create);
 router.post("/enter", authMiddleware, roomController.enter);
 

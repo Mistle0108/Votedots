@@ -132,8 +132,9 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       return;
     }
 
+    clearStoredRoomSessionContext();
     window.alert(t("canvas.sessionEnded"));
-    navigate("/login", { replace: true });
+    navigate("/lobby", { replace: true });
   }, [navigate, t]);
 
   const handleUnauthorized = useCallback(

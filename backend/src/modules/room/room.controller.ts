@@ -30,6 +30,13 @@ function serializePrivateRoomDetail(room: Room) {
   };
 }
 
+function serializeManageInfo(room: Room) {
+  return {
+    settings: room.settingsSnapshot,
+    accessCode: room.type === RoomType.PRIVATE ? room.accessCode : null,
+  };
+}
+
 function serializeRoomDetail(
   room: Room,
   participantCount: number,
@@ -145,10 +152,16 @@ export const roomController = {
       }
 
       const room = await roomService.getPublicDetail(publicRoomNumber);
+      const isOwner =
+        req.session.voter?.id !== undefined &&
+        room.owner?.id === req.session.voter.id;
 
       if (room.type === RoomType.PRIVATE) {
         return res.json({
-          room: serializePrivateRoomDetail(room),
+          room: {
+            ...serializePrivateRoomDetail(room),
+            manage: isOwner ? serializeManageInfo(room) : null,
+          },
         });
       }
 
@@ -158,16 +171,19 @@ export const roomController = {
       ]);
 
       return res.json({
-        room: serializeRoomDetail(
-          room,
-          participantCount,
-          snapshot?.round?.id
-            ? roundSnapshotService.buildRoundSnapshotApiPath(
-                room.canvas.id,
-                snapshot.round.id,
-              )
-            : null,
-        ),
+        room: {
+          ...serializeRoomDetail(
+            room,
+            participantCount,
+            snapshot?.round?.id
+              ? roundSnapshotService.buildRoundSnapshotApiPath(
+                  room.canvas.id,
+                  snapshot.round.id,
+                )
+              : null,
+          ),
+          manage: isOwner ? serializeManageInfo(room) : null,
+        },
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
