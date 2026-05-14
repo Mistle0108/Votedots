@@ -312,10 +312,12 @@ export function getCanvasGameConfigSnapshot(
 }
 
 export function getGameConfigProfiles(): GameConfigProfileSummary[] {
-  return getGameConfigProfileKeys().map((key) => ({
-    key,
-    snapshot: getGameConfigSnapshot(key),
-  }));
+  return getGameConfigProfileKeys()
+    .filter((key) => key !== "default")
+    .map((key) => ({
+      key,
+      snapshot: getGameConfigSnapshot(key),
+    }));
 }
 
 export function updateGameConfig(config: GameConfigUpdate): void {
