@@ -160,6 +160,7 @@ export const roomApi = {
     }),
   getCurrentManage: () =>
     api.get<RoomCurrentManageResponse>("/rooms/current/manage"),
+  endGameCurrent: () => api.post<{ ok: true }>("/rooms/current/end-game"),
   terminateCurrent: () => api.post<{ ok: true }>("/rooms/current/terminate"),
 };
 

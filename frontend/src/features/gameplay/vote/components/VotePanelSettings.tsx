@@ -8,6 +8,8 @@ interface Props {
   backgroundMode: PlayBackgroundMode;
   onBackgroundModeChange: (mode: PlayBackgroundMode) => void;
   roomManage?: RoomCurrentManageResponse["room"] | null;
+  roomEndGameLoading?: boolean;
+  onEndGame?: () => void;
   roomTerminateLoading?: boolean;
   onTerminateRoom?: () => void;
   tutorialId?: string;
@@ -21,6 +23,8 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
       backgroundMode,
       onBackgroundModeChange,
       roomManage,
+      roomEndGameLoading = false,
+      onEndGame,
       roomTerminateLoading = false,
       onTerminateRoom,
       tutorialId,
@@ -41,6 +45,8 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
             votes: "라운드당 표수",
             endWait: "게임 종료 대기",
             accessCode: "입장 코드",
+            endGame: "게임 종료",
+            endingGame: "종료 중...",
             white: "흰색",
             gray: "회색",
             black: "검정색",
@@ -57,6 +63,8 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
             votes: "Votes / round",
             endWait: "Game end wait",
             accessCode: "Access code",
+            endGame: "End game",
+            endingGame: "Ending...",
             white: "white",
             gray: "gray",
             black: "black",
@@ -139,6 +147,14 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
                   </p>
                 ) : null}
               </div>
+              <button
+                type="button"
+                disabled={roomEndGameLoading || !onEndGame}
+                onClick={onEndGame}
+                className="mt-3 w-full rounded-lg bg-[#272E37] px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {roomEndGameLoading ? labels.endingGame : labels.endGame}
+              </button>
               <button
                 type="button"
                 disabled={roomTerminateLoading || !onTerminateRoom}

@@ -12,7 +12,7 @@ interface RoomListSectionProps {
   onChangePrivateAccessCode: (value: string) => void;
   onSelectRoom: (publicRoomNumber: number) => void;
   onEnterPublicRoom: (publicRoomNumber: number) => void;
-  onEnterPrivateRoom: () => void;
+  onEnterPrivateRoom: (accessCode?: string) => void | Promise<void>;
 }
 
 function getStatusLabel(status: RoomListItem["status"]): string {
@@ -168,7 +168,7 @@ export default function RoomListSection({
             />
             <button
               type="button"
-              onClick={onEnterPrivateRoom}
+              onClick={() => void onEnterPrivateRoom()}
               className="mt-3 rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
             >
               입장

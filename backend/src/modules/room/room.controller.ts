@@ -1,5 +1,9 @@
 import type { Request, Response } from "express";
-import { Room, RoomType } from "../../entities/room.entity";
+import {
+  Room,
+  RoomTerminationReason,
+  RoomType,
+} from "../../entities/room.entity";
 import {
   getCanvasGameConfigSnapshot,
   getGameConfigProfiles,
@@ -8,7 +12,6 @@ import { GamePhase } from "../game/game-phase.types";
 import { forceGameEnd, stopGameTimer } from "../game/game.timer";
 import { roundSnapshotService } from "../history/round-snapshot.service";
 import { resolveResultTemplateAssetKey } from "../canvas/template/result-template.service";
-import { roundService } from "../round/round.service";
 import { roomService, type CreateRoomInput } from "./room.service";
 
 function parsePublicRoomNumber(raw: unknown): number | null {
@@ -49,6 +52,29 @@ function serializeManageInfo(room: Room) {
   };
 }
 
+function getAssetSizeFolder(assetKey: string): string | null {
+  const matched = assetKey.match(/-(\d+x\d+)$/);
+  return matched?.[1] ?? null;
+}
+
+function buildResultTemplateImageUrl(assetKey: string | null): string | null {
+  if (!assetKey) {
+    return null;
+  }
+
+  const sizeFolder = getAssetSizeFolder(assetKey);
+
+  if (sizeFolder) {
+    return `/result-templates/${sizeFolder}/${assetKey}.png`;
+  }
+
+  return `/result-templates/${assetKey}.png`;
+}
+
+function buildDefaultResultTemplateAssetKey(gridX: number, gridY: number): string {
+  return `empty-${gridX}x${gridY}`;
+}
+
 function serializeRoomDetail(
   room: Room,
   participantCount: number,
@@ -71,9 +97,10 @@ function serializeRoomDetail(
       currentRoundNumber: room.canvas.currentRoundNumber,
       totalRounds: room.canvas.configSnapshot.rules.totalRounds,
       snapshotUrl,
-      templateImageUrl: resultTemplateAssetKey
-        ? `/result-templates/${resultTemplateAssetKey}.png`
-        : null,
+      templateImageUrl: buildResultTemplateImageUrl(
+        resultTemplateAssetKey ??
+          buildDefaultResultTemplateAssetKey(room.canvas.gridX, room.canvas.gridY),
+      ),
     },
     participantCount,
   };
@@ -420,80 +447,75 @@ export const roomController = {
       }
 
       stopGameTimer(room.canvas.id);
+      const expiredRoom = await roomService.expireByOwner(room.id);
 
-      if (room.canvas.phase === GamePhase.INTRO || room.canvas.phase === GamePhase.GAME_END) {
-        const expiredRoom = await roomService.expireByOwner(room.id);
+      io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
+        canvasId: room.canvas.id,
+        roomId: expiredRoom.id,
+        reason: RoomTerminationReason.TERMINATED_BY_OWNER,
+      });
 
-        io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
-          canvasId: room.canvas.id,
-          roomId: expiredRoom.id,
-          reason: "terminated_by_owner",
-        });
+      return res.json({ ok: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status =
+        message === "ROOM_MANAGE_FORBIDDEN"
+          ? 403
+          : message === "ROOM_CONTEXT_NOT_FOUND"
+            ? 404
+            : message === "ROOM_EXPIRED"
+              ? 410
+              : 400;
 
+      return res.status(status).json({ message });
+    }
+  },
+
+  async endGameCurrent(req: Request, res: Response) {
+    try {
+      const sessionRoom = req.session.room;
+
+      if (!sessionRoom?.roomId) {
+        return res.status(404).json({ message: "ROOM_CONTEXT_NOT_FOUND" });
+      }
+
+      const room = await roomService.getCurrentManage(
+        sessionRoom.roomId,
+        req.session.voter!.id,
+      );
+      const io = req.app.get("io");
+
+      if (room.type === RoomType.PLAZA) {
+        return res.status(403).json({ message: "ROOM_MANAGE_FORBIDDEN" });
+      }
+
+      if (room.status === "expired") {
+        return res.status(410).json({ message: "ROOM_EXPIRED" });
+      }
+
+      if (room.canvas.phase === GamePhase.GAME_END) {
         return res.json({ ok: true });
       }
 
-      if (room.canvas.phase === GamePhase.ROUND_ACTIVE) {
-        const activeRound = await roomService.getActiveRound(room.canvas.id);
-
-        if (!activeRound) {
-          return res.status(400).json({ message: "ROOM_ACTIVE_ROUND_NOT_FOUND" });
-        }
-
-        await roundService.endRound(room.canvas.id, activeRound.id, io);
-        await forceGameEnd(io, room.canvas.id, activeRound.roundNumber);
+      if (room.canvas.phase === GamePhase.INTRO) {
         stopGameTimer(room.canvas.id);
         const expiredRoom = await roomService.expireByOwner(room.id);
 
         io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
           canvasId: room.canvas.id,
           roomId: expiredRoom.id,
-          reason: "terminated_by_owner",
+          reason: RoomTerminationReason.TERMINATED_BY_OWNER,
         });
+
         return res.json({ ok: true });
       }
 
-      if (room.canvas.phase === GamePhase.ROUND_RESULT) {
-        await forceGameEnd(io, room.canvas.id, room.canvas.currentRoundNumber);
-        stopGameTimer(room.canvas.id);
-        const expiredRoom = await roomService.expireByOwner(room.id);
+      const targetRoundNumber = Math.max(0, room.canvas.currentRoundNumber);
 
-        io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
-          canvasId: room.canvas.id,
-          roomId: expiredRoom.id,
-          reason: "terminated_by_owner",
-        });
-        return res.json({ ok: true });
-      }
+      stopGameTimer(room.canvas.id);
+      await forceGameEnd(io, room.canvas.id, targetRoundNumber);
 
-      if (room.canvas.phase === GamePhase.ROUND_START_WAIT) {
-        const lastValidRoundNumber = Math.max(0, room.canvas.currentRoundNumber - 1);
-
-        if (lastValidRoundNumber === 0) {
-          const expiredRoom = await roomService.expireByOwner(room.id);
-
-          io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
-            canvasId: room.canvas.id,
-            roomId: expiredRoom.id,
-            reason: "terminated_by_owner",
-          });
-
-          return res.json({ ok: true });
-        }
-
-        await forceGameEnd(io, room.canvas.id, lastValidRoundNumber);
-        stopGameTimer(room.canvas.id);
-        const expiredRoom = await roomService.expireByOwner(room.id);
-
-        io.to(`canvas:${room.canvas.id}`).emit("room:expired", {
-          canvasId: room.canvas.id,
-          roomId: expiredRoom.id,
-          reason: "terminated_by_owner",
-        });
-        return res.json({ ok: true });
-      }
-
-      return res.status(400).json({ message: "ROOM_TERMINATION_PHASE_UNSUPPORTED" });
+      return res.json({ ok: true });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const status =

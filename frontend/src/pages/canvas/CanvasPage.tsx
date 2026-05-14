@@ -115,6 +115,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   });
   const [currentRoomManage, setCurrentRoomManage] =
     useState<RoomCurrentManageResponse["room"] | null>(null);
+  const [roomEndGameLoading, setRoomEndGameLoading] = useState(false);
   const [roomTerminateLoading, setRoomTerminateLoading] = useState(false);
   const [roomExpiredReason, setRoomExpiredReason] = useState<
     "expired" | "terminated_by_owner" | null
@@ -324,8 +325,8 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
     const confirmed = window.confirm(
       locale === "ko"
-        ? "현재 방을 강제 종료하시겠습니까? 접속 중인 사용자 모두 로비로 이동합니다."
-        : "Do you want to close this room now? Everyone in the room will be moved to the lobby.",
+        ? '현재 방을 강제 종료하시겠습니까?\n강제 종료시 완료된 캔버스를 다운로드 받을 수 없고, 접속 중인 사용자 모두 로비로 이동합니다. 캔버스 다운로드를 원하시면 "게임 종료" 버튼을 클릭해 주시기 바랍니다.'
+        : 'Do you want to force-close this room?\nIf you force-close it, the completed canvas cannot be downloaded and everyone in the room will be moved to the lobby. If you want the canvas download, please click "End Game" instead.',
     );
 
     if (!confirmed) {
@@ -359,6 +360,51 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       }
     } finally {
       setRoomTerminateLoading(false);
+    }
+  }, [currentRoomManage, locale, sessionSourceApi.key]);
+
+  const handleEndGame = useCallback(async () => {
+    if (sessionSourceApi.key !== "room" || !currentRoomManage) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      locale === "ko"
+        ? '현재 게임을 종료하시겠습니까?\n게임 종료 시 완료된 캔버스를 다운로드할 수 있으며, 게임 종료 대기 시간이 끝나면 로비로 이동합니다.'
+        : "Do you want to end the current game?\nYou will be able to download the completed canvas, and everyone will move to the lobby after the game-end wait finishes.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRoomEndGameLoading(true);
+
+    try {
+      await roomApi.endGameCurrent();
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof error.response === "object" &&
+        error.response !== null &&
+        "data" in error.response &&
+        typeof error.response.data === "object" &&
+        error.response.data !== null &&
+        "message" in error.response.data &&
+        typeof error.response.data.message === "string"
+      ) {
+        window.alert(error.response.data.message);
+      } else {
+        window.alert(
+          locale === "ko"
+            ? "게임 종료에 실패했습니다."
+            : "Failed to end the game.",
+        );
+      }
+    } finally {
+      setRoomEndGameLoading(false);
     }
   }, [currentRoomManage, locale, sessionSourceApi.key]);
 
@@ -849,6 +895,8 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
             currentRoomManage={
               sessionSourceApi.key === "room" ? currentRoomManage : null
             }
+            roomEndGameLoading={roomEndGameLoading}
+            onEndGame={handleEndGame}
             roomTerminateLoading={roomTerminateLoading}
             onTerminateRoom={handleTerminateRoom}
           />

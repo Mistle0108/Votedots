@@ -44,20 +44,32 @@ const MAX_GAME_DURATION_SEC = 60 * 60;
 const MAX_ACTIVE_ROOMS_PER_OWNER = 2;
 
 async function expireElapsedRooms(): Promise<void> {
-  await roomRepository
-    .createQueryBuilder()
-    .update(Room)
-    .set({
-      status: RoomStatus.EXPIRED,
-      terminationReason: RoomTerminationReason.EXPIRED,
-    })
-    .where("type IN (:...types)", {
-      types: [RoomType.PUBLIC, RoomType.PRIVATE],
-    })
-    .andWhere("status = :status", { status: RoomStatus.GAME_END_WAIT })
-    .andWhere("expiresAt IS NOT NULL")
-    .andWhere("expiresAt <= :now", { now: new Date() })
-    .execute();
+  const rooms = await roomRepository.find({
+    where: [
+      {
+        type: RoomType.PUBLIC,
+        status: RoomStatus.GAME_END_WAIT,
+      },
+      {
+        type: RoomType.PRIVATE,
+        status: RoomStatus.GAME_END_WAIT,
+      },
+    ],
+    relations: { canvas: true },
+  });
+
+  const now = Date.now();
+
+  await Promise.all(
+    rooms
+      .filter((room) => room.expiresAt && room.expiresAt.getTime() <= now)
+      .map(async (room) => {
+        room.status = RoomStatus.EXPIRED;
+        room.terminationReason =
+          room.terminationReason ?? RoomTerminationReason.EXPIRED;
+        await roomRepository.save(room);
+      }),
+  );
 }
 
 async function reconcileRoomLifecycle(room: Room): Promise<Room> {
@@ -74,7 +86,8 @@ async function reconcileRoomLifecycle(room: Room): Promise<Room> {
     phaseEndsAt.getTime() <= now
   ) {
     room.status = RoomStatus.EXPIRED;
-    room.terminationReason = RoomTerminationReason.EXPIRED;
+    room.terminationReason =
+      room.terminationReason ?? RoomTerminationReason.EXPIRED;
     room.expiresAt = room.expiresAt ?? phaseEndsAt;
     return roomRepository.save(room);
   }
@@ -86,7 +99,7 @@ async function reconcileRoomLifecycle(room: Room): Promise<Room> {
   ) {
     room.status = RoomStatus.GAME_END_WAIT;
     room.expiresAt = phaseEndsAt;
-    room.terminationReason = null;
+    room.terminationReason = room.terminationReason ?? null;
     return roomRepository.save(room);
   }
 
@@ -211,7 +224,11 @@ function buildRoomSessionContext(room: Room): RoomSessionContext {
 }
 
 export const roomService = {
-  async markGameEndWaitByCanvas(canvasId: number, expiresAt: Date): Promise<void> {
+  async markGameEndWaitByCanvas(
+    canvasId: number,
+    expiresAt: Date,
+    terminationReason: RoomTerminationReason | null = null,
+  ): Promise<void> {
     const room = await roomRepository.findOne({
       where: { canvas: { id: canvasId } },
       relations: { canvas: true },
@@ -224,7 +241,7 @@ export const roomService = {
     await roomRepository.update(room.id, {
       status: RoomStatus.GAME_END_WAIT,
       expiresAt,
-      terminationReason: null,
+      terminationReason,
     });
   },
 
@@ -243,7 +260,8 @@ export const roomService = {
     }
 
     room.status = RoomStatus.EXPIRED;
-    room.terminationReason = RoomTerminationReason.EXPIRED;
+    room.terminationReason =
+      room.terminationReason ?? RoomTerminationReason.EXPIRED;
     room.expiresAt = room.expiresAt ?? new Date();
 
     return roomRepository.save(room);

@@ -18,6 +18,7 @@ router.get(
   roomController.getCurrentParticipantList,
 );
 router.get("/current/manage", authMiddleware, roomController.getCurrentManage);
+router.post("/current/end-game", authMiddleware, roomController.endGameCurrent);
 router.post("/current/terminate", authMiddleware, roomController.terminateCurrent);
 router.get("/:publicRoomNumber", roomController.getDetail);
 router.post("/", authMiddleware, roomController.create);

@@ -287,7 +287,7 @@ export default function LobbyPage() {
     [enterRoomFromResponse, requireLogin],
   );
 
-  const handleEnterPrivateRoom = useCallback(async () => {
+  const handleEnterPrivateRoom = useCallback(async (code?: string) => {
       if (!(await requireLogin())) {
         return;
       }
@@ -296,8 +296,10 @@ export default function LobbyPage() {
     setModalError(null);
 
     try {
-      const { data } = await roomApi.enterPrivateRoom(privateAccessCode.trim());
+      const accessCode = (code ?? privateAccessCode).trim();
+      const { data } = await roomApi.enterPrivateRoom(accessCode);
       setEnterModalOpen(false);
+      setPrivateAccessCode("");
       enterRoomFromResponse(data.room);
     } catch (error) {
       setModalError(getErrorMessage(error));
@@ -307,7 +309,7 @@ export default function LobbyPage() {
   }, [enterRoomFromResponse, privateAccessCode, requireLogin]);
 
   const handleResolveRoomNumber = useCallback(
-    async (publicRoomNumber: number): Promise<"entered" | "private"> => {
+    async (publicRoomNumber: number): Promise<void> => {
       if (!(await requireLogin())) {
         throw new Error("LOGIN_REQUIRED");
       }
@@ -319,13 +321,13 @@ export default function LobbyPage() {
         const { data } = await roomApi.getRoomDetail(publicRoomNumber);
 
         if (data.room.type === "private") {
-          return "private";
+          setModalError("프라이빗방은 입장 코드를 입력해야 합니다.");
+          return;
         }
 
         const entered = await roomApi.enterPublicRoom(publicRoomNumber);
         enterRoomFromResponse(entered.data.room);
         setEnterModalOpen(false);
-        return "entered";
       } catch (error) {
         setModalError(getErrorMessage(error));
         throw error;

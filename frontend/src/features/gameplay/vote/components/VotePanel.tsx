@@ -56,6 +56,8 @@ interface Props {
     behavior?: ScrollBehavior,
   ) => void;
   currentRoomManage?: RoomCurrentManageResponse["room"] | null;
+  roomEndGameLoading?: boolean;
+  onEndGame?: () => void;
   roomTerminateLoading?: boolean;
   onTerminateRoom?: () => void;
 }
@@ -90,6 +92,8 @@ export default function VotePanel({
   onOpenTutorial,
   onNavigateToCoordinate,
   currentRoomManage = null,
+  roomEndGameLoading = false,
+  onEndGame,
   roomTerminateLoading = false,
   onTerminateRoom,
 }: Props) {
@@ -256,6 +260,8 @@ export default function VotePanel({
               backgroundMode={backgroundMode}
               onBackgroundModeChange={onBackgroundModeChange}
               roomManage={currentRoomManage}
+              roomEndGameLoading={roomEndGameLoading}
+              onEndGame={onEndGame}
               roomTerminateLoading={roomTerminateLoading}
               onTerminateRoom={onTerminateRoom}
               tutorialId="tutorial-settings-panel"
