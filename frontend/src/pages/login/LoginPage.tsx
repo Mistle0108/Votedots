@@ -24,7 +24,7 @@ export default function LoginPage() {
 
     try {
       await authApi.login({ username, password });
-      navigate("/play", { replace: true });
+      navigate("/lobby", { replace: true });
     } catch (err: unknown) {
       if (err && typeof err === "object" && "response" in err) {
         const axiosErr = err as { response: { data: { message: string } } };

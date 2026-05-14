@@ -160,7 +160,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
   const handleParticipate = async () => {
     if (authState === "authenticated") {
-      window.location.assign("/play");
+      window.location.assign("/lobby");
       return;
     }
 
@@ -171,7 +171,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
     try {
       await authApi.me();
-      window.location.assign("/play");
+      window.location.assign("/lobby");
     } catch {
       window.location.assign("/login");
     }

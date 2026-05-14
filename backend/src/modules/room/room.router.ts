@@ -6,6 +6,16 @@ const router = Router();
 
 router.get("/", authMiddleware, roomController.list);
 router.get("/current", authMiddleware, roomController.getCurrent);
+router.get(
+  "/current/participants/count",
+  authMiddleware,
+  roomController.getCurrentParticipantCount,
+);
+router.get(
+  "/current/participants",
+  authMiddleware,
+  roomController.getCurrentParticipantList,
+);
 router.get("/current/manage", authMiddleware, roomController.getCurrentManage);
 router.get("/:publicRoomNumber", authMiddleware, roomController.getDetail);
 router.post("/", authMiddleware, roomController.create);

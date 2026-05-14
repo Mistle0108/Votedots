@@ -10,6 +10,8 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { authApi } from "@/features/auth";
+import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
+import { clearStoredRoomSessionContext } from "@/features/room/model/room-session-context";
 import {
   CanvasStage,
   CanvasSurface,
@@ -35,6 +37,10 @@ import { PLAY_THEME_STYLE } from "./model/play-theme";
 const INTRO_GUIDE_SEEN_STORAGE_KEY = "votedots:intro-guide-seen";
 const ROUND_SELECTION_GUIDE_DURATION_MS = 2500;
 const SELECTION_PULSE_DURATION_MS = 1000;
+
+interface CanvasPageProps {
+  sessionSourceApi: GameplaySessionSourceApi;
+}
 
 interface SelectionGuideState {
   roundSelectionGuideVisible: boolean;
@@ -87,7 +93,7 @@ function buildIntroGuideSeenStorageKey(canvasId: number): string {
   return `${INTRO_GUIDE_SEEN_STORAGE_KEY}:${canvasId}`;
 }
 
-export default function CanvasPage() {
+export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const navigate = useNavigate();
   const { t } = useI18n();
 
@@ -137,6 +143,11 @@ export default function CanvasPage() {
     },
     [navigate],
   );
+
+  const handleContextMissing = useCallback(() => {
+    clearStoredRoomSessionContext();
+    navigate("/lobby", { replace: true });
+  }, [navigate]);
 
   const {
     paintCanvasRef,
@@ -207,7 +218,10 @@ export default function CanvasPage() {
     historyLoading,
     historyError,
   } = useCanvasPage({
+    sessionSourceApi,
     onSessionEnded: handleSessionEnded,
+    onContextMissing:
+      sessionSourceApi.key === "room" ? handleContextMissing : undefined,
     onUnauthorized: handleUnauthorized,
   });
 

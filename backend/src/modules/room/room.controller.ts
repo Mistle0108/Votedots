@@ -273,6 +273,48 @@ export const roomController = {
     }
   },
 
+  async getCurrentParticipantCount(req: Request, res: Response) {
+    try {
+      const sessionRoom = req.session.room;
+
+      if (!sessionRoom?.roomId) {
+        return res.status(404).json({ message: "ROOM_CONTEXT_NOT_FOUND" });
+      }
+
+      const room = await roomService.getCurrent(sessionRoom.roomId);
+      const count = await roomService.getParticipantCount(room);
+
+      return res.json({ count });
+    } catch (error) {
+      await applyRoomSessionContext(req, null);
+
+      return res.status(404).json({
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  },
+
+  async getCurrentParticipantList(req: Request, res: Response) {
+    try {
+      const sessionRoom = req.session.room;
+
+      if (!sessionRoom?.roomId) {
+        return res.status(404).json({ message: "ROOM_CONTEXT_NOT_FOUND" });
+      }
+
+      const room = await roomService.getCurrent(sessionRoom.roomId);
+      const participants = await roomService.getParticipantList(room);
+
+      return res.json({ participants });
+    } catch (error) {
+      await applyRoomSessionContext(req, null);
+
+      return res.status(404).json({
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  },
+
   async getCurrentManage(req: Request, res: Response) {
     try {
       const sessionRoom = req.session.room;

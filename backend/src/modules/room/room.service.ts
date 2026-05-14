@@ -255,6 +255,10 @@ export const roomService = {
     return participantSessionService.getParticipantCount(room.canvas.id);
   },
 
+  async getParticipantList(room: Room) {
+    return participantSessionService.getParticipantList(room.canvas.id);
+  },
+
   async getPublicDetail(publicRoomNumber: number): Promise<Room> {
     const room = await roomRepository.findOne({
       where: {

@@ -1,11 +1,13 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
-import CanvasPage from "@/pages/canvas/CanvasPage";
 import StaticInfoPage from "@/pages/info/StaticInfoPage";
 import LocaleRedirectPage from "@/pages/landing/LocaleRedirectPage";
 import LandingPage from "@/pages/landing/LandingPage";
 import PublicUpdatesPage from "@/pages/landing/PublicUpdatesPage";
+import LobbyPage from "@/pages/lobby/LobbyPage";
 import LoginPage from "@/pages/login/LoginPage";
+import PlazaPage from "@/pages/plaza/PlazaPage";
 import RegisterPage from "@/pages/register/RegisterPage";
+import RoomPage from "@/pages/room/RoomPage";
 
 export const router = createBrowserRouter([
   {
@@ -46,7 +48,19 @@ export const router = createBrowserRouter([
   },
   {
     path: "/play",
-    element: <CanvasPage />,
+    element: <Navigate to="/plaza" replace />,
+  },
+  {
+    path: "/plaza",
+    element: <PlazaPage />,
+  },
+  {
+    path: "/lobby",
+    element: <LobbyPage />,
+  },
+  {
+    path: "/room",
+    element: <RoomPage />,
   },
   {
     path: "/ko/terms",
