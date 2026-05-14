@@ -265,7 +265,10 @@ export function getGameConfigSnapshot(
   return resolveGameConfig(profileKey);
 }
 
-export function createCanvasGameConfig(profileKey?: string | null): {
+export function buildGameConfigSnapshot(
+  profileKey?: string | null,
+  update?: GameConfigUpdate,
+): {
   profileKey: string;
   snapshot: GameConfigSnapshot;
 } {
@@ -273,8 +276,15 @@ export function createCanvasGameConfig(profileKey?: string | null): {
 
   return {
     profileKey: resolvedProfileKey,
-    snapshot: getGameConfigSnapshot(resolvedProfileKey),
+    snapshot: mergeGameConfig(getGameConfigSnapshot(resolvedProfileKey), update),
   };
+}
+
+export function createCanvasGameConfig(profileKey?: string | null): {
+  profileKey: string;
+  snapshot: GameConfigSnapshot;
+} {
+  return buildGameConfigSnapshot(profileKey);
 }
 
 export function getCanvasGameConfigSnapshot(
