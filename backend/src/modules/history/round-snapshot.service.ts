@@ -103,7 +103,6 @@ export const roundSnapshotService = {
       },
     });
   },
-
   async getRoundSnapshot(
     canvasId: number,
     roundId: number,

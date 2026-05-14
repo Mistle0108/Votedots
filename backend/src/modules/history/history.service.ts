@@ -4,12 +4,19 @@ import { GameSummary } from "../../entities/game-summary.entity";
 import { RoundSnapshot } from "../../entities/round-snapshot.entity";
 import { RoundSummary } from "../../entities/round-summary.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
+import { summaryService } from "../summary/summary.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
 const roundSummaryRepository = AppDataSource.getRepository(RoundSummary);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const roundSnapshotRepository = AppDataSource.getRepository(RoundSnapshot);
+
+type RoundVoteExtreme = {
+  roundId: number;
+  roundNumber: number;
+  voteCount: number;
+} | null;
 
 function toRecord(value: unknown): Record<string, unknown> {
   if (value && typeof value === "object") {
@@ -357,6 +364,7 @@ function serializeGameSummary(
   rounds: VoteRound[],
   summary: GameSummary | null,
   snapshotUrl: string | null,
+  quietestRound: RoundVoteExtreme,
   downloadSnapshotUrl: string | null,
   highResolutionDownloadSnapshotUrl: string | null,
 ) {
@@ -397,6 +405,9 @@ function serializeGameSummary(
     hottestRoundId: summary?.hottestRoundId ?? null,
     hottestRoundNumber: summary?.hottestRoundNumber ?? null,
     hottestRoundVoteCount: summary?.hottestRoundVoteCount ?? 0,
+    quietestRoundId: quietestRound?.roundId ?? null,
+    quietestRoundNumber: quietestRound?.roundNumber ?? null,
+    quietestRoundVoteCount: quietestRound?.voteCount ?? 0,
     topVoters: summary?.topVotersJson ?? null,
     participants: summary?.participantsJson ?? null,
     snapshotUrl,
@@ -423,7 +434,8 @@ export const historyService = {
       return null;
     }
 
-    const [rounds, roundSummaries, snapshots, gameSummary] = await Promise.all([
+    const [rounds, roundSummaries, snapshots, gameSummary, quietestRound] =
+      await Promise.all([
       voteRoundRepository.find({
         where: {
           canvas: { id: canvasId },
@@ -453,17 +465,8 @@ export const historyService = {
         where: { canvas: { id: canvasId } },
         relations: ["canvas"],
       }),
+      summaryService.getQuietestRound(canvasId),
     ]);
-
-    const snapshotMap = new Map<string, RoundSnapshot>();
-
-    for (const snapshot of snapshots) {
-      const key = getRoundSnapshotKey(snapshot);
-
-      if (key) {
-        snapshotMap.set(key, snapshot);
-      }
-    }
 
     const roundMap = new Map<string, VoteRound>();
 
@@ -491,28 +494,24 @@ export const historyService = {
     }
 
     const historyRounds = snapshots.map((snapshot) => {
-        const round = getRoundForSnapshot(snapshot, roundMap);
-        const roundSummary = getRoundSummaryForSnapshot(
-          snapshot,
-          round,
-          roundSummaryMap,
-        );
-        const snapshotUrl = getRoundSnapshotUrl(canvasId, snapshot, roundMap);
+      const round = getRoundForSnapshot(snapshot, roundMap);
+      const roundSummary = getRoundSummaryForSnapshot(
+        snapshot,
+        round,
+        roundSummaryMap,
+      );
+      const snapshotUrl = getRoundSnapshotUrl(canvasId, snapshot, roundMap);
 
-        if (roundSummary) {
-          return serializeRoundSummary(roundSummary, round, snapshot, snapshotUrl);
-        }
+      if (roundSummary) {
+        return serializeRoundSummary(roundSummary, round, snapshot, snapshotUrl);
+      }
 
-        if (round) {
-          return serializeRoundSummaryFromRound(round, snapshot, snapshotUrl);
-        }
+      if (round) {
+        return serializeRoundSummaryFromRound(round, snapshot, snapshotUrl);
+      }
 
-        if (!round) {
-          return serializeRoundSummaryFromSnapshot(snapshot, snapshotUrl);
-        }
-
-        return serializeRoundSummaryFromSnapshot(snapshot, snapshotUrl);
-      });
+      return serializeRoundSummaryFromSnapshot(snapshot, snapshotUrl);
+    });
     const latestSnapshotUrl = getRoundSnapshotUrl(
       canvasId,
       snapshots[0] ?? null,
@@ -533,11 +532,12 @@ export const historyService = {
     return {
       rounds: historyRounds,
       gameSummary: getDateStringField(canvas, "endedAt")
-        ? serializeGameSummary(
+          ? serializeGameSummary(
             canvas,
             rounds,
             gameSummary,
             latestSnapshotUrl,
+            quietestRound,
             latestDownloadSnapshotUrl,
             latestHighResolutionDownloadSnapshotUrl,
           )

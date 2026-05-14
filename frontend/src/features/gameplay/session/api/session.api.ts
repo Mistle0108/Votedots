@@ -1,6 +1,6 @@
-import api from "@/shared/api/client";
 import type { Canvas } from "@/features/gameplay/canvas";
 import { voteApi } from "@/features/gameplay/vote/api/vote.api";
+import api from "@/shared/api/client";
 import type { GameConfig } from "@/shared/config/game-config";
 import type { GamePhase } from "../model/game-phase.types";
 
@@ -116,6 +116,9 @@ export interface GameSummaryData {
   hottestRoundId: number | null;
   hottestRoundNumber: number | null;
   hottestRoundVoteCount: number;
+  quietestRoundId: number | null;
+  quietestRoundNumber: number | null;
+  quietestRoundVoteCount: number;
   topVoters: GameSummaryTopVoter[] | null;
   participants: GameSummaryParticipant[] | null;
   snapshotUrl: string | null;

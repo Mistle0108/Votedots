@@ -13,6 +13,12 @@ interface CreateCanvasRequestBody {
   profileKey?: string;
 }
 
+type RoundVoteExtreme = {
+  roundId: number;
+  roundNumber: number;
+  voteCount: number;
+} | null;
+
 function serializeCanvas(canvas: Canvas) {
   return {
     id: canvas.id,
@@ -67,6 +73,7 @@ function buildRoundHighResolutionDownloadSnapshotUrl(
 function serializeGameSummary(
   summary: GameSummary,
   snapshotUrl: string | null,
+  quietestRound: RoundVoteExtreme,
   downloadSnapshotUrl: string | null,
   highResolutionDownloadSnapshotUrl: string | null,
 ) {
@@ -98,6 +105,9 @@ function serializeGameSummary(
     hottestRoundId: summary.hottestRoundId,
     hottestRoundNumber: summary.hottestRoundNumber,
     hottestRoundVoteCount: summary.hottestRoundVoteCount,
+    quietestRoundId: quietestRound?.roundId ?? null,
+    quietestRoundNumber: quietestRound?.roundNumber ?? null,
+    quietestRoundVoteCount: quietestRound?.voteCount ?? 0,
     topVoters: summary.topVotersJson,
     participants: summary.participantsJson,
     snapshotUrl,
@@ -190,9 +200,10 @@ export const canvasController = {
         return res.status(400).json({ message: "존재하지 않는 캔버스입니다." });
       }
 
-      const [summary, snapshot] = await Promise.all([
+      const [summary, snapshot, quietestRound] = await Promise.all([
         summaryService.getGameSummary(canvasId),
         roundSnapshotService.findLatestRoundSnapshot(canvasId),
+        summaryService.getQuietestRound(canvasId),
       ]);
 
       return res.json({
@@ -201,6 +212,7 @@ export const canvasController = {
           snapshot?.round?.id
             ? buildRoundSnapshotUrl(canvasId, snapshot.round.id)
             : null,
+          quietestRound,
           snapshot?.round?.id
             ? buildRoundDownloadSnapshotUrl(canvasId, snapshot.round.id)
             : null,

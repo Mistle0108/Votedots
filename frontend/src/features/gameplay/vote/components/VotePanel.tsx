@@ -287,6 +287,7 @@ export default function VotePanel({
 
       <div data-tutorial-id="tutorial-minimap" className="shrink-0">
         <MiniMap
+          cells={cells}
           snapshotUrl={latestRoundSnapshot}
           playBackgroundImageUrl={playBackgroundImageUrl}
           resultTemplateImageUrl={resultTemplateImageUrl}

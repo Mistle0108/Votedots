@@ -8,6 +8,7 @@ const SELECTED_CELL_STROKE = "#f97316";
 const MINIMAP_STROKE_WIDTH = 2;
 
 interface Props {
+  cells: Cell[];
   snapshotUrl: string | null;
   playBackgroundImageUrl: string | null;
   resultTemplateImageUrl: string | null;
@@ -86,6 +87,7 @@ function getClampedMarkerRect(
 }
 
 export default function MiniMap({
+  cells,
   snapshotUrl,
   playBackgroundImageUrl,
   resultTemplateImageUrl,
@@ -123,6 +125,22 @@ export default function MiniMap({
 
     const cellWidth = canvas.width / Math.max(gridX, 1);
     const cellHeight = canvas.height / Math.max(gridY, 1);
+
+    if (!snapshotUrl && !playBackgroundImageUrl && !resultTemplateImageUrl) {
+      for (const cell of cells) {
+        if (!cell.color) {
+          continue;
+        }
+
+        ctx.fillStyle = cell.color;
+        ctx.fillRect(
+          cell.x * cellWidth,
+          cell.y * cellHeight,
+          Math.max(cellWidth, 1),
+          Math.max(cellHeight, 1),
+        );
+      }
+    }
 
     if (viewport) {
       const viewportRect = getClampedViewportRect(
@@ -213,10 +231,13 @@ export default function MiniMap({
       ctx.restore();
     }
   }, [
+    cells,
     gridX,
     gridY,
     minimapDimensions.width,
     minimapDimensions.height,
+    playBackgroundImageUrl,
+    resultTemplateImageUrl,
     selectedCell,
     snapshotUrl,
     viewport,
