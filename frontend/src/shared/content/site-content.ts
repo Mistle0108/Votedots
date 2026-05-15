@@ -85,7 +85,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       home: "홈",
     },
     hero: {
-      title: "직접 그리고\n함께 투표하는 픽셀 캔버스",
+      title: "직접 그리고 함께 투표하는\n픽셀 캔버스",
       description:
         "색을 고르고, 투표를 하고, 함께 완성하세요.",
       cta: "참여하기",

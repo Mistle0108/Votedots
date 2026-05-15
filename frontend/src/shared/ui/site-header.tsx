@@ -44,7 +44,7 @@ export function SiteHeader({
     <header className="px-4 pt-4 sm:px-6 lg:px-10 lg:pt-6">
       <div
         className={[
-          "mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 rounded-[28px] border px-4 py-3 shadow-[0_18px_60px_rgba(39,46,55,0.08)] backdrop-blur-xl sm:px-5",
+          "mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 rounded-[28px] border px-4 py-3 shadow-[0_18px_60px_rgba(39,46,55,0.08)] backdrop-blur-xl sm:px-5",
           translucent
             ? "border-[#ead7c8] bg-[#f6ede5]/88"
             : "border-[#ead7c8] bg-[#f6ede5]",
