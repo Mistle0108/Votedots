@@ -6,6 +6,7 @@ import {
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
+import { RoomType } from "../../entities/room.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { GamePhase } from "../game/game-phase.types";
 import { startGameTimer } from "../game/game.timer";
@@ -37,6 +38,33 @@ interface GetChunkCellsParams {
   startChunkY: number;
   endChunkY: number;
   chunkSize?: number;
+}
+
+async function findCurrentPlazaCanvas(): Promise<Canvas | null> {
+  const currentCanvas = await canvasRepository
+    .createQueryBuilder("canvas")
+    .leftJoin("room", "room", "room.canvas_id = canvas.id")
+    .where("canvas.status = :status", { status: CanvasStatus.PLAYING })
+    .andWhere("(room.id IS NULL OR room.type = :plazaType)", {
+      plazaType: RoomType.PLAZA,
+    })
+    .orderBy("canvas.startedAt", "DESC")
+    .getOne();
+
+  if (currentCanvas) {
+    return currentCanvas;
+  }
+
+  return canvasRepository
+    .createQueryBuilder("canvas")
+    .leftJoin("room", "room", "room.canvas_id = canvas.id")
+    .where("canvas.status = :status", { status: CanvasStatus.FINISHED })
+    .andWhere("canvas.phase = :phase", { phase: GamePhase.GAME_END })
+    .andWhere("(room.id IS NULL OR room.type = :plazaType)", {
+      plazaType: RoomType.PLAZA,
+    })
+    .orderBy("canvas.phaseStartedAt", "DESC")
+    .getOne();
 }
 
 function logPhaseChange(params: {
@@ -137,6 +165,10 @@ export const canvasService = {
     });
   },
 
+  async getCurrentPlaza(): Promise<Canvas | null> {
+    return findCurrentPlazaCanvas();
+  },
+
   async getCurrentParticipantCount(): Promise<{
     canvasId: number;
     count: number;
@@ -157,6 +189,26 @@ export const canvasService = {
     };
   },
 
+  async getCurrentPlazaParticipantCount(): Promise<{
+    canvasId: number;
+    count: number;
+  }> {
+    const canvas = await this.getCurrentPlaza();
+
+    if (!canvas) {
+      throw new Error("No plaza canvas is currently in progress.");
+    }
+
+    const count = await participantSessionService.getParticipantCount(
+      canvas.id,
+    );
+
+    return {
+      canvasId: canvas.id,
+      count,
+    };
+  },
+
   async getCurrentParticipantList(): Promise<{
     canvasId: number;
     participants: ParticipantSummary[];
@@ -165,6 +217,26 @@ export const canvasService = {
 
     if (!canvas) {
       throw new Error("No canvas is currently in progress.");
+    }
+
+    const participants = await participantSessionService.getParticipantList(
+      canvas.id,
+    );
+
+    return {
+      canvasId: canvas.id,
+      participants,
+    };
+  },
+
+  async getCurrentPlazaParticipantList(): Promise<{
+    canvasId: number;
+    participants: ParticipantSummary[];
+  }> {
+    const canvas = await this.getCurrentPlaza();
+
+    if (!canvas) {
+      throw new Error("No plaza canvas is currently in progress.");
     }
 
     const participants = await participantSessionService.getParticipantList(

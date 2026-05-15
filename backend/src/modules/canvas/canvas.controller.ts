@@ -131,7 +131,7 @@ export const canvasController = {
 
   async getCurrent(req: Request, res: Response) {
     try {
-      const canvas = await canvasService.getCurrent();
+      const canvas = await canvasService.getCurrentPlaza();
       if (!canvas) {
         return res
           .status(404)
@@ -150,7 +150,7 @@ export const canvasController = {
 
   async getCurrentParticipantCount(_req: Request, res: Response) {
     try {
-      const result = await canvasService.getCurrentParticipantCount();
+      const result = await canvasService.getCurrentPlazaParticipantCount();
       return res.json({ count: result.count });
     } catch (err) {
       if (String(err).includes("진행 중인 캔버스가 없습니다.")) {
@@ -163,7 +163,7 @@ export const canvasController = {
 
   async getCurrentParticipantList(_req: Request, res: Response) {
     try {
-      const result = await canvasService.getCurrentParticipantList();
+      const result = await canvasService.getCurrentPlazaParticipantList();
       return res.json({
         participants: result.participants.map((participant) => ({
           sessionId: participant.sessionId,
