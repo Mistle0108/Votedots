@@ -534,22 +534,20 @@ export default function LobbyPage() {
           <button
             type="button"
             onClick={() => setLocale("ko")}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              locale === "ko"
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${locale === "ko"
                 ? "bg-[#272E37] text-white"
                 : "text-[#5f6368]"
-            }`}
+              }`}
           >
             KO
           </button>
           <button
             type="button"
             onClick={() => setLocale("en")}
-            className={`rounded-full px-3 py-1 text-xs font-semibold ${
-              locale === "en"
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${locale === "en"
                 ? "bg-[#272E37] text-white"
                 : "text-[#5f6368]"
-            }`}
+              }`}
           >
             EN
           </button>
@@ -559,24 +557,27 @@ export default function LobbyPage() {
       <div className="mt-4 grid w-full items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <section
           className="order-2 flex min-h-0 flex-col rounded-[32px] border border-[#e3d9cf] bg-white p-6 xl:order-1 lg:p-8"
-          style={leftPanelHeight ? { height: `${leftPanelHeight}px` } : undefined}
+          style={
+            activeTab === "rooms" && leftPanelHeight
+              ? { height: `${leftPanelHeight}px` }
+              : undefined
+          }
         >
           <div className="flex w-full min-w-0 items-center rounded-[24px] border border-[#d9cdc1] bg-[#fbf7f2] p-2">
             {(
               [
-                ["completed", t("lobby.tab.completed")],
                 ["rooms", t("lobby.tab.rooms")],
+                ["completed", t("lobby.tab.completed")],
               ] as const
             ).map(([value, label]) => (
               <button
                 key={value}
                 type="button"
                 onClick={() => setActiveTab(value)}
-                className={`rounded-[18px] px-4 py-2 text-sm font-semibold transition ${
-                  activeTab === value
+                className={`rounded-[18px] px-4 py-2 text-sm font-semibold transition ${activeTab === value
                     ? "bg-white text-[#272E37]"
                     : "text-[#5f6368]"
-                }`}
+                  }`}
               >
                 {label}
               </button>
@@ -644,20 +645,20 @@ export default function LobbyPage() {
               )}
 
               <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleCreateRoom}
-                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-              >
-                {t("lobby.actions.createRoom")}
-              </button>
-              <button
-                type="button"
-                onClick={handleEnterRoom}
-                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-              >
-                {t("lobby.actions.enterRoom")}
-              </button>
+                <button
+                  type="button"
+                  onClick={handleCreateRoom}
+                  className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
+                >
+                  {t("lobby.actions.createRoom")}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleEnterRoom}
+                  className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
+                >
+                  {t("lobby.actions.enterRoom")}
+                </button>
               </div>
             </div>
           </section>

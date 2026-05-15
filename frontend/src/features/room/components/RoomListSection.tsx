@@ -69,14 +69,14 @@ export default function RoomListSection({
                   key={room.roomId}
                   type="button"
                   onClick={() => onSelectRoom(room.publicRoomNumber)}
-                  className={`h-[67px] rounded-[20px] border px-4 py-3 text-left transition ${
+                  className={`h-[67px] w-full rounded-[20px] border px-4 py-3 text-left transition ${
                     selected
                       ? "border-[#272E37] bg-[#272E37] text-white"
                       : "border-[#e3d9cf] bg-[#fbf7f2] text-[#272E37]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <div className="flex flex-1 items-center gap-2">
                       <span className="text-sm font-semibold">
                         #{room.publicRoomNumber}
                       </span>
@@ -86,7 +86,7 @@ export default function RoomListSection({
                           className={selected ? "text-white" : "text-[#7b6b62]"}
                         />
                       ) : null}
-                      <span className="h-5 min-w-0 flex-1 truncate text-sm font-medium leading-5">
+                      <span className="h-5 flex-1 text-sm font-medium leading-5">
                         {room.title}
                       </span>
                     </div>

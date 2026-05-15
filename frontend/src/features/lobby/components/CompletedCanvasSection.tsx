@@ -1,9 +1,5 @@
 import FeaturedPreviewCard from "@/features/landing/components/FeaturedPreviewCard";
 import type { LandingFeaturedPreviewItem } from "@/features/landing/model/landing.types";
-import {
-  detectPublicSiteLocale,
-  type PublicSiteLocale,
-} from "@/shared/hooks/use-public-site-locale";
 import { useI18n } from "@/shared/i18n";
 
 interface CompletedCanvasSectionProps {
@@ -15,8 +11,6 @@ interface CompletedCanvasSectionProps {
   onChangeScope: (scope: "plaza" | "public") => void;
   onChangePreset: (preset: "today" | "7d" | "30d") => void;
 }
-
-const locale: PublicSiteLocale = detectPublicSiteLocale();
 
 const COMPLETED_PREVIEW_SLOTS = [
   { gridX: 32, gridY: 32, size: "32x32" },
@@ -34,13 +28,13 @@ export default function CompletedCanvasSection({
   onChangeScope,
   onChangePreset,
 }: CompletedCanvasSectionProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const previewBySize = new Map(
     items.map((item) => [item.preview.size, item] as const),
   );
 
   return (
-    <div className="min-h-[520px] rounded-[28px] bg-[#fbf7f2] p-6">
+    <div className="flex h-full min-h-0 flex-col rounded-[28px] bg-[#fbf7f2] p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h1 className="text-[28px] font-semibold tracking-tight">
@@ -104,33 +98,35 @@ export default function CompletedCanvasSection({
         </div>
       </div>
 
-      {loading ? (
-        <div className="mt-8 text-sm text-[#5f6368]">{t("common.loading")}</div>
-      ) : error ? (
-        <div className="mt-8 text-sm text-[#d14d28]">{error}</div>
-      ) : items.length === 0 ? (
-        <div className="mt-8 rounded-[24px] border border-dashed border-[#d9cdc1] bg-white px-6 py-10 text-sm text-[#5f6368]">
-          {t("lobby.completed.empty")}
-        </div>
-      ) : (
-        <div className="mt-8 grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {COMPLETED_PREVIEW_SLOTS.map((slot) => (
-            <FeaturedPreviewCard
-              key={slot.size}
-              locale={locale}
-              gridX={slot.gridX}
-              gridY={slot.gridY}
-              item={previewBySize.get(slot.size) ?? null}
-              labels={{
-                participants: t("lobby.completed.participants"),
-                votes: t("lobby.completed.votes"),
-                topVoter: t("lobby.completed.topVoter"),
-                participantList: t("lobby.completed.participantList"),
-              }}
-            />
-          ))}
-        </div>
-      )}
+      <div className="mt-8 min-h-0 flex-1 overflow-y-auto pr-1">
+        {loading ? (
+          <div className="text-sm text-[#5f6368]">{t("common.loading")}</div>
+        ) : error ? (
+          <div className="text-sm text-[#d14d28]">{error}</div>
+        ) : items.length === 0 ? (
+          <div className="rounded-[24px] border border-dashed border-[#d9cdc1] bg-white px-6 py-10 text-sm text-[#5f6368]">
+            {t("lobby.completed.empty")}
+          </div>
+        ) : (
+          <div className="flex flex-wrap gap-6">
+            {COMPLETED_PREVIEW_SLOTS.map((slot) => (
+              <FeaturedPreviewCard
+                key={slot.size}
+                locale={locale}
+                gridX={slot.gridX}
+                gridY={slot.gridY}
+                item={previewBySize.get(slot.size) ?? null}
+                labels={{
+                  participants: t("lobby.completed.participants"),
+                  votes: t("lobby.completed.votes"),
+                  topVoter: t("lobby.completed.topVoter"),
+                  participantList: t("lobby.completed.participantList"),
+                }}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
