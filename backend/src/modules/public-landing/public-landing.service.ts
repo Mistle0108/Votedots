@@ -197,7 +197,7 @@ async function getFeaturedSummary(
 
 export const publicLandingService = {
   async getLandingPayload(): Promise<PublicLandingPayload> {
-    const currentCanvas = await canvasService.getCurrent();
+    const currentCanvas = await canvasService.getCurrentPlaza();
 
     const [currentGame, featuredGames] = await Promise.all([
       this.getCurrentGame(currentCanvas),

@@ -100,7 +100,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.error.roomNotFound": "존재하지 않는 방 번호입니다.",
     "lobby.error.activeLimitReached": "동시에 생성할 수 있는 방은 최대 2개입니다.",
     "lobby.error.accessCodeRequired": "입장 코드를 입력해 주세요.",
-    "lobby.error.privateCodePrompt": "프라이빗방은 입장 코드를 입력해야 합니다.",
+    "lobby.error.privateCodePrompt": "비공개방은 입장 코드를 입력해야 합니다.",
     "lobby.error.requestFailed": "요청을 처리하지 못했습니다.",
     "lobby.login.usernamePlaceholder": "아이디",
     "lobby.login.passwordPlaceholder": "비밀번호",
@@ -128,7 +128,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.roomList.detailLoading": "방 정보를 불러오는 중...",
     "lobby.roomList.owner": "내 방",
     "lobby.roomList.publicType": "공개방",
-    "lobby.roomList.privateType": "프라이빗방",
+    "lobby.roomList.privateType": "비공개방",
     "lobby.roomList.currentParticipants": "현재 {{count}}명",
     "lobby.roomList.status.active": "진행 중",
     "lobby.roomList.status.gameEndWait": "종료 대기",
@@ -140,7 +140,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.roomList.manage.votesPerRound": "라운드당 표수",
     "lobby.roomList.manage.gameEndWait": "게임 종료 대기",
     "lobby.roomList.manage.accessCode": "입장 코드",
-    "lobby.roomList.privateTitle": "프라이빗 방",
+    "lobby.roomList.privateTitle": "비공개방",
     "lobby.roomList.privateDescription": "입장 코드를 입력해주세요.",
     "lobby.roomList.privateAccessCodePlaceholder": "입장 코드 입력",
     "lobby.roomList.enter": "입장",
@@ -351,7 +351,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.roomCreate.close": "닫기",
     "lobby.roomCreate.create": "생성",
     "lobby.roomCreate.creating": "생성 중...",
-    "lobby.roomCreate.generatedCodeTitle": "프라이빗 방 입장 코드",
+    "lobby.roomCreate.generatedCodeTitle": "비공개방 입장 코드",
     "lobby.roomCreate.copyCode": "복사",
     "lobby.roomCreate.enterNow": "바로 입장",
     "lobby.roomCreate.noProfiles":
@@ -366,7 +366,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.roomCreate.titleHint": "방 제목은 최대 30자까지 입력할 수 있습니다.",
     "lobby.roomCreate.introHint": "인트로 시간은 최대 5분까지, 5초 단위로 설정할 수 있습니다.",
     "lobby.roomCreate.type.public": "공개방",
-    "lobby.roomCreate.type.private": "프라이빗방",
+    "lobby.roomCreate.type.private": "비공개방",
     "lobby.roomCreate.votesPerRoundHint": "투표 수는 최대 120표까지 설정할 수 있습니다.",
     "lobby.roomCreate.defaultPhaseInfoTitle": "기본 라운드 진행 시간",
     "lobby.roomCreate.phase.roundDuration": "라운드 진행 시간",
@@ -761,5 +761,4 @@ export const resources: Record<Locale, Record<string, string>> = {
     "loginBoard.patchType.breaking": "Breaking",
   },
 };
-
 
