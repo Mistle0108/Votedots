@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { authApi } from "@/features/auth";
@@ -20,6 +20,9 @@ import { SiteHeader } from "@/shared/ui/site-header";
 
 type AuthState = "authenticated" | "guest" | "unknown";
 
+const LARGE_SNAPSHOT_SIZE = 512;
+const SMALL_SNAPSHOT_SIZE = 256;
+
 interface LandingPageProps {
   locale: PublicSiteLocale;
 }
@@ -34,16 +37,11 @@ function SnapshotImage({
   size: 256 | 512;
 }) {
   return (
-    <div className="mx-auto flex w-fit justify-center">
+    <div className="mx-auto flex w-full justify-center">
       <div
-        className="flex-none overflow-hidden rounded-[24px] bg-white shadow-[0_24px_60px_rgba(39,46,55,0.10)]"
+        className="aspect-square w-full overflow-hidden rounded-[24px] bg-white shadow-[0_24px_60px_rgba(39,46,55,0.10)]"
         style={{
-          width: `${size}px`,
-          height: `${size}px`,
-          minWidth: `${size}px`,
-          minHeight: `${size}px`,
           maxWidth: `${size}px`,
-          maxHeight: `${size}px`,
         }}
       >
         {imageUrl ? (
@@ -86,6 +84,9 @@ export default function LandingPage({ locale }: LandingPageProps) {
     LandingFeaturedPreviewItem[]
   >([]);
   const [landingError, setLandingError] = useState("");
+  const currentGamePanelRef = useRef<HTMLDivElement | null>(null);
+  const [currentGameSnapshotSize, setCurrentGameSnapshotSize] =
+    useState<256 | 512>(LARGE_SNAPSHOT_SIZE);
 
   usePageRootClass("page-shell-root");
   usePublicSiteLocale(locale);
@@ -174,6 +175,42 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
   const currentGame = landingData?.currentGame ?? null;
 
+  useEffect(() => {
+    const element = currentGamePanelRef.current;
+
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const updateSnapshotSize = () => {
+      const computedStyle = window.getComputedStyle(element);
+      const horizontalPadding =
+        Number.parseFloat(computedStyle.paddingLeft) +
+        Number.parseFloat(computedStyle.paddingRight);
+      const availableWidth = element.clientWidth - horizontalPadding;
+      const nextSize =
+        availableWidth >= LARGE_SNAPSHOT_SIZE
+          ? LARGE_SNAPSHOT_SIZE
+          : SMALL_SNAPSHOT_SIZE;
+
+      setCurrentGameSnapshotSize((previousSize) =>
+        previousSize === nextSize ? previousSize : nextSize,
+      );
+    };
+
+    updateSnapshotSize();
+
+    const observer = new ResizeObserver(() => {
+      updateSnapshotSize();
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [currentGame]);
+
   return (
     <div className="min-h-screen bg-[#fefbf7] text-[#272E37]">
       <SiteHeader
@@ -193,25 +230,25 @@ export default function LandingPage({ locale }: LandingPageProps) {
       />
 
       <main className="px-4 pb-20 pt-6 sm:px-6 lg:px-10">
-        <section className="mx-auto max-w-6xl rounded-[42px] bg-[#ff8870] px-6 py-7 text-white shadow-[0_40px_120px_rgba(39,46,55,0.24)] sm:px-8 sm:py-8">
+        <section className="mx-auto max-w-6xl rounded-[42px] bg-[#ff8870] px-5 py-6 text-white shadow-[0_40px_120px_rgba(39,46,55,0.24)] sm:px-8 sm:py-8">
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_584px] xl:items-stretch">
-            <div className="flex flex-col items-center justify-center text-left xl:items-start">
-              <div className="flex flex-col gap-[30px]">
+            <div className="min-w-0 flex flex-col justify-center text-left">
+              <div className="flex w-full max-w-3xl min-w-0 flex-col gap-5 sm:gap-6 lg:gap-[30px]">
                 <div
-                  className="max-w-3xl whitespace-pre-line text-[42px] font-semibold leading-tight sm:text-[50px]"
+                  className="w-full whitespace-pre-line break-keep text-[32px] font-semibold leading-tight sm:text-[36px] lg:text-[42px] xl:text-[50px]"
                   style={{ color: "#000000" }}
                 >
                   {siteContent.hero.title}
                 </div>
                 <p
-                  className="max-w-2xl whitespace-pre-line text-base leading-7 sm:text-lg"
+                  className="max-w-2xl whitespace-pre-line break-keep text-sm leading-6 sm:text-base sm:leading-7 lg:text-lg"
                   style={{ color: "rgba(0, 0, 0, 0.82)" }}
                 >
                   {siteContent.hero.description}
                 </p>
               </div>
 
-              <div className="mt-[48px] flex w-full justify-end">
+              <div className="mt-8 flex w-full max-w-3xl justify-start sm:mt-10 xl:mt-[48px] xl:justify-end">
                 <Button
                   type="button"
                   size="lg"
@@ -223,7 +260,10 @@ export default function LandingPage({ locale }: LandingPageProps) {
               </div>
             </div>
 
-            <div className="rounded-[32px] bg-[#fff1ea]/14 p-4 sm:p-5 xl:w-[584px] xl:justify-self-end">
+            <div
+              ref={currentGamePanelRef}
+              className="w-full max-w-[584px] rounded-[32px] bg-[#fff1ea]/14 p-3 sm:p-5 xl:justify-self-end"
+            >
               {landingError ? (
                 <div className="flex min-h-[420px] items-center justify-center rounded-[28px] bg-[#f6ede5] px-6 text-center text-sm text-[#5f6368]">
                   {landingError}
@@ -243,10 +283,13 @@ export default function LandingPage({ locale }: LandingPageProps) {
                         ? siteContent.currentGame.snapshotLabel
                         : siteContent.currentGame.fallbackPreviewAlt
                     }
-                    size={512}
+                    size={currentGameSnapshotSize}
                   />
 
-                  <div className="mx-auto w-full max-w-[512px] rounded-2xl bg-[#f6ede5] px-4 py-2 shadow-[0_10px_24px_rgba(39,46,55,0.05)]">
+                  <div
+                    className="mx-auto w-full max-w-full rounded-2xl bg-[#f6ede5] px-4 py-2 shadow-[0_10px_24px_rgba(39,46,55,0.05)]"
+                    style={{ maxWidth: `${currentGameSnapshotSize}px` }}
+                  >
                     <InfoStatRow
                       label={siteContent.currentGame.stats.grid}
                       value={`${currentGame.gridX} x ${currentGame.gridY}`}
