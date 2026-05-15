@@ -13,6 +13,7 @@ import canvasRouter from "./modules/canvas/canvas.router";
 import loginBoardRouter from "./modules/login-board/login-board.router";
 import publicLandingRouter from "./modules/public-landing/public-landing.router";
 import roundRouter from "./modules/round/round.router";
+import roomRouter from "./modules/room/room.router";
 import voteRouter from "./modules/vote/vote.router";
 
 function createNoopIo(): Server {
@@ -88,6 +89,7 @@ export function createApp() {
   app.use("/auth", authRouter);
   app.use("/analytics", analyticsRouter);
   app.use("/canvas", canvasRouter);
+  app.use("/rooms", roomRouter);
   app.use("/public/login-board", loginBoardRouter);
   app.use("/public/landing", publicLandingRouter);
   app.use("/canvas/:canvasId/rounds", roundRouter);

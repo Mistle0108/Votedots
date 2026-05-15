@@ -11,6 +11,7 @@ import {
   GAME_PHASE,
   type GamePhase,
 } from "@/features/gameplay/session/model/game-phase.types";
+import type { RoomCurrentManageResponse } from "@/features/room/api/room.api";
 import { getGameConfig } from "@/shared/config/game-config";
 import { useI18n } from "@/shared/i18n";
 import { BrandLogo } from "@/shared/ui/brand-logo";
@@ -54,6 +55,11 @@ interface Props {
     y: number,
     behavior?: ScrollBehavior,
   ) => void;
+  currentRoomManage?: RoomCurrentManageResponse["room"] | null;
+  roomEndGameLoading?: boolean;
+  onEndGame?: () => void;
+  roomTerminateLoading?: boolean;
+  onTerminateRoom?: () => void;
 }
 
 export default function VotePanel({
@@ -85,6 +91,11 @@ export default function VotePanel({
   settingsDisabled = false,
   onOpenTutorial,
   onNavigateToCoordinate,
+  currentRoomManage = null,
+  roomEndGameLoading = false,
+  onEndGame,
+  roomTerminateLoading = false,
+  onTerminateRoom,
 }: Props) {
   const navigate = useNavigate();
   const { locale, setLocale, t } = useI18n();
@@ -173,7 +184,7 @@ export default function VotePanel({
   }, [isSettingsOpen]);
 
   const handleNavigateHome = () => {
-    window.location.assign(`/${locale}`);
+    navigate("/lobby");
   };
 
   return (
@@ -248,6 +259,11 @@ export default function VotePanel({
               onLocaleChange={setLocale}
               backgroundMode={backgroundMode}
               onBackgroundModeChange={onBackgroundModeChange}
+              roomManage={currentRoomManage}
+              roomEndGameLoading={roomEndGameLoading}
+              onEndGame={onEndGame}
+              roomTerminateLoading={roomTerminateLoading}
+              onTerminateRoom={onTerminateRoom}
               tutorialId="tutorial-settings-panel"
             />
           ) : null}

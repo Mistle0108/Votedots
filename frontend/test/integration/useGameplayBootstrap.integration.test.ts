@@ -1,6 +1,7 @@
-import { renderHook } from "@testing-library/react";
+﻿import { renderHook } from "@testing-library/react";
 import { http } from "msw/core/http";
 import { useGameplayBootstrap } from "@/features/gameplay/session/hooks/useGameplayBootstrap";
+import { plazaSessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
 import { server } from "../setup/msw/server";
 
 describe("useGameplayBootstrap integration", () => {
@@ -92,7 +93,9 @@ describe("useGameplayBootstrap integration", () => {
       ),
     );
 
-    const { result } = renderHook(() => useGameplayBootstrap());
+    const { result } = renderHook(() =>
+      useGameplayBootstrap({ sessionSourceApi: plazaSessionSourceApi }),
+    );
     const bootstrapResult = await result.current.bootstrap();
 
     expect(bootstrapResult.canvasId).toBe(10);
@@ -110,3 +113,4 @@ describe("useGameplayBootstrap integration", () => {
     expect(bootstrapResult.gameConfig.rules.totalRounds).toBe(5);
   });
 });
+

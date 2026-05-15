@@ -15,6 +15,7 @@ import { RoundSummary } from "../entities/round-summary.entity";
 import { RoundSnapshot } from "../entities/round-snapshot.entity";
 import { VisitEvent } from "../entities/visit-event.entity";
 import { VisitEventDailyAggregate } from "../entities/visit-event-daily-aggregate.entity";
+import { Room } from "../entities/room.entity";
 
 loadEnvironment();
 
@@ -44,6 +45,7 @@ export const AppDataSource = new DataSource({
     GamePreview,
     RoundSummary,
     RoundSnapshot,
+    Room,
     VisitEvent,
     VisitEventDailyAggregate,
   ],

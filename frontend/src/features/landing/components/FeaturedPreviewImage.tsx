@@ -22,25 +22,26 @@ export default function FeaturedPreviewImage({
   const [failedWebpUrl, setFailedWebpUrl] = useState<string | null>(null);
   const imageUrl =
     !webpUrl || failedWebpUrl === webpUrl ? fallbackImageUrl : webpUrl;
+  const isFallbackImage = imageUrl === fallbackImageUrl;
 
   return (
     <div className="mx-auto flex w-fit justify-center">
       <div
         className="flex-none overflow-hidden rounded-[24px] bg-white shadow-[0_24px_60px_rgba(39,46,55,0.10)]"
         style={{
-          width: "205px",
-          height: "205px",
-          minWidth: "205px",
-          minHeight: "205px",
-          maxWidth: "205px",
-          maxHeight: "205px",
+          width: "224px",
+          height: "224px",
+          minWidth: "224px",
+          minHeight: "224px",
+          maxWidth: "224px",
+          maxHeight: "224px",
         }}
       >
         <img
           src={imageUrl}
           alt={alt}
           className="block h-full w-full"
-          style={{ imageRendering: "pixelated" }}
+          style={{ imageRendering: isFallbackImage ? "auto" : "pixelated" }}
           draggable={false}
           onError={() => {
             if (webpUrl && imageUrl !== fallbackImageUrl) {

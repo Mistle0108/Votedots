@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authApi, type Voter } from "@/features/auth";
+import { authApi, logoutToLobby, type Voter } from "@/features/auth";
 import { useI18n } from "@/shared/i18n";
 import { Button } from "@/shared/ui/button";
 import type { ParticipantItem } from "../api/session.api";
@@ -58,8 +58,7 @@ export default function MyInfoCard({ participants }: MyInfoCardProps) {
     setError(null);
 
     try {
-      await authApi.logout();
-      navigate("/login", { replace: true });
+      await logoutToLobby(navigate);
     } catch {
       setError(t("session.logoutFailed"));
     } finally {

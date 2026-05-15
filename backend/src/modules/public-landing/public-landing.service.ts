@@ -3,12 +3,18 @@ import { getCanvasGameConfigSnapshot, getGameConfigSnapshot } from "../../config
 import { GAME_SIZE_ROTATION_PROFILE_KEYS } from "../../config/game-rotation.config";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
+import {
+  GamePreview,
+  GamePreviewStatus,
+} from "../../entities/game-preview.entity";
 import { GameSummary } from "../../entities/game-summary.entity";
+import { Room, RoomType } from "../../entities/room.entity";
 import { roundSnapshotService } from "../history/round-snapshot.service";
 import { participantSessionService } from "../participant/participant-session.service";
 import { canvasService } from "../canvas/canvas.service";
 
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
+const gamePreviewRepository = AppDataSource.getRepository(GamePreview);
 
 type FeaturedProfileKey = (typeof GAME_SIZE_ROTATION_PROFILE_KEYS)[number];
 
@@ -49,8 +55,33 @@ export interface PublicLandingPayload {
   featuredGames: PublicLandingFeaturedGameCard[];
 }
 
+export interface PublicLandingCompletedPreviewItem {
+  webpUrl: string;
+  preview: {
+    size: string;
+    gridX: number;
+    gridY: number;
+    endedAt: string;
+    participantCount: number;
+    participants: string[];
+    topVoter: {
+      name: string | null;
+      voteCount: number;
+    };
+    totalVotes: number;
+  };
+}
+
+export interface PublicLandingCompletedPreviewsPayload {
+  items: PublicLandingCompletedPreviewItem[];
+}
+
 function buildPublicRoundSnapshotApiPath(canvasId: number, roundId: number): string {
   return `/api/public/landing/canvas/${canvasId}/rounds/${roundId}/snapshot`;
+}
+
+function buildPublicLandingPreviewApiPath(previewId: number): string {
+  return `/api/public/landing/previews/${previewId}/asset`;
 }
 
 function getAssetSizeFolder(assetKey: string): string | null {
@@ -229,6 +260,55 @@ export const publicLandingService = {
     return {
       absolutePath,
       mimeType: snapshot.mimeType,
+    };
+  },
+
+  async getCompletedPreviews(params: {
+    scope: "plaza" | "public";
+    dateFrom: Date;
+    dateTo: Date;
+  }): Promise<PublicLandingCompletedPreviewsPayload> {
+    const query = gamePreviewRepository
+      .createQueryBuilder("preview")
+      .innerJoinAndSelect("preview.canvas", "canvas")
+      .leftJoin(Room, "room", "room.canvas_id = canvas.id")
+      .where("preview.status = :status", { status: GamePreviewStatus.READY })
+      .andWhere("preview.endedAt >= :dateFrom", { dateFrom: params.dateFrom })
+      .andWhere("preview.endedAt <= :dateTo", { dateTo: params.dateTo });
+
+    if (params.scope === "plaza") {
+      query.andWhere("(room.id IS NULL OR room.type = :plazaType)", {
+        plazaType: RoomType.PLAZA,
+      });
+    } else {
+      query.andWhere("room.type = :publicType", {
+        publicType: RoomType.PUBLIC,
+      });
+    }
+
+    const previews = await query
+      .orderBy("preview.endedAt", "DESC")
+      .addOrderBy("preview.id", "DESC")
+      .limit(24)
+      .getMany();
+
+    return {
+      items: previews.map((preview) => ({
+        webpUrl: buildPublicLandingPreviewApiPath(preview.id),
+        preview: {
+          size: preview.size,
+          gridX: preview.gridX,
+          gridY: preview.gridY,
+          endedAt: preview.endedAt.toISOString(),
+          participantCount: preview.participantCount,
+          participants: preview.participantsJson ?? [],
+          topVoter: {
+            name: preview.topVoterName,
+            voteCount: preview.topVoterVoteCount,
+          },
+          totalVotes: preview.totalVotes,
+        },
+      })),
     };
   },
 };
