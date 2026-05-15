@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi, logoutToLobby } from "@/features/auth";
 import { landingApi } from "@/features/landing/api/landing.api";
@@ -125,6 +125,8 @@ export default function LobbyPage() {
   const [roomLifecycleNoticeReason, setRoomLifecycleNoticeReason] = useState<
     "expired" | "terminated_by_owner" | null
   >(() => consumeStoredRoomLifecycleNotice());
+  const rightPanelRef = useRef<HTMLElement | null>(null);
+  const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
 
   const {
     rooms,
@@ -219,6 +221,23 @@ export default function LobbyPage() {
   }, [loadPlazaCurrentGame, refreshAuthState]);
 
   useEffect(() => {
+    if (authState === "unknown") {
+      return;
+    }
+
+    void loadRooms().then((loadedRooms) => {
+      if (selectedRoomNumber !== null) {
+        void loadRoomDetail(selectedRoomNumber);
+        return;
+      }
+
+      if (loadedRooms.length > 0) {
+        void loadRoomDetail(loadedRooms[0].publicRoomNumber);
+      }
+    });
+  }, [authState, loadRoomDetail, loadRooms, selectedRoomNumber]);
+
+  useEffect(() => {
     if (activeTab !== "completed") {
       return;
     }
@@ -258,6 +277,30 @@ export default function LobbyPage() {
       cancelled = true;
     };
   }, [activeTab, completedPreset, completedScope]);
+
+  useEffect(() => {
+    const element = rightPanelRef.current;
+
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const updateHeight = () => {
+      setLeftPanelHeight(element.offsetHeight);
+    };
+
+    updateHeight();
+
+    const observer = new ResizeObserver(() => {
+      updateHeight();
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [activeTab, authState, plazaCurrentGame, plazaLoading, plazaError]);
 
   const requireLogin = useCallback(async (): Promise<boolean> => {
     if (authState === "authenticated") {
@@ -514,7 +557,10 @@ export default function LobbyPage() {
       </div>
 
       <div className="mt-4 grid w-full items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-6 lg:p-8">
+        <section
+          className="order-2 flex min-h-0 flex-col rounded-[32px] border border-[#e3d9cf] bg-white p-6 xl:order-1 lg:p-8"
+          style={leftPanelHeight ? { height: `${leftPanelHeight}px` } : undefined}
+        >
           <div className="flex w-full min-w-0 items-center rounded-[24px] border border-[#d9cdc1] bg-[#fbf7f2] p-2">
             {(
               [
@@ -537,7 +583,7 @@ export default function LobbyPage() {
             ))}
           </div>
 
-          <div className="mt-5">
+          <div className="mt-5 min-h-0 flex-1">
             {activeTab === "completed" ? (
               <CompletedCanvasSection
                 scope={completedScope}
@@ -567,7 +613,7 @@ export default function LobbyPage() {
           </div>
         </section>
 
-        <aside className="grid gap-4">
+        <aside ref={rightPanelRef} className="order-1 grid gap-4 xl:order-2">
           <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
             <div className="grid gap-3">
               {authState === "authenticated" ? (
@@ -582,7 +628,7 @@ export default function LobbyPage() {
                     }}
                     className="shrink-0 text-sm font-semibold text-[#e05746]"
                   >
-                    로그아웃
+                    {t("session.logout")}
                   </button>
                 </div>
               ) : (

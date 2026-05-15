@@ -1,3 +1,4 @@
+import { Lock } from "lucide-react";
 import type { RoomDetailResponse, RoomListItem } from "../api/room.api";
 import { useI18n } from "@/shared/i18n";
 
@@ -30,29 +31,6 @@ function getStatusLabel(
   }
 }
 
-function renderManageInfo(
-  manage: NonNullable<RoomDetailResponse["room"]["manage"]>,
-  t: (key: string) => string,
-) {
-  return (
-    <div className="mt-5 rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-4">
-      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-        {t("lobby.roomList.manage.title")}
-      </p>
-      <div className="mt-3 grid gap-2 text-sm text-[#272E37]">
-        <p>{t("lobby.roomList.manage.profile")}: {manage.settings.profileKey}</p>
-        <p>{t("lobby.roomList.manage.intro")}: {manage.settings.introPhaseSec}초</p>
-        <p>{t("lobby.roomList.manage.totalRounds")}: {manage.settings.totalRounds}</p>
-        <p>{t("lobby.roomList.manage.votesPerRound")}: {manage.settings.votesPerRound}</p>
-        <p>{t("lobby.roomList.manage.gameEndWait")}: {manage.settings.gameEndWaitSec}초</p>
-        {manage.accessCode ? (
-          <p>{t("lobby.roomList.manage.accessCode")}: {manage.accessCode}</p>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 export default function RoomListSection({
   rooms,
   selectedRoomNumber,
@@ -70,8 +48,8 @@ export default function RoomListSection({
   const { t } = useI18n();
 
   return (
-    <div className="grid min-h-[520px] gap-5 xl:grid-cols-[0.9fr_1.1fr]">
-      <div className="rounded-[24px] border border-[#e3d9cf] bg-white p-4">
+    <div className="grid h-full min-h-0 gap-5 xl:grid-cols-[1.4fr_0.6fr]">
+      <div className="flex min-h-0 flex-col rounded-[24px] border border-[#e3d9cf] bg-white p-4">
         <h2 className="px-2 text-sm font-semibold text-[#272E37]">
           {t("lobby.roomList.title")}
         </h2>
@@ -82,7 +60,7 @@ export default function RoomListSection({
         ) : error ? (
           <div className="px-2 py-6 text-sm text-[#d14d28]">{error}</div>
         ) : (
-          <div className="mt-3 grid gap-2">
+          <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
             {rooms.map((room) => {
               const selected = room.publicRoomNumber === selectedRoomNumber;
 
@@ -91,20 +69,31 @@ export default function RoomListSection({
                   key={room.roomId}
                   type="button"
                   onClick={() => onSelectRoom(room.publicRoomNumber)}
-                  className={`rounded-[20px] border px-4 py-3 text-left transition ${
+                  className={`h-[67px] rounded-[20px] border px-4 py-3 text-left transition ${
                     selected
                       ? "border-[#272E37] bg-[#272E37] text-white"
                       : "border-[#e3d9cf] bg-[#fbf7f2] text-[#272E37]"
                   }`}
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
                       <span className="text-sm font-semibold">
                         #{room.publicRoomNumber}
                       </span>
+                      {room.type === "private" ? (
+                        <Lock
+                          size={16}
+                          className={selected ? "text-white" : "text-[#7b6b62]"}
+                        />
+                      ) : null}
+                      <span className="h-5 min-w-0 flex-1 truncate text-sm font-medium leading-5">
+                        {room.title}
+                      </span>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-2">
                       {room.isOwner ? (
                         <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                          className={`rounded-full px-2.5 py-1 text-sm font-semibold ${
                             selected
                               ? "bg-white/16 text-white"
                               : "bg-[#272E37] text-white"
@@ -113,31 +102,15 @@ export default function RoomListSection({
                           {t("lobby.roomList.owner")}
                         </span>
                       ) : null}
+                      <span
+                        className={`text-sm font-medium ${
+                          selected ? "text-white/80" : "text-[#7b6b62]"
+                        }`}
+                      >
+                        {getStatusLabel(room.status, t)}
+                      </span>
                     </div>
-                    <span
-                      className={`text-xs font-medium ${
-                        selected ? "text-white/80" : "text-[#7b6b62]"
-                      }`}
-                    >
-                      {getStatusLabel(room.status, t)}
-                    </span>
                   </div>
-                  <p className="mt-2 line-clamp-1 text-sm font-medium">
-                    {room.title}
-                  </p>
-                  <p
-                    className={`mt-2 text-xs ${
-                      selected ? "text-white/72" : "text-[#7b6b62]"
-                    }`}
-                  >
-                    {room.type === "public"
-                      ? t("lobby.roomList.publicType")
-                      : t("lobby.roomList.privateType")}{" "}
-                    ·{" "}
-                    {t("lobby.roomList.currentParticipants", {
-                      count: room.participantCount,
-                    })}
-                  </p>
                 </button>
               );
             })}
@@ -145,7 +118,7 @@ export default function RoomListSection({
         )}
       </div>
 
-      <div className="rounded-[24px] border border-[#e3d9cf] bg-[#fbf7f2] p-5">
+      <div className="flex min-h-0 items-center justify-center rounded-[24px] border border-[#e3d9cf] bg-[#fbf7f2] p-5">
         {detailLoading ? (
           <div className="text-sm text-[#5f6368]">
             {t("lobby.roomList.detailLoading")}
@@ -157,45 +130,44 @@ export default function RoomListSection({
             {t("lobby.roomList.noneSelected")}
           </div>
         ) : selectedRoomDetail.room.type === "private" ? (
-          <div className="max-w-md">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-              {t("lobby.roomList.privateTitle")}
-            </p>
-            <div className="mt-2 flex items-center gap-2">
-              <h3 className="text-2xl font-semibold text-[#272E37]">
-                #{selectedRoomDetail.room.publicRoomNumber}
-              </h3>
-              {selectedRoomDetail.room.manage ? (
-                <span className="rounded-full bg-[#272E37] px-2 py-0.5 text-xs font-semibold text-white">
-                  {t("lobby.roomList.owner")}
-                </span>
-              ) : null}
-            </div>
+          <div className="w-full max-w-md">
             <p className="mt-3 text-sm leading-6 text-[#5f6368]">
               {t("lobby.roomList.privateDescription")}
             </p>
-            {selectedRoomDetail.room.manage
-              ? renderManageInfo(selectedRoomDetail.room.manage, t)
-              : null}
-            <input
-              type="text"
-              value={privateAccessCode}
-              onChange={(event) =>
-                onChangePrivateAccessCode(event.target.value.toUpperCase())
-              }
-              placeholder={t("lobby.roomList.privateAccessCodePlaceholder")}
-              className="mt-5 h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm outline-none"
-            />
+            {selectedRoomDetail.room.manage?.accessCode ? (
+              <div className="mt-5 rounded-2xl border border-[#d9cdc1] bg-white px-4 py-3">
+                <p className="text-xs font-semibold text-[#7b6b62]">
+                  {t("lobby.roomList.manage.accessCode")}
+                </p>
+                <p className="mt-2 text-sm font-semibold tracking-[0.08em] text-[#272E37]">
+                  {selectedRoomDetail.room.manage.accessCode}
+                </p>
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={privateAccessCode}
+                onChange={(event) =>
+                  onChangePrivateAccessCode(event.target.value.toUpperCase())
+                }
+                placeholder={t("lobby.roomList.privateAccessCodePlaceholder")}
+                className="mt-5 h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm outline-none"
+              />
+            )}
             <button
               type="button"
-              onClick={() => void onEnterPrivateRoom()}
-              className="mt-3 rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
+              onClick={() =>
+                void onEnterPrivateRoom(
+                  selectedRoomDetail.room.manage?.accessCode ?? undefined,
+                )
+              }
+              className="mt-3 w-full rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
             >
               {t("lobby.roomList.enter")}
             </button>
           </div>
         ) : (
-          <div className="grid gap-5 xl:grid-cols-[256px_minmax(0,1fr)]">
+          <div className="grid w-full justify-center gap-5">
             <div className="overflow-hidden rounded-[24px] border border-[#e3d9cf] bg-white">
               {selectedRoomDetail.room.canvas.snapshotUrl ||
               selectedRoomDetail.room.canvas.templateImageUrl ? (
@@ -217,54 +189,32 @@ export default function RoomListSection({
               )}
             </div>
 
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-                {t("lobby.roomList.publicTitle")}
-              </p>
-              <div className="mt-2 flex items-center gap-2">
-                <h3 className="text-2xl font-semibold text-[#272E37]">
-                  #{selectedRoomDetail.room.publicRoomNumber}{" "}
-                  {selectedRoomDetail.room.title}
-                </h3>
-                {selectedRoomDetail.room.manage ? (
-                  <span className="rounded-full bg-[#272E37] px-2 py-0.5 text-xs font-semibold text-white">
-                    {t("lobby.roomList.owner")}
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
+            <div className="max-w-[256px]">
+              <div className="w-full rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
+                <div className="flex items-center justify-between gap-4 border-b border-[#efe6dd] py-2 first:pt-0 last:border-b-0 last:pb-0">
+                  <p className="text-sm font-semibold text-[#7b6b62]">
                     {t("lobby.roomList.field.canvas")}
                   </p>
-                  <p className="mt-1 text-base font-semibold text-[#272E37]">
+                  <p className="text-sm font-semibold text-[#272E37]">
                     {selectedRoomDetail.room.canvas.gridX} x{" "}
                     {selectedRoomDetail.room.canvas.gridY}
                   </p>
                 </div>
-                <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
+                <div className="flex items-center justify-between gap-4 border-b border-[#efe6dd] py-2 first:pt-0 last:border-b-0 last:pb-0">
+                  <p className="text-sm font-semibold text-[#7b6b62]">
                     {t("lobby.roomList.field.round")}
                   </p>
-                  <p className="mt-1 text-base font-semibold text-[#272E37]">
+                  <p className="text-sm font-semibold text-[#272E37]">
                     {selectedRoomDetail.room.canvas.currentRoundNumber ?? 0} /{" "}
                     {selectedRoomDetail.room.canvas.totalRounds}
                   </p>
                 </div>
-                <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
+                <div className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
+                  <p className="text-sm font-semibold text-[#7b6b62]">
                     {t("lobby.roomList.field.participants")}
                   </p>
-                  <p className="mt-1 text-base font-semibold text-[#272E37]">
+                  <p className="text-sm font-semibold text-[#272E37]">
                     {selectedRoomDetail.room.participantCount}
-                  </p>
-                </div>
-                <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-                    {t("lobby.roomList.field.status")}
-                  </p>
-                  <p className="mt-1 text-base font-semibold text-[#272E37]">
-                    {getStatusLabel(selectedRoomDetail.room.status, t)}
                   </p>
                 </div>
               </div>
@@ -273,13 +223,10 @@ export default function RoomListSection({
                 onClick={() =>
                   onEnterPublicRoom(selectedRoomDetail.room.publicRoomNumber)
                 }
-                className="mt-5 rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
+                className="mt-5 w-full rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
               >
                 {t("lobby.roomList.enterRoom")}
               </button>
-              {selectedRoomDetail.room.manage
-                ? renderManageInfo(selectedRoomDetail.room.manage, t)
-                : null}
             </div>
           </div>
         )}

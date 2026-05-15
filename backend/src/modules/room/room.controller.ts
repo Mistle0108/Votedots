@@ -75,6 +75,10 @@ function buildDefaultResultTemplateAssetKey(gridX: number, gridY: number): strin
   return `empty-${gridX}x${gridY}`;
 }
 
+function buildPublicRoundSnapshotApiPath(canvasId: number, roundId: number): string {
+  return `/api/public/landing/canvas/${canvasId}/rounds/${roundId}/snapshot`;
+}
+
 function serializeRoomDetail(
   room: Room,
   participantCount: number,
@@ -233,7 +237,7 @@ export const roomController = {
             room,
             participantCount,
             snapshot?.round?.id
-              ? roundSnapshotService.buildRoundSnapshotApiPath(
+              ? buildPublicRoundSnapshotApiPath(
                   room.canvas.id,
                   snapshot.round.id,
                 )

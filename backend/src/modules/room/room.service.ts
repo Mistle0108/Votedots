@@ -42,6 +42,7 @@ const MAX_INTRO_PHASE_SEC = 60 * 5;
 const MAX_VOTES_PER_ROUND = 120;
 const MAX_GAME_DURATION_SEC = 60 * 60;
 const MAX_ACTIVE_ROOMS_PER_OWNER = 2;
+const MAX_ROOM_TITLE_LENGTH = 30;
 
 async function expireElapsedRooms(): Promise<void> {
   const rooms = await roomRepository.find({
@@ -118,7 +119,7 @@ function validateCreateRoomInput(
     throw new Error("ROOM_TITLE_REQUIRED");
   }
 
-  if (normalizeTitle(input.title).length > 100) {
+  if (normalizeTitle(input.title).length > MAX_ROOM_TITLE_LENGTH) {
     throw new Error("ROOM_TITLE_TOO_LONG");
   }
 
@@ -351,7 +352,7 @@ export const roomService = {
         { type: RoomType.PRIVATE, status: RoomStatus.ACTIVE },
         { type: RoomType.PRIVATE, status: RoomStatus.GAME_END_WAIT },
       ],
-      relations: { canvas: true },
+      relations: { canvas: true, owner: true },
       order: { publicRoomNumber: "DESC" },
     });
 
