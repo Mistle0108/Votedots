@@ -4,7 +4,7 @@ export const DEFAULT_GAME_CONFIG_SNAPSHOT: GameConfigSnapshot = {
   phases: {
     introPhaseSec: 25,
     roundStartWaitSec: 5,
-    roundDurationSec: 10,
+    roundDurationSec: 60,
     roundResultDelaySec: 10,
     gameEndWaitSec: 275,
     restartDelaySec: 5,
