@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useMemo, useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import type { RoomConfigProfile } from "../api/room.api";
 
@@ -38,9 +38,9 @@ export default function RoomCreateModal({
   const [title, setTitle] = useState("");
   const [type, setType] = useState<"public" | "private">("public");
   const [profileKey, setProfileKey] = useState("config32");
-  const [introPhaseSec, setIntroPhaseSec] = useState(30);
-  const [totalRounds, setTotalRounds] = useState(10);
-  const [votesPerRound, setVotesPerRound] = useState(20);
+  const [introPhaseSecOverride, setIntroPhaseSecOverride] = useState<number | null>(null);
+  const [totalRoundsOverride, setTotalRoundsOverride] = useState<number | null>(null);
+  const [votesPerRoundOverride, setVotesPerRoundOverride] = useState<number | null>(null);
 
   const availableProfiles = useMemo(
     () =>
@@ -52,22 +52,19 @@ export default function RoomCreateModal({
     [profiles],
   );
 
-  const selectedProfile =
-    availableProfiles.find((profile) => profile.key === profileKey) ??
-    availableProfiles[0] ??
-    null;
-
-  useEffect(() => {
-    if (availableProfiles.length === 0) {
-      return;
-    }
-
+  const resolvedProfileKey = useMemo(() => {
     if (availableProfiles.some((profile) => profile.key === profileKey)) {
-      return;
+      return profileKey;
     }
 
-    setProfileKey(availableProfiles[0]!.key);
+    return availableProfiles[0]?.key ?? "";
   }, [availableProfiles, profileKey]);
+
+  const selectedProfile =
+    availableProfiles.find((profile) => profile.key === resolvedProfileKey) ?? null;
+
+  const introPhaseSec =
+    introPhaseSecOverride ?? selectedProfile?.snapshot.phases.introPhaseSec ?? 30;
 
   const maxRounds = useMemo(() => {
     if (!selectedProfile) {
@@ -82,19 +79,20 @@ export default function RoomCreateModal({
     return Math.max(1, Math.floor((60 * 60 - introPhaseSec) / roundCycleSec));
   }, [introPhaseSec, selectedProfile]);
 
-  useEffect(() => {
-    if (!open || !selectedProfile) {
-      return;
-    }
+  const totalRounds = Math.min(
+    totalRoundsOverride ?? selectedProfile?.snapshot.rules.totalRounds ?? 1,
+    maxRounds,
+  );
 
-    setIntroPhaseSec(selectedProfile.snapshot.phases.introPhaseSec);
-    setTotalRounds(selectedProfile.snapshot.rules.totalRounds);
-    setVotesPerRound(selectedProfile.snapshot.rules.votesPerRound);
-  }, [open, profileKey, selectedProfile]);
+  const votesPerRound =
+    votesPerRoundOverride ?? selectedProfile?.snapshot.rules.votesPerRound ?? 20;
 
-  useEffect(() => {
-    setTotalRounds((current) => Math.min(current, maxRounds));
-  }, [maxRounds]);
+  const handleProfileChange = (nextProfileKey: string) => {
+    setProfileKey(nextProfileKey);
+    setIntroPhaseSecOverride(null);
+    setTotalRoundsOverride(null);
+    setVotesPerRoundOverride(null);
+  };
 
   if (!open) {
     return null;
@@ -196,8 +194,8 @@ export default function RoomCreateModal({
                     {t("lobby.roomCreate.field.canvasSize")}
                   </span>
                   <select
-                    value={profileKey}
-                    onChange={(event) => setProfileKey(event.target.value)}
+                    value={resolvedProfileKey}
+                    onChange={(event) => handleProfileChange(event.target.value)}
                     disabled={availableProfiles.length === 0}
                     className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
                   >
@@ -267,7 +265,7 @@ export default function RoomCreateModal({
                       step={5}
                       value={introPhaseSec}
                       onChange={(event) =>
-                        setIntroPhaseSec(Number(event.target.value))
+                        setIntroPhaseSecOverride(Number(event.target.value))
                       }
                       className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
                     />
@@ -283,18 +281,17 @@ export default function RoomCreateModal({
                     <select
                       value={totalRounds}
                       onChange={(event) =>
-                        setTotalRounds(Number(event.target.value))
+                        setTotalRoundsOverride(Number(event.target.value))
                       }
                       className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
                     >
-                      {Array.from(
-                        { length: maxRounds },
-                        (_, index) => index + 1,
-                      ).map((round) => (
-                        <option key={round} value={round}>
-                          {round}
-                        </option>
-                      ))}
+                      {Array.from({ length: maxRounds }, (_, index) => index + 1).map(
+                        (round) => (
+                          <option key={round} value={round}>
+                            {round}
+                          </option>
+                        ),
+                      )}
                     </select>
                   </label>
 
@@ -308,7 +305,7 @@ export default function RoomCreateModal({
                       max={120}
                       value={votesPerRound}
                       onChange={(event) =>
-                        setVotesPerRound(Number(event.target.value))
+                        setVotesPerRoundOverride(Number(event.target.value))
                       }
                       className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
                     />
@@ -327,7 +324,7 @@ export default function RoomCreateModal({
                 onSubmit({
                   title,
                   type,
-                  profileKey,
+                  profileKey: resolvedProfileKey,
                   introPhaseSec,
                   totalRounds,
                   votesPerRound,
