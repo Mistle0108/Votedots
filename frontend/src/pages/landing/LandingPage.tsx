@@ -13,7 +13,6 @@ import {
   type PublicSiteLocale,
   usePublicSiteLocale,
 } from "@/shared/hooks/use-public-site-locale";
-import { useAdsenseScript } from "@/shared/hooks/use-adsense-script";
 import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
@@ -65,17 +64,14 @@ function SnapshotImage({
   );
 }
 
-function InfoStat({ label, value }: { label: string; value: string }) {
+function InfoStatRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl bg-[#f6ede5] px-4 py-3 shadow-[0_10px_24px_rgba(39,46,55,0.05)]">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-        {label}
-      </p>
-      <p className="mt-1 text-base font-semibold text-[#272E37]">{value}</p>
+    <div className="flex items-center justify-between gap-4 py-3">
+      <p className="text-[17px] font-semibold text-[#7b6b62]">{label}</p>
+      <p className="text-[17px] font-semibold text-[#272E37]">{value}</p>
     </div>
   );
 }
-
 
 export default function LandingPage({ locale }: LandingPageProps) {
   const siteContent = useMemo(() => getSiteContent(locale), [locale]);
@@ -93,7 +89,6 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
   usePageRootClass("page-shell-root");
   usePublicSiteLocale(locale);
-  useAdsenseScript();
   useTrackVisitEvent("site_visit");
 
   useEffect(() => {
@@ -198,25 +193,25 @@ export default function LandingPage({ locale }: LandingPageProps) {
       />
 
       <main className="px-4 pb-20 pt-6 sm:px-6 lg:px-10">
-        <section className="mx-auto max-w-7xl rounded-[42px] bg-[#ff8870] px-6 py-7 text-white shadow-[0_40px_120px_rgba(39,46,55,0.24)] sm:px-8 sm:py-8">
+        <section className="mx-auto max-w-6xl rounded-[42px] bg-[#ff8870] px-6 py-7 text-white shadow-[0_40px_120px_rgba(39,46,55,0.24)] sm:px-8 sm:py-8">
           <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_584px] xl:items-stretch">
             <div className="flex flex-col items-center justify-center text-left xl:items-start">
-              <div>
-                <h1
-                  className="max-w-3xl whitespace-pre-line text-4xl font-semibold leading-tight sm:text-5xl"
+              <div className="flex flex-col gap-[30px]">
+                <div
+                  className="max-w-3xl whitespace-pre-line text-[42px] font-semibold leading-tight sm:text-[50px]"
                   style={{ color: "#000000" }}
                 >
                   {siteContent.hero.title}
-                </h1>
+                </div>
                 <p
-                  className="mt-5 max-w-2xl whitespace-pre-line text-base leading-7 sm:text-lg"
+                  className="max-w-2xl whitespace-pre-line text-base leading-7 sm:text-lg"
                   style={{ color: "rgba(0, 0, 0, 0.82)" }}
                 >
                   {siteContent.hero.description}
                 </p>
               </div>
 
-              <div className="mt-8 flex w-full justify-end">
+              <div className="mt-[48px] flex w-full justify-end">
                 <Button
                   type="button"
                   size="lg"
@@ -251,18 +246,20 @@ export default function LandingPage({ locale }: LandingPageProps) {
                     size={512}
                   />
 
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <InfoStat
+                  <div className="mx-auto w-full max-w-[512px] rounded-2xl bg-[#f6ede5] px-4 py-2 shadow-[0_10px_24px_rgba(39,46,55,0.05)]">
+                    <InfoStatRow
                       label={siteContent.currentGame.stats.grid}
                       value={`${currentGame.gridX} x ${currentGame.gridY}`}
                     />
-                    <InfoStat
+                    <div className="h-px bg-[#ead7c8]" />
+                    <InfoStatRow
                       label={siteContent.currentGame.stats.round}
                       value={`${formatNumber.format(
                         currentGame.currentRoundNumber,
                       )} / ${formatNumber.format(currentGame.totalRounds)}`}
                     />
-                    <InfoStat
+                    <div className="h-px bg-[#ead7c8]" />
+                    <InfoStatRow
                       label={siteContent.currentGame.stats.participants}
                       value={formatNumber.format(currentGame.participantCount)}
                     />
@@ -295,7 +292,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
           }}
         />
 
-        <section className="mx-auto mt-10 max-w-7xl">
+        <section className="mx-auto mt-10 max-w-6xl">
           <div className="text-left">
             <div className="text-[24px] font-semibold leading-[118%] text-[#272E37] lg:text-[24px]">
               {siteContent.tutorial.title}
@@ -307,13 +304,13 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
           <div className="mt-8 space-y-6">
             {siteContent.tutorial.cards.map((card) => (
-                <article
-                  key={card.id}
-                  className="grid gap-5 overflow-hidden rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[auto_minmax(0,1fr)]"
+              <article
+                key={card.id}
+                className="grid gap-5 overflow-hidden rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[auto_minmax(0,1fr)]"
                 //className="grid gap-5 rounded-[34px] bg-white shadow-[0_24px_80px_rgba(39,46,55,0.06)] xl:grid-cols-[minmax(0,5fr)_minmax(0,3fr)]"
               >
-                  <div className="bg-[linear-gradient(180deg,#fff4e9_0%,#f6ede5_100%)] p-5">
-                    <div className="mx-auto h-[405px] w-fit overflow-hidden rounded-[24px] shadow-[0_24px_60px_rgba(39,46,55,0.10)]">
+                <div className="bg-[linear-gradient(180deg,#fff4e9_0%,#f6ede5_100%)] p-5">
+                  <div className="mx-auto h-[405px] w-fit overflow-hidden rounded-[24px] shadow-[0_24px_60px_rgba(39,46,55,0.10)]">
                     <div className="aspect-video h-full">
                       <img
                         src={card.imageUrl}
@@ -351,7 +348,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
       </main>
 
       <footer className="border-t border-[#20262f] bg-[#272E37] px-4 py-10 text-[#f6ede5] sm:px-6 lg:px-10">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-5">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-5">
           <div className="flex min-w-0 items-center gap-4">
             <div className="inline-flex items-center gap-3">
               <BrandLogo variant="symbol" className="w-7" />
