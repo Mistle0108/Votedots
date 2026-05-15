@@ -14,6 +14,15 @@ function parseId(value: string | string[] | undefined): number | null {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : null;
 }
 
+function parseDateRange(raw: unknown): Date | null {
+  if (typeof raw !== "string" || raw.length === 0) {
+    return null;
+  }
+
+  const parsed = new Date(raw);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
 export const publicLandingController = {
   async getLandingPayload(_req: Request, res: Response) {
     try {
@@ -64,6 +73,37 @@ export const publicLandingController = {
       console.error("[public-landing] failed to load featured previews:", error);
       return res.status(500).json({
         message: "Failed to load featured previews.",
+      });
+    }
+  },
+
+  async getCompletedPreviews(req: Request, res: Response) {
+    try {
+      const scope =
+        req.query["scope"] === "public" || req.query["scope"] === "plaza"
+          ? req.query["scope"]
+          : null;
+      const dateFrom = parseDateRange(req.query["dateFrom"]);
+      const dateTo = parseDateRange(req.query["dateTo"]);
+
+      if (!scope || !dateFrom || !dateTo) {
+        return res.status(400).json({
+          message: "Invalid completed preview filters.",
+        });
+      }
+
+      const payload = await publicLandingService.getCompletedPreviews({
+        scope,
+        dateFrom,
+        dateTo,
+      });
+
+      res.setHeader("Cache-Control", "no-store");
+      return res.json(payload);
+    } catch (error) {
+      console.error("[public-landing] failed to load completed previews:", error);
+      return res.status(500).json({
+        message: "Failed to load completed previews.",
       });
     }
   },
