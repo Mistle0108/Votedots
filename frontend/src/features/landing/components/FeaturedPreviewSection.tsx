@@ -28,7 +28,7 @@ export default function FeaturedPreviewSection({
   const previewBySize = new Map(items.map((item) => [item.preview.size, item]));
 
   return (
-    <section className="mx-auto mt-10 max-w-7xl">
+    <section className="mx-auto mt-10 max-w-6xl">
       <div className="text-left">
         <div className="text-[24px] font-semibold leading-[118%] lg:text-[24px]" style={{ color: "#000000" }}>
           {labels.title}
