@@ -1,7 +1,14 @@
 import { useCallback, useMemo, useState } from "react";
-import { sessionApi, type ParticipantItem } from "../api/session.api";
+import type { GameplaySessionSourceApi } from "../api/session-source.api";
+import type { ParticipantItem } from "../api/session.api";
 
-export default function useParticipantsState() {
+interface UseParticipantsStateParams {
+  sessionSourceApi: GameplaySessionSourceApi;
+}
+
+export default function useParticipantsState({
+  sessionSourceApi,
+}: UseParticipantsStateParams) {
   const [participantCount, setParticipantCount] = useState<number | null>(null);
   const [participants, setParticipants] = useState<ParticipantItem[]>([]);
   const [participantLoading, setParticipantLoading] = useState(false);
@@ -13,8 +20,8 @@ export default function useParticipantsState() {
 
     try {
       const [{ data: countData }, { data: listData }] = await Promise.all([
-        sessionApi.getCurrentParticipantCount(),
-        sessionApi.getCurrentParticipantList(),
+        sessionSourceApi.getCurrentParticipantCount(),
+        sessionSourceApi.getCurrentParticipantList(),
       ]);
 
       setParticipantCount(countData.count);
@@ -31,7 +38,7 @@ export default function useParticipantsState() {
     } finally {
       setParticipantLoading(false);
     }
-  }, []);
+  }, [sessionSourceApi]);
 
   const applyParticipantsSnapshot = useCallback(
     (count: number, nextParticipants: ParticipantItem[]) => {

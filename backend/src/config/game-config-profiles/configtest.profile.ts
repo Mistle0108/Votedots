@@ -6,7 +6,7 @@ export const testGameConfigProfile: GameConfigUpdate = {
     roundStartWaitSec: 2,
     roundDurationSec: 5,
     roundResultDelaySec: 2,
-    gameEndWaitSec: 5,
+    gameEndWaitSec: 20,
     restartDelaySec: 3,
   },
   rules: {

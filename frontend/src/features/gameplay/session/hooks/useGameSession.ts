@@ -2,11 +2,12 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { authApi } from "@/features/auth";
 import { useI18n } from "@/shared/i18n";
 import { SessionBootstrapResult } from "../model/session.types";
-import { useGameplayBootstrap } from "./useGameplayBootstrap";
 
 interface UseGameSessionParams {
+  bootstrap: () => Promise<SessionBootstrapResult>;
   onBootstrap: (result: SessionBootstrapResult) => void;
   onUnauthorized: (message: string) => void;
+  onContextMissing?: () => void;
 }
 
 type SessionAccessResult =
@@ -141,11 +142,12 @@ function getRestartElapsedMs(): number {
 }
 
 export function useGameSession({
+  bootstrap,
   onBootstrap,
   onUnauthorized,
+  onContextMissing,
 }: UseGameSessionParams) {
   const { t } = useI18n();
-  const { bootstrap } = useGameplayBootstrap();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -212,6 +214,15 @@ export function useGameSession({
       const result = await bootstrap();
       return handleBootstrapSuccess(result);
     } catch (error) {
+      const message = getErrorMessage(error);
+
+      if (message === "ROOM_CONTEXT_NOT_FOUND") {
+        clearRestartPending();
+        setRetryNonce(0);
+        onContextMissing?.();
+        return null;
+      }
+
       if (isRestartPending() && isRetryableBootstrapError(error)) {
         const elapsedMs = getRestartElapsedMs();
 
@@ -232,7 +243,13 @@ export function useGameSession({
       clearRestartPending();
       return null;
     }
-  }, [bootstrap, handleBootstrapSuccess, showServiceUnavailableAlert, t]);
+  }, [
+    bootstrap,
+    handleBootstrapSuccess,
+    onContextMissing,
+    showServiceUnavailableAlert,
+    t,
+  ]);
 
   const initializeSession = useCallback(
     async ({ silent = false }: { silent?: boolean } = {}) => {

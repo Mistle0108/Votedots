@@ -8,3 +8,9 @@ export { VoteTicket } from "./vote-ticket.entity";
 export { Vote } from "./vote.entity";
 export { RoundSnapshot } from "./round-snapshot.entity";
 export { GamePreview, GamePreviewStatus } from "./game-preview.entity";
+export {
+  Room,
+  RoomStatus,
+  RoomTerminationReason,
+  RoomType,
+} from "./room.entity";

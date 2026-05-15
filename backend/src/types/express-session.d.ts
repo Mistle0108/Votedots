@@ -9,5 +9,11 @@ declare module "express-session" {
       nickname: string;
       role: string;
     };
+    room?: {
+      roomId: number;
+      publicRoomNumber: number | null;
+      canvasId: number;
+      type: string;
+    };
   }
 }

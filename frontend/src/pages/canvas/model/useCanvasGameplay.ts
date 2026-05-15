@@ -2,13 +2,16 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRoundState, useRoundTimer } from "@/features/gameplay/round";
 import {
   useGameSession,
+  useGameplayBootstrap,
   useGameplaySocket,
   useParticipantsState,
   type SessionBootstrapResult,
 } from "@/features/gameplay/session";
+import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
 import type { ParticipantItem } from "@/features/gameplay/session/api/session.api";
 import type {
   CanvasBatchUpdatedPayload,
+  RoomExpiredPayload,
   RoundStartedPayload,
 } from "@/features/gameplay/session/model/socket.types";
 import {
@@ -30,6 +33,7 @@ function formatClockTime(date: Date): string {
 
 interface UseCanvasGameplayParams {
   canvasId: number | null;
+  sessionSourceApi: GameplaySessionSourceApi;
   onBootstrapScene: (result: SessionBootstrapResult) => void;
   onCanvasUpdated: (payload: { x: number; y: number; color: string }) => void;
   onCanvasBatchUpdated: (payload: CanvasBatchUpdatedPayload) => void;
@@ -37,6 +41,8 @@ interface UseCanvasGameplayParams {
   onRoundEndedCleanup: () => void;
   onGameEndedCleanup: () => void;
   onSessionEnded: () => void;
+  onRoomExpired: (payload: RoomExpiredPayload) => void;
+  onContextMissing?: () => void;
   onUnauthorized: (message: string) => void;
   applyVoteUpdate: (votes: Record<string, number>) => void;
   resetVoteState: () => void;
@@ -44,6 +50,7 @@ interface UseCanvasGameplayParams {
 
 export default function useCanvasGameplay({
   canvasId,
+  sessionSourceApi,
   onBootstrapScene,
   onCanvasUpdated,
   onCanvasBatchUpdated,
@@ -51,6 +58,8 @@ export default function useCanvasGameplay({
   onRoundEndedCleanup,
   onGameEndedCleanup,
   onSessionEnded,
+  onRoomExpired,
+  onContextMissing,
   onUnauthorized,
   applyVoteUpdate,
   resetVoteState,
@@ -80,6 +89,7 @@ export default function useCanvasGameplay({
   } = useRoundTimer();
 
   const [gameConfig, setGameConfigState] = useState<GameConfig | null>(null);
+  const { bootstrap } = useGameplayBootstrap({ sessionSourceApi });
 
   const { remaining, applyRemainingSnapshot, fetchTickets, clearTickets } =
     useVoteTickets();
@@ -93,7 +103,7 @@ export default function useCanvasGameplay({
     refreshParticipants,
     applyParticipantsSnapshot,
     clearParticipants,
-  } = useParticipantsState();
+  } = useParticipantsState({ sessionSourceApi });
   const silentSessionResyncRef = useRef<() => Promise<unknown>>(
     async () => null,
   );
@@ -221,8 +231,11 @@ export default function useCanvasGameplay({
     clearSessionError,
     markGameEnded,
   } = useGameSession({
+    bootstrap,
     onBootstrap: applyBootstrap,
     onUnauthorized,
+    onContextMissing:
+      sessionSourceApi.key === "room" ? onContextMissing : undefined,
   });
 
   useEffect(() => {
@@ -367,6 +380,7 @@ export default function useCanvasGameplay({
     onParticipantsUpdated: handleParticipantsUpdated,
     onSessionEnded: sessionCleanup.handleSessionEnded,
     onGameEnded: sessionCleanup.handleGameEnded,
+    onRoomExpired,
   });
 
   const handleVoteSuccess = useCallback(() => {

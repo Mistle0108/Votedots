@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor } from "@testing-library/react";
+﻿import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { http } from "msw/core/http";
 import { Route, Routes } from "react-router-dom";
 import LoginPage from "@/pages/login/LoginPage";
@@ -10,7 +10,7 @@ vi.mock("@/features/login-board", () => ({
 }));
 
 describe("LoginPage integration", () => {
-  it("submits credentials and navigates to /play on success", async () => {
+  it("submits credentials and navigates to /lobby on success", async () => {
     server.use(
       http.post("http://localhost:4000/auth/login", async () =>
         Response.json({ message: "ok" }),
@@ -20,7 +20,7 @@ describe("LoginPage integration", () => {
     renderWithProviders(
       <Routes>
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/play" element={<div>play-page</div>} />
+        <Route path="/lobby" element={<div>lobby-page</div>} />
       </Routes>,
       { route: "/login", locale: "en" },
     );
@@ -42,7 +42,7 @@ describe("LoginPage integration", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
 
-    expect(await screen.findByText("play-page")).toBeInTheDocument();
+    expect(await screen.findByText("lobby-page")).toBeInTheDocument();
   });
 
   it("shows a translated server error on failed login", async () => {
@@ -86,3 +86,4 @@ describe("LoginPage integration", () => {
     });
   });
 });
+

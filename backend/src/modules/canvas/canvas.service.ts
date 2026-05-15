@@ -1,5 +1,8 @@
 import { Server } from "socket.io";
-import { createCanvasGameConfig } from "../../config/game.config";
+import {
+  createCanvasGameConfig,
+  type GameConfigSnapshot,
+} from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { Cell, CellStatus } from "../../entities/cell.entity";
@@ -20,6 +23,11 @@ const DEFAULT_CHUNK_SIZE = 64;
 
 interface CreateCanvasOptions {
   profileKey?: string | null;
+}
+
+export interface CanvasCreationConfig {
+  profileKey: string;
+  snapshot: GameConfigSnapshot;
 }
 
 interface GetChunkCellsParams {
@@ -47,6 +55,37 @@ function logPhaseChange(params: {
   );
 }
 
+export function buildCanvasCreationData({
+  profileKey,
+  snapshot,
+}: CanvasCreationConfig): Partial<Canvas> {
+  const gridSizeX = snapshot.board.gridSizeX;
+  const gridSizeY = snapshot.board.gridSizeY;
+  const now = new Date();
+  const phaseEndsAt = new Date(
+    now.getTime() + snapshot.phases.introPhaseSec * 1000,
+  );
+  const resultTemplate = pickRandomResultTemplate(gridSizeX, gridSizeY);
+
+  return {
+    gridX: gridSizeX,
+    gridY: gridSizeY,
+    configProfileKey: profileKey,
+    configSnapshot: snapshot,
+    resultTemplateAssetKey: resultTemplate?.assetKey ?? null,
+    status: CanvasStatus.PLAYING,
+    phase: GamePhase.INTRO,
+    phaseStartedAt: now,
+    phaseEndsAt,
+    currentRoundNumber: 1,
+    startedAt: now,
+  };
+}
+
+export async function startCanvasGame(io: Server, canvasId: number) {
+  await startGameTimer(io, canvasId);
+}
+
 export const canvasService = {
   async create(io: Server, options: CreateCanvasOptions = {}): Promise<Canvas> {
     const existing = await canvasRepository.findOne({
@@ -59,32 +98,9 @@ export const canvasService = {
 
     const { profileKey, snapshot } = createCanvasGameConfig(options.profileKey);
 
-    const gridSizeX = snapshot.board.gridSizeX;
-    const gridSizeY = snapshot.board.gridSizeY;
-
-    const now = new Date();
-    const phaseEndsAt = new Date(
-      now.getTime() + snapshot.phases.introPhaseSec * 1000,
+    const canvas = canvasRepository.create(
+      buildCanvasCreationData({ profileKey, snapshot }),
     );
-
-    const resultTemplate = pickRandomResultTemplate(
-      gridSizeX,
-      gridSizeY,
-    );
-
-    const canvas = canvasRepository.create({
-      gridX: gridSizeX,
-      gridY: gridSizeY,
-      configProfileKey: profileKey,
-      configSnapshot: snapshot,
-      resultTemplateAssetKey: resultTemplate?.assetKey ?? null,
-      status: CanvasStatus.PLAYING,
-      phase: GamePhase.INTRO,
-      phaseStartedAt: now,
-      phaseEndsAt,
-      currentRoundNumber: 1,
-      startedAt: now,
-    });
 
     await canvasRepository.save(canvas);
 
@@ -92,12 +108,12 @@ export const canvasService = {
       canvasId: canvas.id,
       phase: GamePhase.INTRO,
       roundNumber: 1,
-      phaseStartedAt: now,
-      phaseEndsAt,
+      phaseStartedAt: canvas.phaseStartedAt,
+      phaseEndsAt: canvas.phaseEndsAt,
       reason: `캔버스 생성(profile=${profileKey})`,
     });
 
-    await startGameTimer(io, canvas.id);
+    await startCanvasGame(io, canvas.id);
 
     return canvas;
   },
