@@ -513,92 +513,109 @@ export default function LobbyPage() {
         </div>
       </div>
 
-      <div className="mt-3 grid w-full items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
-        <div className="order-2 flex min-w-0 items-center rounded-[24px] border border-[#d9cdc1] bg-[#fbf7f2] p-2 xl:order-1">
-          {(
-            [
-              ["completed", t("lobby.tab.completed")],
-              ["rooms", t("lobby.tab.rooms")],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setActiveTab(value)}
-                className={`rounded-[18px] px-4 py-2 text-sm font-semibold transition ${
-                activeTab === value
-                  ? "bg-white text-[#272E37]"
-                  : "text-[#5f6368]"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <section className="order-1 flex min-h-[64px] min-w-0 items-center rounded-[24px] border border-[#e3d9cf] bg-white px-4 py-3 xl:order-2">
-          {authState === "authenticated" ? (
-            <div className="flex h-10 min-w-0 flex-1 items-center justify-between gap-3 text-sm text-[#5f6368]">
-              <span className="truncate font-semibold text-[#272E37]">
-                {nickname ?? t("lobby.login.loggedInFallback")}
-              </span>
-              <button
-                type="button"
-                onClick={() => {
-                  void handleLogout();
-                }}
-                className="shrink-0 text-sm font-semibold text-[#e05746]"
-              >
-                로그아웃
-              </button>
-            </div>
-          ) : (
-            <div className="flex h-10 min-w-0 flex-1 items-center">
-              <button
-                type="button"
-                onClick={() => {
-                  navigate("/login");
-                }}
-                className="h-10 w-full rounded-2xl border border-[#f26b5d] px-4 py-2 text-sm font-semibold text-[#e05746] disabled:opacity-60"
-              >
-                {t("auth.login.submit")}
-              </button>
-            </div>
-          )}
-        </section>
-      </div>
-
       <div className="mt-4 grid w-full items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
         <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-6 lg:p-8">
-          {activeTab === "completed" ? (
-            <CompletedCanvasSection
-              scope={completedScope}
-              preset={completedPreset}
-              items={completedItems}
-              loading={completedLoading}
-              error={completedError}
-              onChangeScope={setCompletedScope}
-              onChangePreset={setCompletedPreset}
-            />
-          ) : (
-            <RoomListSection
-              rooms={rooms}
-              selectedRoomNumber={selectedRoomNumber}
-              selectedRoomDetail={selectedRoomDetail}
-              loading={loading}
-              error={error}
-              detailLoading={detailLoading}
-              detailError={detailError}
-              privateAccessCode={privateAccessCode}
-              onChangePrivateAccessCode={setPrivateAccessCode}
-              onSelectRoom={handleSelectRoom}
-              onEnterPublicRoom={handleEnterPublicRoom}
-              onEnterPrivateRoom={handleEnterPrivateRoom}
-            />
-          )}
+          <div className="flex w-full min-w-0 items-center rounded-[24px] border border-[#d9cdc1] bg-[#fbf7f2] p-2">
+            {(
+              [
+                ["completed", t("lobby.tab.completed")],
+                ["rooms", t("lobby.tab.rooms")],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setActiveTab(value)}
+                className={`rounded-[18px] px-4 py-2 text-sm font-semibold transition ${
+                  activeTab === value
+                    ? "bg-white text-[#272E37]"
+                    : "text-[#5f6368]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="mt-5">
+            {activeTab === "completed" ? (
+              <CompletedCanvasSection
+                scope={completedScope}
+                preset={completedPreset}
+                items={completedItems}
+                loading={completedLoading}
+                error={completedError}
+                onChangeScope={setCompletedScope}
+                onChangePreset={setCompletedPreset}
+              />
+            ) : (
+              <RoomListSection
+                rooms={rooms}
+                selectedRoomNumber={selectedRoomNumber}
+                selectedRoomDetail={selectedRoomDetail}
+                loading={loading}
+                error={error}
+                detailLoading={detailLoading}
+                detailError={detailError}
+                privateAccessCode={privateAccessCode}
+                onChangePrivateAccessCode={setPrivateAccessCode}
+                onSelectRoom={handleSelectRoom}
+                onEnterPublicRoom={handleEnterPublicRoom}
+                onEnterPrivateRoom={handleEnterPrivateRoom}
+              />
+            )}
+          </div>
         </section>
 
         <aside className="grid gap-4">
+          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
+            <div className="grid gap-3">
+              {authState === "authenticated" ? (
+                <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm text-[#5f6368]">
+                  <span className="truncate font-semibold text-[#272E37]">
+                    {nickname ?? t("lobby.login.loggedInFallback")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      void handleLogout();
+                    }}
+                    className="shrink-0 text-sm font-semibold text-[#e05746]"
+                  >
+                    로그아웃
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigate("/login");
+                  }}
+                  className="min-h-[48px] w-full rounded-2xl border border-[#f26b5d] px-4 py-3 text-sm font-semibold text-[#e05746]"
+                >
+                  {t("auth.login.submit")}
+                </button>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleCreateRoom}
+                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
+              >
+                {t("lobby.actions.createRoom")}
+              </button>
+              <button
+                type="button"
+                onClick={handleEnterRoom}
+                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
+              >
+                {t("lobby.actions.enterRoom")}
+              </button>
+              </div>
+            </div>
+          </section>
+
           <section className="rounded-[32px] border border-[#e3d9cf] bg-[#ff8870] p-6 text-white">
             <p className="text-center text-base font-semibold tracking-[0.18em] text-white/72">
               {t("lobby.plaza.label")}
@@ -666,25 +683,6 @@ export default function LobbyPage() {
             >
               {t("lobby.actions.joinPlaza")}
             </button>
-          </section>
-
-          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-6">
-            <div className="grid gap-3">
-              <button
-                type="button"
-                onClick={handleCreateRoom}
-                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-              >
-                {t("lobby.actions.createRoom")}
-              </button>
-              <button
-                type="button"
-                onClick={handleEnterRoom}
-                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-              >
-                {t("lobby.actions.enterRoom")}
-              </button>
-            </div>
           </section>
         </aside>
       </div>
