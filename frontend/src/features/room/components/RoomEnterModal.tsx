@@ -37,7 +37,7 @@ export default function RoomEnterModal({
             onClick={onClose}
             className="text-sm font-semibold text-[#7b6b62]"
           >
-            {t("common.close")}
+            {t("lobby.roomEnter.close")}
           </button>
         </div>
 
@@ -83,3 +83,4 @@ export default function RoomEnterModal({
     </div>
   );
 }
+

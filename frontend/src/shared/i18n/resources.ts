@@ -97,6 +97,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.tab.completed": "완성된 캔버스",
     "lobby.tab.rooms": "방 목록",
     "lobby.error.roomExpired": "현재 만료된 방입니다.",
+    "lobby.error.roomNotFound": "존재하지 않는 방 번호입니다.",
     "lobby.error.activeLimitReached": "동시에 생성할 수 있는 방은 최대 2개입니다.",
     "lobby.error.accessCodeRequired": "입장 코드를 입력해 주세요.",
     "lobby.error.privateCodePrompt": "프라이빗방은 입장 코드를 입력해야 합니다.",
@@ -162,6 +163,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.actions.createRoom": "방 생성",
     "lobby.actions.enterRoom": "방 입장",
     "lobby.roomEnter.title": "방 입장",
+    "lobby.roomEnter.close": "닫기",
     "lobby.roomEnter.description": "방 번호 또는 비공개 방 입장 코드를 입력해주세요.",
     "lobby.roomEnter.placeholder": "방 번호 또는 입장 코드 입력",
     "lobby.roomEnter.enter": "입장",
@@ -470,6 +472,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.tab.completed": "Completed canvases",
     "lobby.tab.rooms": "Rooms",
     "lobby.error.roomExpired": "This room has expired.",
+    "lobby.error.roomNotFound": "This room number does not exist.",
     "lobby.error.activeLimitReached":
       "You can create up to two active rooms at the same time.",
     "lobby.error.accessCodeRequired": "Please enter an access code.",
@@ -567,6 +570,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.actions.createRoom": "Create room",
     "lobby.actions.enterRoom": "Enter room",
     "lobby.roomEnter.title": "Enter room",
+    "lobby.roomEnter.close": "Close",
     "lobby.roomEnter.description": "Enter a room number or a private room access code.",
     "lobby.roomEnter.placeholder": "Enter room number or access code",
     "lobby.roomEnter.enter": "Enter",
@@ -757,4 +761,5 @@ export const resources: Record<Locale, Record<string, string>> = {
     "loginBoard.patchType.breaking": "Breaking",
   },
 };
+
 
