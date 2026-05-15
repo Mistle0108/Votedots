@@ -53,4 +53,3 @@ export default function FeaturedPreviewImage({
     </div>
   );
 }
-
