@@ -1,4 +1,4 @@
-export type Locale = "ko" | "en";
+﻿export type Locale = "ko" | "en";
 
 export type TranslationParams = Record<string, string | number>;
 
@@ -161,6 +161,11 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.actions.joinPlaza": "참여하기",
     "lobby.actions.createRoom": "방 생성",
     "lobby.actions.enterRoom": "방 입장",
+    "lobby.roomEnter.title": "방 입장",
+    "lobby.roomEnter.description": "방 번호 또는 비공개 방 입장 코드를 입력해주세요.",
+    "lobby.roomEnter.placeholder": "방 번호 또는 입장 코드 입력",
+    "lobby.roomEnter.enter": "입장",
+    "lobby.roomEnter.entering": "입장 중...",
 
     "history.introButton": "안내",
     "history.resultButton": "결과",
@@ -561,6 +566,11 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.actions.joinPlaza": "Join now",
     "lobby.actions.createRoom": "Create room",
     "lobby.actions.enterRoom": "Enter room",
+    "lobby.roomEnter.title": "Enter room",
+    "lobby.roomEnter.description": "Enter a room number or a private room access code.",
+    "lobby.roomEnter.placeholder": "Enter room number or access code",
+    "lobby.roomEnter.enter": "Enter",
+    "lobby.roomEnter.entering": "Entering...",
 
     "history.introButton": "Guide",
     "history.resultButton": "Result",
@@ -747,3 +757,4 @@ export const resources: Record<Locale, Record<string, string>> = {
     "loginBoard.patchType.breaking": "Breaking",
   },
 };
+
