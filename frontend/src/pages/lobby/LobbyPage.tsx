@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi, logoutToLobby } from "@/features/auth";
+import { landingApi } from "@/features/landing/api/landing.api";
+import type {
+  LandingCurrentGame,
+  LandingFeaturedPreviewItem,
+} from "@/features/landing/model/landing.types";
+import CompletedCanvasSection from "@/features/lobby/components/CompletedCanvasSection";
 import {
   roomApi,
   type RoomConfigProfile,
@@ -15,11 +21,38 @@ import {
   clearStoredRoomSessionContext,
   setStoredRoomSessionContext,
 } from "@/features/room/model/room-session-context";
+import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
+import { useI18n } from "@/shared/i18n";
 
 type AuthState = "authenticated" | "guest" | "unknown";
 type LobbyTab = "completed" | "rooms";
+type CompletedScope = "plaza" | "public";
+type CompletedPreset = "today" | "7d" | "30d";
 
-function getErrorMessage(error: unknown): string {
+function buildCompletedRange(preset: CompletedPreset) {
+  const now = new Date();
+  const start = new Date(now);
+  start.setHours(0, 0, 0, 0);
+
+  if (preset === "7d") {
+    start.setDate(start.getDate() - 6);
+  } else if (preset === "30d") {
+    start.setDate(start.getDate() - 29);
+  }
+
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+
+  return {
+    dateFrom: start.toISOString(),
+    dateTo: end.toISOString(),
+  };
+}
+
+function getErrorMessage(
+  error: unknown,
+  t: (key: string) => string,
+): string {
   if (
     typeof error === "object" &&
     error !== null &&
@@ -36,24 +69,28 @@ function getErrorMessage(error: unknown): string {
 
     switch (message) {
       case "ROOM_EXPIRED":
-        return "현재 만료된 방입니다.";
+        return t("lobby.error.roomExpired");
       case "ROOM_ACTIVE_LIMIT_REACHED":
-        return "동시에 활성화할 수 있는 방은 최대 2개입니다.";
+        return t("lobby.error.activeLimitReached");
       case "ROOM_ACCESS_CODE_REQUIRED":
-        return "입장 코드를 입력해주세요.";
+        return t("lobby.error.accessCodeRequired");
       default:
         return message;
     }
   }
 
-  return "요청을 처리하지 못했습니다.";
+  return t("lobby.error.requestFailed");
 }
 
 export default function LobbyPage() {
   const navigate = useNavigate();
+  usePageRootClass("page-shell-root");
+
+  const { locale, setLocale, t } = useI18n();
   const [authState, setAuthState] = useState<AuthState>("unknown");
   const [loginRequiredOpen, setLoginRequiredOpen] = useState(false);
   const [nickname, setNickname] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<LobbyTab>("rooms");
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [enterModalOpen, setEnterModalOpen] = useState(false);
@@ -70,6 +107,21 @@ export default function LobbyPage() {
   >(null);
   const [privateAccessCode, setPrivateAccessCode] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
+
+  const [completedScope, setCompletedScope] = useState<CompletedScope>("plaza");
+  const [completedPreset, setCompletedPreset] =
+    useState<CompletedPreset>("today");
+  const [completedItems, setCompletedItems] = useState<
+    LandingFeaturedPreviewItem[]
+  >([]);
+  const [completedLoading, setCompletedLoading] = useState(false);
+  const [completedError, setCompletedError] = useState<string | null>(null);
+
+  const [plazaCurrentGame, setPlazaCurrentGame] =
+    useState<LandingCurrentGame | null>(null);
+  const [plazaLoading, setPlazaLoading] = useState(false);
+  const [plazaError, setPlazaError] = useState<string | null>(null);
+
   const [roomLifecycleNoticeReason, setRoomLifecycleNoticeReason] = useState<
     "expired" | "terminated_by_owner" | null
   >(() => consumeStoredRoomLifecycleNotice());
@@ -98,9 +150,28 @@ export default function LobbyPage() {
     }
   }, []);
 
+  const loadPlazaCurrentGame = useCallback(async () => {
+    setPlazaLoading(true);
+    setPlazaError(null);
+
+    try {
+      const { data } = await landingApi.getLandingPayload();
+      setPlazaCurrentGame(data.currentGame);
+    } catch {
+      setPlazaCurrentGame(null);
+      setPlazaError(t("lobby.plaza.loadFailed"));
+    } finally {
+      setPlazaLoading(false);
+    }
+  }, [t]);
+
   useEffect(() => {
     void Promise.resolve().then(refreshAuthState);
   }, [refreshAuthState]);
+
+  useEffect(() => {
+    void Promise.resolve().then(loadPlazaCurrentGame);
+  }, [loadPlazaCurrentGame]);
 
   useEffect(() => {
     let cancelled = false;
@@ -108,18 +179,14 @@ export default function LobbyPage() {
     void roomApi
       .getConfigProfiles()
       .then(({ data }) => {
-        if (cancelled) {
-          return;
+        if (!cancelled) {
+          setRoomConfigProfiles(data.profiles);
         }
-
-        setRoomConfigProfiles(data.profiles);
       })
       .catch(() => {
-        if (cancelled) {
-          return;
+        if (!cancelled) {
+          setRoomConfigProfiles([]);
         }
-
-        setRoomConfigProfiles([]);
       });
 
     return () => {
@@ -130,6 +197,7 @@ export default function LobbyPage() {
   useEffect(() => {
     const handleWindowFocus = () => {
       void refreshAuthState();
+      void loadPlazaCurrentGame();
     };
 
     const handleVisibilityChange = () => {
@@ -138,6 +206,7 @@ export default function LobbyPage() {
       }
 
       void refreshAuthState();
+      void loadPlazaCurrentGame();
     };
 
     window.addEventListener("focus", handleWindowFocus);
@@ -147,7 +216,48 @@ export default function LobbyPage() {
       window.removeEventListener("focus", handleWindowFocus);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
-  }, [refreshAuthState]);
+  }, [loadPlazaCurrentGame, refreshAuthState]);
+
+  useEffect(() => {
+    if (activeTab !== "completed") {
+      return;
+    }
+
+    let cancelled = false;
+    const { dateFrom, dateTo } = buildCompletedRange(completedPreset);
+
+    const loadCompletedPreviews = async () => {
+      setCompletedLoading(true);
+      setCompletedError(null);
+
+      try {
+        const { data } = await landingApi.getCompletedPreviews({
+          scope: completedScope,
+          dateFrom,
+          dateTo,
+        });
+
+        if (!cancelled) {
+          setCompletedItems(data.items);
+        }
+      } catch {
+        if (!cancelled) {
+          setCompletedItems([]);
+          setCompletedError("완성된 캔버스를 불러오지 못했습니다.");
+        }
+      } finally {
+        if (!cancelled) {
+          setCompletedLoading(false);
+        }
+      }
+    };
+
+    void loadCompletedPreviews();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, completedPreset, completedScope]);
 
   const requireLogin = useCallback(async (): Promise<boolean> => {
     if (authState === "authenticated") {
@@ -171,7 +281,11 @@ export default function LobbyPage() {
   }, [authState]);
 
   const enterRoomFromResponse = useCallback(
-    (room: { roomId: number; publicRoomNumber: number; type: "public" | "private" }) => {
+    (room: {
+      roomId: number;
+      publicRoomNumber: number;
+      type: "public" | "private";
+    }) => {
       setStoredRoomSessionContext(toRoomSessionContext(room));
       navigate("/room");
     },
@@ -231,12 +345,12 @@ export default function LobbyPage() {
         setGeneratedAccessCode(data.accessCode);
         setCreatedPrivateAccessCode(data.accessCode);
       } catch (error) {
-        setModalError(getErrorMessage(error));
+        setModalError(getErrorMessage(error, t));
       } finally {
         setCreateLoading(false);
       }
     },
-    [enterRoomFromResponse, loadRooms],
+    [enterRoomFromResponse, loadRooms, t],
   );
 
   const handleEnterCreatedPrivateRoom = useCallback(async () => {
@@ -252,11 +366,11 @@ export default function LobbyPage() {
       setGeneratedAccessCode(null);
       enterRoomFromResponse(data.room);
     } catch (error) {
-      setModalError(getErrorMessage(error));
+      setModalError(getErrorMessage(error, t));
     } finally {
       setCreateLoading(false);
     }
-  }, [createdPrivateAccessCode, enterRoomFromResponse]);
+  }, [createdPrivateAccessCode, enterRoomFromResponse, t]);
 
   const handleCopyAccessCode = useCallback(async () => {
     if (!generatedAccessCode) {
@@ -279,34 +393,37 @@ export default function LobbyPage() {
         const { data } = await roomApi.enterPublicRoom(publicRoomNumber);
         enterRoomFromResponse(data.room);
       } catch (error) {
-        setModalError(getErrorMessage(error));
+        setModalError(getErrorMessage(error, t));
       } finally {
         setEnterLoading(false);
       }
     },
-    [enterRoomFromResponse, requireLogin],
+    [enterRoomFromResponse, requireLogin, t],
   );
 
-  const handleEnterPrivateRoom = useCallback(async (code?: string) => {
+  const handleEnterPrivateRoom = useCallback(
+    async (code?: string) => {
       if (!(await requireLogin())) {
         return;
       }
 
-    setEnterLoading(true);
-    setModalError(null);
+      setEnterLoading(true);
+      setModalError(null);
 
-    try {
-      const accessCode = (code ?? privateAccessCode).trim();
-      const { data } = await roomApi.enterPrivateRoom(accessCode);
-      setEnterModalOpen(false);
-      setPrivateAccessCode("");
-      enterRoomFromResponse(data.room);
-    } catch (error) {
-      setModalError(getErrorMessage(error));
-    } finally {
-      setEnterLoading(false);
-    }
-  }, [enterRoomFromResponse, privateAccessCode, requireLogin]);
+      try {
+        const accessCode = (code ?? privateAccessCode).trim();
+        const { data } = await roomApi.enterPrivateRoom(accessCode);
+        setEnterModalOpen(false);
+        setPrivateAccessCode("");
+        enterRoomFromResponse(data.room);
+      } catch (error) {
+        setModalError(getErrorMessage(error, t));
+      } finally {
+        setEnterLoading(false);
+      }
+    },
+    [enterRoomFromResponse, privateAccessCode, requireLogin, t],
+  );
 
   const handleResolveRoomNumber = useCallback(
     async (publicRoomNumber: number): Promise<void> => {
@@ -321,7 +438,7 @@ export default function LobbyPage() {
         const { data } = await roomApi.getRoomDetail(publicRoomNumber);
 
         if (data.room.type === "private") {
-          setModalError("프라이빗방은 입장 코드를 입력해야 합니다.");
+          setModalError(t("lobby.error.privateCodePrompt"));
           return;
         }
 
@@ -329,13 +446,13 @@ export default function LobbyPage() {
         enterRoomFromResponse(entered.data.room);
         setEnterModalOpen(false);
       } catch (error) {
-        setModalError(getErrorMessage(error));
+        setModalError(getErrorMessage(error, t));
         throw error;
       } finally {
         setEnterLoading(false);
       }
     },
-    [enterRoomFromResponse, requireLogin],
+    [enterRoomFromResponse, requireLogin, t],
   );
 
   const handleSelectRoom = useCallback(
@@ -368,121 +485,204 @@ export default function LobbyPage() {
   }, [navigate]);
 
   return (
-    <main className="min-h-screen bg-[#f7f2eb] px-6 py-10 text-[#272E37]">
-      <div className="mx-auto grid max-w-7xl gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-8 shadow-[0_18px_60px_rgba(39,46,55,0.08)]">
-          <div className="flex items-center gap-3">
+    <main className="min-h-screen bg-[#f7f2eb] p-[10px] text-[#272E37]">
+      <div className="flex justify-end">
+        <div className="flex shrink-0 rounded-full border border-[#d9cdc1] bg-white p-1 shadow-[0_12px_32px_rgba(39,46,55,0.08)]">
+          <button
+            type="button"
+            onClick={() => setLocale("ko")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              locale === "ko"
+                ? "bg-[#272E37] text-white"
+                : "text-[#5f6368]"
+            }`}
+          >
+            KO
+          </button>
+          <button
+            type="button"
+            onClick={() => setLocale("en")}
+            className={`rounded-full px-3 py-1 text-xs font-semibold ${
+              locale === "en"
+                ? "bg-[#272E37] text-white"
+                : "text-[#5f6368]"
+            }`}
+          >
+            EN
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 grid w-full items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,320px)] 2xl:grid-cols-[minmax(0,1fr)_minmax(300px,360px)]">
+        <div className="order-2 flex min-w-0 items-center rounded-[24px] border border-[#d9cdc1] bg-[#fbf7f2] p-2 xl:order-1">
+          {(
+            [
+              ["completed", t("lobby.tab.completed")],
+              ["rooms", t("lobby.tab.rooms")],
+            ] as const
+          ).map(([value, label]) => (
             <button
+              key={value}
               type="button"
-              onClick={() => setActiveTab("completed")}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                activeTab === "completed"
-                  ? "bg-[#272E37] text-white"
-                  : "border border-[#d9cdc1] text-[#5f6368]"
+              onClick={() => setActiveTab(value)}
+                className={`rounded-[18px] px-4 py-2 text-sm font-semibold transition ${
+                activeTab === value
+                  ? "bg-white text-[#272E37]"
+                  : "text-[#5f6368]"
               }`}
             >
-              완성된 캔버스
+              {label}
             </button>
-            <button
-              type="button"
-              onClick={() => setActiveTab("rooms")}
-              className={`rounded-full px-4 py-2 text-sm font-semibold ${
-                activeTab === "rooms"
-                  ? "bg-[#272E37] text-white"
-                  : "border border-[#d9cdc1] text-[#5f6368]"
-              }`}
-            >
-              방 목록
-            </button>
-          </div>
+          ))}
+        </div>
 
-          <div className="mt-6">
-            {activeTab === "completed" ? (
-              <div className="min-h-[520px] rounded-[28px] border border-dashed border-[#d9cdc1] bg-[#fbf7f2] p-6">
-                <h1 className="text-[28px] font-semibold tracking-tight">
-                  완성된 캔버스
-                </h1>
-                <p className="mt-3 text-sm leading-6 text-[#5f6368]">
-                  광장/공개방 필터와 날짜 범위 조회는 다음 단계에서 연결합니다.
-                </p>
-              </div>
-            ) : (
-              <RoomListSection
-                rooms={rooms}
-                selectedRoomNumber={selectedRoomNumber}
-                selectedRoomDetail={selectedRoomDetail}
-                loading={loading}
-                error={error}
-                detailLoading={detailLoading}
-                detailError={detailError}
-                privateAccessCode={privateAccessCode}
-                onChangePrivateAccessCode={setPrivateAccessCode}
-                onSelectRoom={handleSelectRoom}
-                onEnterPublicRoom={handleEnterPublicRoom}
-                onEnterPrivateRoom={handleEnterPrivateRoom}
-              />
-            )}
-          </div>
-        </section>
-
-        <aside className="grid gap-6">
-          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-8 shadow-[0_18px_60px_rgba(39,46,55,0.08)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#7b6b62]">
-              Account
-            </p>
-            <h2 className="mt-2 text-xl font-semibold">
-              {authState === "authenticated"
-                ? nickname ?? "로그인됨"
-                : "로그인"}
-            </h2>
-            <button
-              type="button"
-              onClick={() => {
-                if (authState === "authenticated") {
-                  void handleLogout();
-                  return;
-                }
-
-                navigate("/login");
-              }}
-              className="mt-5 rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-            >
-              {authState === "authenticated" ? "로그아웃" : "로그인"}
-            </button>
-          </section>
-
-          <section className="rounded-[32px] border border-[#e3d9cf] bg-[#ff8870] p-8 text-white shadow-[0_18px_60px_rgba(209,77,40,0.22)]">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-white/72">
-              Plaza
-            </p>
-            <h2 className="mt-2 text-2xl font-semibold">광장 현재 상태</h2>
-            <p className="mt-3 text-sm leading-6 text-white/88">
-              광장 현재 정보와 최근 라운드 스냅샷은 다음 단계에서 연결합니다.
-            </p>
-          </section>
-
-          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-8 shadow-[0_18px_60px_rgba(39,46,55,0.08)]">
-            <div className="grid gap-3">
+        <section className="order-1 flex min-h-[64px] min-w-0 items-center rounded-[24px] border border-[#e3d9cf] bg-white px-4 py-3 xl:order-2">
+          {authState === "authenticated" ? (
+            <div className="flex h-10 min-w-0 flex-1 items-center justify-between gap-3 text-sm text-[#5f6368]">
+              <span className="truncate font-semibold text-[#272E37]">
+                {nickname ?? t("lobby.login.loggedInFallback")}
+              </span>
               <button
                 type="button"
-                onClick={handleParticipatePlaza}
-                className="rounded-2xl bg-[#272E37] px-4 py-3 text-center text-sm font-semibold text-white"
+                onClick={() => {
+                  void handleLogout();
+                }}
+                className="shrink-0 text-sm font-semibold text-[#e05746]"
               >
-                광장 참여
+                로그아웃
               </button>
+            </div>
+          ) : (
+            <div className="flex h-10 min-w-0 flex-1 items-center">
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/login");
+                }}
+                className="h-10 w-full rounded-2xl border border-[#f26b5d] px-4 py-2 text-sm font-semibold text-[#e05746] disabled:opacity-60"
+              >
+                {t("auth.login.submit")}
+              </button>
+            </div>
+          )}
+        </section>
+      </div>
+
+      <div className="mt-4 grid w-full items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
+        <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-6 lg:p-8">
+          {activeTab === "completed" ? (
+            <CompletedCanvasSection
+              scope={completedScope}
+              preset={completedPreset}
+              items={completedItems}
+              loading={completedLoading}
+              error={completedError}
+              onChangeScope={setCompletedScope}
+              onChangePreset={setCompletedPreset}
+            />
+          ) : (
+            <RoomListSection
+              rooms={rooms}
+              selectedRoomNumber={selectedRoomNumber}
+              selectedRoomDetail={selectedRoomDetail}
+              loading={loading}
+              error={error}
+              detailLoading={detailLoading}
+              detailError={detailError}
+              privateAccessCode={privateAccessCode}
+              onChangePrivateAccessCode={setPrivateAccessCode}
+              onSelectRoom={handleSelectRoom}
+              onEnterPublicRoom={handleEnterPublicRoom}
+              onEnterPrivateRoom={handleEnterPrivateRoom}
+            />
+          )}
+        </section>
+
+        <aside className="grid gap-4">
+          <section className="rounded-[32px] border border-[#e3d9cf] bg-[#ff8870] p-6 text-white">
+            <p className="text-center text-base font-semibold tracking-[0.18em] text-white/72">
+              {t("lobby.plaza.label")}
+            </p>
+            {plazaLoading ? (
+              <p className="mt-3 text-sm leading-6 text-white/88">
+                {t("lobby.plaza.loading")}
+              </p>
+            ) : plazaError ? (
+              <p className="mt-3 text-sm leading-6 text-white/88">{plazaError}</p>
+            ) : plazaCurrentGame ? (
+              <div className="mt-4 space-y-4">
+                <div className="overflow-hidden rounded-[24px] bg-white/12 p-3">
+                  <div className="overflow-hidden rounded-[20px] bg-white">
+                    <img
+                      src={
+                        plazaCurrentGame.snapshotUrl ??
+                        plazaCurrentGame.fallbackImageUrl ??
+                        undefined
+                      }
+                      alt={t("lobby.plaza.previewAlt")}
+                      className="block h-full w-full"
+                      style={{ imageRendering: "pixelated" }}
+                      draggable={false}
+                    />
+                  </div>
+                </div>
+                <div className="rounded-[18px] bg-white/12 px-3 py-3">
+                  <div className="flex items-center text-[17px] justify-between gap-4 border-b border-white/12 py-2 first:pt-0 last:border-b-0 last:pb-0">
+                    <p className=" font-semibold text-white/72">
+                      {t("lobby.plaza.stats.grid")}
+                    </p>
+                    <p className="font-semibold">
+                      {plazaCurrentGame.gridX} x {plazaCurrentGame.gridY}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 border-b border-white/12 py-2 first:pt-0 last:border-b-0 last:pb-0">
+                    <p className="font-semibold text-white/72">
+                      {t("lobby.plaza.stats.round")}
+                    </p>
+                    <p className="font-semibold">
+                      {plazaCurrentGame.currentRoundNumber} /{" "}
+                      {plazaCurrentGame.totalRounds}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
+                    <p className="font-semibold text-white/72">
+                      {t("lobby.plaza.stats.participants")}
+                    </p>
+                    <p className="font-semibold">
+                      {plazaCurrentGame.participantCount}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <p className="mt-3 text-sm leading-6 text-white/88">
+                {t("lobby.plaza.empty")}
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={handleParticipatePlaza}
+              className="mt-5 w-full rounded-2xl bg-[#272E37] px-4 py-3 text-center text-sm font-semibold text-white"
+            >
+              {t("lobby.actions.joinPlaza")}
+            </button>
+          </section>
+
+          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-6">
+            <div className="grid gap-3">
               <button
                 type="button"
                 onClick={handleCreateRoom}
                 className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
               >
-                방 생성
+                {t("lobby.actions.createRoom")}
               </button>
               <button
                 type="button"
                 onClick={handleEnterRoom}
                 className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
               >
-                방 입장
+                {t("lobby.actions.enterRoom")}
               </button>
             </div>
           </section>
@@ -493,10 +693,10 @@ export default function LobbyPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
           <div className="w-full max-w-sm rounded-[28px] bg-white p-7 shadow-[0_30px_100px_rgba(39,46,55,0.28)]">
             <h2 className="text-xl font-semibold text-[#272E37]">
-              로그인이 필요합니다
+              {t("server.auth.requiredLogin")}
             </h2>
             <p className="mt-3 text-sm leading-6 text-[#5f6368]">
-              광장 참여, 방 생성, 방 입장은 로그인 후 사용할 수 있습니다.
+              {t("lobby.loginRequired.description")}
             </p>
             <div className="mt-6 flex gap-3">
               <button
@@ -504,14 +704,14 @@ export default function LobbyPage() {
                 onClick={() => setLoginRequiredOpen(false)}
                 className="flex-1 rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
               >
-                확인
+                {t("common.confirm")}
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/login")}
                 className="flex-1 rounded-2xl bg-[#272E37] px-4 py-3 text-sm font-semibold text-white"
               >
-                로그인
+                {t("auth.login.submit")}
               </button>
             </div>
           </div>
@@ -523,8 +723,8 @@ export default function LobbyPage() {
           <div className="w-full max-w-sm rounded-[28px] bg-white p-7 shadow-[0_30px_100px_rgba(39,46,55,0.28)]">
             <h2 className="text-xl font-semibold text-[#272E37]">
               {roomLifecycleNoticeReason === "terminated_by_owner"
-                ? "방이 종료되었습니다."
-                : "방이 만료되었습니다."}
+                ? t("lobby.notice.roomTerminated")
+                : t("lobby.notice.roomExpired")}
             </h2>
             <div className="mt-6 flex justify-end">
               <button
@@ -532,7 +732,7 @@ export default function LobbyPage() {
                 onClick={() => setRoomLifecycleNoticeReason(null)}
                 className="rounded-2xl bg-[#272E37] px-4 py-3 text-sm font-semibold text-white"
               >
-                확인
+                {t("common.confirm")}
               </button>
             </div>
           </div>

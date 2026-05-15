@@ -1,4 +1,5 @@
 import type { RoomDetailResponse, RoomListItem } from "../api/room.api";
+import { useI18n } from "@/shared/i18n";
 
 interface RoomListSectionProps {
   rooms: RoomListItem[];
@@ -15,32 +16,38 @@ interface RoomListSectionProps {
   onEnterPrivateRoom: (accessCode?: string) => void | Promise<void>;
 }
 
-function getStatusLabel(status: RoomListItem["status"]): string {
+function getStatusLabel(
+  status: RoomListItem["status"],
+  t: (key: string) => string,
+): string {
   switch (status) {
     case "active":
-      return "진행 중";
+      return t("lobby.roomList.status.active");
     case "game_end_wait":
-      return "종료 대기";
+      return t("lobby.roomList.status.gameEndWait");
     case "expired":
-      return "만료";
+      return t("lobby.roomList.status.expired");
   }
 }
 
 function renderManageInfo(
   manage: NonNullable<RoomDetailResponse["room"]["manage"]>,
+  t: (key: string) => string,
 ) {
   return (
     <div className="mt-5 rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-4">
       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-        방 설정
+        {t("lobby.roomList.manage.title")}
       </p>
       <div className="mt-3 grid gap-2 text-sm text-[#272E37]">
-        <p>프로필: {manage.settings.profileKey}</p>
-        <p>인트로: {manage.settings.introPhaseSec}초</p>
-        <p>총 라운드: {manage.settings.totalRounds}</p>
-        <p>라운드당 표수: {manage.settings.votesPerRound}</p>
-        <p>게임 종료 대기: {manage.settings.gameEndWaitSec}초</p>
-        {manage.accessCode ? <p>입장 코드: {manage.accessCode}</p> : null}
+        <p>{t("lobby.roomList.manage.profile")}: {manage.settings.profileKey}</p>
+        <p>{t("lobby.roomList.manage.intro")}: {manage.settings.introPhaseSec}초</p>
+        <p>{t("lobby.roomList.manage.totalRounds")}: {manage.settings.totalRounds}</p>
+        <p>{t("lobby.roomList.manage.votesPerRound")}: {manage.settings.votesPerRound}</p>
+        <p>{t("lobby.roomList.manage.gameEndWait")}: {manage.settings.gameEndWaitSec}초</p>
+        {manage.accessCode ? (
+          <p>{t("lobby.roomList.manage.accessCode")}: {manage.accessCode}</p>
+        ) : null}
       </div>
     </div>
   );
@@ -60,12 +67,18 @@ export default function RoomListSection({
   onEnterPublicRoom,
   onEnterPrivateRoom,
 }: RoomListSectionProps) {
+  const { t } = useI18n();
+
   return (
     <div className="grid min-h-[520px] gap-5 xl:grid-cols-[0.9fr_1.1fr]">
       <div className="rounded-[24px] border border-[#e3d9cf] bg-white p-4">
-        <h2 className="px-2 text-sm font-semibold text-[#272E37]">방 목록</h2>
+        <h2 className="px-2 text-sm font-semibold text-[#272E37]">
+          {t("lobby.roomList.title")}
+        </h2>
         {loading ? (
-          <div className="px-2 py-6 text-sm text-[#5f6368]">불러오는 중...</div>
+          <div className="px-2 py-6 text-sm text-[#5f6368]">
+            {t("lobby.roomList.loading")}
+          </div>
         ) : error ? (
           <div className="px-2 py-6 text-sm text-[#d14d28]">{error}</div>
         ) : (
@@ -97,7 +110,7 @@ export default function RoomListSection({
                               : "bg-[#272E37] text-white"
                           }`}
                         >
-                          내 방
+                          {t("lobby.roomList.owner")}
                         </span>
                       ) : null}
                     </div>
@@ -106,7 +119,7 @@ export default function RoomListSection({
                         selected ? "text-white/80" : "text-[#7b6b62]"
                       }`}
                     >
-                      {getStatusLabel(room.status)}
+                      {getStatusLabel(room.status, t)}
                     </span>
                   </div>
                   <p className="mt-2 line-clamp-1 text-sm font-medium">
@@ -117,8 +130,13 @@ export default function RoomListSection({
                       selected ? "text-white/72" : "text-[#7b6b62]"
                     }`}
                   >
-                    {room.type === "public" ? "공개방" : "프라이빗방"} · 현재{" "}
-                    {room.participantCount}명
+                    {room.type === "public"
+                      ? t("lobby.roomList.publicType")
+                      : t("lobby.roomList.privateType")}{" "}
+                    ·{" "}
+                    {t("lobby.roomList.currentParticipants", {
+                      count: room.participantCount,
+                    })}
                   </p>
                 </button>
               );
@@ -129,17 +147,19 @@ export default function RoomListSection({
 
       <div className="rounded-[24px] border border-[#e3d9cf] bg-[#fbf7f2] p-5">
         {detailLoading ? (
-          <div className="text-sm text-[#5f6368]">방 정보를 불러오는 중...</div>
+          <div className="text-sm text-[#5f6368]">
+            {t("lobby.roomList.detailLoading")}
+          </div>
         ) : detailError ? (
           <div className="text-sm text-[#d14d28]">{detailError}</div>
         ) : !selectedRoomDetail ? (
           <div className="text-sm text-[#5f6368]">
-            선택된 방이 없습니다.
+            {t("lobby.roomList.noneSelected")}
           </div>
         ) : selectedRoomDetail.room.type === "private" ? (
           <div className="max-w-md">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-              Private Room
+              {t("lobby.roomList.privateTitle")}
             </p>
             <div className="mt-2 flex items-center gap-2">
               <h3 className="text-2xl font-semibold text-[#272E37]">
@@ -147,15 +167,15 @@ export default function RoomListSection({
               </h3>
               {selectedRoomDetail.room.manage ? (
                 <span className="rounded-full bg-[#272E37] px-2 py-0.5 text-xs font-semibold text-white">
-                  내 방
+                  {t("lobby.roomList.owner")}
                 </span>
               ) : null}
             </div>
             <p className="mt-3 text-sm leading-6 text-[#5f6368]">
-              프라이빗방은 입장 코드를 입력해야 참여할 수 있습니다.
+              {t("lobby.roomList.privateDescription")}
             </p>
             {selectedRoomDetail.room.manage
-              ? renderManageInfo(selectedRoomDetail.room.manage)
+              ? renderManageInfo(selectedRoomDetail.room.manage, t)
               : null}
             <input
               type="text"
@@ -163,7 +183,7 @@ export default function RoomListSection({
               onChange={(event) =>
                 onChangePrivateAccessCode(event.target.value.toUpperCase())
               }
-              placeholder="입장 코드 입력"
+              placeholder={t("lobby.roomList.privateAccessCodePlaceholder")}
               className="mt-5 h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm outline-none"
             />
             <button
@@ -171,7 +191,7 @@ export default function RoomListSection({
               onClick={() => void onEnterPrivateRoom()}
               className="mt-3 rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
             >
-              입장
+              {t("lobby.roomList.enter")}
             </button>
           </div>
         ) : (
@@ -192,14 +212,14 @@ export default function RoomListSection({
                 />
               ) : (
                 <div className="flex h-[256px] w-[256px] items-center justify-center text-sm text-[#7b6b62]">
-                  최근 스냅샷이 없습니다
+                  {t("lobby.roomList.previewEmpty")}
                 </div>
               )}
             </div>
 
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-                Public Room
+                {t("lobby.roomList.publicTitle")}
               </p>
               <div className="mt-2 flex items-center gap-2">
                 <h3 className="text-2xl font-semibold text-[#272E37]">
@@ -208,14 +228,14 @@ export default function RoomListSection({
                 </h3>
                 {selectedRoomDetail.room.manage ? (
                   <span className="rounded-full bg-[#272E37] px-2 py-0.5 text-xs font-semibold text-white">
-                    내 방
+                    {t("lobby.roomList.owner")}
                   </span>
                 ) : null}
               </div>
               <div className="mt-5 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-                    Canvas
+                    {t("lobby.roomList.field.canvas")}
                   </p>
                   <p className="mt-1 text-base font-semibold text-[#272E37]">
                     {selectedRoomDetail.room.canvas.gridX} x{" "}
@@ -224,7 +244,7 @@ export default function RoomListSection({
                 </div>
                 <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-                    Round
+                    {t("lobby.roomList.field.round")}
                   </p>
                   <p className="mt-1 text-base font-semibold text-[#272E37]">
                     {selectedRoomDetail.room.canvas.currentRoundNumber ?? 0} /{" "}
@@ -233,18 +253,18 @@ export default function RoomListSection({
                 </div>
                 <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-                    Participants
+                    {t("lobby.roomList.field.participants")}
                   </p>
                   <p className="mt-1 text-base font-semibold text-[#272E37]">
-                    {selectedRoomDetail.room.participantCount}명
+                    {selectedRoomDetail.room.participantCount}
                   </p>
                 </div>
                 <div className="rounded-[20px] border border-[#e3d9cf] bg-white px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#7b6b62]">
-                    Status
+                    {t("lobby.roomList.field.status")}
                   </p>
                   <p className="mt-1 text-base font-semibold text-[#272E37]">
-                    {getStatusLabel(selectedRoomDetail.room.status)}
+                    {getStatusLabel(selectedRoomDetail.room.status, t)}
                   </p>
                 </div>
               </div>
@@ -255,10 +275,10 @@ export default function RoomListSection({
                 }
                 className="mt-5 rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
               >
-                방 참여
+                {t("lobby.roomList.enterRoom")}
               </button>
               {selectedRoomDetail.room.manage
-                ? renderManageInfo(selectedRoomDetail.room.manage)
+                ? renderManageInfo(selectedRoomDetail.room.manage, t)
                 : null}
             </div>
           </div>
