@@ -1,9 +1,13 @@
-import { AnalyticsRollupSummary } from "./analytics-retention.service";
+import {
+  AnalyticsRollupDeviceTimeZoneEventCount,
+  AnalyticsRollupSummary,
+} from "./analytics-retention.service";
 
 const TELEGRAM_API_BASE_URL = "https://api.telegram.org";
 const TELEGRAM_BOT_TOKEN_ENV = "TELEGRAM_BOT_TOKEN";
 const TELEGRAM_CHAT_ID_ENV = "TELEGRAM_CHAT_ID";
 const ROLLUP_NOTIFICATION_TIME_ZONE = "Asia/Seoul";
+const DETAILED_EVENT_TYPE_ORDER = ["site_visit", "game_entry"];
 const VISIT_EVENT_TYPE_LABELS: Record<string, string> = {
   game_entry: "\uac8c\uc784 \uc9c4\uc785",
   site_visit: "\uc0ac\uc774\ud2b8 \ubc29\ubb38",
@@ -41,6 +45,73 @@ function formatEventTypeLabel(eventType: string): string {
   return VISIT_EVENT_TYPE_LABELS[eventType] ?? eventType;
 }
 
+function formatDetailedEventCounts(
+  deviceTimeZoneEventCounts: AnalyticsRollupDeviceTimeZoneEventCount[],
+): string {
+  const countsByEventType = new Map<string, number>();
+
+  for (const eventCount of deviceTimeZoneEventCounts) {
+    countsByEventType.set(eventCount.eventType, eventCount.count);
+  }
+
+  const extraEventTypes = [...countsByEventType.keys()].filter(
+    (eventType) => !DETAILED_EVENT_TYPE_ORDER.includes(eventType),
+  );
+  const orderedEventTypes = [
+    ...DETAILED_EVENT_TYPE_ORDER,
+    ...extraEventTypes.sort((left, right) => left.localeCompare(right)),
+  ];
+
+  return orderedEventTypes
+    .map((eventType) => `${eventType}=${countsByEventType.get(eventType) ?? 0}`)
+    .join(" | ");
+}
+
+function buildDeviceDetailLines(summary: AnalyticsRollupSummary): string[] {
+  if (summary.deviceTimeZoneEventCounts.length === 0) {
+    return [];
+  }
+
+  const deviceGroups = new Map<
+    string,
+    Map<string, AnalyticsRollupDeviceTimeZoneEventCount[]>
+  >();
+
+  for (const eventCount of summary.deviceTimeZoneEventCounts) {
+    const timeZoneGroups =
+      deviceGroups.get(eventCount.deviceType) ??
+      new Map<string, AnalyticsRollupDeviceTimeZoneEventCount[]>();
+    const groupedEventCounts = timeZoneGroups.get(eventCount.timeZone) ?? [];
+
+    groupedEventCounts.push(eventCount);
+    timeZoneGroups.set(eventCount.timeZone, groupedEventCounts);
+    deviceGroups.set(eventCount.deviceType, timeZoneGroups);
+  }
+
+  const lines = ["", "\ub514\ubc14\uc774\uc2a4\ubcc4 \uc0c1\uc138:", ""];
+  const deviceTypes = [...deviceGroups.keys()];
+
+  deviceTypes.forEach((deviceType, deviceIndex) => {
+    lines.push(deviceType);
+
+    const timeZoneGroups = deviceGroups.get(deviceType);
+
+    if (!timeZoneGroups) {
+      return;
+    }
+
+    for (const [timeZone, eventCounts] of timeZoneGroups.entries()) {
+      lines.push(`- ${timeZone} | ${formatDetailedEventCounts(eventCounts)}`);
+    }
+
+    if (deviceIndex < deviceTypes.length - 1) {
+      lines.push("");
+    }
+  });
+
+  return lines;
+}
+
 function buildRollupSummaryMessage(summary: AnalyticsRollupSummary): string {
   const lines = [
     "[VoteDots \ub370\uc77c\ub9ac \ud1b5\uacc4]",
@@ -66,6 +137,8 @@ function buildRollupSummaryMessage(summary: AnalyticsRollupSummary): string {
       lines.push(`- ${formatEventTypeLabel(eventCount.eventType)}: ${eventCount.count}`);
     }
   }
+
+  lines.push(...buildDeviceDetailLines(summary));
 
   return lines.join("\n");
 }
