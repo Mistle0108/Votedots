@@ -2,7 +2,6 @@ import "reflect-metadata";
 import { loadEnvironment } from "../config/load-env";
 import { AppDataSource } from "../database/data-source";
 import { analyticsRetentionService } from "../modules/analytics/analytics-retention.service";
-import { analyticsRollupTelegramService } from "../modules/analytics/analytics-rollup-telegram.service";
 
 interface AnalyticsRollupCliOptions {
   apply: boolean;
@@ -82,15 +81,6 @@ async function main() {
   try {
     const summary = await analyticsRetentionService.rollupVisitEvents(options);
     printSummary(summary);
-
-    if (options.apply && summary.applied) {
-      try {
-        await analyticsRollupTelegramService.sendRollupSummary(summary);
-        console.log("[analytics:rollup] telegram notification sent");
-      } catch (error) {
-        console.error("[analytics:rollup] telegram notification failed:", error);
-      }
-    }
   } finally {
     if (AppDataSource.isInitialized) {
       await AppDataSource.destroy();

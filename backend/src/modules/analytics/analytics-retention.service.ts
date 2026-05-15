@@ -21,17 +21,9 @@ export interface AnalyticsRetentionEventCount {
   eventType: string;
 }
 
-export interface AnalyticsRollupDeviceTimeZoneEventCount {
-  count: number;
-  deviceType: string;
-  eventType: string;
-  timeZone: string;
-}
-
 export interface AnalyticsRollupSummary {
   aggregateGroupCount: number;
   applied: boolean;
-  deviceTimeZoneEventCounts: AnalyticsRollupDeviceTimeZoneEventCount[];
   eventCounts: AnalyticsRetentionEventCount[];
   eligibleEventCount: number;
   markedEventCount: number;
@@ -65,13 +57,6 @@ interface CleanupPreviewRow {
 interface EventCountRow {
   count: string;
   eventType: string;
-}
-
-interface DeviceTimeZoneEventCountRow {
-  count: string;
-  deviceType: string;
-  eventType: string;
-  timeZone: string;
 }
 
 function resolveRollupUpperBound(before?: Date): Date {
@@ -114,45 +99,8 @@ async function loadEventCounts(
   }));
 }
 
-async function loadDeviceTimeZoneEventCounts(
-  whereClause: string,
-  parameters: unknown[],
-): Promise<AnalyticsRollupDeviceTimeZoneEventCount[]> {
-  const rows = (await AppDataSource.query(
-    `
-      SELECT
-        device_type AS "deviceType",
-        time_zone AS "timeZone",
-        event_type AS "eventType",
-        COUNT(*)::int AS "count"
-      FROM visit_event
-      WHERE ${whereClause}
-      GROUP BY device_type, time_zone, event_type
-      ORDER BY
-        CASE device_type
-          WHEN 'desktop' THEN 1
-          WHEN 'mobile' THEN 2
-          WHEN 'tablet' THEN 3
-          WHEN 'other' THEN 4
-          ELSE 5
-        END ASC,
-        time_zone ASC,
-        event_type ASC
-    `,
-    parameters,
-  )) as DeviceTimeZoneEventCountRow[];
-
-  return rows.map((row) => ({
-    count: Number(row.count),
-    deviceType: row.deviceType,
-    eventType: row.eventType,
-    timeZone: row.timeZone,
-  }));
-}
-
 async function loadRollupPreview(upperBound: Date): Promise<{
   aggregateGroupCount: number;
-  deviceTimeZoneEventCounts: AnalyticsRollupDeviceTimeZoneEventCount[];
   eligibleEventCount: number;
   eventCounts: AnalyticsRetentionEventCount[];
   oldestEligibleEnteredAt: string | null;
@@ -191,14 +139,9 @@ async function loadRollupPreview(upperBound: Date): Promise<{
     "rolled_up_at IS NULL AND entered_at < $1",
     [upperBound.toISOString()],
   );
-  const deviceTimeZoneEventCounts = await loadDeviceTimeZoneEventCounts(
-    "rolled_up_at IS NULL AND entered_at < $1",
-    [upperBound.toISOString()],
-  );
 
   return {
     aggregateGroupCount: Number(previewRow?.aggregateGroupCount ?? 0),
-    deviceTimeZoneEventCounts,
     eligibleEventCount: Number(previewRow?.eligibleEventCount ?? 0),
     eventCounts,
     oldestEligibleEnteredAt: previewRow?.oldestEligibleEnteredAt
