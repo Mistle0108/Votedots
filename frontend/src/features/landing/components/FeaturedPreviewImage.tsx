@@ -28,12 +28,12 @@ export default function FeaturedPreviewImage({
       <div
         className="flex-none overflow-hidden rounded-[24px] bg-white shadow-[0_24px_60px_rgba(39,46,55,0.10)]"
         style={{
-          width: "256px",
-          height: "256px",
-          minWidth: "256px",
-          minHeight: "256px",
-          maxWidth: "256px",
-          maxHeight: "256px",
+          width: "205px",
+          height: "205px",
+          minWidth: "205px",
+          minHeight: "205px",
+          maxWidth: "205px",
+          maxHeight: "205px",
         }}
       >
         <img
