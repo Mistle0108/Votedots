@@ -4,7 +4,6 @@ import { config } from "dotenv";
 
 let loaded = false;
 const BACKEND_ROOT = path.resolve(__dirname, "../..");
-const SERVER_ENV_ROOT = "/opt/votedots/env/backend";
 
 function resolveEnvFileName(): string {
   switch (process.env.NODE_ENV) {
@@ -22,13 +21,13 @@ export function loadEnvironment(): void {
     return;
   }
 
-  const envFileName = resolveEnvFileName();
-  const candidatePaths = [
-    path.resolve(SERVER_ENV_ROOT, envFileName),
-    path.resolve(BACKEND_ROOT, envFileName),
-    path.resolve(BACKEND_ROOT, ".env"),
-  ];
-  const selectedPath = candidatePaths.find((candidatePath) => fs.existsSync(candidatePath)) ?? null;
+  const preferredPath = path.resolve(BACKEND_ROOT, resolveEnvFileName());
+  const fallbackPath = path.resolve(BACKEND_ROOT, ".env");
+  const selectedPath = fs.existsSync(preferredPath)
+    ? preferredPath
+    : fs.existsSync(fallbackPath)
+      ? fallbackPath
+      : null;
 
   if (selectedPath) {
     config({
