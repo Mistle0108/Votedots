@@ -2,8 +2,8 @@ import type { GameConfigUpdate } from "../game-config.types";
 
 export const defaultGameConfigProfile: GameConfigUpdate = {
   board: {
-    gridSizeX: 100,
-    gridSizeY: 100,
+    gridSizeX: 32,
+    gridSizeY: 32,
     cellSize: 30,
   },
 };

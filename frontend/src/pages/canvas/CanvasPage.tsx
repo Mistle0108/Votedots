@@ -10,6 +10,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { authApi } from "@/features/auth";
+import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
+import type { RoomExpiredPayload } from "@/features/gameplay/session/model/socket.types";
+import { roomApi, type RoomCurrentManageResponse } from "@/features/room/api/room.api";
+import { setStoredRoomLifecycleNotice } from "@/features/room/model/room-lifecycle-notice";
+import { clearStoredRoomSessionContext } from "@/features/room/model/room-session-context";
 import {
   CanvasStage,
   CanvasSurface,
@@ -35,6 +40,10 @@ import { PLAY_THEME_STYLE } from "./model/play-theme";
 const INTRO_GUIDE_SEEN_STORAGE_KEY = "votedots:intro-guide-seen";
 const ROUND_SELECTION_GUIDE_DURATION_MS = 2500;
 const SELECTION_PULSE_DURATION_MS = 1000;
+
+interface CanvasPageProps {
+  sessionSourceApi: GameplaySessionSourceApi;
+}
 
 interface SelectionGuideState {
   roundSelectionGuideVisible: boolean;
@@ -87,9 +96,9 @@ function buildIntroGuideSeenStorageKey(canvasId: number): string {
   return `${INTRO_GUIDE_SEEN_STORAGE_KEY}:${canvasId}`;
 }
 
-export default function CanvasPage() {
+export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const navigate = useNavigate();
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
 
   usePageRootClass("page-shell-root");
   useTrackVisitEvent("game_entry");
@@ -104,6 +113,13 @@ export default function CanvasPage() {
     x: 120,
     y: 120,
   });
+  const [currentRoomManage, setCurrentRoomManage] =
+    useState<RoomCurrentManageResponse["room"] | null>(null);
+  const [roomEndGameLoading, setRoomEndGameLoading] = useState(false);
+  const [roomTerminateLoading, setRoomTerminateLoading] = useState(false);
+  const [roomExpiredReason, setRoomExpiredReason] = useState<
+    "expired" | "terminated_by_owner" | null
+  >(null);
   const guideTimerRef = useRef<number | null>(null);
   const pulseTimerRef = useRef<number | null>(null);
   const lastAnnouncedRoundIdRef = useRef<number | null>(null);
@@ -126,8 +142,9 @@ export default function CanvasPage() {
       return;
     }
 
+    clearStoredRoomSessionContext();
     window.alert(t("canvas.sessionEnded"));
-    navigate("/login", { replace: true });
+    navigate("/lobby", { replace: true });
   }, [navigate, t]);
 
   const handleUnauthorized = useCallback(
@@ -136,6 +153,22 @@ export default function CanvasPage() {
       navigate("/login", { replace: true });
     },
     [navigate],
+  );
+
+  const handleContextMissing = useCallback(() => {
+    clearStoredRoomSessionContext();
+    navigate("/lobby", { replace: true });
+  }, [navigate]);
+
+  const handleRoomExpired = useCallback(
+    ({ reason }: RoomExpiredPayload) => {
+      if (sessionSourceApi.key !== "room") {
+        return;
+      }
+
+      setRoomExpiredReason(reason);
+    },
+    [sessionSourceApi.key],
   );
 
   const {
@@ -207,9 +240,173 @@ export default function CanvasPage() {
     historyLoading,
     historyError,
   } = useCanvasPage({
+    sessionSourceApi,
     onSessionEnded: handleSessionEnded,
+    onRoomExpired: handleRoomExpired,
+    onContextMissing:
+      sessionSourceApi.key === "room" ? handleContextMissing : undefined,
     onUnauthorized: handleUnauthorized,
   });
+
+  useEffect(() => {
+    if (!roomExpiredReason) {
+      return undefined;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      clearStoredRoomSessionContext();
+      setStoredRoomLifecycleNotice(roomExpiredReason);
+      navigate("/lobby", { replace: true });
+    }, 3000);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [navigate, roomExpiredReason]);
+
+  useEffect(() => {
+    if (sessionSourceApi.key !== "room") {
+      return;
+    }
+
+    if (roomExpiredReason) {
+      return;
+    }
+
+    if (phase !== GAME_PHASE.GAME_END) {
+      return;
+    }
+
+    if (remainingSeconds !== 0) {
+      return;
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      setRoomExpiredReason("expired");
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [phase, remainingSeconds, roomExpiredReason, sessionSourceApi.key]);
+
+  useEffect(() => {
+    if (sessionSourceApi.key !== "room") {
+      return;
+    }
+
+    let cancelled = false;
+
+    const fetchCurrentRoomManage = async () => {
+      try {
+        const { data } = await roomApi.getCurrentManage();
+
+        if (!cancelled) {
+          setCurrentRoomManage(data.room);
+        }
+      } catch {
+        if (!cancelled) {
+          setCurrentRoomManage(null);
+        }
+      }
+    };
+
+    void fetchCurrentRoomManage();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionSourceApi.key]);
+
+  const handleTerminateRoom = useCallback(async () => {
+    if (sessionSourceApi.key !== "room" || !currentRoomManage) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      locale === "ko"
+        ? '현재 방을 강제 종료하시겠습니까?\n강제 종료시 완료된 캔버스를 다운로드 받을 수 없고, 접속 중인 사용자 모두 로비로 이동합니다. 캔버스 다운로드를 원하시면 "게임 종료" 버튼을 클릭해 주시기 바랍니다.'
+        : 'Do you want to force-close this room?\nIf you force-close it, the completed canvas cannot be downloaded and everyone in the room will be moved to the lobby. If you want the canvas download, please click "End Game" instead.',
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRoomTerminateLoading(true);
+
+    try {
+      await roomApi.terminateCurrent();
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof error.response === "object" &&
+        error.response !== null &&
+        "data" in error.response &&
+        typeof error.response.data === "object" &&
+        error.response.data !== null &&
+        "message" in error.response.data &&
+        typeof error.response.data.message === "string"
+      ) {
+        window.alert(error.response.data.message);
+      } else {
+        window.alert(
+          locale === "ko"
+            ? "방 강제 종료에 실패했습니다."
+            : "Failed to close the room.",
+        );
+      }
+    } finally {
+      setRoomTerminateLoading(false);
+    }
+  }, [currentRoomManage, locale, sessionSourceApi.key]);
+
+  const handleEndGame = useCallback(async () => {
+    if (sessionSourceApi.key !== "room" || !currentRoomManage) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      locale === "ko"
+        ? '현재 게임을 종료하시겠습니까?\n게임 종료 시 완료된 캔버스를 다운로드할 수 있으며, 게임 종료 대기 시간이 끝나면 로비로 이동합니다.'
+        : "Do you want to end the current game?\nYou will be able to download the completed canvas, and everyone will move to the lobby after the game-end wait finishes.",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setRoomEndGameLoading(true);
+
+    try {
+      await roomApi.endGameCurrent();
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "response" in error &&
+        typeof error.response === "object" &&
+        error.response !== null &&
+        "data" in error.response &&
+        typeof error.response.data === "object" &&
+        error.response.data !== null &&
+        "message" in error.response.data &&
+        typeof error.response.data.message === "string"
+      ) {
+        window.alert(error.response.data.message);
+      } else {
+        window.alert(
+          locale === "ko"
+            ? "게임 종료에 실패했습니다."
+            : "Failed to end the game.",
+        );
+      }
+    } finally {
+      setRoomEndGameLoading(false);
+    }
+  }, [currentRoomManage, locale, sessionSourceApi.key]);
 
   const canvasPageThemeStyle = PLAY_THEME_STYLE;
   const tutorialSteps = useMemo<TutorialStep[]>(
@@ -562,6 +759,19 @@ export default function CanvasPage() {
     );
   }
 
+  if (roomExpiredReason) {
+    return (
+      <div
+        className="flex h-screen w-full items-center justify-center overflow-hidden bg-[color:var(--page-theme-page-background)] px-6 text-center text-lg font-medium text-[color:var(--page-theme-text-primary)]"
+        style={canvasPageThemeStyle}
+      >
+        {roomExpiredReason === "terminated_by_owner"
+          ? t("room.terminatedRedirect")
+          : t("room.expiredRedirect")}
+      </div>
+    );
+  }
+
   return (
     <div
       className="flex h-screen w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
@@ -682,6 +892,13 @@ export default function CanvasPage() {
             settingsDisabled={shouldDisableSettingsButton}
             onOpenTutorial={handleOpenTutorial}
             onNavigateToCoordinate={navigateToCoordinate}
+            currentRoomManage={
+              sessionSourceApi.key === "room" ? currentRoomManage : null
+            }
+            roomEndGameLoading={roomEndGameLoading}
+            onEndGame={handleEndGame}
+            roomTerminateLoading={roomTerminateLoading}
+            onTerminateRoom={handleTerminateRoom}
           />
         )}
       </div>

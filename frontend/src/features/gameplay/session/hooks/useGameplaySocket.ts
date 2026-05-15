@@ -7,6 +7,7 @@ import {
   GameSummaryReadyPayload,
   PhaseUpdatedPayload,
   ParticipantsUpdatedPayload,
+  RoomExpiredPayload,
   RoundEndedPayload,
   RoundStartedPayload,
   RoundSummaryReadyPayload,
@@ -30,6 +31,7 @@ interface UseGameplaySocketParams {
   onParticipantsUpdated: (payload: ParticipantsUpdatedPayload) => void;
   onSessionEnded: (payload: SessionEndedPayload) => void;
   onGameEnded: () => void;
+  onRoomExpired: (payload: RoomExpiredPayload) => void;
 }
 
 type GameplaySocketHandlers = Omit<UseGameplaySocketParams, "canvasId">;
@@ -49,6 +51,7 @@ export function useGameplaySocket({
   onParticipantsUpdated,
   onSessionEnded,
   onGameEnded,
+  onRoomExpired,
 }: UseGameplaySocketParams) {
   const handlersRef = useRef<GameplaySocketHandlers>({
     onCanvasJoined,
@@ -64,6 +67,7 @@ export function useGameplaySocket({
     onParticipantsUpdated,
     onSessionEnded,
     onGameEnded,
+    onRoomExpired,
   });
 
   useEffect(() => {
@@ -81,6 +85,7 @@ export function useGameplaySocket({
       onParticipantsUpdated,
       onSessionEnded,
       onGameEnded,
+      onRoomExpired,
     };
   }, [
     onCanvasJoined,
@@ -96,6 +101,7 @@ export function useGameplaySocket({
     onParticipantsUpdated,
     onSessionEnded,
     onGameEnded,
+    onRoomExpired,
   ]);
 
   useEffect(() => {
@@ -138,6 +144,9 @@ export function useGameplaySocket({
     const handleGameEnded = () => {
       handlersRef.current.onGameEnded();
     };
+    const handleRoomExpired = (payload: RoomExpiredPayload) => {
+      handlersRef.current.onRoomExpired(payload);
+    };
 
     socket.on("canvas:joined", handleCanvasJoined);
     socket.on("canvas:phase-updated", handlePhaseUpdated);
@@ -153,6 +162,7 @@ export function useGameplaySocket({
     socket.on("auth:session-ended", handleSessionEnded);
     socket.on("session:replaced", handleSessionEnded);
     socket.on("game:ended", handleGameEnded);
+    socket.on("room:expired", handleRoomExpired);
 
     return () => {
       socket.off("canvas:joined", handleCanvasJoined);
@@ -169,6 +179,7 @@ export function useGameplaySocket({
       socket.off("auth:session-ended", handleSessionEnded);
       socket.off("session:replaced", handleSessionEnded);
       socket.off("game:ended", handleGameEnded);
+      socket.off("room:expired", handleRoomExpired);
     };
   }, []);
 

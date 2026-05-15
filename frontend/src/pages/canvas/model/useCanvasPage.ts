@@ -10,14 +10,19 @@ import type {
   GameSummaryData,
   RoundSummaryData,
 } from "@/features/gameplay/session/api/session.api";
+import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
 import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
+import type { RoomExpiredPayload } from "@/features/gameplay/session/model/socket.types";
 import useCanvasGameplay from "./useCanvasGameplay";
 import useCanvasScene from "./useCanvasScene";
 import { getCanvasTopCenterModalPosition } from "./modal-position";
 
 interface UseCanvasPageParams {
+  sessionSourceApi: GameplaySessionSourceApi;
   onSessionEnded: () => void;
+  onRoomExpired: (payload: RoomExpiredPayload) => void;
+  onContextMissing?: () => void;
   onUnauthorized: (message: string) => void;
 }
 
@@ -28,7 +33,10 @@ function getDefaultRoundSummaryModalPosition() {
 }
 
 export default function useCanvasPage({
+  sessionSourceApi,
   onSessionEnded,
+  onRoomExpired,
+  onContextMissing,
   onUnauthorized,
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
@@ -289,6 +297,7 @@ export default function useCanvasPage({
 
   const gameplay = useCanvasGameplay({
     canvasId,
+    sessionSourceApi,
     onBootstrapScene: applyBootstrapScene,
     onCanvasUpdated: handleCanvasUpdated,
     onCanvasBatchUpdated: handleCanvasBatchUpdatedForRoundResult,
@@ -296,6 +305,8 @@ export default function useCanvasPage({
     onRoundEndedCleanup: handleRoundEndedCleanup,
     onGameEndedCleanup: handleGameEndedCleanup,
     onSessionEnded,
+    onRoomExpired,
+    onContextMissing,
     onUnauthorized,
     applyVoteUpdate,
     resetVoteState,

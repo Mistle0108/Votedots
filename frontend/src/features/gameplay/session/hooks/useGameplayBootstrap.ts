@@ -3,6 +3,7 @@ import { voteApi } from "@/features/gameplay/vote";
 import { resolveResultTemplateImageUrl } from "@/features/gameplay/canvas/model/background-assets";
 import { GAME_PHASE, isRoundActivePhase } from "../model/game-phase.types";
 import { sessionApi, type RoundStateResponse } from "../api/session.api";
+import type { GameplaySessionSourceApi } from "../api/session-source.api";
 import { RoundInfoState, SessionBootstrapResult } from "../model/session.types";
 
 function formatClockTime(date: Date): string {
@@ -235,9 +236,15 @@ function getFallbackPhaseDuration(
   }
 }
 
-export function useGameplayBootstrap() {
+interface UseGameplayBootstrapParams {
+  sessionSourceApi: GameplaySessionSourceApi;
+}
+
+export function useGameplayBootstrap({
+  sessionSourceApi,
+}: UseGameplayBootstrapParams) {
   const bootstrap = useCallback(async (): Promise<SessionBootstrapResult> => {
-    const { data } = await sessionApi.getCurrentCanvas();
+    const { data } = await sessionSourceApi.getCurrentCanvas();
     const { canvas, serverNow, gameConfig } = data;
     const { phases, rules } = gameConfig;
 
@@ -341,7 +348,7 @@ export function useGameplayBootstrap() {
       },
       gameConfig,
     };
-  }, []);
+  }, [sessionSourceApi]);
 
   return {
     bootstrap,

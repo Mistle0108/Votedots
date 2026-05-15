@@ -6,10 +6,12 @@ import {
 } from "../../config/game.config";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
+import { RoomTerminationReason } from "../../entities/room.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { publicLandingPreviewService } from "../public-landing/public-landing-preview.service";
 import { roundService } from "../round/round.service";
 import { GamePhase } from "./game-phase.types";
+import { roomService } from "../room/room.service";
 import { summaryService } from "../summary/summary.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
@@ -180,6 +182,7 @@ async function transitionToGameEnd(
   io: Server,
   canvasId: number,
   roundNumber: number,
+  roomTerminationReason: RoomTerminationReason | null = null,
 ): Promise<void> {
   const canvas = await getCanvasOrThrow(canvasId);
   const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
@@ -220,6 +223,12 @@ async function transitionToGameEnd(
     phaseEndsAt,
   });
 
+  await roomService.markGameEndWaitByCanvas(
+    canvasId,
+    phaseEndsAt,
+    roomTerminationReason,
+  );
+
   const gameSummary = await summaryService.saveGameSummary(canvasId);
 
   void publicLandingPreviewService.generateForGame(canvasId, gameSummary.id);
@@ -230,6 +239,16 @@ async function transitionToGameEnd(
   });
 
   scheduleGameEnd(io, canvasId, roundNumber, phaseEndsAt);
+}
+
+export async function forceGameEnd(
+  io: Server,
+  canvasId: number,
+  roundNumber: number,
+  roomTerminationReason: RoomTerminationReason | null = null,
+): Promise<void> {
+  clearCanvasTimers(canvasId);
+  await transitionToGameEnd(io, canvasId, roundNumber, roomTerminationReason);
 }
 
 function scheduleGameEnd(
@@ -244,6 +263,17 @@ function scheduleGameEnd(
     canvasId,
     () => {
       void (async () => {
+        const expiredRoom = await roomService.expireAfterGameEndByCanvas(canvasId);
+
+        if (expiredRoom) {
+          io.to(`canvas:${canvasId}`).emit("room:expired", {
+            canvasId,
+            roomId: expiredRoom.id,
+            reason: expiredRoom.terminationReason ?? "expired",
+          });
+          return;
+        }
+
         io.to(`canvas:${canvasId}`).emit("game:ended", { canvasId });
 
         try {
@@ -554,6 +584,17 @@ async function resumeGameEndFromBoundary(
   });
 
   if (gameEndEndsAt.getTime() <= Date.now()) {
+    const expiredRoom = await roomService.expireAfterGameEndByCanvas(canvas.id);
+
+    if (expiredRoom) {
+      io.to(`canvas:${canvas.id}`).emit("room:expired", {
+        canvasId: canvas.id,
+        roomId: expiredRoom.id,
+        reason: expiredRoom.terminationReason ?? "expired",
+      });
+      return;
+    }
+
     io.to(`canvas:${canvas.id}`).emit("game:ended", { canvasId: canvas.id });
 
     try {
@@ -742,6 +783,17 @@ async function resumeGameEnd(io: Server, canvas: Canvas): Promise<void> {
     canvas.currentRoundNumber || canvasGameConfig.rules.totalRounds;
 
   if (!canvas.phaseEndsAt) {
+    const expiredRoom = await roomService.expireAfterGameEndByCanvas(canvas.id);
+
+    if (expiredRoom) {
+      io.to(`canvas:${canvas.id}`).emit("room:expired", {
+        canvasId: canvas.id,
+        roomId: expiredRoom.id,
+        reason: expiredRoom.terminationReason ?? "expired",
+      });
+      return;
+    }
+
     io.to(`canvas:${canvas.id}`).emit("game:ended", { canvasId: canvas.id });
 
     try {
@@ -756,6 +808,17 @@ async function resumeGameEnd(io: Server, canvas: Canvas): Promise<void> {
   }
 
   if (canvas.phaseEndsAt.getTime() <= Date.now()) {
+    const expiredRoom = await roomService.expireAfterGameEndByCanvas(canvas.id);
+
+    if (expiredRoom) {
+      io.to(`canvas:${canvas.id}`).emit("room:expired", {
+        canvasId: canvas.id,
+        roomId: expiredRoom.id,
+        reason: expiredRoom.terminationReason ?? "expired",
+      });
+      return;
+    }
+
     io.to(`canvas:${canvas.id}`).emit("game:ended", { canvasId: canvas.id });
 
     try {

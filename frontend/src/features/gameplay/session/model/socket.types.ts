@@ -96,6 +96,12 @@ export interface SessionEndedPayload {
   reason?: string;
 }
 
+export interface RoomExpiredPayload {
+  canvasId: number;
+  roomId: number;
+  reason: "expired" | "terminated_by_owner";
+}
+
 export interface RoundSummaryReadyPayload {
   canvasId: number;
   roundId: number;
