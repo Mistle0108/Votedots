@@ -37,7 +37,6 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
             language: "언어",
             background: "배경",
             room: "방 상세",
-            roomNumber: "방 번호",
             roomTitle: "방 제목",
             profile: "프로필",
             intro: "인트로",
@@ -55,7 +54,6 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
             language: "Language",
             background: "Background",
             room: "Room",
-            roomNumber: "Room #",
             roomTitle: "Title",
             profile: "Profile",
             intro: "Intro",
@@ -120,9 +118,6 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
                 {labels.room}
               </p>
               <div className="mt-2 grid gap-1 text-xs text-[color:var(--page-theme-text-primary)]">
-                <p>
-                  {labels.roomNumber}: #{roomManage.publicRoomNumber}
-                </p>
                 <p>
                   {labels.roomTitle}: {roomManage.title}
                 </p>

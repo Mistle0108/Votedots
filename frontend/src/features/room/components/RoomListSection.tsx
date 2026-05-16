@@ -4,7 +4,7 @@ import { useI18n } from "@/shared/i18n";
 
 interface RoomListSectionProps {
   rooms: RoomListItem[];
-  selectedRoomNumber: number | null;
+  selectedRoomId: number | null;
   selectedRoomDetail: RoomDetailResponse | null;
   loading: boolean;
   error: string | null;
@@ -12,8 +12,8 @@ interface RoomListSectionProps {
   detailError: string | null;
   privateAccessCode: string;
   onChangePrivateAccessCode: (value: string) => void;
-  onSelectRoom: (publicRoomNumber: number) => void;
-  onEnterPublicRoom: (publicRoomNumber: number) => void;
+  onSelectRoom: (roomId: number) => void;
+  onEnterPublicRoom: (roomId: number) => void | Promise<void>;
   onEnterPrivateRoom: (accessCode?: string) => void | Promise<void>;
 }
 
@@ -33,7 +33,7 @@ function getStatusLabel(
 
 export default function RoomListSection({
   rooms,
-  selectedRoomNumber,
+  selectedRoomId,
   selectedRoomDetail,
   loading,
   error,
@@ -50,25 +50,26 @@ export default function RoomListSection({
   return (
     <div className="grid h-full min-h-0 gap-5 xl:grid-cols-[1.4fr_0.6fr]">
       <div className="flex min-h-0 flex-col rounded-[24px] border border-[#e3d9cf] bg-white p-4">
-        <h2 className="px-2 text-sm font-semibold text-[#272E37]">
-          {t("lobby.roomList.title")}
-        </h2>
         {loading ? (
           <div className="px-2 py-6 text-sm text-[#5f6368]">
             {t("lobby.roomList.loading")}
           </div>
         ) : error ? (
           <div className="px-2 py-6 text-sm text-[#d14d28]">{error}</div>
+        ) : rooms.length === 0 ? (
+          <div className="flex min-h-0 flex-1 items-center justify-center px-6 py-6 text-center text-sm text-[#5f6368]">
+            {t("lobby.roomList.empty")}
+          </div>
         ) : (
-          <div className="mt-3 flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
+          <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto pr-1">
             {rooms.map((room) => {
-              const selected = room.publicRoomNumber === selectedRoomNumber;
+              const selected = room.roomId === selectedRoomId;
 
               return (
                 <button
                   key={room.roomId}
                   type="button"
-                  onClick={() => onSelectRoom(room.publicRoomNumber)}
+                  onClick={() => onSelectRoom(room.roomId)}
                   className={`h-[67px] w-full rounded-[20px] border px-4 py-3 text-left transition ${
                     selected
                       ? "border-[#272E37] bg-[#272E37] text-white"
@@ -77,9 +78,6 @@ export default function RoomListSection({
                 >
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex flex-1 items-center gap-2">
-                      <span className="text-sm font-semibold">
-                        #{room.publicRoomNumber}
-                      </span>
                       {room.type === "private" ? (
                         <Lock
                           size={16}
@@ -143,24 +141,20 @@ export default function RoomListSection({
                   {selectedRoomDetail.room.manage.accessCode}
                 </p>
               </div>
-            ) : (
-              <input
-                type="text"
-                value={privateAccessCode}
-                onChange={(event) =>
-                  onChangePrivateAccessCode(event.target.value.toUpperCase())
-                }
-                placeholder={t("lobby.roomList.privateAccessCodePlaceholder")}
-                className="mt-5 h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm outline-none"
-              />
-            )}
+            ) : null}
+            <input
+              type="text"
+              value={privateAccessCode}
+              onChange={(event) =>
+                onChangePrivateAccessCode(event.target.value.toUpperCase())
+              }
+              placeholder={t("lobby.roomList.privateAccessCodePlaceholder")}
+              className="mt-5 h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+              style={{ colorScheme: "light" }}
+            />
             <button
               type="button"
-              onClick={() =>
-                void onEnterPrivateRoom(
-                  selectedRoomDetail.room.manage?.accessCode ?? undefined,
-                )
-              }
+              onClick={() => void onEnterPrivateRoom()}
               className="mt-3 w-full rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
             >
               {t("lobby.roomList.enter")}
@@ -220,9 +214,7 @@ export default function RoomListSection({
               </div>
               <button
                 type="button"
-                onClick={() =>
-                  onEnterPublicRoom(selectedRoomDetail.room.publicRoomNumber)
-                }
+                onClick={() => void onEnterPublicRoom(selectedRoomDetail.room.roomId)}
                 className="mt-5 w-full rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
               >
                 {t("lobby.roomList.enterRoom")}

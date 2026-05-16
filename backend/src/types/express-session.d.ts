@@ -11,7 +11,6 @@ declare module "express-session" {
     };
     room?: {
       roomId: number;
-      publicRoomNumber: number | null;
       canvasId: number;
       type: string;
     };

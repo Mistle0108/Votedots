@@ -239,14 +239,14 @@ export default function VotePanel({
               type="button"
               disabled={settingsDisabled && !forceSettingsOpen}
               onClick={() => setIsSettingsOpen((prev) => !prev)}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-sm font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-[color:var(--page-theme-surface-primary)] disabled:hover:text-[color:var(--page-theme-text-secondary)]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-[#5A8393] text-sm font-semibold text-white shadow-sm transition hover:bg-[#4B7382] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:bg-[#5A8393] disabled:hover:text-white"
               aria-label={t("vote.panel.settings")}
               aria-expanded={isSettingsVisible}
             >
               <img
                 src={settingsIcon}
                 alt=""
-                className="h-4.5 w-4.5 object-contain"
+                className="h-4.5 w-4.5 object-contain brightness-0 invert"
                 draggable={false}
               />
             </button>

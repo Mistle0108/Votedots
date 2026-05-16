@@ -155,7 +155,8 @@ export default function RoomCreateModal({
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder={t("lobby.roomCreate.placeholder.title")}
-                  className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
+                  className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+                  style={{ colorScheme: "light" }}
                 />
                 <span className="text-xs text-[#7b6b62]">
                   {t("lobby.roomCreate.titleHint")}
@@ -172,7 +173,8 @@ export default function RoomCreateModal({
                     onChange={(event) =>
                       setType(event.target.value as "public" | "private")
                     }
-                    className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
+                    className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+                    style={{ colorScheme: "light" }}
                   >
                     <option value="public">{t("lobby.roomCreate.type.public")}</option>
                     <option value="private">
@@ -197,7 +199,8 @@ export default function RoomCreateModal({
                     value={resolvedProfileKey}
                     onChange={(event) => handleProfileChange(event.target.value)}
                     disabled={availableProfiles.length === 0}
-                    className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
+                    className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+                    style={{ colorScheme: "light" }}
                   >
                     {availableProfiles.map((profile) => (
                       <option key={profile.key} value={profile.key}>
@@ -267,7 +270,8 @@ export default function RoomCreateModal({
                       onChange={(event) =>
                         setIntroPhaseSecOverride(Number(event.target.value))
                       }
-                      className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
+                      className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+                      style={{ colorScheme: "light" }}
                     />
                     <span className="text-xs text-[#7b6b62]">
                       {t("lobby.roomCreate.introHint")}
@@ -283,7 +287,8 @@ export default function RoomCreateModal({
                       onChange={(event) =>
                         setTotalRoundsOverride(Number(event.target.value))
                       }
-                      className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
+                      className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+                      style={{ colorScheme: "light" }}
                     >
                       {Array.from({ length: maxRounds }, (_, index) => index + 1).map(
                         (round) => (
@@ -307,7 +312,8 @@ export default function RoomCreateModal({
                       onChange={(event) =>
                         setVotesPerRoundOverride(Number(event.target.value))
                       }
-                      className="h-12 rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
+                      className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+                      style={{ colorScheme: "light" }}
                     />
                     <span className="text-xs text-[#7b6b62]">
                       {t("lobby.roomCreate.votesPerRoundHint")}

@@ -33,7 +33,7 @@ export default function FeaturedPreviewCard({
   const participantNames = preview?.participants ?? [];
 
   return (
-    <article className="mx-auto w-[300px] overflow-hidden rounded-[30px] bg-white shadow-[0_24px_70px_rgba(39,46,55,0.08)]">
+    <article className="mx-auto w-[332px] overflow-hidden rounded-[30px] bg-white shadow-[0_24px_70px_rgba(39,46,55,0.08)]">
       <div className="px-5 pb-4 pt-4">
         <div className="flex items-center justify-center gap-3">
           <h2
@@ -49,6 +49,8 @@ export default function FeaturedPreviewCard({
             locale={locale}
             webpUrl={item?.webpUrl ?? null}
             alt={`${gridX} x ${gridY}`}
+            gridX={gridX}
+            gridY={gridY}
           />
         </div>
 

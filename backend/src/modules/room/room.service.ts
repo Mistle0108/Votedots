@@ -33,7 +33,6 @@ export interface CreateRoomInput {
 
 export interface RoomSessionContext {
   roomId: number;
-  publicRoomNumber: number | null;
   canvasId: number;
   type: RoomType;
 }
@@ -190,15 +189,6 @@ async function assertOwnerActiveRoomLimit(ownerId: number): Promise<void> {
   }
 }
 
-async function getNextPublicRoomNumber(): Promise<number> {
-  const row = await roomRepository
-    .createQueryBuilder("room")
-    .select("COALESCE(MAX(room.publicRoomNumber), 0)", "max")
-    .getRawOne<{ max: string | number }>();
-
-  return Number(row?.max ?? 0) + 1;
-}
-
 async function generateUniqueAccessCode(): Promise<string> {
   for (let attempt = 0; attempt < 10; attempt += 1) {
     const accessCode = randomBytes(6).toString("base64url").toUpperCase();
@@ -218,7 +208,6 @@ async function generateUniqueAccessCode(): Promise<string> {
 function buildRoomSessionContext(room: Room): RoomSessionContext {
   return {
     roomId: room.id,
-    publicRoomNumber: room.publicRoomNumber,
     canvasId: room.canvas.id,
     type: room.type,
   };
@@ -275,7 +264,7 @@ export const roomService = {
   ): Promise<{
     room: Room;
     sessionContext: RoomSessionContext | null;
-    accessCode: string | null;
+    accessCode: string;
   }> {
     const profileSnapshot = getGameConfigSnapshot(input.profileKey);
     validateCreateRoomInput(input, profileSnapshot);
@@ -285,9 +274,7 @@ export const roomService = {
       input.profileKey,
       buildRoomConfigUpdate(input),
     );
-    const publicRoomNumber = await getNextPublicRoomNumber();
-    const accessCode =
-      input.type === RoomType.PRIVATE ? await generateUniqueAccessCode() : null;
+    const accessCode = await generateUniqueAccessCode();
 
     const room = await AppDataSource.transaction(async (manager) => {
       const canvasRepository = manager.getRepository(Canvas);
@@ -304,7 +291,7 @@ export const roomService = {
       const createdRoom = txRoomRepository.create({
         type: input.type,
         status: RoomStatus.ACTIVE,
-        publicRoomNumber,
+        publicRoomNumber: null,
         title: normalizeTitle(input.title),
         owner: { id: ownerId } as Voter,
         accessCode,
@@ -353,7 +340,7 @@ export const roomService = {
         { type: RoomType.PRIVATE, status: RoomStatus.GAME_END_WAIT },
       ],
       relations: { canvas: true, owner: true },
-      order: { publicRoomNumber: "DESC" },
+      order: { id: "DESC" },
     });
 
     const reconciledRooms = await Promise.all(rooms.map(reconcileRoomLifecycle));
@@ -382,12 +369,12 @@ export const roomService = {
     return participantSessionService.getParticipantList(room.canvas.id);
   },
 
-  async getPublicDetail(publicRoomNumber: number): Promise<Room> {
+  async getDetailByRoomId(roomId: number): Promise<Room> {
     await expireElapsedRooms();
 
     const foundRoom = await roomRepository.findOne({
       where: {
-        publicRoomNumber,
+        id: roomId,
       },
       relations: { canvas: true, owner: true },
     });
@@ -401,8 +388,25 @@ export const roomService = {
     return room;
   },
 
-  async enterPublic(publicRoomNumber: number) {
-    const room = await this.getPublicDetail(publicRoomNumber);
+  async enterByAccessCode(accessCode: string) {
+    await expireElapsedRooms();
+
+    const foundRoom = await roomRepository.findOne({
+      where: {
+        accessCode,
+      },
+      relations: { canvas: true },
+    });
+
+    if (!foundRoom) {
+      throw new Error("ROOM_NOT_FOUND");
+    }
+
+    const room = await reconcileRoomLifecycle(foundRoom);
+
+    if (room.status === RoomStatus.EXPIRED) {
+      throw new Error("ROOM_EXPIRED");
+    }
 
     return {
       room,
@@ -410,21 +414,11 @@ export const roomService = {
     };
   },
 
-  async enterPrivate(accessCode: string) {
-    await expireElapsedRooms();
+  async enterPublicByRoomId(roomId: number) {
+    const room = await this.getDetailByRoomId(roomId);
 
-    const foundRoom = await roomRepository.findOne({
-      where: {
-        accessCode,
-        type: RoomType.PRIVATE,
-      },
-      relations: { canvas: true },
-    });
-
-    const room = foundRoom ? await reconcileRoomLifecycle(foundRoom) : null;
-
-    if (!room || room.status === RoomStatus.EXPIRED) {
-      throw new Error("ROOM_EXPIRED");
+    if (room.type !== RoomType.PUBLIC) {
+      throw new Error("ROOM_TYPE_INVALID");
     }
 
     return {
