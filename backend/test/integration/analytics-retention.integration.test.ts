@@ -23,7 +23,7 @@ describe("analytics retention integration", () => {
 
   it("supports dry-run rollup without changing data", async () => {
     const oldEvent = visitEventRepository.create({
-      eventType: VisitEventType.SITE_VISIT,
+      eventType: VisitEventType.LANDING_VISIT,
       browserLanguage: "ko-KR",
       timeZone: "Asia/Seoul",
       deviceType: VisitDeviceType.DESKTOP,
@@ -50,28 +50,28 @@ describe("analytics retention integration", () => {
   it("rolls up eligible raw events and marks them as rolled up", async () => {
     await visitEventRepository.save([
       visitEventRepository.create({
-        eventType: VisitEventType.SITE_VISIT,
+        eventType: VisitEventType.LANDING_VISIT,
         browserLanguage: "ko-KR",
         timeZone: "Asia/Seoul",
         deviceType: VisitDeviceType.DESKTOP,
         enteredAt: new Date("2025-12-31T16:30:00.000Z"),
       }),
       visitEventRepository.create({
-        eventType: VisitEventType.SITE_VISIT,
+        eventType: VisitEventType.LANDING_VISIT,
         browserLanguage: "ko-KR",
         timeZone: "Asia/Seoul",
         deviceType: VisitDeviceType.DESKTOP,
         enteredAt: new Date("2026-01-01T02:00:00.000Z"),
       }),
       visitEventRepository.create({
-        eventType: VisitEventType.GAME_ENTRY,
+        eventType: VisitEventType.ROOM_VISIT,
         browserLanguage: "en-US",
         timeZone: "UTC",
         deviceType: VisitDeviceType.MOBILE,
         enteredAt: new Date("2026-01-02T01:00:00.000Z"),
       }),
       visitEventRepository.create({
-        eventType: VisitEventType.GAME_ENTRY,
+        eventType: VisitEventType.ROOM_VISIT,
         browserLanguage: "ko-KR",
         timeZone: "Asia/Seoul",
         deviceType: VisitDeviceType.DESKTOP,
@@ -90,8 +90,8 @@ describe("analytics retention integration", () => {
     expect(summary.rolledUpGroupCount).toBe(2);
     expect(summary.markedEventCount).toBe(3);
     expect(summary.eventCounts).toEqual([
-      { eventType: VisitEventType.GAME_ENTRY, count: 1 },
-      { eventType: VisitEventType.SITE_VISIT, count: 2 },
+      { eventType: VisitEventType.LANDING_VISIT, count: 2 },
+      { eventType: VisitEventType.ROOM_VISIT, count: 1 },
     ]);
 
     const events = await visitEventRepository.find({
@@ -102,7 +102,7 @@ describe("analytics retention integration", () => {
     expect(events.slice(0, 3).every((event) => event.rolledUpAt instanceof Date)).toBe(
       true,
     );
-    expect(events[3]?.eventType).toBe(VisitEventType.GAME_ENTRY);
+    expect(events[3]?.eventType).toBe(VisitEventType.ROOM_VISIT);
     expect(events[3]?.browserLanguage).toBe("ko-KR");
     expect(events[3]?.rolledUpAt).toBeNull();
 
@@ -117,7 +117,7 @@ describe("analytics retention integration", () => {
     expect(aggregateRows).toHaveLength(2);
     expect(aggregateRows[0]).toMatchObject({
       bucketDate: "2026-01-01",
-      eventType: VisitEventType.SITE_VISIT,
+      eventType: VisitEventType.LANDING_VISIT,
       browserLanguage: "ko-KR",
       timeZone: "Asia/Seoul",
       deviceType: VisitDeviceType.DESKTOP,
@@ -125,7 +125,7 @@ describe("analytics retention integration", () => {
     });
     expect(aggregateRows[1]).toMatchObject({
       bucketDate: "2026-01-02",
-      eventType: VisitEventType.GAME_ENTRY,
+      eventType: VisitEventType.ROOM_VISIT,
       browserLanguage: "en-US",
       timeZone: "UTC",
       deviceType: VisitDeviceType.MOBILE,
@@ -136,7 +136,7 @@ describe("analytics retention integration", () => {
   it("deletes only rolled-up raw events that are older than the retention cutoff", async () => {
     await visitEventRepository.save([
       visitEventRepository.create({
-        eventType: VisitEventType.SITE_VISIT,
+        eventType: VisitEventType.LANDING_VISIT,
         browserLanguage: "ko-KR",
         timeZone: "Asia/Seoul",
         deviceType: VisitDeviceType.DESKTOP,
@@ -144,7 +144,7 @@ describe("analytics retention integration", () => {
         rolledUpAt: new Date("2026-01-02T00:00:00.000Z"),
       }),
       visitEventRepository.create({
-        eventType: VisitEventType.GAME_ENTRY,
+        eventType: VisitEventType.ROOM_VISIT,
         browserLanguage: "en-US",
         timeZone: "UTC",
         deviceType: VisitDeviceType.MOBILE,
@@ -152,7 +152,7 @@ describe("analytics retention integration", () => {
         rolledUpAt: null,
       }),
       visitEventRepository.create({
-        eventType: VisitEventType.GAME_ENTRY,
+        eventType: VisitEventType.ROOM_VISIT,
         browserLanguage: "ko-KR",
         timeZone: "Asia/Seoul",
         deviceType: VisitDeviceType.DESKTOP,
@@ -172,7 +172,7 @@ describe("analytics retention integration", () => {
     expect(summary.pendingUnrolledEventCount).toBe(1);
     expect(summary.deletedCount).toBe(1);
     expect(summary.eventCounts).toEqual([
-      { eventType: VisitEventType.SITE_VISIT, count: 1 },
+      { eventType: VisitEventType.LANDING_VISIT, count: 1 },
     ]);
 
     const remainingEvents = await visitEventRepository.find({
@@ -183,7 +183,7 @@ describe("analytics retention integration", () => {
     expect(
       remainingEvents.some(
         (event) =>
-          event.eventType === VisitEventType.GAME_ENTRY &&
+          event.eventType === VisitEventType.ROOM_VISIT &&
           event.browserLanguage === "en-US" &&
           event.rolledUpAt === null,
       ),
@@ -191,7 +191,7 @@ describe("analytics retention integration", () => {
     expect(
       remainingEvents.some(
         (event) =>
-          event.eventType === VisitEventType.GAME_ENTRY &&
+          event.eventType === VisitEventType.ROOM_VISIT &&
           event.browserLanguage === "ko-KR" &&
           event.rolledUpAt instanceof Date,
       ),

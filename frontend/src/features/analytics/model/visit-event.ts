@@ -3,6 +3,7 @@ import type {
   VisitDeviceType,
   VisitEventType,
 } from "../api/analytics.api";
+import { analyticsApi } from "../api/analytics.api";
 
 function resolveDeviceType(userAgent: string): VisitDeviceType {
   const normalizedUserAgent = userAgent.toLowerCase();
@@ -48,4 +49,8 @@ export function buildVisitEventPayload(
     timeZone,
     deviceType: resolveDeviceType(userAgent),
   };
+}
+
+export async function trackVisitEvent(eventType: VisitEventType) {
+  return analyticsApi.trackVisitEvent(buildVisitEventPayload(eventType));
 }

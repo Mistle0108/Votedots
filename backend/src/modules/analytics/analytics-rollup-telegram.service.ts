@@ -7,10 +7,21 @@ const TELEGRAM_API_BASE_URL = "https://api.telegram.org";
 const TELEGRAM_BOT_TOKEN_ENV = "TELEGRAM_BOT_TOKEN";
 const TELEGRAM_CHAT_ID_ENV = "TELEGRAM_CHAT_ID";
 const ROLLUP_NOTIFICATION_TIME_ZONE = "Asia/Seoul";
-const DETAILED_EVENT_TYPE_ORDER = ["site_visit", "game_entry"];
+const DETAILED_EVENT_TYPE_ORDER = [
+  "landing_visit",
+  "lobby_visit",
+  "plaza_visit",
+  "room_visit",
+  "public_room_created",
+  "private_room_created",
+];
 const VISIT_EVENT_TYPE_LABELS: Record<string, string> = {
-  game_entry: "\uac8c\uc784 \uc9c4\uc785",
-  site_visit: "\uc0ac\uc774\ud2b8 \ubc29\ubb38",
+  landing_visit: "\ub79c\ub529 \uc811\uc18d",
+  lobby_visit: "\ub85c\ube44 \uc811\uc18d",
+  plaza_visit: "\uad11\uc7a5 \uc811\uc18d",
+  private_room_created: "\ube44\uacf5\uac1c\ubc29 \uc0dd\uc131",
+  public_room_created: "\uacf5\uac1c\ubc29 \uc0dd\uc131",
+  room_visit: "\ubc29 \uc811\uc18d",
 };
 
 interface TelegramApiResponse {
@@ -54,15 +65,14 @@ function formatDetailedEventCounts(
     countsByEventType.set(eventCount.eventType, eventCount.count);
   }
 
-  const extraEventTypes = [...countsByEventType.keys()].filter(
-    (eventType) => !DETAILED_EVENT_TYPE_ORDER.includes(eventType),
+  const orderedEventTypes = DETAILED_EVENT_TYPE_ORDER.filter((eventType) =>
+    countsByEventType.has(eventType),
   );
-  const orderedEventTypes = [
-    ...DETAILED_EVENT_TYPE_ORDER,
-    ...extraEventTypes.sort((left, right) => left.localeCompare(right)),
-  ];
+  const extraEventTypes = [...countsByEventType.keys()]
+    .filter((eventType) => !DETAILED_EVENT_TYPE_ORDER.includes(eventType))
+    .sort((left, right) => left.localeCompare(right));
 
-  return orderedEventTypes
+  return [...orderedEventTypes, ...extraEventTypes]
     .map((eventType) => `${eventType}=${countsByEventType.get(eventType) ?? 0}`)
     .join(" | ");
 }
@@ -118,6 +128,7 @@ function buildRollupSummaryMessage(summary: AnalyticsRollupSummary): string {
     "KST \uae30\uc900 \ub370\uc77c\ub9ac \uc9d1\uacc4 \uc644\ub8cc",
     "",
     `- \uc9d1\uacc4 \uae30\uc900 \uc2dc\uac01: ${formatDateTimeKst(summary.upperBoundIso)} (${summary.upperBoundIso})`,
+    `- \uc77c\uc77c \uac00\uc785\ub7c9: ${summary.dailySignupCount}`,
     `- \uc9d1\uacc4 \ub300\uc0c1 \uc774\ubca4\ud2b8 \uc218: ${summary.eligibleEventCount}`,
     `- \uc9d1\uacc4 \uadf8\ub8f9 \uc218: ${summary.aggregateGroupCount}`,
     `- \ubc18\uc601\ub41c \uc9d1\uacc4 \uadf8\ub8f9 \uc218: ${summary.rolledUpGroupCount}`,

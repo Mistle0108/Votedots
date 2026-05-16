@@ -10,9 +10,9 @@ describe("analytics integration", () => {
   const suite = setupIntegrationSuite();
   const visitEventRepository = AppDataSource.getRepository(VisitEvent);
 
-  it("stores a site visit event", async () => {
+  it("stores a landing visit event", async () => {
     const response = await suite.request().post("/analytics/events").send({
-      eventType: "site_visit",
+      eventType: "landing_visit",
       browserLanguage: "ko-KR",
       timeZone: "Asia/Seoul",
       deviceType: "desktop",
@@ -22,7 +22,7 @@ describe("analytics integration", () => {
     expect(response.body).toEqual({ message: "TRACK_VISIT_EVENT_SUCCESS" });
 
     const event = await visitEventRepository.findOneByOrFail({
-      eventType: VisitEventType.SITE_VISIT,
+      eventType: VisitEventType.LANDING_VISIT,
     });
 
     expect(event.browserLanguage).toBe("ko-KR");

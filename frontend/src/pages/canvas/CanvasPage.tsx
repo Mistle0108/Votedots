@@ -99,9 +99,11 @@ function buildIntroGuideSeenStorageKey(canvasId: number): string {
 export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const navigate = useNavigate();
   const { locale, t } = useI18n();
+  const gameplayEntryEventType =
+    sessionSourceApi.key === "plaza" ? "plaza_visit" : "room_visit";
 
   usePageRootClass("page-shell-root");
-  useTrackVisitEvent("game_entry");
+  useTrackVisitEvent(gameplayEntryEventType);
   const [currentVoterUuid, setCurrentVoterUuid] = useState<string | null>(null);
   const [selectionGuideState, dispatchSelectionGuide] = useReducer(
     selectionGuideReducer,
