@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
-import { analyticsApi, type VisitEventType } from "../api/analytics.api";
-import { buildVisitEventPayload } from "../model/visit-event";
+import type { VisitEventType } from "../api/analytics.api";
+import { trackVisitEvent } from "../model/visit-event";
 
 function buildPageViewStorageKey(eventType: VisitEventType, locationKey: string) {
   return `votedots:analytics:${eventType}:${locationKey}`;
@@ -23,7 +23,7 @@ export function useTrackVisitEvent(eventType: VisitEventType) {
 
     window.sessionStorage.setItem(storageKey, "sent");
 
-    void analyticsApi.trackVisitEvent(buildVisitEventPayload(eventType)).catch(() => {
+    void trackVisitEvent(eventType).catch(() => {
       window.sessionStorage.removeItem(storageKey);
     });
   }, [eventType, location.key]);

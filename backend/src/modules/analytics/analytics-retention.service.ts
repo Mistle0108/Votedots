@@ -31,6 +31,7 @@ export interface AnalyticsRollupDeviceTimeZoneEventCount {
 export interface AnalyticsRollupSummary {
   aggregateGroupCount: number;
   applied: boolean;
+  dailySignupCount: number;
   deviceTimeZoneEventCounts: AnalyticsRollupDeviceTimeZoneEventCount[];
   eventCounts: AnalyticsRetentionEventCount[];
   eligibleEventCount: number;
@@ -72,6 +73,10 @@ interface DeviceTimeZoneEventCountRow {
   deviceType: string;
   eventType: string;
   timeZone: string;
+}
+
+interface DailySignupCountRow {
+  count: string;
 }
 
 function resolveRollupUpperBound(before?: Date): Date {
@@ -152,6 +157,7 @@ async function loadDeviceTimeZoneEventCounts(
 
 async function loadRollupPreview(upperBound: Date): Promise<{
   aggregateGroupCount: number;
+  dailySignupCount: number;
   deviceTimeZoneEventCounts: AnalyticsRollupDeviceTimeZoneEventCount[];
   eligibleEventCount: number;
   eventCounts: AnalyticsRetentionEventCount[];
@@ -195,9 +201,20 @@ async function loadRollupPreview(upperBound: Date): Promise<{
     "rolled_up_at IS NULL AND entered_at < $1",
     [upperBound.toISOString()],
   );
+  const previousDayStart = new Date(upperBound.getTime() - DAY_MS);
+  const [dailySignupCountRow] = (await AppDataSource.query(
+    `
+      SELECT COUNT(*)::int AS "count"
+      FROM voter
+      WHERE "createdAt" >= $1
+        AND "createdAt" < $2
+    `,
+    [previousDayStart.toISOString(), upperBound.toISOString()],
+  )) as DailySignupCountRow[];
 
   return {
     aggregateGroupCount: Number(previewRow?.aggregateGroupCount ?? 0),
+    dailySignupCount: Number(dailySignupCountRow?.count ?? 0),
     deviceTimeZoneEventCounts,
     eligibleEventCount: Number(previewRow?.eligibleEventCount ?? 0),
     eventCounts,
