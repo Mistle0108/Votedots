@@ -78,7 +78,6 @@ async function findPlayingPlazaCanvas(): Promise<Canvas | null> {
     .orderBy("canvas.startedAt", "DESC")
     .getOne();
 }
-
 function logPhaseChange(params: {
   canvasId: number;
   phase: GamePhase;
