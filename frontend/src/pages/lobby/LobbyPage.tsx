@@ -1,4 +1,4 @@
-﻿import { useCallback, useEffect, useRef, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi, logoutToLobby } from "@/features/auth";
 import { landingApi } from "@/features/landing/api/landing.api";
@@ -28,6 +28,26 @@ type AuthState = "authenticated" | "guest" | "unknown";
 type LobbyTab = "completed" | "rooms";
 type CompletedScope = "plaza" | "public";
 type CompletedPreset = "today" | "7d" | "30d";
+type RoomTypeFilter = "all" | "public" | "private";
+type PixelPerfectPreviewDimensions = {
+  width: number;
+  height: number;
+};
+
+function getPixelPerfectPreviewDimensions(params: {
+  gridX: number;
+  gridY: number;
+  maxLongestSide: number;
+}): PixelPerfectPreviewDimensions {
+  const { gridX, gridY, maxLongestSide } = params;
+  const longestSide = Math.max(gridX, gridY);
+  const scale = Math.max(1, Math.floor(maxLongestSide / longestSide));
+
+  return {
+    width: gridX * scale,
+    height: gridY * scale,
+  };
+}
 
 function buildCompletedRange(preset: CompletedPreset) {
   const now = new Date();
@@ -96,6 +116,7 @@ export default function LobbyPage() {
   const [enterModalOpen, setEnterModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [enterLoading, setEnterLoading] = useState(false);
+  const [roomTypeFilter, setRoomTypeFilter] = useState<RoomTypeFilter>("all");
   const [generatedAccessCode, setGeneratedAccessCode] = useState<string | null>(
     null,
   );
@@ -121,16 +142,20 @@ export default function LobbyPage() {
     useState<LandingCurrentGame | null>(null);
   const [plazaLoading, setPlazaLoading] = useState(false);
   const [plazaError, setPlazaError] = useState<string | null>(null);
+  const [plazaPreviewHostWidth, setPlazaPreviewHostWidth] = useState<number | null>(
+    null,
+  );
 
   const [roomLifecycleNoticeReason, setRoomLifecycleNoticeReason] = useState<
     "expired" | "terminated_by_owner" | null
   >(() => consumeStoredRoomLifecycleNotice());
   const rightPanelRef = useRef<HTMLElement | null>(null);
+  const plazaPreviewHostRef = useRef<HTMLDivElement | null>(null);
   const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
 
   const {
     rooms,
-    selectedRoomNumber,
+    selectedRoomId,
     selectedRoomDetail,
     loading,
     error,
@@ -138,7 +163,16 @@ export default function LobbyPage() {
     detailError,
     loadRooms,
     loadRoomDetail,
+    clearSelectedRoomDetail,
   } = useLobbyRooms();
+
+  const filteredRooms = useMemo(() => {
+    if (roomTypeFilter === "all") {
+      return rooms;
+    }
+
+    return rooms.filter((room) => room.type === roomTypeFilter);
+  }, [roomTypeFilter, rooms]);
 
   const refreshAuthState = useCallback(async () => {
     try {
@@ -226,16 +260,38 @@ export default function LobbyPage() {
     }
 
     void loadRooms().then((loadedRooms) => {
-      if (selectedRoomNumber !== null) {
-        void loadRoomDetail(selectedRoomNumber);
+      if (selectedRoomId !== null) {
+        void loadRoomDetail(selectedRoomId);
         return;
       }
 
       if (loadedRooms.length > 0) {
-        void loadRoomDetail(loadedRooms[0].publicRoomNumber);
+        void loadRoomDetail(loadedRooms[0].roomId);
       }
     });
-  }, [authState, loadRoomDetail, loadRooms, selectedRoomNumber]);
+  }, [authState, loadRoomDetail, loadRooms, selectedRoomId]);
+
+  useEffect(() => {
+    if (selectedRoomId === null) {
+      return;
+    }
+
+    if (filteredRooms.some((room) => room.roomId === selectedRoomId)) {
+      return;
+    }
+
+    if (filteredRooms.length > 0) {
+      void loadRoomDetail(filteredRooms[0].roomId);
+      return;
+    }
+
+    clearSelectedRoomDetail();
+  }, [
+    clearSelectedRoomDetail,
+    filteredRooms,
+    loadRoomDetail,
+    selectedRoomId,
+  ]);
 
   useEffect(() => {
     if (activeTab !== "completed") {
@@ -302,6 +358,39 @@ export default function LobbyPage() {
     };
   }, [activeTab, authState, plazaCurrentGame, plazaLoading, plazaError]);
 
+  useEffect(() => {
+    const element = plazaPreviewHostRef.current;
+
+    if (!element || typeof ResizeObserver === "undefined") {
+      return;
+    }
+
+    const updateWidth = () => {
+      setPlazaPreviewHostWidth(element.clientWidth);
+    };
+
+    updateWidth();
+
+    const observer = new ResizeObserver(() => {
+      updateWidth();
+    });
+
+    observer.observe(element);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [plazaCurrentGame, plazaLoading, plazaError]);
+
+  const plazaPreviewDimensions =
+    plazaCurrentGame && plazaPreviewHostWidth
+      ? getPixelPerfectPreviewDimensions({
+          gridX: plazaCurrentGame.gridX,
+          gridY: plazaCurrentGame.gridY,
+          maxLongestSide: plazaPreviewHostWidth,
+        })
+      : null;
+
   const requireLogin = useCallback(async (): Promise<boolean> => {
     if (authState === "authenticated") {
       return true;
@@ -326,7 +415,6 @@ export default function LobbyPage() {
   const enterRoomFromResponse = useCallback(
     (room: {
       roomId: number;
-      publicRoomNumber: number;
       type: "public" | "private";
     }) => {
       setStoredRoomSessionContext(toRoomSessionContext(room));
@@ -404,7 +492,7 @@ export default function LobbyPage() {
     setCreateLoading(true);
 
     try {
-      const { data } = await roomApi.enterPrivateRoom(createdPrivateAccessCode);
+      const { data } = await roomApi.enterRoom(createdPrivateAccessCode);
       setCreateModalOpen(false);
       setGeneratedAccessCode(null);
       enterRoomFromResponse(data.room);
@@ -423,28 +511,7 @@ export default function LobbyPage() {
     await navigator.clipboard.writeText(generatedAccessCode);
   }, [generatedAccessCode]);
 
-  const handleEnterPublicRoom = useCallback(
-    async (publicRoomNumber: number) => {
-      if (!(await requireLogin())) {
-        return;
-      }
-
-      setEnterLoading(true);
-      setModalError(null);
-
-      try {
-        const { data } = await roomApi.enterPublicRoom(publicRoomNumber);
-        enterRoomFromResponse(data.room);
-      } catch (error) {
-        setModalError(getErrorMessage(error, t));
-      } finally {
-        setEnterLoading(false);
-      }
-    },
-    [enterRoomFromResponse, requireLogin, t],
-  );
-
-  const handleEnterPrivateRoom = useCallback(
+  const handleEnterRoomByAccessCode = useCallback(
     async (code?: string) => {
       if (!(await requireLogin())) {
         return;
@@ -455,7 +522,7 @@ export default function LobbyPage() {
 
       try {
         const accessCode = (code ?? privateAccessCode).trim();
-        const { data } = await roomApi.enterPrivateRoom(accessCode);
+        const { data } = await roomApi.enterRoom(accessCode);
         setEnterModalOpen(false);
         setPrivateAccessCode("");
         enterRoomFromResponse(data.room);
@@ -468,29 +535,20 @@ export default function LobbyPage() {
     [enterRoomFromResponse, privateAccessCode, requireLogin, t],
   );
 
-  const handleResolveRoomNumber = useCallback(
-    async (publicRoomNumber: number): Promise<void> => {
+  const handleEnterPublicRoom = useCallback(
+    async (roomId: number) => {
       if (!(await requireLogin())) {
-        throw new Error("LOGIN_REQUIRED");
+        return;
       }
 
       setEnterLoading(true);
       setModalError(null);
 
       try {
-        const { data } = await roomApi.getRoomDetail(publicRoomNumber);
-
-        if (data.room.type === "private") {
-          setModalError(t("lobby.error.privateCodePrompt"));
-          return;
-        }
-
-        const entered = await roomApi.enterPublicRoom(publicRoomNumber);
-        enterRoomFromResponse(entered.data.room);
-        setEnterModalOpen(false);
+        const { data } = await roomApi.enterPublicRoomById(roomId);
+        enterRoomFromResponse(data.room);
       } catch (error) {
         setModalError(getErrorMessage(error, t));
-        throw error;
       } finally {
         setEnterLoading(false);
       }
@@ -499,9 +557,9 @@ export default function LobbyPage() {
   );
 
   const handleSelectRoom = useCallback(
-    (publicRoomNumber: number) => {
+    (roomId: number) => {
       setPrivateAccessCode("");
-      void loadRoomDetail(publicRoomNumber);
+      void loadRoomDetail(roomId);
     },
     [loadRoomDetail],
   );
@@ -528,7 +586,10 @@ export default function LobbyPage() {
   }, [navigate]);
 
   return (
-    <main className="min-h-screen bg-[#f7f2eb] p-[10px] text-[#272E37]">
+    <main
+      className="min-h-screen bg-[#f7f2eb] p-[10px] text-[#272E37]"
+      style={{ colorScheme: "light" }}
+    >
       <div className="flex justify-end">
         <div className="flex shrink-0 rounded-full border border-[#d9cdc1] bg-white p-1 shadow-[0_12px_32px_rgba(39,46,55,0.08)]">
           <button
@@ -584,6 +645,31 @@ export default function LobbyPage() {
             ))}
           </div>
 
+          {activeTab === "rooms" ? (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(
+                [
+                  ["all", t("lobby.roomList.filter.all")],
+                  ["public", t("lobby.roomList.filter.public")],
+                  ["private", t("lobby.roomList.filter.private")],
+                ] as const
+              ).map(([value, label]) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setRoomTypeFilter(value)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
+                    roomTypeFilter === value
+                      ? "bg-[#272E37] text-white"
+                      : "border border-[#d9cdc1] bg-white text-[#5f6368]"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          ) : null}
+
           <div className="mt-5 min-h-0 flex-1">
             {activeTab === "completed" ? (
               <CompletedCanvasSection
@@ -597,8 +683,8 @@ export default function LobbyPage() {
               />
             ) : (
               <RoomListSection
-                rooms={rooms}
-                selectedRoomNumber={selectedRoomNumber}
+                rooms={filteredRooms}
+                selectedRoomId={selectedRoomId}
                 selectedRoomDetail={selectedRoomDetail}
                 loading={loading}
                 error={error}
@@ -608,7 +694,7 @@ export default function LobbyPage() {
                 onChangePrivateAccessCode={setPrivateAccessCode}
                 onSelectRoom={handleSelectRoom}
                 onEnterPublicRoom={handleEnterPublicRoom}
-                onEnterPrivateRoom={handleEnterPrivateRoom}
+                onEnterPrivateRoom={handleEnterRoomByAccessCode}
               />
             )}
           </div>
@@ -675,8 +761,11 @@ export default function LobbyPage() {
               <p className="mt-3 text-sm leading-6 text-white/88">{plazaError}</p>
             ) : plazaCurrentGame ? (
               <div className="mt-4 space-y-4">
-                <div className="overflow-hidden rounded-[24px] bg-white/12 p-3">
-                  <div className="overflow-hidden rounded-[20px] bg-white">
+                <div
+                  ref={plazaPreviewHostRef}
+                  className="rounded-[24px] bg-white/12 p-3"
+                >
+                  <div className="overflow-auto rounded-[20px] bg-white">
                     <img
                       src={
                         plazaCurrentGame.snapshotUrl ??
@@ -684,8 +773,10 @@ export default function LobbyPage() {
                         undefined
                       }
                       alt={t("lobby.plaza.previewAlt")}
-                      className="block h-full w-full"
+                      className="mx-auto block"
                       style={{ imageRendering: "pixelated" }}
+                      width={plazaPreviewDimensions?.width}
+                      height={plazaPreviewDimensions?.height}
                       draggable={false}
                     />
                   </div>
@@ -801,10 +892,8 @@ export default function LobbyPage() {
         loading={enterLoading}
         error={modalError}
         onClose={handleCloseEnterModal}
-        onResolveRoomNumber={handleResolveRoomNumber}
-        onEnterPrivateRoom={handleEnterPrivateRoom}
+        onEnterRoom={handleEnterRoomByAccessCode}
       />
     </main>
   );
 }
-

@@ -7,7 +7,7 @@ import {
 
 export default function useLobbyRooms() {
   const [rooms, setRooms] = useState<RoomListItem[]>([]);
-  const [selectedRoomNumber, setSelectedRoomNumber] = useState<number | null>(
+  const [selectedRoomId, setSelectedRoomId] = useState<number | null>(
     null,
   );
   const [selectedRoomDetail, setSelectedRoomDetail] =
@@ -34,23 +34,29 @@ export default function useLobbyRooms() {
     }
   }, []);
 
-  const loadRoomDetail = useCallback(async (publicRoomNumber: number) => {
+  const loadRoomDetail = useCallback(async (roomId: number) => {
     setDetailLoading(true);
     setDetailError(null);
 
     try {
-      const { data } = await roomApi.getRoomDetail(publicRoomNumber);
-      setSelectedRoomNumber(publicRoomNumber);
+      const { data } = await roomApi.getRoomDetail(roomId);
+      setSelectedRoomId(roomId);
       setSelectedRoomDetail(data);
       return data;
     } catch {
-      setSelectedRoomNumber(publicRoomNumber);
+      setSelectedRoomId(roomId);
       setSelectedRoomDetail(null);
       setDetailError("방 정보를 불러오지 못했습니다.");
       return null;
     } finally {
       setDetailLoading(false);
     }
+  }, []);
+
+  const clearSelectedRoomDetail = useCallback(() => {
+    setSelectedRoomId(null);
+    setSelectedRoomDetail(null);
+    setDetailError(null);
   }, []);
 
   useEffect(() => {
@@ -70,7 +76,7 @@ export default function useLobbyRooms() {
         setRooms(data.rooms);
 
         if (data.rooms.length > 0) {
-          void loadRoomDetail(data.rooms[0].publicRoomNumber);
+          void loadRoomDetail(data.rooms[0].roomId);
         }
       } catch {
         if (!cancelled) {
@@ -93,7 +99,7 @@ export default function useLobbyRooms() {
 
   return {
     rooms,
-    selectedRoomNumber,
+    selectedRoomId,
     selectedRoomDetail,
     loading,
     error,
@@ -101,5 +107,6 @@ export default function useLobbyRooms() {
     detailError,
     loadRooms,
     loadRoomDetail,
+    clearSelectedRoomDetail,
   };
 }

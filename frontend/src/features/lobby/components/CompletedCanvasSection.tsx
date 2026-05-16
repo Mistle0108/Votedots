@@ -37,10 +37,7 @@ export default function CompletedCanvasSection({
     <div className="flex h-full min-h-0 flex-col rounded-[28px] bg-[#fbf7f2] p-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-tight">
-            {t("lobby.completed.title")}
-          </h1>
-          <p className="mt-2 text-sm leading-6 text-[#5f6368]">
+          <p className="text-sm leading-6 text-[#5f6368]">
             {t("lobby.completed.description")}
           </p>
         </div>
@@ -108,7 +105,7 @@ export default function CompletedCanvasSection({
             {t("lobby.completed.empty")}
           </div>
         ) : (
-          <div className="flex flex-wrap gap-6">
+          <div className="grid justify-items-center gap-6 md:grid-cols-2 2xl:grid-cols-4">
             {COMPLETED_PREVIEW_SLOTS.map((slot) => (
               <FeaturedPreviewCard
                 key={slot.size}

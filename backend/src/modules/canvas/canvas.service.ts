@@ -67,6 +67,18 @@ async function findCurrentPlazaCanvas(): Promise<Canvas | null> {
     .getOne();
 }
 
+async function findPlayingPlazaCanvas(): Promise<Canvas | null> {
+  return canvasRepository
+    .createQueryBuilder("canvas")
+    .leftJoin("room", "room", "room.canvas_id = canvas.id")
+    .where("canvas.status = :status", { status: CanvasStatus.PLAYING })
+    .andWhere("(room.id IS NULL OR room.type = :plazaType)", {
+      plazaType: RoomType.PLAZA,
+    })
+    .orderBy("canvas.startedAt", "DESC")
+    .getOne();
+}
+
 function logPhaseChange(params: {
   canvasId: number;
   phase: GamePhase;
@@ -116,9 +128,7 @@ export async function startCanvasGame(io: Server, canvasId: number) {
 
 export const canvasService = {
   async create(io: Server, options: CreateCanvasOptions = {}): Promise<Canvas> {
-    const existing = await canvasRepository.findOne({
-      where: { status: CanvasStatus.PLAYING },
-    });
+    const existing = await findPlayingPlazaCanvas();
 
     if (existing) {
       throw new Error("A canvas is already in progress.");
