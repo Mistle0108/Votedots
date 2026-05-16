@@ -14,7 +14,7 @@ import { roundSnapshotService } from "../history/round-snapshot.service";
 import { resolveResultTemplateAssetKey } from "../canvas/template/result-template.service";
 import { roomService, type CreateRoomInput } from "./room.service";
 
-function parsePublicRoomNumber(raw: unknown): number | null {
+function parseRoomId(raw: unknown): number | null {
   const value = Number(raw);
   return Number.isInteger(value) && value > 0 ? value : null;
 }
@@ -26,7 +26,6 @@ function serializeRoomListItem(
 ) {
   return {
     roomId: room.id,
-    publicRoomNumber: room.publicRoomNumber,
     title: room.title,
     type: room.type,
     status: room.status,
@@ -38,17 +37,19 @@ function serializeRoomListItem(
 function serializePrivateRoomDetail(room: Room) {
   return {
     roomId: room.id,
-    publicRoomNumber: room.publicRoomNumber,
     title: room.title,
     type: room.type,
     status: room.status,
   };
 }
 
-function serializeManageInfo(room: Room) {
+function serializeManageInfo(
+  room: Room,
+  options: { includeAccessCode: boolean },
+) {
   return {
     settings: room.settingsSnapshot,
-    accessCode: room.type === RoomType.PRIVATE ? room.accessCode : null,
+    accessCode: options.includeAccessCode ? room.accessCode : null,
   };
 }
 
@@ -90,7 +91,6 @@ function serializeRoomDetail(
 
   return {
     roomId: room.id,
-    publicRoomNumber: room.publicRoomNumber,
     title: room.title,
     type: room.type,
     status: room.status,
@@ -128,7 +128,6 @@ async function applyRoomSessionContext(
   context:
     | {
         roomId: number;
-        publicRoomNumber: number | null;
         canvasId: number;
         type: string;
       }
@@ -168,7 +167,6 @@ export const roomController = {
       return res.status(201).json({
         room: {
           roomId: result.room.id,
-          publicRoomNumber: result.room.publicRoomNumber,
           title: result.room.title,
           type: result.room.type,
         },
@@ -204,15 +202,13 @@ export const roomController = {
 
   async getDetail(req: Request, res: Response) {
     try {
-      const publicRoomNumber = parsePublicRoomNumber(
-        req.params["publicRoomNumber"],
-      );
+      const roomId = parseRoomId(req.params["roomId"]);
 
-      if (!publicRoomNumber) {
-        return res.status(400).json({ message: "ROOM_NUMBER_INVALID" });
+      if (!roomId) {
+        return res.status(400).json({ message: "ROOM_ID_INVALID" });
       }
 
-      const room = await roomService.getPublicDetail(publicRoomNumber);
+      const room = await roomService.getDetailByRoomId(roomId);
       const isOwner =
         req.session.voter?.id !== undefined &&
         room.owner?.id === req.session.voter.id;
@@ -221,7 +217,9 @@ export const roomController = {
         return res.json({
           room: {
             ...serializePrivateRoomDetail(room),
-            manage: isOwner ? serializeManageInfo(room) : null,
+            manage: isOwner
+              ? serializeManageInfo(room, { includeAccessCode: true })
+              : null,
           },
         });
       }
@@ -243,7 +241,9 @@ export const roomController = {
                 )
               : null,
           ),
-          manage: isOwner ? serializeManageInfo(room) : null,
+          manage: isOwner
+            ? serializeManageInfo(room, { includeAccessCode: false })
+            : null,
         },
       });
     } catch (error) {
@@ -256,31 +256,17 @@ export const roomController = {
 
   async enter(req: Request, res: Response) {
     try {
-      const roomType =
-        req.body?.type === RoomType.PUBLIC || req.body?.type === RoomType.PRIVATE
-          ? req.body.type
-          : null;
-      let result;
+      const accessCode = String(req.body?.accessCode ?? "")
+        .trim()
+        .toUpperCase();
 
-      if (roomType === RoomType.PUBLIC) {
-        const publicRoomNumber = parsePublicRoomNumber(req.body?.publicRoomNumber);
+      if (!accessCode) {
+        return res.status(400).json({ message: "ROOM_ACCESS_CODE_REQUIRED" });
+      }
 
-        if (!publicRoomNumber) {
-          return res.status(400).json({ message: "ROOM_NUMBER_INVALID" });
-        }
+      const result = await roomService.enterByAccessCode(accessCode);
 
-        result = await roomService.enterPublic(publicRoomNumber);
-      } else if (roomType === RoomType.PRIVATE) {
-        const accessCode = String(req.body?.accessCode ?? "")
-          .trim()
-          .toUpperCase();
-
-        if (!accessCode) {
-          return res.status(400).json({ message: "ROOM_ACCESS_CODE_REQUIRED" });
-        }
-
-        result = await roomService.enterPrivate(accessCode);
-      } else {
+      if (result.room.type !== RoomType.PUBLIC && result.room.type !== RoomType.PRIVATE) {
         return res.status(400).json({ message: "ROOM_TYPE_INVALID" });
       }
 
@@ -289,7 +275,37 @@ export const roomController = {
       return res.json({
         room: {
           roomId: result.room.id,
-          publicRoomNumber: result.room.publicRoomNumber,
+          type: result.room.type,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status =
+        message === "ROOM_EXPIRED"
+          ? 410
+          : message === "ROOM_NOT_FOUND"
+            ? 404
+            : 400;
+
+      return res.status(status).json({ message });
+    }
+  },
+
+  async enterPublicByRoomId(req: Request, res: Response) {
+    try {
+      const roomId = parseRoomId(req.params["roomId"]);
+
+      if (!roomId) {
+        return res.status(400).json({ message: "ROOM_ID_INVALID" });
+      }
+
+      const result = await roomService.enterPublicByRoomId(roomId);
+
+      await applyRoomSessionContext(req, result.sessionContext);
+
+      return res.json({
+        room: {
+          roomId: result.room.id,
           type: result.room.type,
         },
       });
@@ -319,7 +335,6 @@ export const roomController = {
       return res.json({
         room: {
           roomId: room.id,
-          publicRoomNumber: room.publicRoomNumber,
           title: room.title,
           type: room.type,
           status: room.status,
@@ -408,11 +423,10 @@ export const roomController = {
       return res.json({
         room: {
           roomId: room.id,
-          publicRoomNumber: room.publicRoomNumber,
           title: room.title,
           type: room.type,
           settings: room.settingsSnapshot,
-          accessCode: room.type === RoomType.PRIVATE ? room.accessCode : null,
+          accessCode: room.accessCode,
         },
       });
     } catch (error) {

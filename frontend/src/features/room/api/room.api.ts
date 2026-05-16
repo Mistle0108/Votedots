@@ -27,7 +27,6 @@ export interface RoomConfigProfile {
 
 export interface RoomListItem {
   roomId: number;
-  publicRoomNumber: number;
   title: string;
   type: "public" | "private";
   status: "active" | "game_end_wait" | "expired";
@@ -38,7 +37,6 @@ export interface RoomListItem {
 export interface PublicRoomDetailResponse {
   room: {
     roomId: number;
-    publicRoomNumber: number;
     title: string;
     type: "public";
     status: "active" | "game_end_wait" | "expired";
@@ -70,7 +68,6 @@ export interface PublicRoomDetailResponse {
 export interface PrivateRoomDetailResponse {
   room: {
     roomId: number;
-    publicRoomNumber: number;
     title: string;
     type: "private";
     status: "active" | "game_end_wait" | "expired";
@@ -105,18 +102,16 @@ export interface RoomCreateRequest {
 export interface RoomCreateResponse {
   room: {
     roomId: number;
-    publicRoomNumber: number;
     title: string;
     type: "public" | "private";
   };
-  accessCode: string | null;
+  accessCode: string;
   entered: boolean;
 }
 
 export interface RoomEnterResponse {
   room: {
     roomId: number;
-    publicRoomNumber: number;
     type: "public" | "private";
   };
 }
@@ -124,7 +119,6 @@ export interface RoomEnterResponse {
 export interface RoomCurrentManageResponse {
   room: {
     roomId: number;
-    publicRoomNumber: number;
     title: string;
     type: "public" | "private";
     settings: {
@@ -144,20 +138,16 @@ export const roomApi = {
   getRooms: () => api.get<{ rooms: RoomListItem[] }>("/rooms"),
   getConfigProfiles: () =>
     api.get<{ profiles: RoomConfigProfile[] }>("/rooms/config-profiles"),
-  getRoomDetail: (publicRoomNumber: number) =>
-    api.get<RoomDetailResponse>(`/rooms/${publicRoomNumber}`),
+  getRoomDetail: (roomId: number) =>
+    api.get<RoomDetailResponse>(`/rooms/${roomId}`),
   createRoom: (payload: RoomCreateRequest) =>
     api.post<RoomCreateResponse>("/rooms", payload),
-  enterPublicRoom: (publicRoomNumber: number) =>
+  enterRoom: (accessCode: string) =>
     api.post<RoomEnterResponse>("/rooms/enter", {
-      type: "public",
-      publicRoomNumber,
-    }),
-  enterPrivateRoom: (accessCode: string) =>
-    api.post<RoomEnterResponse>("/rooms/enter", {
-      type: "private",
       accessCode,
     }),
+  enterPublicRoomById: (roomId: number) =>
+    api.post<RoomEnterResponse>(`/rooms/${roomId}/enter-public`),
   getCurrentManage: () =>
     api.get<RoomCurrentManageResponse>("/rooms/current/manage"),
   endGameCurrent: () => api.post<{ ok: true }>("/rooms/current/end-game"),
@@ -169,7 +159,6 @@ export function toRoomSessionContext(
 ): RoomSessionContext {
   return {
     roomId: room.roomId,
-    publicRoomNumber: room.publicRoomNumber,
     type: room.type,
   };
 }

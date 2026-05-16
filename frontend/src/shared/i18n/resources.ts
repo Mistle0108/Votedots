@@ -97,7 +97,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.tab.completed": "완성된 캔버스",
     "lobby.tab.rooms": "방 목록",
     "lobby.error.roomExpired": "현재 만료된 방입니다.",
-    "lobby.error.roomNotFound": "존재하지 않는 방 번호입니다.",
+    "lobby.error.roomNotFound": "존재하지 않는 입장 코드입니다.",
     "lobby.error.activeLimitReached": "동시에 생성할 수 있는 방은 최대 2개입니다.",
     "lobby.error.accessCodeRequired": "입장 코드를 입력해 주세요.",
     "lobby.error.privateCodePrompt": "비공개방은 입장 코드를 입력해야 합니다.",
@@ -124,6 +124,10 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.completed.participantList": "참여자 목록",
     "lobby.roomList.title": "방 목록",
     "lobby.roomList.loading": "불러오는 중...",
+    "lobby.roomList.empty": "생성된 방이 없습니다.",
+    "lobby.roomList.filter.all": "전체",
+    "lobby.roomList.filter.public": "공개방",
+    "lobby.roomList.filter.private": "비공개방",
     "lobby.roomList.noneSelected": "선택된 방이 없습니다.",
     "lobby.roomList.detailLoading": "방 정보를 불러오는 중...",
     "lobby.roomList.owner": "내 방",
@@ -164,8 +168,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.actions.enterRoom": "방 입장",
     "lobby.roomEnter.title": "방 입장",
     "lobby.roomEnter.close": "닫기",
-    "lobby.roomEnter.description": "방 번호 또는 비공개 방 입장 코드를 입력해주세요.",
-    "lobby.roomEnter.placeholder": "방 번호 또는 입장 코드 입력",
+    "lobby.roomEnter.description": "입장 코드를 입력해주세요.",
+    "lobby.roomEnter.placeholder": "입장 코드 입력",
     "lobby.roomEnter.enter": "입장",
     "lobby.roomEnter.entering": "입장 중...",
 
@@ -374,7 +378,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.roomCreate.phase.roundStartWait": "라운드 시작 대기 시간",
     "lobby.roomCreate.privateAccessCodeTitle": "비공개 방 안내",
     "lobby.roomCreate.privateAccessCodeDescription":
-      "생성 시 입장 코드가 발급되며, 해당 코드로 방에 입장할 수 있습니다.\n입장 코드는 로비의 내 방 세부 정보와 방 입장 후 설정 메뉴에서 다시 확인할 수 있습니다.",
+      "생성 시 입장 코드가 발급되며, 해당 코드로 방에 입장할 수 있습니다.\n입장 코드는 방 입장 후 게임 내 설정 메뉴에서 다시 확인할 수 있습니다.",
     "lobby.roomCreate.unit.seconds": "초",
   },
   en: {
@@ -472,7 +476,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.tab.completed": "Completed canvases",
     "lobby.tab.rooms": "Rooms",
     "lobby.error.roomExpired": "This room has expired.",
-    "lobby.error.roomNotFound": "This room number does not exist.",
+    "lobby.error.roomNotFound": "This access code does not exist.",
     "lobby.error.activeLimitReached":
       "You can create up to two active rooms at the same time.",
     "lobby.error.accessCodeRequired": "Please enter an access code.",
@@ -507,7 +511,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.roomCreate.phase.roundStartWait": "Round start wait",
     "lobby.roomCreate.privateAccessCodeTitle": "Private room notice",
     "lobby.roomCreate.privateAccessCodeDescription":
-      "When a room is created, an access code is issued and can be used to enter the room. You can check the code again from your room details in the lobby or from the settings menu after entering the room.",
+      "When a room is created, an access code is issued and can be used to enter the room. You can check the code again from the in-game settings menu after entering the room.",
     "lobby.roomCreate.unit.seconds": "s",
     "lobby.login.usernamePlaceholder": "Username",
     "lobby.login.passwordPlaceholder": "Password",
@@ -531,6 +535,10 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.completed.participantList": "Participants",
     "lobby.roomList.title": "Room list",
     "lobby.roomList.loading": "Loading...",
+    "lobby.roomList.empty": "No rooms have been created.",
+    "lobby.roomList.filter.all": "All",
+    "lobby.roomList.filter.public": "Public",
+    "lobby.roomList.filter.private": "Private",
     "lobby.roomList.noneSelected": "No room selected.",
     "lobby.roomList.detailLoading": "Loading room details...",
     "lobby.roomList.owner": "My room",
@@ -571,8 +579,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.actions.enterRoom": "Enter room",
     "lobby.roomEnter.title": "Enter room",
     "lobby.roomEnter.close": "Close",
-    "lobby.roomEnter.description": "Enter a room number or a private room access code.",
-    "lobby.roomEnter.placeholder": "Enter room number or access code",
+    "lobby.roomEnter.description": "Enter an access code.",
+    "lobby.roomEnter.placeholder": "Enter access code",
     "lobby.roomEnter.enter": "Enter",
     "lobby.roomEnter.entering": "Entering...",
 
@@ -761,4 +769,3 @@ export const resources: Record<Locale, Record<string, string>> = {
     "loginBoard.patchType.breaking": "Breaking",
   },
 };
-

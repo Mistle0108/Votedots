@@ -6,8 +6,7 @@ interface RoomEnterModalProps {
   loading: boolean;
   error: string | null;
   onClose: () => void;
-  onResolveRoomNumber: (publicRoomNumber: number) => Promise<void>;
-  onEnterPrivateRoom: (accessCode: string) => Promise<void>;
+  onEnterRoom: (accessCode: string) => Promise<void>;
 }
 
 export default function RoomEnterModal({
@@ -15,8 +14,7 @@ export default function RoomEnterModal({
   loading,
   error,
   onClose,
-  onResolveRoomNumber,
-  onEnterPrivateRoom,
+  onEnterRoom,
 }: RoomEnterModalProps) {
   const { t } = useI18n();
   const [entryValue, setEntryValue] = useState("");
@@ -49,7 +47,8 @@ export default function RoomEnterModal({
           value={entryValue}
           onChange={(event) => setEntryValue(event.target.value.toUpperCase())}
           placeholder={t("lobby.roomEnter.placeholder")}
-          className="mt-5 h-12 w-full rounded-2xl border border-[#d9cdc1] px-4 text-sm outline-none"
+          className="mt-5 h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+          style={{ colorScheme: "light" }}
         />
         {error ? <p className="mt-3 text-sm text-[#d14d28]">{error}</p> : null}
         <button
@@ -62,18 +61,7 @@ export default function RoomEnterModal({
               return;
             }
 
-            if (/^\d+$/.test(trimmed)) {
-              const nextRoomNumber = Number(trimmed);
-
-              if (!Number.isInteger(nextRoomNumber) || nextRoomNumber <= 0) {
-                return;
-              }
-
-              await onResolveRoomNumber(nextRoomNumber);
-              return;
-            }
-
-            await onEnterPrivateRoom(trimmed);
+            await onEnterRoom(trimmed);
           }}
           className="mt-6 w-full rounded-2xl bg-[#272E37] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
         >
@@ -83,4 +71,3 @@ export default function RoomEnterModal({
     </div>
   );
 }
-
