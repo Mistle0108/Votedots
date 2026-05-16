@@ -1,5 +1,7 @@
 ﻿import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
+import { trackVisitEvent } from "@/features/analytics/model/visit-event";
 import { authApi, logoutToLobby } from "@/features/auth";
 import { landingApi } from "@/features/landing/api/landing.api";
 import type {
@@ -105,6 +107,7 @@ function getErrorMessage(
 export default function LobbyPage() {
   const navigate = useNavigate();
   usePageRootClass("page-shell-root");
+  useTrackVisitEvent("lobby_visit");
 
   const { locale, setLocale, t } = useI18n();
   const [authState, setAuthState] = useState<AuthState>("unknown");
@@ -465,6 +468,11 @@ export default function LobbyPage() {
 
       try {
         const { data } = await roomApi.createRoom(payload);
+        void trackVisitEvent(
+          payload.type === "public"
+            ? "public_room_created"
+            : "private_room_created",
+        ).catch(() => {});
         await loadRooms();
 
         if (data.entered) {

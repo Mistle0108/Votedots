@@ -85,7 +85,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
   usePageRootClass("page-shell-root");
   usePublicSiteLocale(locale);
-  useTrackVisitEvent("site_visit");
+  useTrackVisitEvent("landing_visit");
 
   useEffect(() => {
     let cancelled = false;

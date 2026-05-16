@@ -53,6 +53,7 @@ function printSummary(summary: Awaited<
 >): void {
   console.log("[analytics:rollup] mode:", summary.applied ? "apply" : "dry-run");
   console.log("[analytics:rollup] upperBound:", summary.upperBoundIso);
+  console.log("[analytics:rollup] dailySignupCount:", summary.dailySignupCount);
   console.log("[analytics:rollup] eligibleEventCount:", summary.eligibleEventCount);
   console.log("[analytics:rollup] aggregateGroupCount:", summary.aggregateGroupCount);
   console.log(
@@ -83,7 +84,7 @@ async function main() {
     const summary = await analyticsRetentionService.rollupVisitEvents(options);
     printSummary(summary);
 
-    if (options.apply && summary.applied) {
+    if (options.apply) {
       try {
         await analyticsRollupTelegramService.sendRollupSummary(summary);
         console.log("[analytics:rollup] telegram notification sent");

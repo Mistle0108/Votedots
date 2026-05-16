@@ -1,8 +1,12 @@
 import { Column, CreateDateColumn, Entity, Index, PrimaryGeneratedColumn } from "typeorm";
 
 export enum VisitEventType {
-  SITE_VISIT = "site_visit",
-  GAME_ENTRY = "game_entry",
+  LANDING_VISIT = "landing_visit",
+  LOBBY_VISIT = "lobby_visit",
+  PLAZA_VISIT = "plaza_visit",
+  ROOM_VISIT = "room_visit",
+  PUBLIC_ROOM_CREATED = "public_room_created",
+  PRIVATE_ROOM_CREATED = "private_room_created",
 }
 
 export enum VisitDeviceType {
