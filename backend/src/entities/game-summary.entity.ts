@@ -139,6 +139,46 @@ export class GameSummary {
   @Column({ type: "simple-json", name: "participants_json", nullable: true }) // 추가: 함께한 투표자 목록
   participantsJson!: ParticipantSummary[] | null;
 
+  @Column({
+    type: "varchar",
+    length: 255,
+    name: "final_result_storage_path",
+    nullable: true,
+  })
+  finalResultStoragePath!: string | null;
+
+  @Column({
+    type: "varchar",
+    length: 32,
+    name: "final_result_mime_type",
+    nullable: true,
+  })
+  finalResultMimeType!: string | null;
+
+  @Column({
+    type: "varchar",
+    length: 16,
+    name: "final_result_format",
+    nullable: true,
+  })
+  finalResultFormat!: string | null;
+
+  @Column({ type: "int", name: "final_result_width", nullable: true })
+  finalResultWidth!: number | null;
+
+  @Column({ type: "int", name: "final_result_height", nullable: true })
+  finalResultHeight!: number | null;
+
+  @Column({ type: "int", name: "final_result_byte_size", nullable: true })
+  finalResultByteSize!: number | null;
+
+  @Column({
+    type: "timestamptz",
+    name: "final_result_captured_at",
+    nullable: true,
+  })
+  finalResultCapturedAt!: Date | null;
+
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;
 

@@ -9,6 +9,7 @@ import { VoteRound } from "../entities/vote-round.entity";
 import { RoundVoterState } from "../entities/round-voter-state.entity";
 import { VoteTicket } from "../entities/vote-ticket.entity";
 import { Vote } from "../entities/vote.entity";
+import { CanvasParticipantSummary } from "../entities/canvas-participant-summary.entity";
 import { GameSummary } from "../entities/game-summary.entity";
 import { GamePreview } from "../entities/game-preview.entity";
 import { RoundSummary } from "../entities/round-summary.entity";
@@ -41,6 +42,7 @@ export const AppDataSource = new DataSource({
     RoundVoterState,
     VoteTicket,
     Voter,
+    CanvasParticipantSummary,
     GameSummary,
     GamePreview,
     RoundSummary,
