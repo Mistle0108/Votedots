@@ -712,19 +712,30 @@ export default function LobbyPage() {
           <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
             <div className="grid gap-3">
               {authState === "authenticated" ? (
-                <div className="flex min-h-[48px] items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm text-[#5f6368]">
+                <div className="grid min-h-[48px] gap-3 rounded-2xl px-4 py-3 text-sm text-[#5f6368]">
                   <span className="truncate font-semibold text-[#272E37]">
                     {nickname ?? t("lobby.login.loggedInFallback")}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      void handleLogout();
-                    }}
-                    className="shrink-0 text-sm font-semibold text-[#e05746]"
-                  >
-                    {t("session.logout")}
-                  </button>
+                  <div className="flex items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigate("/mypage");
+                      }}
+                      className="inline-flex h-9 items-center justify-center rounded-full border border-[#d9cdc1] px-4 text-sm font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
+                    >
+                      {t("lobby.actions.mypage")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void handleLogout();
+                      }}
+                      className="shrink-0 text-sm font-semibold text-[#e05746]"
+                    >
+                      {t("session.logout")}
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <button
