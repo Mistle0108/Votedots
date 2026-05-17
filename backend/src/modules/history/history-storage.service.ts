@@ -5,6 +5,7 @@ const DEFAULT_STORAGE_ROOT = path.resolve(process.cwd(), "storage");
 const GAME_HISTORY_PREFIX = "game-history";
 const DOWNLOAD_PREFIX = "download";
 const LANDING_PREVIEW_PREFIX = "landing-previews";
+const GAME_RESULT_PREFIX = "game-result";
 
 export type StorageImageFormat = "png" | "webp";
 
@@ -99,6 +100,25 @@ export function getLandingPreviewFilename(
   return `canvas-${canvasId}.${format}`;
 }
 
+export function getGameResultFilename(
+  canvasId: number,
+  format: StorageImageFormat = "png",
+): string {
+  return `canvas-${canvasId}-result.${format}`;
+}
+
+export function buildGameResultRelativePath(params: {
+  canvasId: number;
+  format?: StorageImageFormat;
+}): string {
+  const format = params.format ?? "png";
+
+  return path.posix.join(
+    GAME_RESULT_PREFIX,
+    getGameResultFilename(params.canvasId, format),
+  );
+}
+
 export function buildLandingPreviewRelativePath(params: {
   endedAt: Date;
   canvasId: number;
@@ -174,6 +194,21 @@ export async function ensureLandingPreviewDirectory(params: {
   endedAt: Date;
 }): Promise<{ relativeDirPath: string; absoluteDirPath: string }> {
   const relativeDirPath = getLandingPreviewRelativeDirectory(params.endedAt);
+  const absoluteDirPath = resolveGameHistoryAbsolutePath(relativeDirPath);
+
+  await mkdir(absoluteDirPath, { recursive: true });
+
+  return {
+    relativeDirPath,
+    absoluteDirPath,
+  };
+}
+
+export async function ensureGameResultDirectory(): Promise<{
+  relativeDirPath: string;
+  absoluteDirPath: string;
+}> {
+  const relativeDirPath = GAME_RESULT_PREFIX;
   const absoluteDirPath = resolveGameHistoryAbsolutePath(relativeDirPath);
 
   await mkdir(absoluteDirPath, { recursive: true });
