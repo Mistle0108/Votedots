@@ -5,8 +5,8 @@ import { Canvas } from "../../entities/canvas.entity";
 import { Cell } from "../../entities/cell.entity";
 import { canvasService } from "./canvas.service";
 import { GameSummary } from "../../entities/game-summary.entity";
+import { finalResultImageService } from "../history/final-result-image.service";
 import { summaryService } from "../summary/summary.service";
-import { roundSnapshotService } from "../history/round-snapshot.service";
 import type { GetCanvasChunksQuery } from "./dto/get-canvas-chunks.dto";
 
 interface CreateCanvasRequestBody {
@@ -39,29 +39,6 @@ function serializeCell(cell: Cell) {
   };
 }
 
-function buildRoundSnapshotUrl(canvasId: number, roundId: number): string {
-  return roundSnapshotService.buildRoundSnapshotApiPath(canvasId, roundId);
-}
-
-function buildRoundDownloadSnapshotUrl(
-  canvasId: number,
-  roundId: number,
-): string {
-  return roundSnapshotService.buildRoundDownloadSnapshotApiPath(
-    canvasId,
-    roundId,
-  );
-}
-
-function buildRoundHighResolutionDownloadSnapshotUrl(
-  canvasId: number,
-  roundId: number,
-): string {
-  return roundSnapshotService.buildRoundHighResolutionDownloadSnapshotApiPath(
-    canvasId,
-    roundId,
-  );
-}
 
 // 게임 summary 응답 구조를 명시적으로 고정
 function serializeGameSummary(
@@ -190,24 +167,21 @@ export const canvasController = {
         return res.status(400).json({ message: "존재하지 않는 캔버스입니다." });
       }
 
-      const [summary, snapshot] = await Promise.all([
-        summaryService.getGameSummary(canvasId),
-        roundSnapshotService.findLatestRoundSnapshot(canvasId),
-      ]);
+      const summary = await summaryService.getGameSummary(canvasId);
+      const hasFinalResultImage = Boolean(summary.finalResultStoragePath);
 
       return res.json({
         data: serializeGameSummary(
           summary,
-          snapshot?.round?.id
-            ? buildRoundSnapshotUrl(canvasId, snapshot.round.id)
+          hasFinalResultImage
+            ? finalResultImageService.buildFinalResultImageApiPath(canvasId)
             : null,
-          snapshot?.round?.id
-            ? buildRoundDownloadSnapshotUrl(canvasId, snapshot.round.id)
+          hasFinalResultImage
+            ? finalResultImageService.buildFinalResultDownloadApiPath(canvasId)
             : null,
-          snapshot?.round?.id
-            ? buildRoundHighResolutionDownloadSnapshotUrl(
+          hasFinalResultImage
+            ? finalResultImageService.buildFinalResultHighResolutionDownloadApiPath(
                 canvasId,
-                snapshot.round.id,
               )
             : null,
         ),

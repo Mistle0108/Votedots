@@ -119,6 +119,36 @@ export function buildGameResultRelativePath(params: {
   );
 }
 
+export function getGameResultDownloadFilename(params: {
+  canvasId: number;
+  format?: StorageImageFormat;
+  suffix?: string;
+}): string {
+  const format = params.format ?? "png";
+  const suffix = params.suffix ?? "";
+
+  return `canvas-${params.canvasId}-result${suffix}.${format}`;
+}
+
+export function buildGameResultDownloadRelativePath(params: {
+  capturedAt: Date;
+  canvasId: number;
+  format?: StorageImageFormat;
+  suffix?: string;
+}): string {
+  const format = params.format ?? "png";
+  const suffix = params.suffix ?? "";
+
+  return path.posix.join(
+    getRoundDownloadRelativeDirectory(params.capturedAt),
+    getGameResultDownloadFilename({
+      canvasId: params.canvasId,
+      format,
+      suffix,
+    }),
+  );
+}
+
 export function buildLandingPreviewRelativePath(params: {
   endedAt: Date;
   canvasId: number;

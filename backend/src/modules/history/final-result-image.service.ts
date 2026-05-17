@@ -1,11 +1,14 @@
-import { writeFile } from "node:fs/promises";
+import { access, readFile, writeFile } from "node:fs/promises";
 import { AppDataSource } from "../../database/data-source";
 import { Canvas } from "../../entities/canvas.entity";
 import { Cell } from "../../entities/cell.entity";
 import { GameSummary } from "../../entities/game-summary.entity";
+import { downloadSnapshotConfig } from "../../config/download-snapshot.config";
 import {
   buildGameResultRelativePath,
+  buildGameResultDownloadRelativePath,
   ensureGameResultDirectory,
+  ensureRoundDownloadDirectory,
   resolveGameHistoryAbsolutePath,
 } from "./history-storage.service";
 import { roundSnapshotRenderService } from "./round-snapshot-render.service";
@@ -17,10 +20,21 @@ import {
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const cellRepository = AppDataSource.getRepository(Cell);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
+const finalResultDownloadLocks = new Map<string, Promise<string>>();
+
+type FinalResultDownloadVariant = "original" | "hd";
 
 export const finalResultImageService = {
   buildFinalResultImageApiPath(canvasId: number): string {
-    return `/public/canvas/${canvasId}/final-result`;
+    return `/api/public/canvas/${canvasId}/final-result`;
+  },
+
+  buildFinalResultDownloadApiPath(canvasId: number): string {
+    return this.buildFinalResultImageApiPath(canvasId);
+  },
+
+  buildFinalResultHighResolutionDownloadApiPath(canvasId: number): string {
+    return `/api/public/canvas/${canvasId}/final-result/download-hd`;
   },
 
   resolveFinalResultAbsolutePath(summary: Pick<GameSummary, "finalResultStoragePath">): string {
@@ -46,6 +60,95 @@ export const finalResultImageService = {
 
     return {
       absolutePath: this.resolveFinalResultAbsolutePath(gameSummary),
+      mimeType: gameSummary.finalResultMimeType ?? "image/png",
+    };
+  },
+
+  async ensureFinalResultDownloadAsset(
+    canvasId: number,
+    variant: FinalResultDownloadVariant,
+  ): Promise<{
+    absolutePath: string;
+    mimeType: string;
+  }> {
+    const gameSummary = await gameSummaryRepository
+      .createQueryBuilder("summary")
+      .where("summary.canvas_id = :canvasId", { canvasId })
+      .getOne();
+
+    if (!gameSummary?.finalResultStoragePath) {
+      throw new Error("Final result image was not found.");
+    }
+
+    if (variant === "original") {
+      return {
+        absolutePath: this.resolveFinalResultAbsolutePath(gameSummary),
+        mimeType: gameSummary.finalResultMimeType ?? "image/png",
+      };
+    }
+
+    const capturedAt =
+      gameSummary.finalResultCapturedAt ??
+      gameSummary.updatedAt ??
+      gameSummary.createdAt ??
+      new Date();
+    const relativePath = buildGameResultDownloadRelativePath({
+      capturedAt,
+      canvasId,
+      format: "png",
+      suffix: "-hd",
+    });
+    const absolutePath = resolveGameHistoryAbsolutePath(relativePath);
+
+    try {
+      await access(absolutePath);
+
+      return {
+        absolutePath,
+        mimeType: gameSummary.finalResultMimeType ?? "image/png",
+      };
+    } catch {
+      const inFlight = finalResultDownloadLocks.get(absolutePath);
+
+      if (inFlight) {
+        await inFlight;
+
+        return {
+          absolutePath,
+          mimeType: gameSummary.finalResultMimeType ?? "image/png",
+        };
+      }
+    }
+
+    const generation = (async () => {
+      try {
+        try {
+          await access(absolutePath);
+          return absolutePath;
+        } catch {
+          await ensureRoundDownloadDirectory({ capturedAt });
+
+          const sourceBuffer = await readFile(
+            this.resolveFinalResultAbsolutePath(gameSummary),
+          );
+          const downloadBuffer = roundSnapshotRenderService.buildDownloadPngBuffer({
+            sourceBuffer,
+            maxLongestSide: downloadSnapshotConfig.maxLongestSide,
+          });
+
+          await writeFile(absolutePath, downloadBuffer);
+          return absolutePath;
+        }
+      } finally {
+        finalResultDownloadLocks.delete(absolutePath);
+      }
+    })();
+
+    finalResultDownloadLocks.set(absolutePath, generation);
+    await generation;
+
+    return {
+      absolutePath,
       mimeType: gameSummary.finalResultMimeType ?? "image/png",
     };
   },

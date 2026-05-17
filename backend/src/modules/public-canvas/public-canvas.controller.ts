@@ -37,4 +37,31 @@ export const publicCanvasController = {
       });
     }
   },
+
+  async getFinalResultHighResolutionDownloadImage(req: Request, res: Response) {
+    try {
+      const canvasId = parseId(req.params["canvasId"]);
+
+      if (!canvasId) {
+        return res.status(400).json({
+          message: "Invalid canvas id.",
+        });
+      }
+
+      const { absolutePath, mimeType } =
+        await finalResultImageService.ensureFinalResultDownloadAsset(
+          canvasId,
+          "hd",
+        );
+
+      res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      res.type(mimeType);
+
+      return res.sendFile(absolutePath);
+    } catch (error) {
+      return res.status(404).json({
+        message: String(error),
+      });
+    }
+  },
 };

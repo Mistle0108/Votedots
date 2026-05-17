@@ -1,5 +1,6 @@
 import type { Request, Response } from "express";
 import { finalResultImageService } from "../history/final-result-image.service";
+import { historyService } from "../history/history.service";
 import { mypageService } from "./mypage.service";
 
 function parsePositiveInteger(value: unknown): number | null {
@@ -88,6 +89,8 @@ export const mypageController = {
       const imageUrl = result.gameSummary.finalResultStoragePath
         ? finalResultImageService.buildFinalResultImageApiPath(canvasId)
         : null;
+      const history = await historyService.getCanvasHistory(canvasId);
+      const gameSummaryDownloads = history?.gameSummary;
 
       return res.json({
         participation: {
@@ -108,8 +111,15 @@ export const mypageController = {
           hottestRoundNumber: result.gameSummary.hottestRoundNumber,
           hottestRoundVoteCount: result.gameSummary.hottestRoundVoteCount,
           resultImageUrl: imageUrl,
-          downloadUrl: imageUrl,
-          downloadAvailable: Boolean(result.gameSummary.finalResultStoragePath),
+          downloadSnapshotUrl: gameSummaryDownloads?.downloadSnapshotUrl ?? null,
+          highResolutionDownloadSnapshotUrl:
+            gameSummaryDownloads?.highResolutionDownloadSnapshotUrl ?? null,
+          downloadAvailable: Boolean(gameSummaryDownloads?.downloadSnapshotUrl),
+          highResolutionDownloadAvailable: Boolean(
+            gameSummaryDownloads?.highResolutionDownloadSnapshotUrl,
+          ),
+          createdAt: result.gameSummary.createdAt.toISOString(),
+          updatedAt: result.gameSummary.updatedAt.toISOString(),
         },
       });
     } catch (error) {

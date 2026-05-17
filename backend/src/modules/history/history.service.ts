@@ -4,6 +4,7 @@ import { GameSummary } from "../../entities/game-summary.entity";
 import { RoundSnapshot } from "../../entities/round-snapshot.entity";
 import { RoundSummary } from "../../entities/round-summary.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
+import { finalResultImageService } from "./final-result-image.service";
 
 const canvasRepository = AppDataSource.getRepository(Canvas);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
@@ -513,22 +514,18 @@ export const historyService = {
 
         return serializeRoundSummaryFromSnapshot(snapshot, snapshotUrl);
       });
-    const latestSnapshotUrl = getRoundSnapshotUrl(
-      canvasId,
-      snapshots[0] ?? null,
-      roundMap,
-    );
-    const latestDownloadSnapshotUrl = getRoundDownloadSnapshotUrl(
-      canvasId,
-      snapshots[0] ?? null,
-      roundMap,
-    );
-    const latestHighResolutionDownloadSnapshotUrl =
-      getRoundHighResolutionDownloadSnapshotUrl(
-        canvasId,
-        snapshots[0] ?? null,
-        roundMap,
-      );
+    const finalResultSnapshotUrl = gameSummary?.finalResultStoragePath
+      ? finalResultImageService.buildFinalResultImageApiPath(canvasId)
+      : null;
+    const finalResultDownloadSnapshotUrl = gameSummary?.finalResultStoragePath
+      ? finalResultImageService.buildFinalResultDownloadApiPath(canvasId)
+      : null;
+    const finalResultHighResolutionDownloadSnapshotUrl =
+      gameSummary?.finalResultStoragePath
+        ? finalResultImageService.buildFinalResultHighResolutionDownloadApiPath(
+            canvasId,
+          )
+        : null;
 
     return {
       rounds: historyRounds,
@@ -537,9 +534,9 @@ export const historyService = {
             canvas,
             rounds,
             gameSummary,
-            latestSnapshotUrl,
-            latestDownloadSnapshotUrl,
-            latestHighResolutionDownloadSnapshotUrl,
+            finalResultSnapshotUrl,
+            finalResultDownloadSnapshotUrl,
+            finalResultHighResolutionDownloadSnapshotUrl,
           )
         : null,
     };
