@@ -19,6 +19,37 @@ const cellRepository = AppDataSource.getRepository(Cell);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
 
 export const finalResultImageService = {
+  buildFinalResultImageApiPath(canvasId: number): string {
+    return `/public/canvas/${canvasId}/final-result`;
+  },
+
+  resolveFinalResultAbsolutePath(summary: Pick<GameSummary, "finalResultStoragePath">): string {
+    if (!summary.finalResultStoragePath) {
+      throw new Error("Final result image was not found.");
+    }
+
+    return resolveGameHistoryAbsolutePath(summary.finalResultStoragePath);
+  },
+
+  async getFinalResultAsset(canvasId: number): Promise<{
+    absolutePath: string;
+    mimeType: string;
+  }> {
+    const gameSummary = await gameSummaryRepository
+      .createQueryBuilder("summary")
+      .where("summary.canvas_id = :canvasId", { canvasId })
+      .getOne();
+
+    if (!gameSummary?.finalResultStoragePath) {
+      throw new Error("Final result image was not found.");
+    }
+
+    return {
+      absolutePath: this.resolveFinalResultAbsolutePath(gameSummary),
+      mimeType: gameSummary.finalResultMimeType ?? "image/png",
+    };
+  },
+
   async saveForCanvas(canvasId: number): Promise<void> {
     const canvas = await canvasRepository.findOne({
       where: { id: canvasId },
@@ -28,9 +59,10 @@ export const finalResultImageService = {
       throw new Error(`Canvas was not found. (id=${canvasId})`);
     }
 
-    const gameSummary = await gameSummaryRepository.findOne({
-      where: { canvas: { id: canvasId } },
-    });
+    const gameSummary = await gameSummaryRepository
+      .createQueryBuilder("summary")
+      .where("summary.canvas_id = :canvasId", { canvasId })
+      .getOne();
 
     if (!gameSummary) {
       throw new Error(`Game summary was not found. (canvasId=${canvasId})`);

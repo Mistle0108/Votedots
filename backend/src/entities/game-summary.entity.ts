@@ -27,7 +27,7 @@ export class GameSummary {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @OneToOne(() => Canvas, { onDelete: "CASCADE" }) // 추가: 캔버스당 게임 summary 1개
+  @OneToOne(() => Canvas, { onDelete: "CASCADE" })
   @JoinColumn({ name: "canvas_id" })
   canvas!: Canvas;
 
@@ -70,7 +70,7 @@ export class GameSummary {
   })
   canvasCompletionPercent!: string;
 
-  @Column({ type: "int", name: "most_voted_cell_id", nullable: true }) // 추가: 전체 무투표면 null 가능
+  @Column({ type: "int", name: "most_voted_cell_id", nullable: true })
   mostVotedCellId!: number | null;
 
   @Column({ type: "int", name: "most_voted_cell_x", nullable: true })
@@ -133,10 +133,10 @@ export class GameSummary {
   @Column({ type: "int", name: "hottest_round_vote_count", default: 0 })
   hottestRoundVoteCount!: number;
 
-  @Column({ type: "simple-json", name: "top_voters_json", nullable: true }) // 추가: 상위 투표자 목록
+  @Column({ type: "simple-json", name: "top_voters_json", nullable: true })
   topVotersJson!: TopVoterSummary[] | null;
 
-  @Column({ type: "simple-json", name: "participants_json", nullable: true }) // 추가: 함께한 투표자 목록
+  @Column({ type: "simple-json", name: "participants_json", nullable: true })
   participantsJson!: ParticipantSummary[] | null;
 
   @Column({

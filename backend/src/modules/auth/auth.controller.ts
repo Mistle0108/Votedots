@@ -2,7 +2,11 @@ import { Request, Response } from "express";
 import { participantSessionService } from "../participant/participant-session.service";
 import { authSessionService } from "./auth-session.service";
 import { authService } from "./auth.service";
-import { validateLoginInput, validateRegisterInput } from "./auth.validation";
+import {
+  validateLoginInput,
+  validatePasswordValue,
+  validateRegisterInput,
+} from "./auth.validation";
 import { getSessionRoom } from "../../socket/socket";
 
 function regenerateSession(req: Request): Promise<void> {
@@ -125,16 +129,53 @@ export const authController = {
     }
   },
 
-  async withdraw(req: Request, res: Response) {
+  async changePassword(req: Request, res: Response) {
     try {
       const voterId = req.session.voter?.id;
-      const currentSessionId = req.sessionID;
+      const { currentPassword, newPassword } = req.body;
 
       if (!voterId) {
         return res.status(401).json({ message: "AUTH_REQUIRED_LOGIN" });
       }
 
-      await authService.withdraw(voterId);
+      const currentPasswordValidationError =
+        typeof currentPassword === "string" && currentPassword.length > 0
+          ? null
+          : "AUTH_MISSING_CREDENTIALS";
+      const newPasswordValidationError = validatePasswordValue(newPassword);
+
+      if (currentPasswordValidationError || newPasswordValidationError) {
+        return res.status(400).json({
+          message: currentPasswordValidationError ?? newPasswordValidationError,
+        });
+      }
+
+      await authService.changePassword(voterId, currentPassword, newPassword);
+
+      return res.json({ message: "CHANGE_PASSWORD_SUCCESS" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const status = message === "AUTH_INVALID_CREDENTIALS" ? 401 : 400;
+
+      return res.status(status).json({ message });
+    }
+  },
+
+  async withdraw(req: Request, res: Response) {
+    try {
+      const voterId = req.session.voter?.id;
+      const currentSessionId = req.sessionID;
+      const { password } = req.body;
+
+      if (!voterId) {
+        return res.status(401).json({ message: "AUTH_REQUIRED_LOGIN" });
+      }
+
+      if (typeof password !== "string" || password.length === 0) {
+        return res.status(400).json({ message: "AUTH_MISSING_CREDENTIALS" });
+      }
+
+      await authService.withdraw(voterId, password);
 
       const activeSessionId = await authSessionService.revokeActiveSession(
         voterId,
@@ -166,19 +207,30 @@ export const authController = {
 
       res.clearCookie("connect.sid");
       return res.json({ message: "WITHDRAW_SUCCESS" });
-    } catch {
-      return res.status(500).json({ message: "WITHDRAW_FAILED" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const status = message === "AUTH_INVALID_CREDENTIALS" ? 401 : 500;
+
+      return res.status(status).json({ message });
     }
   },
 
   async me(req: Request, res: Response) {
-    const voter = req.session.voter!;
+    const sessionVoter = req.session.voter;
+
+    if (!sessionVoter?.id) {
+      return res.status(401).json({ message: "AUTH_REQUIRED_LOGIN" });
+    }
+
+    const voter = await authService.getMe(sessionVoter.id);
 
     return res.json({
       voter: {
         uuid: voter.uuid,
+        username: voter.username,
         nickname: voter.nickname,
         role: voter.role,
+        createdAt: voter.createdAt.toISOString(),
       },
     });
   },
