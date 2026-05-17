@@ -7,6 +7,7 @@ export interface TutorialStep {
   targetIds: string[];
   padding?: number;
   scrollTargetIntoView?: boolean;
+  panelPosition?: "upper" | "center" | "bottom";
 }
 
 interface TutorialOverlayProps {
@@ -19,6 +20,7 @@ interface TutorialOverlayProps {
   nextLabel: string;
   finishLabel: string;
   closeLabel: string;
+  panelPosition?: "upper" | "center" | "bottom";
 }
 
 type Rect = {
@@ -36,9 +38,7 @@ type ScrollPosition = {
 
 const OVERLAY_COLOR = "rgba(15,23,42,0.52)";
 
-function buildOverlayPath(rect: Rect, radius = 28): string {
-  const viewportWidth = window.innerWidth;
-  const viewportHeight = window.innerHeight;
+function buildRoundedRectPath(rect: Rect, radius = 28): string {
   const clampedRadius = Math.max(
     0,
     Math.min(radius, rect.width / 2, rect.height / 2),
@@ -47,7 +47,6 @@ function buildOverlayPath(rect: Rect, radius = 28): string {
   const bottom = rect.top + rect.height;
 
   return [
-    `M0 0H${viewportWidth}V${viewportHeight}H0Z`,
     `M${rect.left + clampedRadius} ${rect.top}`,
     `H${right - clampedRadius}`,
     `A${clampedRadius} ${clampedRadius} 0 0 1 ${right} ${rect.top + clampedRadius}`,
@@ -83,34 +82,37 @@ function getScrollableAncestors(element: HTMLElement): HTMLElement[] {
   return ancestors;
 }
 
-function buildTargetRect(targetIds: string[], padding = 10): Rect | null {
-  const rects = targetIds
+function buildOverlayPath(rects: Rect[]): string {
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+
+  return [
+    `M0 0H${viewportWidth}V${viewportHeight}H0Z`,
+    ...rects.map((rect) => buildRoundedRectPath(rect)),
+  ].join(" ");
+}
+
+function buildTargetRects(targetIds: string[], padding = 10): Rect[] {
+  return targetIds
     .map((targetId) =>
       document
         .querySelector<HTMLElement>(`[data-tutorial-id="${targetId}"]`)
         ?.getBoundingClientRect(),
     )
-    .filter((rect): rect is DOMRect => Boolean(rect));
+    .filter((rect): rect is DOMRect => Boolean(rect))
+    .map((rect) => {
+      const clampedLeft = Math.max(8, rect.left - padding);
+      const clampedTop = Math.max(8, rect.top - padding);
+      const clampedRight = Math.min(window.innerWidth - 8, rect.right + padding);
+      const clampedBottom = Math.min(window.innerHeight - 8, rect.bottom + padding);
 
-  if (rects.length === 0) {
-    return null;
-  }
-
-  const left = Math.min(...rects.map((rect) => rect.left));
-  const top = Math.min(...rects.map((rect) => rect.top));
-  const right = Math.max(...rects.map((rect) => rect.right));
-  const bottom = Math.max(...rects.map((rect) => rect.bottom));
-  const clampedLeft = Math.max(8, left - padding);
-  const clampedTop = Math.max(8, top - padding);
-  const clampedRight = Math.min(window.innerWidth - 8, right + padding);
-  const clampedBottom = Math.min(window.innerHeight - 8, bottom + padding);
-
-  return {
-    left: clampedLeft,
-    top: clampedTop,
-    width: Math.max(0, clampedRight - clampedLeft),
-    height: Math.max(0, clampedBottom - clampedTop),
-  };
+      return {
+        left: clampedLeft,
+        top: clampedTop,
+        width: Math.max(0, clampedRight - clampedLeft),
+        height: Math.max(0, clampedBottom - clampedTop),
+      };
+    });
 }
 
 export default function TutorialOverlay({
@@ -123,8 +125,9 @@ export default function TutorialOverlay({
   nextLabel,
   finishLabel,
   closeLabel,
+  panelPosition = "bottom",
 }: TutorialOverlayProps) {
-  const [targetRect, setTargetRect] = useState<Rect | null>(null);
+  const [targetRects, setTargetRects] = useState<Rect[]>([]);
   const savedScrollPositionsRef = useRef<ScrollPosition[]>([]);
   const previousStepRef = useRef<TutorialStep | null>(null);
   const currentStep = steps[currentStepIndex] ?? null;
@@ -137,6 +140,7 @@ export default function TutorialOverlay({
         .filter(Boolean) ?? [],
     [currentStep],
   );
+  const resolvedPanelPosition = currentStep?.panelPosition ?? panelPosition;
 
   useLayoutEffect(() => {
     if (!open || !currentStep) {
@@ -144,7 +148,7 @@ export default function TutorialOverlay({
     }
 
     const updateRect = () => {
-      setTargetRect(buildTargetRect(currentStep.targetIds, currentStep.padding));
+      setTargetRects(buildTargetRects(currentStep.targetIds, currentStep.padding));
     };
 
     const frameIds: number[] = [];
@@ -293,32 +297,53 @@ export default function TutorialOverlay({
 
   return (
     <div
-      className="fixed inset-0 z-[80]"
-      onMouseDown={(event) => event.stopPropagation()}
-      onClick={(event) => event.stopPropagation()}
+      className="fixed inset-0 z-[100]"
+      onMouseDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onClick={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
+      onPointerDown={(event) => {
+        event.preventDefault();
+        event.stopPropagation();
+      }}
     >
-      {targetRect ? (
+      {targetRects.length > 0 ? (
         <>
           <svg className="pointer-events-none fixed inset-0 h-full w-full">
             <path
-              d={buildOverlayPath(targetRect)}
+              d={buildOverlayPath(targetRects)}
               fill={OVERLAY_COLOR}
               fillRule="evenodd"
             />
           </svg>
-          <div
-            className="pointer-events-none fixed rounded-[28px] border-2 border-[#FACC15]"
-            style={{
-              left: `${targetRect.left}px`,
-              top: `${targetRect.top}px`,
-              width: `${targetRect.width}px`,
-              height: `${targetRect.height}px`,
-            }}
-          />
+          {targetRects.map((targetRect, index) => (
+            <div
+              key={`${targetRect.left}-${targetRect.top}-${index}`}
+              className="pointer-events-none fixed rounded-[28px] border-2 border-[#FACC15]"
+              style={{
+                left: `${targetRect.left}px`,
+                top: `${targetRect.top}px`,
+                width: `${targetRect.width}px`,
+                height: `${targetRect.height}px`,
+              }}
+            />
+          ))}
         </>
       ) : null}
 
-      <div className="pointer-events-none fixed inset-x-0 bottom-6 flex justify-center px-4">
+      <div
+        className={`pointer-events-none fixed inset-x-0 flex justify-center px-4 ${
+          resolvedPanelPosition === "center"
+            ? "top-1/2 -translate-y-1/2"
+            : resolvedPanelPosition === "upper"
+              ? "top-[20vh]"
+              : "bottom-6"
+        }`}
+      >
         <section className="pointer-events-auto w-full max-w-[440px] rounded-[28px] border border-[rgba(255,255,255,0.12)] bg-[#111827] px-5 py-5 text-white shadow-[0_20px_50px_rgba(0,0,0,0.36)]">
           <div className="flex items-center justify-between gap-3">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#FACC15]">

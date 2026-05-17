@@ -1,4 +1,4 @@
-import { useEffect, type MouseEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from "react";
 import type {
   GameSummaryData,
   GameSummaryParticipant,
@@ -16,6 +16,8 @@ interface GameSummaryModalProps {
   summary: GameSummaryData;
   snapshotUrl?: string | null;
   playBackgroundImageUrl?: string | null;
+  snapshotMaxLongestSide?: number;
+  mobileLayout?: boolean;
   position: { x: number; y: number };
   onDragStart: (event: MouseEvent<HTMLDivElement>) => void;
   onClose: () => void;
@@ -118,11 +120,15 @@ export default function GameSummaryModal({
   summary,
   snapshotUrl,
   playBackgroundImageUrl,
+  snapshotMaxLongestSide = 512,
+  mobileLayout = false,
   position,
   onDragStart,
   onClose,
 }: GameSummaryModalProps) {
   const { formatNumber, formatPercent, locale, t } = useI18n();
+  const [mobilePageIndex, setMobilePageIndex] = useState(0);
+  const touchStartXRef = useRef<number | null>(null);
   const finalSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
   const {
     canDownload: canDownloadDefaultSnapshot,
@@ -169,29 +175,238 @@ export default function GameSummaryModal({
     };
   }, [onClose]);
 
+  useEffect(() => {
+    if (!mobileLayout) {
+      return;
+    }
+
+    setMobilePageIndex(0);
+  }, [mobileLayout, summary.canvasId, summary.endedAt]);
+
+  const downloadSection =
+    canDownloadDefaultSnapshot || canDownloadHighResolutionSnapshot ? (
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          {canDownloadDefaultSnapshot && (
+            <button
+              type="button"
+              onClick={
+                defaultDownloadError
+                  ? retryDefaultSnapshot
+                  : downloadDefaultSnapshot
+              }
+              disabled={isDownloadingDefaultSnapshot}
+              className="inline-flex min-w-[180px] items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-2 text-sm font-semibold text-[color:var(--page-theme-text-primary)] transition hover:border-[color:var(--page-theme-primary-action)] hover:bg-[color:var(--page-theme-surface-secondary)] disabled:cursor-not-allowed disabled:border-[color:var(--page-theme-border-secondary)] disabled:bg-[color:var(--page-theme-surface-secondary)] disabled:text-[color:var(--page-theme-text-tertiary)]"
+            >
+              {isDownloadingDefaultSnapshot
+                ? t("gameSummary.downloading")
+                : defaultDownloadError
+                  ? t("gameSummary.downloadRetry")
+                  : t("gameSummary.download")}
+            </button>
+          )}
+
+          {canDownloadHighResolutionSnapshot && (
+            <button
+              type="button"
+              onClick={
+                highResolutionDownloadError
+                  ? retryHighResolutionSnapshot
+                  : downloadHighResolutionSnapshot
+              }
+              disabled={isDownloadingHighResolutionSnapshot}
+              className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-[color:var(--page-theme-primary-action)] px-4 py-2 text-sm font-semibold text-[color:var(--page-theme-primary-action-text)] transition hover:bg-[color:var(--page-theme-primary-action-hover)] disabled:cursor-not-allowed disabled:bg-[color:var(--page-theme-border-primary)]"
+            >
+              {isDownloadingHighResolutionSnapshot
+                ? t("gameSummary.downloadingHd")
+                : highResolutionDownloadError
+                  ? t("gameSummary.downloadHdRetry")
+                  : t("gameSummary.downloadHd")}
+            </button>
+          )}
+        </div>
+
+        {defaultDownloadError && (
+          <p className="text-sm font-medium text-[color:var(--page-theme-alert)]">
+            {defaultDownloadError}
+          </p>
+        )}
+
+        {highResolutionDownloadError && (
+          <p className="text-sm font-medium text-[color:var(--page-theme-alert)]">
+            {highResolutionDownloadError}
+          </p>
+        )}
+      </div>
+    ) : null;
+
+  const summaryStatsSection = (
+    <section
+      className={`space-y-4 text-[15px] leading-7 text-[color:var(--page-theme-text-secondary)] ${
+        mobileLayout ? "w-full pl-0 text-left" : "pl-38"
+      }`}
+    >
+      <div className="space-y-1 text-left">
+        <StatLine label={t("gameSummary.stat.totalRounds")}>
+          {locale === "en" ? (
+            <NumberText value={summary.totalRounds} formatNumber={formatNumber} />
+          ) : (
+            <>
+              <NumberText
+                value={summary.totalRounds}
+                formatNumber={formatNumber}
+              />{" "}
+              {t("gameSummary.text.roundsCompleted")}
+            </>
+          )}
+        </StatLine>
+        <StatLine label={t("gameSummary.stat.participants")}>
+          <NumberText
+            value={summary.participantCount}
+            formatNumber={formatNumber}
+          />{" "}
+          {locale === "en" && summary.participantCount === 1
+            ? t("gameSummary.text.participantJoinedSingular")
+            : t("gameSummary.text.participantsJoined")}
+        </StatLine>
+      </div>
+
+      <div className="space-y-1 text-left">
+        <StatLine label={t("gameSummary.stat.issuedTickets")}>
+          {locale === "en" ? (
+            <NumberText
+              value={summary.issuedTicketCount}
+              formatNumber={formatNumber}
+            />
+          ) : (
+            <>
+              <NumberText
+                value={summary.issuedTicketCount}
+                formatNumber={formatNumber}
+              />{" "}
+              {t("gameSummary.text.issuedTickets")}
+            </>
+          )}
+        </StatLine>
+        <StatLine label={t("gameSummary.stat.totalVotes")}>
+          {locale === "en" ? (
+            <NumberText value={summary.totalVotes} formatNumber={formatNumber} />
+          ) : (
+            <>
+              <NumberText
+                value={summary.totalVotes}
+                formatNumber={formatNumber}
+              />{" "}
+              {t("gameSummary.text.totalVotes")}
+            </>
+          )}
+        </StatLine>
+        <StatLine label={t("gameSummary.stat.ticketUsage")}>
+          <PercentText
+            value={summary.ticketUsageRate}
+            formatPercent={formatPercent}
+          />
+        </StatLine>
+      </div>
+    </section>
+  );
+
+  const peopleSection = (
+    <section
+      className={`space-y-3 rounded-2xl border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)] px-5 py-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)] ${
+        mobileLayout ? "w-full text-left" : "mx-auto w-4/6"
+      }`}
+    >
+      <div>
+        <p className="mb-1 font-bold text-[color:var(--page-theme-text-primary)]">
+          {t("gameSummary.stat.topVoters")}
+        </p>
+        <div>
+          {summary.topVoterName ? (
+            <span>
+              {summary.topVoterName}
+              {summary.topVoterVoteCount > 0
+                ? ` (${formatNumber(summary.topVoterVoteCount)})`
+                : ""}
+            </span>
+          ) : (
+            <span>-</span>
+          )}
+        </div>
+      </div>
+      <div>
+        <p className="mb-1 font-bold text-[color:var(--page-theme-text-primary)]">
+          {t("gameSummary.stat.allParticipants")}
+        </p>
+        <div>
+          <VoterList
+            voters={summary.participants}
+            limit={8}
+            listStyle={locale === "en" ? "list" : "inline"}
+          />
+        </div>
+      </div>
+    </section>
+  );
+
+  const mobilePages = [
+    <div key="snapshot" className="space-y-5">
+      {finalSnapshotUrl ? (
+        <PixelSnapshotPreview
+          snapshotUrl={finalSnapshotUrl}
+          alt={t("gameSummary.snapshotAlt")}
+          backgroundImageUrl={playBackgroundImageUrl}
+          backgroundAlt="Game summary play background"
+          maxLongestSide={snapshotMaxLongestSide}
+        />
+      ) : (
+        <div className="mx-auto flex aspect-square w-1/2 min-w-[180px] items-center justify-center rounded-2xl border border-dashed border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-4 text-center text-sm font-medium text-[color:var(--page-theme-text-tertiary)]">
+          {t("gameSummary.noSnapshot")}
+        </div>
+      )}
+      {downloadSection}
+    </div>,
+    <div key="details" className="space-y-5">
+      {peopleSection}
+      {summaryStatsSection}
+    </div>,
+  ];
+
   return (
     <div
       className="pointer-events-none fixed inset-0 z-50 bg-[color:var(--page-theme-overlay)] px-3 py-6"
     >
       <div
-        className="pointer-events-auto fixed bottom-0 right-0 bg-[color:var(--page-theme-overlay)]"
-        style={{
-          top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
-          left: `${HISTORY_PANEL_WIDTH}px`,
-        }}
+        className={
+          mobileLayout
+            ? "pointer-events-auto fixed inset-0 bg-[color:var(--page-theme-overlay)]"
+            : "pointer-events-auto fixed bottom-0 right-0 bg-[color:var(--page-theme-overlay)]"
+        }
+        style={
+          mobileLayout
+            ? undefined
+            : {
+                top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
+                left: `${HISTORY_PANEL_WIDTH}px`,
+              }
+        }
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       />
 
       <div
-        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[700px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
-        style={{ top: position.y, left: position.x }}
+        className={`pointer-events-auto fixed flex max-h-[calc(100vh-48px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl ${
+          mobileLayout
+            ? "left-1/2 top-1/2 w-[min(92vw,700px)] -translate-x-1/2 -translate-y-1/2"
+            : "w-[700px] max-w-[calc(100vw-24px)]"
+        }`}
+        style={mobileLayout ? undefined : { top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div
           className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4"
-          onMouseDown={onDragStart}
+          onMouseDown={mobileLayout ? undefined : onDragStart}
         >
           <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
             {t("gameSummary.title")}
@@ -207,181 +422,81 @@ export default function GameSummaryModal({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-7 py-6">
-          <div className="space-y-5">
-            {finalSnapshotUrl ? (
-              <PixelSnapshotPreview
-                snapshotUrl={finalSnapshotUrl}
-                alt={t("gameSummary.snapshotAlt")}
-                backgroundImageUrl={playBackgroundImageUrl}
-                backgroundAlt="Game summary play background"
-                maxLongestSide={512}
-              />
-            ) : (
-              <div className="mx-auto flex aspect-square w-1/2 min-w-[180px] items-center justify-center rounded-2xl border border-dashed border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-4 text-center text-sm font-medium text-[color:var(--page-theme-text-tertiary)]">
-                {t("gameSummary.noSnapshot")}
-              </div>
-            )}
+        <div className={mobileLayout ? "min-h-0 flex flex-1 flex-col px-5 py-5" : "min-h-0 flex-1 overflow-y-auto px-7 py-6"}>
+          {mobileLayout ? (
+            <>
+              <div
+                className="min-h-0 flex-1 overflow-hidden"
+                onTouchStart={(event) => {
+                  touchStartXRef.current = event.touches[0]?.clientX ?? null;
+                }}
+                onTouchEnd={(event) => {
+                  const startX = touchStartXRef.current;
+                  const endX = event.changedTouches[0]?.clientX ?? null;
 
-            {(canDownloadDefaultSnapshot || canDownloadHighResolutionSnapshot) && (
-              <div className="flex flex-col items-center gap-3">
-                <div className="flex flex-wrap items-center justify-center gap-2">
-                  {canDownloadDefaultSnapshot && (
-                    <button
-                      type="button"
-                      onClick={
-                        defaultDownloadError
-                          ? retryDefaultSnapshot
-                          : downloadDefaultSnapshot
-                      }
-                      disabled={isDownloadingDefaultSnapshot}
-                      className="inline-flex min-w-[180px] items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-2 text-sm font-semibold text-[color:var(--page-theme-text-primary)] transition hover:border-[color:var(--page-theme-primary-action)] hover:bg-[color:var(--page-theme-surface-secondary)] disabled:cursor-not-allowed disabled:border-[color:var(--page-theme-border-secondary)] disabled:bg-[color:var(--page-theme-surface-secondary)] disabled:text-[color:var(--page-theme-text-tertiary)]"
+                  touchStartXRef.current = null;
+
+                  if (startX === null || endX === null) {
+                    return;
+                  }
+
+                  const deltaX = endX - startX;
+
+                  if (Math.abs(deltaX) < 40) {
+                    return;
+                  }
+
+                  setMobilePageIndex((current) => {
+                    if (deltaX < 0) {
+                      return Math.min(current + 1, mobilePages.length - 1);
+                    }
+
+                    return Math.max(current - 1, 0);
+                  });
+                }}
+              >
+                <div
+                  className="flex h-full transition-transform duration-300 ease-out"
+                  style={{
+                    width: `${mobilePages.length * 100}%`,
+                    transform: `translateX(-${mobilePageIndex * (100 / mobilePages.length)}%)`,
+                  }}
+                >
+                  {mobilePages.map((page, index) => (
+                    <div
+                      key={index}
+                      className="h-full shrink-0 overflow-y-auto px-0.5"
+                      style={{ width: `${100 / mobilePages.length}%` }}
                     >
-                      {isDownloadingDefaultSnapshot
-                        ? t("gameSummary.downloading")
-                        : defaultDownloadError
-                          ? t("gameSummary.downloadRetry")
-                          : t("gameSummary.download")}
-                    </button>
-                  )}
-
-                  {canDownloadHighResolutionSnapshot && (
-                    <button
-                      type="button"
-                      onClick={
-                        highResolutionDownloadError
-                          ? retryHighResolutionSnapshot
-                          : downloadHighResolutionSnapshot
-                      }
-                      disabled={isDownloadingHighResolutionSnapshot}
-                      className="inline-flex min-w-[180px] items-center justify-center rounded-full bg-[color:var(--page-theme-primary-action)] px-4 py-2 text-sm font-semibold text-[color:var(--page-theme-primary-action-text)] transition hover:bg-[color:var(--page-theme-primary-action-hover)] disabled:cursor-not-allowed disabled:bg-[color:var(--page-theme-border-primary)]"
-                    >
-                      {isDownloadingHighResolutionSnapshot
-                        ? t("gameSummary.downloadingHd")
-                        : highResolutionDownloadError
-                          ? t("gameSummary.downloadHdRetry")
-                          : t("gameSummary.downloadHd")}
-                    </button>
-                  )}
+                      {page}
+                    </div>
+                  ))}
                 </div>
-
-                {defaultDownloadError && (
-                  <p className="text-sm font-medium text-[color:var(--page-theme-alert)]">
-                    {defaultDownloadError}
-                  </p>
-                )}
-
-                {highResolutionDownloadError && (
-                  <p className="text-sm font-medium text-[color:var(--page-theme-alert)]">
-                    {highResolutionDownloadError}
-                  </p>
-                )}
-              </div>
-            )}
-
-            <section className="space-y-4 pl-38 text-[15px] leading-7 text-[color:var(--page-theme-text-secondary)]">
-              <div className="space-y-1 text-left">
-                <StatLine label={t("gameSummary.stat.totalRounds")}>
-                  {locale === "en" ? (
-                    <NumberText
-                      value={summary.totalRounds}
-                      formatNumber={formatNumber}
-                    />
-                  ) : (
-                    <>
-                      <NumberText
-                        value={summary.totalRounds}
-                        formatNumber={formatNumber}
-                      />{" "}
-                      {t("gameSummary.text.roundsCompleted")}
-                    </>
-                  )}
-                </StatLine>
-                <StatLine label={t("gameSummary.stat.participants")}>
-                  <NumberText
-                    value={summary.participantCount}
-                    formatNumber={formatNumber}
-                  />{" "}
-                  {locale === "en" && summary.participantCount === 1
-                    ? t("gameSummary.text.participantJoinedSingular")
-                    : t("gameSummary.text.participantsJoined")}
-                </StatLine>
               </div>
 
-              <div className="space-y-1 text-left">
-                <StatLine label={t("gameSummary.stat.issuedTickets")}>
-                  {locale === "en" ? (
-                    <NumberText
-                      value={summary.issuedTicketCount}
-                      formatNumber={formatNumber}
-                    />
-                  ) : (
-                    <>
-                      <NumberText
-                        value={summary.issuedTicketCount}
-                        formatNumber={formatNumber}
-                      />{" "}
-                      {t("gameSummary.text.issuedTickets")}
-                    </>
-                  )}
-                </StatLine>
-                <StatLine label={t("gameSummary.stat.totalVotes")}>
-                  {locale === "en" ? (
-                    <NumberText
-                      value={summary.totalVotes}
-                      formatNumber={formatNumber}
-                    />
-                  ) : (
-                    <>
-                      <NumberText
-                        value={summary.totalVotes}
-                        formatNumber={formatNumber}
-                      />{" "}
-                      {t("gameSummary.text.totalVotes")}
-                    </>
-                  )}
-                </StatLine>
-                <StatLine label={t("gameSummary.stat.ticketUsage")}>
-                  <PercentText
-                    value={summary.ticketUsageRate}
-                    formatPercent={formatPercent}
+              <div className="flex items-center justify-center gap-2 pt-4">
+                {mobilePages.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setMobilePageIndex(index)}
+                    aria-label={`${index + 1} page`}
+                    className={`h-2.5 w-2.5 rounded-full transition ${
+                      index === mobilePageIndex
+                        ? "bg-[color:var(--page-theme-primary-action)]"
+                        : "bg-[color:var(--page-theme-border-primary)]"
+                    }`}
                   />
-                </StatLine>
+                ))}
               </div>
-            </section>
-
-            <section className="mx-auto w-4/6 space-y-3 rounded-2xl border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)] px-5 py-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
-              <div>
-                <p className="mb-1 font-bold text-[color:var(--page-theme-text-primary)]">
-                  {t("gameSummary.stat.topVoters")}
-                </p>
-                <div>
-                  {summary.topVoterName ? (
-                    <span>
-                      {summary.topVoterName}
-                      {summary.topVoterVoteCount > 0
-                        ? ` (${formatNumber(summary.topVoterVoteCount)})`
-                        : ""}
-                    </span>
-                  ) : (
-                    <span>-</span>
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="mb-1 font-bold text-[color:var(--page-theme-text-primary)]">
-                  {t("gameSummary.stat.allParticipants")}
-                </p>
-                <div>
-                  <VoterList
-                    voters={summary.participants}
-                    limit={8}
-                    listStyle={locale === "en" ? "list" : "inline"}
-                  />
-                </div>
-              </div>
-            </section>
-          </div>
+            </>
+          ) : (
+            <div className="space-y-5">
+              {mobilePages[0]}
+              {summaryStatsSection}
+              {peopleSection}
+            </div>
+          )}
         </div>
       </div>
     </div>
