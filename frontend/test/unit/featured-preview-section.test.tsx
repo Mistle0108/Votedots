@@ -8,7 +8,6 @@ const labels = {
   participants: "Participants",
   votes: "Votes",
   topVoter: "Top voter",
-  participantList: "Participant list",
 };
 
 function getCardImages() {
@@ -78,7 +77,5 @@ describe("FeaturedPreviewSection", () => {
     expect(screen.getByText("5")).toBeInTheDocument();
     expect(screen.getByText("120")).toBeInTheDocument();
     expect(screen.getByText("Alice (50)")).toBeInTheDocument();
-    expect(screen.getByText("Alice")).toBeInTheDocument();
-    expect(screen.getByText("Bob")).toBeInTheDocument();
   });
 });

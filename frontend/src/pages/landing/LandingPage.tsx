@@ -23,6 +23,17 @@ const SMALL_SNAPSHOT_SIZE = 256;
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 767px)";
 const MOBILE_SWIPE_THRESHOLD_PX = 40;
 
+function readMobileLayoutMatch(): boolean {
+  if (
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+  ) {
+    return false;
+  }
+
+  return window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches;
+}
+
 type MobileLandingTab = "current" | "completed" | "guide";
 type CarouselAnimationStage =
   | "idle"
@@ -121,11 +132,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
     [locale],
   );
   const [isMobileLayout, setIsMobileLayout] = useState(() => {
-    if (typeof window === "undefined") {
-      return false;
-    }
-
-    return window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches;
+    return readMobileLayoutMatch();
   });
   const [mobileTab, setMobileTab] = useState<MobileLandingTab>("current");
   const [completedPageIndex, setCompletedPageIndex] = useState(0);
@@ -151,7 +158,10 @@ export default function LandingPage({ locale }: LandingPageProps) {
   useTrackVisitEvent("landing_visit");
 
   useEffect(() => {
-    if (typeof window === "undefined") {
+    if (
+      typeof window === "undefined" ||
+      typeof window.matchMedia !== "function"
+    ) {
       return undefined;
     }
 
