@@ -175,14 +175,6 @@ export default function GameSummaryModal({
     };
   }, [onClose]);
 
-  useEffect(() => {
-    if (!mobileLayout) {
-      return;
-    }
-
-    setMobilePageIndex(0);
-  }, [mobileLayout, summary.canvasId, summary.endedAt]);
-
   const downloadSection =
     canDownloadDefaultSnapshot || canDownloadHighResolutionSnapshot ? (
       <div className="flex flex-col items-center gap-3">

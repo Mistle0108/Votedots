@@ -276,14 +276,6 @@ export default function IntroGuideModal({
     };
   }, [open]);
 
-  useEffect(() => {
-    if (!open || !mobileLayout) {
-      return;
-    }
-
-    setMobilePageIndex(0);
-  }, [mobileLayout, open]);
-
   if (!open) {
     return null;
   }

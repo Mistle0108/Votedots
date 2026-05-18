@@ -313,9 +313,13 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
     const handleMediaQueryChange = (event: MediaQueryListEvent) => {
       setIsMobileLayout(event.matches);
+
+      if (!event.matches) {
+        setMobileSheet(null);
+        setMobileVoteError("");
+      }
     };
 
-    setIsMobileLayout(mediaQuery.matches);
     mediaQuery.addEventListener("change", handleMediaQueryChange);
 
     return () => {
@@ -973,18 +977,8 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
   const handleCloseTutorial = useCallback(() => {
     setTutorialOpen(false);
-    if (isMobileLayout) {
-      setMobileSheet(null);
-    }
+    setMobileSheet(null);
   }, []);
-
-  useEffect(() => {
-    if (!isMobileLayout || !tutorialOpen) {
-      return;
-    }
-
-    setMobileSheet(tutorialMobileManagedSheet);
-  }, [isMobileLayout, tutorialMobileManagedSheet, tutorialOpen]);
 
   useEffect(() => {
     if (!canvasId || loading || error || gameEnded) {
@@ -1053,8 +1047,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
   useEffect(() => {
     if (!isMobileLayout) {
-      setMobileSheet(null);
-      setMobileVoteError("");
       return;
     }
 
@@ -1119,6 +1111,16 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     },
     [handleMobilePaletteColorChange],
   );
+  const openMobilePaletteSheet = useCallback(() => {
+    if (typeof window === "undefined") {
+      setMobileSheet("palette");
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      setMobileSheet("palette");
+    });
+  }, []);
 
   const handleSubmitMobileVote = useCallback(
     async (targetCell?: Cell | null) => {
@@ -1205,20 +1207,27 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     ],
   );
 
-  mobileCellActivatedHandlerRef.current = (cell) => {
-    if (!isMobileLayout) {
-      return;
-    }
+  useEffect(() => {
+    mobileCellActivatedHandlerRef.current = (cell) => {
+      if (!isMobileLayout) {
+        return;
+      }
 
-    setMobileVoteError("");
+      setMobileVoteError("");
 
-    if (mobileVoteMode === "instant") {
-      void handleSubmitMobileVote(cell);
-      return;
-    }
+      if (mobileVoteMode === "instant") {
+        void handleSubmitMobileVote(cell);
+        return;
+      }
 
-    openMobilePaletteSheet();
-  };
+      openMobilePaletteSheet();
+    };
+  }, [
+    handleSubmitMobileVote,
+    isMobileLayout,
+    mobileVoteMode,
+    openMobilePaletteSheet,
+  ]);
 
   const mobileMenuLabels =
     locale === "ko"
@@ -1256,6 +1265,8 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     remaining !== null && gameConfig
       ? `${remaining}/${gameConfig.rules.votesPerRound}`
       : "-/-";
+  const activeMobileSheet =
+    tutorialOpen && isMobileLayout ? tutorialMobileManagedSheet : mobileSheet;
   const selectedCellLabel = selectedCell
     ? `(${selectedCell.x}, ${selectedCell.y})`
     : locale === "ko"
@@ -1271,7 +1282,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
         : [],
     [selectedCell, votes],
   );
-  const isPaletteSheetOpen = mobileSheet === "palette";
+  const isPaletteSheetOpen = activeMobileSheet === "palette";
   const canSubmitMobileVote =
     Boolean(canvasId) &&
     Boolean(roundId) &&
@@ -1280,17 +1291,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     !isRoundExpired &&
     !mobileVoteLoading &&
     (remaining === null || remaining > 0);
-
-  const openMobilePaletteSheet = useCallback(() => {
-    if (typeof window === "undefined") {
-      setMobileSheet("palette");
-      return;
-    }
-
-    window.requestAnimationFrame(() => {
-      setMobileSheet("palette");
-    });
-  }, []);
 
   const handleOpenMobileBack = useCallback(() => {
     navigate("/lobby");
@@ -1603,7 +1603,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
         )}
 
         <MobileBottomSheet
-          open={mobileSheet === "menu"}
+          open={activeMobileSheet === "menu"}
           title={
             <div className="flex h-9 items-center">
               <h2 className="text-xl font-semibold text-black">
@@ -1726,7 +1726,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
         </MobileBottomSheet>
 
         <MobileBottomSheet
-          open={mobileSheet === "participants"}
+          open={activeMobileSheet === "participants"}
           title={
             <div className="flex h-9 items-center">
               <h2 className="text-xl font-semibold text-black">
@@ -1766,7 +1766,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
         </MobileBottomSheet>
 
         <MobileBottomSheet
-          open={mobileSheet === "history"}
+          open={activeMobileSheet === "history"}
           title={
             <div>
               <h2 className="text-lg font-semibold text-black">
@@ -1841,7 +1841,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
         </MobileBottomSheet>
 
         <MobileBottomSheet
-          open={mobileSheet === "palette"}
+          open={activeMobileSheet === "palette"}
           title={
             <div className="flex w-full flex-col items-start justify-start gap-1 text-left">
               <h2 className="text-lg font-semibold text-black">
