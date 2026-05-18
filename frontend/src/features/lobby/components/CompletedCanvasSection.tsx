@@ -117,7 +117,6 @@ export default function CompletedCanvasSection({
                   participants: t("lobby.completed.participants"),
                   votes: t("lobby.completed.votes"),
                   topVoter: t("lobby.completed.topVoter"),
-                  participantList: t("lobby.completed.participantList"),
                 }}
               />
             ))}
