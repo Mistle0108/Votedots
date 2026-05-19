@@ -183,6 +183,7 @@ export const finalResultImageService = {
     });
     const resultTemplateImageBuffer =
       await loadResultTemplateAsset(resultTemplateAssetKey);
+    const capturedAt = canvas.endedAt ?? new Date();
 
     const renderedSnapshot = roundSnapshotRenderService.renderPngBuffer({
       gridWidth: canvas.gridX,
@@ -195,9 +196,13 @@ export const finalResultImageService = {
       backgroundImageBuffer: resultTemplateImageBuffer,
     });
 
-    await ensureGameResultDirectory();
+    await ensureGameResultDirectory({
+      capturedAt,
+      canvasId,
+    });
 
     const relativePath = buildGameResultRelativePath({
+      capturedAt,
       canvasId,
       format: "png",
     });
@@ -211,7 +216,7 @@ export const finalResultImageService = {
     gameSummary.finalResultWidth = renderedSnapshot.imageWidth;
     gameSummary.finalResultHeight = renderedSnapshot.imageHeight;
     gameSummary.finalResultByteSize = renderedSnapshot.buffer.byteLength;
-    gameSummary.finalResultCapturedAt = canvas.endedAt ?? new Date();
+    gameSummary.finalResultCapturedAt = capturedAt;
 
     await gameSummaryRepository.save(gameSummary);
   },
