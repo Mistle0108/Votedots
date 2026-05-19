@@ -178,6 +178,10 @@ export const canvasService = {
     return findCurrentPlazaCanvas();
   },
 
+  async getCurrentPlayingPlaza(): Promise<Canvas | null> {
+    return findPlayingPlazaCanvas();
+  },
+
   async getCurrentParticipantCount(): Promise<{
     canvasId: number;
     count: number;
@@ -202,7 +206,7 @@ export const canvasService = {
     canvasId: number;
     count: number;
   }> {
-    const canvas = await this.getCurrentPlaza();
+    const canvas = await this.getCurrentPlayingPlaza();
 
     if (!canvas) {
       throw new Error("No plaza canvas is currently in progress.");
@@ -242,7 +246,7 @@ export const canvasService = {
     canvasId: number;
     participants: ParticipantSummary[];
   }> {
-    const canvas = await this.getCurrentPlaza();
+    const canvas = await this.getCurrentPlayingPlaza();
 
     if (!canvas) {
       throw new Error("No plaza canvas is currently in progress.");

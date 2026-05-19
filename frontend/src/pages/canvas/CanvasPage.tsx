@@ -268,6 +268,12 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const [mobileSheet, setMobileSheet] = useState<MobileSheetType>(null);
   const [mobileVoteMode, setMobileVoteMode] =
     useState<MobileVoteMode>("select");
+  const [desktopVoteMode, setDesktopVoteMode] =
+    useState<MobileVoteMode>("select");
+  const [desktopPaletteColor, setDesktopPaletteColor] = useState(() =>
+    loadLastPaletteColor(),
+  );
+  const [desktopVoteLoading, setDesktopVoteLoading] = useState(false);
   const [mobilePalettePinned, setMobilePalettePinned] = useState(false);
   const [mobilePaletteColor, setMobilePaletteColor] = useState(() =>
     loadLastPaletteColor(),
@@ -372,7 +378,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     },
     [sessionSourceApi.key],
   );
-  const mobileCellActivatedHandlerRef = useRef<(cell: Cell) => void>(() => {});
+  const cellActivatedHandlerRef = useRef<(cell: Cell) => void>(() => {});
 
   const {
     paintCanvasRef,
@@ -439,6 +445,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     roundSummaryPosition,
     handleRoundSummaryDragStart,
     latestRoundSnapshot,
+    openVotePopupForCell,
     backgroundMode,
     setBackgroundMode,
     historyItems,
@@ -451,10 +458,11 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     onContextMissing:
       sessionSourceApi.key === "room" ? handleContextMissing : undefined,
     onUnauthorized: handleUnauthorized,
-    openPopupOnActivate: !isMobileLayout,
-    resetPreviewOnActivate: !isMobileLayout,
+    openPopupOnActivate: isMobileLayout ? false : desktopVoteMode === "select",
+    resetPreviewOnActivate:
+      isMobileLayout ? false : desktopVoteMode === "select",
     onCellActivated: (cell) => {
-      mobileCellActivatedHandlerRef.current(cell);
+      cellActivatedHandlerRef.current(cell);
     },
   });
 
@@ -723,8 +731,14 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
             {
               id: "round-info",
               targetIds: ["tutorial-round-info"],
-              title: t("tutorial.step.roundInfo.title"),
-              description: t("tutorial.step.roundInfo.description"),
+              title:
+                locale === "ko"
+                  ? "좌측 정보 패널"
+                  : "Left info panel",
+              description:
+                locale === "ko"
+                  ? "현재 라운드 상태, 남은시간, 종료 예정 시각을 이 영역에서 확인합니다.\n두 가지 투표 모드를 지원하며 색상 선택 모드는 하나의 칸마다 색상을 선택하고 투표할 수 있습니다.\n바로 투표 모드는 처음에 색상을 선택하고 칸을 클릭하여 바로 투표할 수 있습니다.\n이번 라운드에서 사용할 수 있는 남은 투표권 수를 확인할 수 있습니다."
+                  : "Check the current round state, remaining time, and expected end time in this area.\nTwo voting modes are supported. In color select mode, you can choose a color and vote for each individual cell.\nIn instant vote mode, you choose a color first and then click cells to vote immediately.\nYou can also check how many vote tickets remain for this round here.",
               padding: 8,
             },
             {
@@ -830,6 +844,58 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const shouldDisableSettingsButton =
     (introGuideOpen || roundSummaryOpen || Boolean(gameSummaryModal)) &&
     !tutorialNeedsSettingsPanel;
+  const desktopInstantVoteTargetCell = useMemo(() => {
+    if (selectedCell) {
+      return selectedCell;
+    }
+
+    const fallbackX = Math.max(0, Math.floor(gridX / 2));
+    const fallbackY = Math.max(0, Math.floor(gridY / 2));
+
+    return (
+      cells.find((cell) => cell.x === fallbackX && cell.y === fallbackY) ?? {
+        x: fallbackX,
+        y: fallbackY,
+        color: null,
+        status: "idle" as const,
+      }
+    );
+  }, [cells, gridX, gridY, selectedCell]);
+  const openDesktopInstantVotePalette = useCallback((anchorRect: DOMRect) => {
+    if (isMobileLayout) {
+      return;
+    }
+
+    const popupWidth = 256;
+    const popupHeight = 356;
+    const viewportPadding = 12;
+    const horizontalGap = anchorRect.width / 2;
+    const desiredX = Math.min(
+      window.innerWidth - popupWidth - viewportPadding,
+      Math.max(
+        viewportPadding,
+        anchorRect.left - popupWidth - horizontalGap,
+      ),
+    );
+    const desiredY = Math.min(
+      window.innerHeight - popupHeight - viewportPadding,
+      Math.max(
+        viewportPadding,
+        anchorRect.top + anchorRect.height / 2 - popupHeight / 2,
+      ),
+    );
+    const popupPosition = {
+      // VotePopup desktop positioning interprets `position` like a pointer
+      // anchor and applies its own internal offset (+190, -120). Feed the
+      // inverse so the final modal lands at the desired absolute position.
+      x: desiredX - 190,
+      y: desiredY + 120,
+    };
+
+    openVotePopupForCell(desktopInstantVoteTargetCell, popupPosition);
+  }, [desktopInstantVoteTargetCell, isMobileLayout, openVotePopupForCell]);
+
+  const handleCloseVotePopup = handlePopupClose;
   const selectionLabels = useMemo(() => {
     if (!currentVoterUuid) {
       return [];
@@ -1207,22 +1273,77 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     ],
   );
 
+  const handleSubmitDesktopInstantVote = useCallback(
+    async (targetCell: Cell) => {
+      if (desktopVoteLoading || !canvasId || !roundId) {
+        return;
+      }
+
+      if (phase !== GAME_PHASE.ROUND_ACTIVE) {
+        return;
+      }
+
+      if (isRoundExpired) {
+        return;
+      }
+
+      if (remaining !== null && remaining <= 0) {
+        return;
+      }
+
+      setDesktopVoteLoading(true);
+
+      try {
+        await voteApi.submit({
+          canvasId,
+          roundId,
+          x: targetCell.x,
+          y: targetCell.y,
+          color: desktopPaletteColor,
+        });
+
+        handleVoteSuccess(desktopPaletteColor);
+      } catch (err: unknown) {
+        if (err && typeof err === "object" && "response" in err) {
+          return;
+        }
+      } finally {
+        setDesktopVoteLoading(false);
+      }
+    },
+    [
+      canvasId,
+      desktopPaletteColor,
+      desktopVoteLoading,
+      handleVoteSuccess,
+      isRoundExpired,
+      phase,
+      remaining,
+      roundId,
+    ],
+  );
+
   useEffect(() => {
-    mobileCellActivatedHandlerRef.current = (cell) => {
-      if (!isMobileLayout) {
+    cellActivatedHandlerRef.current = (cell) => {
+      if (isMobileLayout) {
+        setMobileVoteError("");
+
+        if (mobileVoteMode === "instant") {
+          void handleSubmitMobileVote(cell);
+          return;
+        }
+
+        openMobilePaletteSheet();
         return;
       }
 
-      setMobileVoteError("");
-
-      if (mobileVoteMode === "instant") {
-        void handleSubmitMobileVote(cell);
-        return;
+      if (desktopVoteMode === "instant") {
+        void handleSubmitDesktopInstantVote(cell);
       }
-
-      openMobilePaletteSheet();
     };
   }, [
+    desktopVoteMode,
+    handleSubmitDesktopInstantVote,
     handleSubmitMobileVote,
     isMobileLayout,
     mobileVoteMode,
@@ -2103,6 +2224,11 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
             onEndGame={handleEndGame}
             roomTerminateLoading={roomTerminateLoading}
             onTerminateRoom={handleTerminateRoom}
+            voteMode={desktopVoteMode}
+            onVoteModeChange={(nextMode) => {
+              setDesktopVoteMode(nextMode);
+            }}
+            onOpenInstantVotePalette={openDesktopInstantVotePalette}
           />
         )}
       </div>
@@ -2132,12 +2258,19 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
           votes={votes}
           position={popupPos}
           onVoteSuccess={handleVoteSuccess}
-          onColorChange={handleColorChange}
-          onClose={handlePopupClose}
+          onColorChange={(nextColor) => {
+            handleColorChange(nextColor);
+
+            if (nextColor) {
+              setDesktopPaletteColor(nextColor);
+            }
+          }}
+          onClose={handleCloseVotePopup}
           tutorialMode={shouldDecorateLiveVotePopup}
           tutorialId={
             shouldDecorateLiveVotePopup ? "tutorial-vote-modal" : undefined
           }
+          hideSubmitButton={!isMobileLayout && desktopVoteMode === "instant"}
           layerClassName={shouldDecorateLiveVotePopup ? "z-[81]" : undefined}
         />
       )}
