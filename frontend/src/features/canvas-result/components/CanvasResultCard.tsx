@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 interface CanvasResultCardProps {
   imageUrl: string | null;
@@ -17,16 +17,27 @@ export default function CanvasResultCard({
   actionLabel,
   onAction,
 }: CanvasResultCardProps) {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [imageUrl]);
+
+  const showFallback = !imageUrl || imageFailed;
+
   return (
     <article className="overflow-hidden rounded-[28px] border border-[#ead7c8] bg-white shadow-[0_18px_50px_rgba(39,46,55,0.08)]">
       <div className="aspect-square overflow-hidden bg-white">
-        {imageUrl ? (
+        {!showFallback ? (
           <img
             src={imageUrl}
             alt={imageAlt}
             className="h-full w-full object-contain"
             style={{ imageRendering: "pixelated" }}
             draggable={false}
+            onError={() => {
+              setImageFailed(true);
+            }}
           />
         ) : (
           <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-[#8a796c]">

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
 import { PixelSnapshotPreview } from "@/shared/ui/pixel-snapshot-preview";
@@ -55,7 +55,8 @@ export default function CanvasResultModal({
   labels,
 }: CanvasResultModalProps) {
   const { formatNumber, locale, t } = useI18n();
-  const hasResultImage = Boolean(detail?.resultImageUrl);
+  const [previewImageFailed, setPreviewImageFailed] = useState(false);
+  const hasResultImage = Boolean(detail?.resultImageUrl) && !previewImageFailed;
   const canDownloadDefault = Boolean(
     hasResultImage && detail?.downloadAvailable && detail?.downloadSnapshotUrl,
   );
@@ -113,6 +114,10 @@ export default function CanvasResultModal({
     };
   }, [onClose, open]);
 
+  useEffect(() => {
+    setPreviewImageFailed(false);
+  }, [detail?.canvasId, detail?.resultImageUrl, open]);
+
   if (!open || !detail) {
     return null;
   }
@@ -134,9 +139,6 @@ export default function CanvasResultModal({
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#cf6c45]">
               VoteDots
             </p>
-            <h2 className="mt-2 text-2xl font-semibold text-[#2d2d2d]">
-              {labels.title}
-            </h2>
           </div>
 
           <button
@@ -158,6 +160,10 @@ export default function CanvasResultModal({
                   alt={labels.snapshotAlt}
                   backgroundAlt={labels.snapshotAlt}
                   maxLongestSide={420}
+                  fallbackMessage={labels.noSnapshot}
+                  onImageLoadStateChange={(state) => {
+                    setPreviewImageFailed(state === "error");
+                  }}
                 />
               ) : (
                 <div className="flex aspect-square w-full items-center justify-center rounded-[28px] border border-dashed border-[#ddc9b7] bg-[#f7efe7] px-6 text-center text-sm font-medium text-[#8a796c]">
@@ -178,7 +184,7 @@ export default function CanvasResultModal({
                       isDownloadingDefaultSnapshot ||
                       !canDownloadDefaultSnapshot
                     }
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-[#d8c8bb] bg-white px-4 text-sm font-semibold text-[#2d2d2d] transition hover:border-[#d96d43] hover:bg-[#fbf3eb] disabled:cursor-not-allowed disabled:border-[#e5d9ce] disabled:bg-[#f1e5da] disabled:text-[#9a8778]"
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-[#d8c8bb] bg-white px-4 text-sm font-semibold text-[#2d2d2d] transition hover:border-[#d96d43] hover:bg-[#fbf3eb] disabled:cursor-not-allowed disabled:border-[#e1d4c8] disabled:bg-[#ece2d9] disabled:text-[#9a8778]"
                   >
                     {isDownloadingDefaultSnapshot
                       ? t("gameSummary.downloading")
@@ -198,7 +204,7 @@ export default function CanvasResultModal({
                       isDownloadingHighResolutionSnapshot ||
                       !canDownloadHighResolutionSnapshot
                     }
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#d96d43] px-4 text-sm font-semibold text-white transition hover:bg-[#c95d34] disabled:cursor-not-allowed disabled:bg-[#d8c6b7] disabled:text-[#8a796c]"
+                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#d96d43] px-4 text-sm font-semibold text-white transition hover:bg-[#c95d34] disabled:cursor-not-allowed disabled:bg-[#d9cec3] disabled:text-[#8a796c]"
                   >
                     {isDownloadingHighResolutionSnapshot
                       ? t("gameSummary.downloadingHd")
@@ -207,12 +213,6 @@ export default function CanvasResultModal({
                         : t("gameSummary.downloadHd")}
                   </button>
                 </div>
-
-                {!hasResultImage ? (
-                  <p className="text-sm font-medium text-[#8a796c]">
-                    {labels.noSnapshot}
-                  </p>
-                ) : null}
 
                 {defaultDownloadError ? (
                   <p className="text-sm font-medium text-[#c04f2c]">
