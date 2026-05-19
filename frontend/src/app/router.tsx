@@ -5,6 +5,7 @@ import LandingPage from "@/pages/landing/LandingPage";
 import PublicUpdatesPage from "@/pages/landing/PublicUpdatesPage";
 import LobbyPage from "@/pages/lobby/LobbyPage";
 import LoginPage from "@/pages/login/LoginPage";
+import MyPage from "@/pages/mypage/MyPage";
 import PlazaPage from "@/pages/plaza/PlazaPage";
 import RegisterPage from "@/pages/register/RegisterPage";
 import RoomPage from "@/pages/room/RoomPage";
@@ -61,6 +62,10 @@ export const router = createBrowserRouter([
   {
     path: "/room",
     element: <RoomPage />,
+  },
+  {
+    path: "/mypage",
+    element: <MyPage />,
   },
   {
     path: "/ko/terms",

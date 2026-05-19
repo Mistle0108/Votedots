@@ -17,6 +17,18 @@ function isNonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.length > 0;
 }
 
+export function validatePasswordValue(password: unknown): string | null {
+  if (!isNonEmptyString(password)) {
+    return AUTH_ERROR_MESSAGES.MISSING_CREDENTIALS;
+  }
+
+  if (!PASSWORD_REGEX.test(password)) {
+    return AUTH_ERROR_MESSAGES.INVALID_PASSWORD;
+  }
+
+  return null;
+}
+
 export function validateRegisterInput(params: {
   username: unknown;
   password: unknown;

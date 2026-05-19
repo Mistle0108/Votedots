@@ -163,17 +163,62 @@ export const authService = {
     };
   },
 
-  async withdraw(voterId: number) {
+  async changePassword(voterId: number, currentPassword: string, newPassword: string) {
     const voter = await voterRepository.findOne({
-      where: { id: voterId },
+      where: {
+        id: voterId,
+        isWithdrawn: false,
+      },
     });
 
     if (!voter) {
-      throw new Error("AUTH_INVALID_CREDENTIALS");
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
-    if (voter.isWithdrawn) {
-      return;
+    const isCurrentPasswordMatch = await bcrypt.compare(
+      currentPassword,
+      voter.password,
+    );
+
+    if (!isCurrentPasswordMatch) {
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS);
+    }
+
+    voter.password = await bcrypt.hash(newPassword, 10);
+    await voterRepository.save(voter);
+  },
+
+  async getMe(voterId: number) {
+    const voter = await voterRepository.findOne({
+      where: {
+        id: voterId,
+        isWithdrawn: false,
+      },
+    });
+
+    if (!voter) {
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS);
+    }
+
+    return voter;
+  },
+
+  async withdraw(voterId: number, password: string) {
+    const voter = await voterRepository.findOne({
+      where: {
+        id: voterId,
+        isWithdrawn: false,
+      },
+    });
+
+    if (!voter) {
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS);
+    }
+
+    const isPasswordMatch = await bcrypt.compare(password, voter.password);
+
+    if (!isPasswordMatch) {
+      throw new Error(AUTH_ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
     const withdrawnUsername = buildWithdrawnUsername(voter.id);

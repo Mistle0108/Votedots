@@ -9,6 +9,7 @@ import { Canvas, CanvasStatus } from "../../entities/canvas.entity";
 import { RoomTerminationReason } from "../../entities/room.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { publicLandingPreviewService } from "../public-landing/public-landing-preview.service";
+import { finalResultImageService } from "../history/final-result-image.service";
 import { roundService } from "../round/round.service";
 import { GamePhase } from "./game-phase.types";
 import { roomService } from "../room/room.service";
@@ -230,6 +231,15 @@ async function transitionToGameEnd(
   );
 
   const gameSummary = await summaryService.saveGameSummary(canvasId);
+
+  try {
+    await finalResultImageService.saveForCanvas(canvasId);
+  } catch (error) {
+    console.error(
+      `[game-timer] failed to save final result image (canvasId=${canvasId}):`,
+      error,
+    );
+  }
 
   void publicLandingPreviewService.generateForGame(canvasId, gameSummary.id);
 

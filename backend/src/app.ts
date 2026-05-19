@@ -11,6 +11,8 @@ import authRouter from "./modules/auth/auth.router";
 import analyticsRouter from "./modules/analytics/analytics.router";
 import canvasRouter from "./modules/canvas/canvas.router";
 import loginBoardRouter from "./modules/login-board/login-board.router";
+import mypageRouter from "./modules/mypage/mypage.router";
+import publicCanvasRouter from "./modules/public-canvas/public-canvas.router";
 import publicLandingRouter from "./modules/public-landing/public-landing.router";
 import roundRouter from "./modules/round/round.router";
 import roomRouter from "./modules/room/room.router";
@@ -89,6 +91,8 @@ export function createApp() {
   app.use("/auth", authRouter);
   app.use("/analytics", analyticsRouter);
   app.use("/canvas", canvasRouter);
+  app.use("/mypage", mypageRouter);
+  app.use("/public/canvas", publicCanvasRouter);
   app.use("/rooms", roomRouter);
   app.use("/public/login-board", loginBoardRouter);
   app.use("/public/landing", publicLandingRouter);

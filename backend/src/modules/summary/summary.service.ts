@@ -1,9 +1,11 @@
 import { AppDataSource } from "../../database/data-source";
 import { Cell, CellStatus } from "../../entities/cell.entity";
 import { Canvas } from "../../entities/canvas.entity";
+import { CanvasParticipantSummary } from "../../entities/canvas-participant-summary.entity";
 import { GameSummary } from "../../entities/game-summary.entity";
 import { RoundVoterState } from "../../entities/round-voter-state.entity";
 import { RoundSummary } from "../../entities/round-summary.entity";
+import { Room, RoomType } from "../../entities/room.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { Vote } from "../../entities/vote.entity";
@@ -16,7 +18,7 @@ const voteTicketRepository = AppDataSource.getRepository(VoteTicket);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const roundSummaryRepository = AppDataSource.getRepository(RoundSummary);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
-
+const roomRepository = AppDataSource.getRepository(Room);
 type TopCellAggregate = {
   x: number;
   y: number;
@@ -32,6 +34,13 @@ type TopVoterAggregate = {
   voterId: number;
   name: string;
   voteCount: number;
+};
+
+type ParticipantVoteAggregate = {
+  voterId: number;
+  name: string;
+  voteCount: number;
+  lastVotedAt: Date;
 };
 
 function toPercent(numerator: number, denominator: number): string {
@@ -273,7 +282,7 @@ export const summaryService = {
       throw new Error("캔버스가 존재하지 않습니다.");
     }
 
-    const [votes, roundVoterStates, tickets, rounds, cells, existingSummary] = await Promise.all([
+    const [votes, roundVoterStates, tickets, rounds, cells, existingSummary, room] = await Promise.all([
       voteRepository.find({
         where: { round: { canvas: { id: canvasId } } },
         relations: ["voter", "round"],
@@ -293,10 +302,14 @@ export const summaryService = {
       gameSummaryRepository.findOne({
         where: { canvas: { id: canvasId } },
       }),
+      roomRepository.findOne({
+        where: { canvas: { id: canvasId } },
+      }),
     ]);
 
     const participantMap = new Map<number, { voterId: number; name: string }>();
     const voterCountMap = new Map<number, TopVoterAggregate>();
+    const participantVoteMap = new Map<number, ParticipantVoteAggregate>();
     const cellVoteMap = new Map<
       string,
       { x: number; y: number; voteCount: number }
@@ -337,6 +350,23 @@ export const summaryService = {
       }
 
       colorVoteMap.set(vote.color, (colorVoteMap.get(vote.color) ?? 0) + 1);
+
+      const participantVoteAggregate = participantVoteMap.get(vote.voter.id);
+
+      if (participantVoteAggregate) {
+        participantVoteAggregate.voteCount += 1;
+
+        if (vote.createdAt > participantVoteAggregate.lastVotedAt) {
+          participantVoteAggregate.lastVotedAt = vote.createdAt;
+        }
+      } else {
+        participantVoteMap.set(vote.voter.id, {
+          voterId: vote.voter.id,
+          name: vote.voter.nickname,
+          voteCount: 1,
+          lastVotedAt: vote.createdAt,
+        });
+      }
 
       const roundAggregate = roundVoteMap.get(vote.round.id);
       if (roundAggregate) {
@@ -418,6 +448,13 @@ export const summaryService = {
     );
     const paintedCellCount = paintedCells.length;
     const emptyCellCount = Math.max(0, totalCellCount - paintedCellCount);
+    const endedAt = canvas.endedAt ?? new Date();
+    const roomType = room?.type ?? RoomType.PLAZA;
+    const topParticipantVoteCount = Array.from(participantVoteMap.values()).reduce(
+      (maxVoteCount, participant) =>
+        participant.voteCount > maxVoteCount ? participant.voteCount : maxVoteCount,
+      0,
+    );
 
     const nextSummary = gameSummaryRepository.create({
       id: existingSummary?.id,
@@ -459,6 +496,43 @@ export const summaryService = {
       ),
     });
 
-    return gameSummaryRepository.save(nextSummary);
+    return AppDataSource.transaction(async (manager) => {
+      const transactionalGameSummaryRepository =
+        manager.getRepository(GameSummary);
+      const transactionalCanvasParticipantSummaryRepository = manager.getRepository(
+        CanvasParticipantSummary,
+      );
+
+      const savedSummary = await transactionalGameSummaryRepository.save(nextSummary);
+
+      await transactionalCanvasParticipantSummaryRepository.delete({
+        canvas: { id: canvasId },
+      });
+
+      const participantSummaries = Array.from(participantVoteMap.values()).map(
+        (participant) =>
+          transactionalCanvasParticipantSummaryRepository.create({
+            canvas: { id: canvasId },
+            voter: { id: participant.voterId },
+            gridX: canvas.gridX,
+            gridY: canvas.gridY,
+            usedVoteCount: participant.voteCount,
+            lastVotedAt: participant.lastVotedAt,
+            isTopVoter:
+              topParticipantVoteCount > 0 &&
+              participant.voteCount === topParticipantVoteCount,
+            endedAt,
+            roomType,
+          }),
+      );
+
+      if (participantSummaries.length > 0) {
+        await transactionalCanvasParticipantSummaryRepository.save(
+          participantSummaries,
+        );
+      }
+
+      return savedSummary;
+    });
   },
 };
