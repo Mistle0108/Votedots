@@ -85,9 +85,9 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       home: "홈",
     },
     hero: {
-      title: "직접 그리고 함께 투표하는\n픽셀 캔버스",
+      title: "직접 그리고 투표하는\n픽셀 캔버스",
       description:
-        "색을 고르고, 투표를 하고, 함께 완성하세요.",
+        "색을 고르고,\n투표를 하고,\n함께 완성하세요.",
       cta: "참여하기",
     },
     currentGame: {
@@ -390,7 +390,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       title:
         "Draw and vote together\non a shared pixel canvas.",
       description:
-        "Pick a color, cast your vote, and complete it together.",
+        "Pick a color,\ncast your vote,\nand complete it together.",
       cta: "Join the game",
     },
     currentGame: {
