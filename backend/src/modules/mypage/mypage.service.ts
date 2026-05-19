@@ -1,6 +1,7 @@
 import { AppDataSource } from "../../database/data-source";
 import { CanvasParticipantSummary } from "../../entities/canvas-participant-summary.entity";
 import { GameSummary } from "../../entities/game-summary.entity";
+import { RoomType } from "../../entities/room.entity";
 const canvasParticipantSummaryRepository = AppDataSource.getRepository(
   CanvasParticipantSummary,
 );
@@ -14,6 +15,7 @@ export interface ParticipationListParams {
   page?: number;
   limit?: number;
   size?: string | null;
+  visibility?: string | null;
 }
 
 export interface MypageParticipationListItem {
@@ -50,6 +52,22 @@ function parseSizeFilter(size: string | null | undefined): {
   }
 
   return { gridX, gridY };
+}
+
+function parseVisibilityFilter(visibility: string | null | undefined): RoomType[] | null {
+  if (!visibility || visibility === "all") {
+    return null;
+  }
+
+  if (visibility === "public") {
+    return [RoomType.PLAZA, RoomType.PUBLIC];
+  }
+
+  if (visibility === "private") {
+    return [RoomType.PRIVATE];
+  }
+
+  return null;
 }
 
 function normalizePage(value: number | undefined): number {
@@ -108,6 +126,7 @@ export const mypageService = {
     const page = normalizePage(params.page);
     const limit = normalizeLimit(params.limit);
     const sizeFilter = parseSizeFilter(params.size);
+    const visibilityFilter = parseVisibilityFilter(params.visibility);
 
     const query = canvasParticipantSummaryRepository
       .createQueryBuilder("participation")
@@ -119,6 +138,12 @@ export const mypageService = {
       query
         .andWhere("participation.grid_x = :gridX", { gridX: sizeFilter.gridX })
         .andWhere("participation.grid_y = :gridY", { gridY: sizeFilter.gridY });
+    }
+
+    if (visibilityFilter) {
+      query.andWhere("participation.room_type IN (:...roomTypes)", {
+        roomTypes: visibilityFilter,
+      });
     }
 
     const totalItems = await query.getCount();

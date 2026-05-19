@@ -17,6 +17,7 @@ import { Button } from "@/shared/ui/button";
 import MypageResultModal from "@/features/mypage/components/MypageResultModal";
 
 type SizeFilterValue = "all" | "32x32" | "64x64" | "128x128" | "256x256";
+type VisibilityFilterValue = "all" | "public" | "private";
 
 const SIZE_FILTERS: SizeFilterValue[] = [
   "all",
@@ -25,6 +26,7 @@ const SIZE_FILTERS: SizeFilterValue[] = [
   "128x128",
   "256x256",
 ];
+const VISIBILITY_FILTERS: VisibilityFilterValue[] = ["all", "public", "private"];
 
 const EMPTY_PAGINATION: MypagePagination = {
   page: 1,
@@ -33,6 +35,29 @@ const EMPTY_PAGINATION: MypagePagination = {
   totalPages: 1,
   hasNextPage: false,
 };
+
+function getVisiblePageNumbers(
+  currentPage: number,
+  totalPages: number,
+  windowSize = 5,
+) {
+  if (totalPages <= 0) {
+    return [];
+  }
+
+  const halfWindow = Math.floor(windowSize / 2);
+  let startPage = Math.max(1, currentPage - halfWindow);
+  let endPage = Math.min(totalPages, startPage + windowSize - 1);
+
+  if (endPage - startPage + 1 < windowSize) {
+    startPage = Math.max(1, endPage - windowSize + 1);
+  }
+
+  return Array.from(
+    { length: endPage - startPage + 1 },
+    (_, index) => startPage + index,
+  );
+}
 
 function formatDate(value: string, locale: "ko" | "en") {
   return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
@@ -248,6 +273,8 @@ export default function MyPage() {
   const [profile, setProfile] = useState<Voter | null>(null);
   const [profileLoading, setProfileLoading] = useState(true);
   const [pageError, setPageError] = useState<string | null>(null);
+  const [visibilityFilter, setVisibilityFilter] =
+    useState<VisibilityFilterValue>("all");
   const [sizeFilter, setSizeFilter] = useState<SizeFilterValue>("all");
   const [page, setPage] = useState(1);
   const [participations, setParticipations] = useState<MypageParticipationItem[]>([]);
@@ -348,7 +375,9 @@ export default function MyPage() {
         const { data } = await mypageApi.getParticipations({
           page,
           limit: 8,
-          size: sizeFilter,
+          size: sizeFilter === "all" ? undefined : sizeFilter,
+          visibility:
+            visibilityFilter === "all" ? undefined : visibilityFilter,
         });
 
         if (cancelled) {
@@ -387,7 +416,7 @@ export default function MyPage() {
     return () => {
       cancelled = true;
     };
-  }, [locale, navigate, page, sizeFilter, t]);
+  }, [locale, navigate, page, sizeFilter, t, visibilityFilter]);
 
   useEffect(() => {
     let cancelled = false;
@@ -533,9 +562,9 @@ export default function MyPage() {
 
   const handlePasswordInputChange =
     (setter: (value: string) => void) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
-      setter(sanitizePasswordValue(event.target.value));
-    };
+      (event: ChangeEvent<HTMLInputElement>) => {
+        setter(sanitizePasswordValue(event.target.value));
+      };
 
   if (profileLoading) {
     return (
@@ -637,28 +666,30 @@ export default function MyPage() {
               </div>
             </section>
 
-            <aside className="order-1 flex flex-col justify-center border-b border-[#e6d8c9] bg-[#fffaf5] px-7 py-8 sm:px-8 xl:order-2 xl:border-b-0 xl:border-l xl:border-t-0">
-              <div className="mx-auto w-full max-w-[220px] pt-5">
-                <div className="text-left">
-                  <h2 className="text-[32px] font-semibold tracking-[-0.05em] text-[#151515]">
-                    {profile?.nickname ?? "-"}
-                  </h2>
-                  <p className="mt-2 text-[15px] font-medium text-[#6c5a4d]">
-                    @{profile?.username ?? "-"}
-                  </p>
-                </div>
+            <aside className="order-1 flex flex-col h-full border-b border-[#e6d8c9] bg-[#fffaf5] px-7 py-8 sm:px-8 xl:order-2 xl:border-b-0 xl:border-l xl:border-t-0">
+              <div className="flex flex-1 flex-col items-center justify-center">
+                <div className="w-full max-w-[220px]">
+                  <div className="text-left">
+                    <h2 className="text-[32px] font-semibold tracking-[-0.05em] text-[#151515]">
+                      {profile?.nickname ?? "-"}
+                    </h2>
+                    <p className="mt-2 text-[15px] font-medium text-[#6c5a4d]">
+                      @{profile?.username ?? "-"}
+                    </p>
+                  </div>
 
-                <div className="mt-10 text-left">
-                  <p className="text-sm font-semibold text-[#d8b18f]">
-                    {t("mypage.profile.createdAt")}
-                  </p>
-                  <p className="mt-2 text-[20px] font-medium tracking-[-0.04em] text-[#2d2d2d]">
-                    {profile ? formatDate(profile.createdAt, locale) : "-"}
-                  </p>
+                  <div className="mt-10 text-left">
+                    <p className="text-sm font-semibold text-[#d8b18f]">
+                      {t("mypage.profile.createdAt")}
+                    </p>
+                    <p className="mt-2 text-[20px] font-medium tracking-[-0.04em] text-[#2d2d2d]">
+                      {profile ? formatDate(profile.createdAt, locale) : "-"}
+                    </p>
+                  </div>
                 </div>
               </div>
 
-              <div className="mt-18 border-t border-[#e6d8c9] pt-6">
+              <div className="border-t border-[#e6d8c9] pt-6">
                 <div className="flex flex-col gap-3">
                   <button
                     type="button"
@@ -681,29 +712,49 @@ export default function MyPage() {
 
           <section className="overflow-hidden rounded-[36px] border border-[#ead7c8] bg-[#fff7f0] shadow-[0_24px_80px_rgba(39,46,55,0.08)]">
             <div className="px-6 py-6 sm:px-8">
-              <div className="flex flex-wrap gap-2 rounded-full bg-[#f6ece3] p-1.5">
-                {SIZE_FILTERS.map((filterValue) => (
-                  <button
-                    key={filterValue}
-                    type="button"
-                    onMouseDown={(event) => {
-                      event.preventDefault();
-                    }}
-                    onClick={() => {
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="flex flex-wrap gap-2 rounded-full bg-[#f6ece3] p-1.5">
+                  {SIZE_FILTERS.map((filterValue) => (
+                    <button
+                      key={filterValue}
+                      type="button"
+                      onMouseDown={(event) => {
+                        event.preventDefault();
+                      }}
+                      onClick={() => {
+                        pendingFilterScrollYRef.current = window.scrollY;
+                        setPage(1);
+                        setSizeFilter(filterValue);
+                      }}
+                      className={[
+                        "rounded-full px-4 py-2.5 text-sm font-semibold transition",
+                        sizeFilter === filterValue
+                          ? "bg-[#2d2d2d] text-white"
+                          : "text-[#7a685b] hover:bg-white hover:text-[#2d2d2d]",
+                      ].join(" ")}
+                    >
+                      {filterValue === "all" ? t("mypage.filter.all") : filterValue}
+                    </button>
+                  ))}
+                </div>
+
+                <label className="inline-flex self-start rounded-full border border-[#e1d3c4] bg-white px-4 py-2.5 lg:self-auto">
+                  <select
+                    value={visibilityFilter}
+                    onChange={(event) => {
                       pendingFilterScrollYRef.current = window.scrollY;
                       setPage(1);
-                      setSizeFilter(filterValue);
+                      setVisibilityFilter(event.target.value as VisibilityFilterValue);
                     }}
-                    className={[
-                      "rounded-full px-4 py-2.5 text-sm font-semibold transition",
-                      sizeFilter === filterValue
-                        ? "bg-[#2d2d2d] text-white"
-                        : "text-[#7a685b] hover:bg-white hover:text-[#2d2d2d]",
-                    ].join(" ")}
+                    className="bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
                   >
-                    {filterValue === "all" ? t("mypage.filter.all") : filterValue}
-                  </button>
-                ))}
+                    {VISIBILITY_FILTERS.map((filterValue) => (
+                      <option key={filterValue} value={filterValue}>
+                        {t(`mypage.visibility.${filterValue}`)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
             </div>
 
@@ -737,38 +788,79 @@ export default function MyPage() {
                   </div>
                 )}
 
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-[#ead7c8] bg-white px-5 py-4">
-                  <p className="text-sm font-medium text-[#7a685b]">
-                    {t("mypage.pagination.status", {
-                      page: pagination.page,
-                      totalPages: pagination.totalPages,
-                    })}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      className="rounded-full border-[#d9c7b7] bg-white px-4 text-[#6c5a4d] hover:bg-[#f6eee7]"
+                {participations.length > 0 && pagination.totalPages > 1 ? (
+                  <div className="flex items-center justify-center gap-2 rounded-[24px] border border-[#ead7c8] bg-white px-5 py-4">
+                    <button
+                      type="button"
                       disabled={pagination.page <= 1}
                       onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      className="inline-flex h-10 w-10 items-center justify-center text-[#6c5a4d] transition hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={t("mypage.pagination.previous")}
                     >
-                      {t("mypage.pagination.previous")}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      className="rounded-full border-[#d9c7b7] bg-white px-4 text-[#6c5a4d] hover:bg-[#f6eee7]"
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 20 20"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M12.5 4.5L7 10l5.5 5.5" />
+                      </svg>
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {getVisiblePageNumbers(
+                        pagination.page,
+                        pagination.totalPages,
+                      ).map((pageNumber) => (
+                        <button
+                          key={pageNumber}
+                          type="button"
+                          onClick={() => setPage(pageNumber)}
+                          className={[
+                            "inline-flex h-10 min-w-10 items-center justify-center border-b-2 px-3 text-sm font-semibold transition",
+                            pageNumber === pagination.page
+                              ? "border-[#2d2d2d] text-[#2d2d2d]"
+                              : "border-transparent text-[#6c5a4d] hover:border-[#d9c7b7] hover:text-[#2d2d2d]",
+                          ].join(" ")}
+                        >
+                          {pageNumber}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
                       disabled={!pagination.hasNextPage}
                       onClick={() =>
                         setPage((current) =>
                           pagination.hasNextPage ? current + 1 : current,
                         )
                       }
+                      className="inline-flex h-10 w-10 items-center justify-center text-[#6c5a4d] transition hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
+                      aria-label={t("mypage.pagination.next")}
                     >
-                      {t("mypage.pagination.next")}
-                    </Button>
+                      <svg
+                        aria-hidden="true"
+                        viewBox="0 0 20 20"
+                        className="h-4 w-4"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="M7.5 4.5L13 10l-5.5 5.5" />
+                      </svg>
+                    </button>
                   </div>
-                </div>
+                ) : null}
+
               </section>
-          </div>
+            </div>
           </section>
         </section>
       </main>
@@ -1011,5 +1103,3 @@ export default function MyPage() {
     </div>
   );
 }
-
-

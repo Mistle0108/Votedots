@@ -15,6 +15,7 @@ export class AddMypageSummaryFoundation1784900000000
         "last_voted_at" TIMESTAMP WITH TIME ZONE NOT NULL,
         "is_top_voter" boolean NOT NULL DEFAULT false,
         "ended_at" TIMESTAMP WITH TIME ZONE NOT NULL,
+        "room_type" character varying(16) NOT NULL DEFAULT 'plaza',
         "created_at" TIMESTAMP NOT NULL DEFAULT now(),
         "updated_at" TIMESTAMP NOT NULL DEFAULT now(),
         "canvas_id" integer,
@@ -33,6 +34,11 @@ export class AddMypageSummaryFoundation1784900000000
     await queryRunner.query(`
       CREATE INDEX "IDX_canvas_participant_summary_voter_grid"
       ON "canvas_participant_summary" ("voter_id", "grid_x", "grid_y")
+    `);
+
+    await queryRunner.query(`
+      CREATE INDEX "IDX_canvas_participant_summary_voter_room_type_ended_at"
+      ON "canvas_participant_summary" ("voter_id", "room_type", "ended_at")
     `);
 
     await queryRunner.query(`
@@ -134,6 +140,9 @@ export class AddMypageSummaryFoundation1784900000000
 
     await queryRunner.query(
       `DROP INDEX "public"."IDX_canvas_participant_summary_voter_grid"`,
+    );
+    await queryRunner.query(
+      `DROP INDEX "public"."IDX_canvas_participant_summary_voter_room_type_ended_at"`,
     );
     await queryRunner.query(
       `DROP INDEX "public"."IDX_canvas_participant_summary_voter_ended_at"`,

@@ -50,12 +50,17 @@ export const mypageController = {
       const limit = parsePositiveInteger(req.query["limit"]) ?? undefined;
       const size =
         typeof req.query["size"] === "string" ? req.query["size"] : null;
+      const visibility =
+        typeof req.query["visibility"] === "string"
+          ? req.query["visibility"]
+          : null;
 
       const result = await mypageService.getParticipationList({
         voterId,
         page,
         limit,
         size,
+        visibility,
       });
 
       return res.json({

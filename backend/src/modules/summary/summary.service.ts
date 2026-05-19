@@ -5,6 +5,7 @@ import { CanvasParticipantSummary } from "../../entities/canvas-participant-summ
 import { GameSummary } from "../../entities/game-summary.entity";
 import { RoundVoterState } from "../../entities/round-voter-state.entity";
 import { RoundSummary } from "../../entities/round-summary.entity";
+import { Room, RoomType } from "../../entities/room.entity";
 import { VoteRound } from "../../entities/vote-round.entity";
 import { VoteTicket } from "../../entities/vote-ticket.entity";
 import { Vote } from "../../entities/vote.entity";
@@ -17,6 +18,7 @@ const voteTicketRepository = AppDataSource.getRepository(VoteTicket);
 const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const roundSummaryRepository = AppDataSource.getRepository(RoundSummary);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
+const roomRepository = AppDataSource.getRepository(Room);
 const canvasParticipantSummaryRepository = AppDataSource.getRepository(
   CanvasParticipantSummary,
 );
@@ -284,7 +286,7 @@ export const summaryService = {
       throw new Error("캔버스가 존재하지 않습니다.");
     }
 
-    const [votes, roundVoterStates, tickets, rounds, cells, existingSummary] = await Promise.all([
+    const [votes, roundVoterStates, tickets, rounds, cells, existingSummary, room] = await Promise.all([
       voteRepository.find({
         where: { round: { canvas: { id: canvasId } } },
         relations: ["voter", "round"],
@@ -302,6 +304,9 @@ export const summaryService = {
         where: { canvas: { id: canvasId } },
       }),
       gameSummaryRepository.findOne({
+        where: { canvas: { id: canvasId } },
+      }),
+      roomRepository.findOne({
         where: { canvas: { id: canvasId } },
       }),
     ]);
@@ -448,6 +453,7 @@ export const summaryService = {
     const paintedCellCount = paintedCells.length;
     const emptyCellCount = Math.max(0, totalCellCount - paintedCellCount);
     const endedAt = canvas.endedAt ?? new Date();
+    const roomType = room?.type ?? RoomType.PLAZA;
     const topParticipantVoteCount = Array.from(participantVoteMap.values()).reduce(
       (maxVoteCount, participant) =>
         participant.voteCount > maxVoteCount ? participant.voteCount : maxVoteCount,
@@ -520,6 +526,7 @@ export const summaryService = {
               topParticipantVoteCount > 0 &&
               participant.voteCount === topParticipantVoteCount,
             endedAt,
+            roomType,
           }),
       );
 

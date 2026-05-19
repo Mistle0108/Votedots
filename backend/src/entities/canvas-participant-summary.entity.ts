@@ -9,6 +9,7 @@ import {
   UpdateDateColumn,
 } from "typeorm";
 import { Canvas } from "./canvas.entity";
+import { RoomType } from "./room.entity";
 import { Voter } from "./voter.entity";
 
 @Entity("canvas_participant_summary")
@@ -16,6 +17,11 @@ import { Voter } from "./voter.entity";
   unique: true,
 })
 @Index("IDX_canvas_participant_summary_voter_ended_at", ["voter", "endedAt"])
+@Index("IDX_canvas_participant_summary_voter_room_type_ended_at", [
+  "voter",
+  "roomType",
+  "endedAt",
+])
 @Index("IDX_canvas_participant_summary_voter_grid", ["voter", "gridX", "gridY"])
 export class CanvasParticipantSummary {
   @PrimaryGeneratedColumn()
@@ -46,6 +52,14 @@ export class CanvasParticipantSummary {
 
   @Column({ type: "timestamptz", name: "ended_at" })
   endedAt!: Date;
+
+  @Column({
+    type: "varchar",
+    length: 16,
+    name: "room_type",
+    default: RoomType.PLAZA,
+  })
+  roomType!: RoomType;
 
   @CreateDateColumn({ name: "created_at" })
   createdAt!: Date;

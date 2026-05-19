@@ -310,6 +310,9 @@ export const resources: Record<Locale, Record<string, string>> = {
     "mypage.summary.totalUsedVoteCount": "총 사용 투표 수",
     "mypage.summary.topVoterAchievedCount": "최다 득표자 달성 횟수",
     "mypage.filter.all": "전체",
+    "mypage.visibility.all": "전체",
+    "mypage.visibility.public": "공개",
+    "mypage.visibility.private": "비공개",
     "mypage.participations.notice":
       "1표 이상 사용한 종료된 캔버스 기준으로 집계됩니다.",
     "mypage.participations.participatedAt": "참여 시각",
@@ -800,6 +803,9 @@ export const resources: Record<Locale, Record<string, string>> = {
     "mypage.summary.totalUsedVoteCount": "Total votes used",
     "mypage.summary.topVoterAchievedCount": "Top voter achievements",
     "mypage.filter.all": "All",
+    "mypage.visibility.all": "All",
+    "mypage.visibility.public": "Public",
+    "mypage.visibility.private": "Private",
     "mypage.participations.notice":
       "Counts are based on ended canvases where you used at least one vote.",
     "mypage.participations.participatedAt": "Participated at",

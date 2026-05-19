@@ -9,6 +9,7 @@ export interface GetParticipationsParams {
   page?: number;
   limit?: number;
   size?: string;
+  visibility?: string;
 }
 
 export const mypageApi = {
