@@ -7,10 +7,10 @@ interface CanvasStageProps {
   overlay?: ReactNode;
   topCenterOverlay?: ReactNode;
   tutorialId?: string;
-  onMouseDown: (event: React.MouseEvent) => void;
-  onMouseMove: (event: React.MouseEvent) => void;
-  onMouseUp: (event: React.MouseEvent) => void;
-  onMouseLeave: () => void;
+  onPointerDown: (event: React.PointerEvent) => void;
+  onPointerMove: (event: React.PointerEvent) => void;
+  onPointerUp: (event: React.PointerEvent) => void;
+  onPointerCancel: (event: React.PointerEvent) => void;
   isDragging: boolean;
   onWheel: (event: WheelEvent) => void;
 }
@@ -21,10 +21,10 @@ export default function CanvasStage({
   overlay,
   topCenterOverlay,
   tutorialId,
-  onMouseDown,
-  onMouseMove,
-  onMouseUp,
-  onMouseLeave,
+  onPointerDown,
+  onPointerMove,
+  onPointerUp,
+  onPointerCancel,
   isDragging,
   onWheel,
 }: CanvasStageProps) {
@@ -52,14 +52,15 @@ export default function CanvasStage({
     <div
       ref={stageRef}
       data-tutorial-id={tutorialId}
-      className={`relative min-w-0 flex-1 overflow-hidden ${isDragging ? "cursor-grabbing" : ""}`}
+      className={`relative h-full w-full min-w-0 flex-1 overflow-hidden ${isDragging ? "cursor-grabbing" : ""}`}
       style={{
         backgroundColor: CANVAS_BACKGROUND_COLOR,
+        touchAction: "none",
       }}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseLeave}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerCancel={onPointerCancel}
       onDragStart={(event) => {
         event.preventDefault();
       }}
@@ -75,7 +76,7 @@ export default function CanvasStage({
         ref={containerRef}
         tabIndex={0}
         className="relative h-full w-full overflow-hidden"
-        onMouseDown={() => {
+        onPointerDown={() => {
           containerRef.current?.focus();
         }}
         onKeyDown={(event) => {

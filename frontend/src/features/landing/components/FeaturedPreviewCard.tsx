@@ -8,7 +8,6 @@ export interface FeaturedPreviewCardLabels {
   participants: string;
   votes: string;
   topVoter: string;
-  participantList: string;
 }
 
 interface FeaturedPreviewCardProps {
@@ -30,7 +29,6 @@ export default function FeaturedPreviewCard({
     locale === "ko" ? "ko-KR" : "en-US",
   );
   const preview = item?.preview ?? null;
-  const participantNames = preview?.participants ?? [];
 
   return (
     <article className="mx-auto w-[332px] overflow-hidden rounded-[30px] bg-white shadow-[0_24px_70px_rgba(39,46,55,0.08)]">
@@ -83,32 +81,6 @@ export default function FeaturedPreviewCard({
                     )})`
                   : "-"}
               </p>
-            </div>
-          </div>
-
-          <div className="space-y-1.5 text-center text-sm leading-6 text-[#51545a]">
-            <div>
-              <p className="font-semibold text-[#7b6b62]">
-                {labels.participantList}
-              </p>
-              <div className="mt-1.5 rounded-2xl bg-white px-3 py-2 shadow-[inset_0_0_0_1px_rgba(234,215,200,0.95)]">
-                {participantNames.length > 0 ? (
-                  <div className="flex h-24 flex-wrap content-start justify-center gap-2 overflow-y-auto pr-1">
-                    {participantNames.map((name, index) => (
-                      <span
-                        key={`${name}-${index}`}
-                        className="inline-flex items-center rounded-full bg-[#f6ede5] px-3 py-1 text-xs font-medium text-[#51545a]"
-                      >
-                        {name}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="flex h-24 items-center justify-center text-sm text-[#7b6b62]">
-                    -
-                  </p>
-                )}
-              </div>
             </div>
           </div>
         </div>

@@ -23,6 +23,9 @@ interface UseCanvasSceneParams {
   topColorMap: Map<string, string>;
   resetPreviewColor: () => void;
   openPopup: (position: { x: number; y: number }) => void;
+  openPopupOnActivate?: boolean;
+  resetPreviewOnActivate?: boolean;
+  onCellActivated?: (cell: Cell) => void;
 }
 
 interface ZoomBounds {
@@ -185,6 +188,9 @@ export default function useCanvasScene({
   topColorMap,
   resetPreviewColor,
   openPopup,
+  openPopupOnActivate = true,
+  resetPreviewOnActivate = true,
+  onCellActivated,
 }: UseCanvasSceneParams) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -569,14 +575,30 @@ export default function useCanvasScene({
 
   const activateCell = useCallback(
     (cell: Cell, position?: { x: number; y: number }) => {
-      resetPreviewColor();
+      if (resetPreviewOnActivate) {
+        resetPreviewColor();
+      }
       setSelectedCell(cell);
       selectedCellRef.current = cell;
       setSelectionVisible(true);
       emitSelectionUpdate(cell);
-      openPopup(position ?? getPopupPositionForCell(cell.x, cell.y) ?? { x: 0, y: 0 });
+      onCellActivated?.(cell);
+
+      if (openPopupOnActivate) {
+        openPopup(
+          position ?? getPopupPositionForCell(cell.x, cell.y) ?? { x: 0, y: 0 },
+        );
+      }
     },
-    [emitSelectionUpdate, getPopupPositionForCell, openPopup, resetPreviewColor],
+    [
+      emitSelectionUpdate,
+      getPopupPositionForCell,
+      onCellActivated,
+      openPopup,
+      openPopupOnActivate,
+      resetPreviewColor,
+      resetPreviewOnActivate,
+    ],
   );
 
   const activateCellAtCoordinate = useCallback(
@@ -706,10 +728,10 @@ export default function useCanvasScene({
   );
 
   const {
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleMouseLeave,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     isDraggingCanvas,
   } = useCanvasInteraction({
     canvasRef: canvasElementRef,
@@ -723,6 +745,53 @@ export default function useCanvasScene({
     worldOffsetY: worldOffset.y,
     onPan: handlePan,
     onActivateCell: activateCell,
+    onPinchZoom: ({ centerClientX, centerClientY, scale }) => {
+      if (scale <= 0 || Math.abs(scale - 1) < 0.01) {
+        return;
+      }
+
+      const container = containerRef.current;
+
+      if (!container || !canvasReady || gridX === 0 || gridY === 0) {
+        return;
+      }
+
+      const containerRect = container.getBoundingClientRect();
+      const pointerOffsetX = centerClientX - containerRect.left;
+      const pointerOffsetY = centerClientY - containerRect.top;
+      const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+      const bounds = getZoomBounds(container, worldWidth, worldHeight);
+
+      setZoom((currentZoom) => {
+        const nextZoom = clampZoom(currentZoom * scale, bounds);
+
+        if (nextZoom === currentZoom) {
+          return currentZoom;
+        }
+
+        const currentWorldOffset = calculateWorldScreenOffset({
+          worldWidth,
+          worldHeight,
+          viewportWidth: container.clientWidth,
+          viewportHeight: container.clientHeight,
+          zoom: currentZoom,
+        });
+
+        pendingZoomAdjustmentRef.current = {
+          focusWorldX:
+            cameraXRef.current +
+            (pointerOffsetX - currentWorldOffset.x) / currentZoom,
+          focusWorldY:
+            cameraYRef.current +
+            (pointerOffsetY - currentWorldOffset.y) / currentZoom,
+          viewportOffsetX: pointerOffsetX,
+          viewportOffsetY: pointerOffsetY,
+        };
+
+        zoomRef.current = nextZoom;
+        return nextZoom;
+      });
+    },
   });
 
   useCanvasRenderer({
@@ -804,6 +873,52 @@ export default function useCanvasScene({
       window.removeEventListener("keydown", handleKeyDown);
     };
   }, [activateCellAtCoordinate, gridX, gridY]);
+
+  const stepCanvasZoom = useCallback(
+    (zoomIn: boolean) => {
+      const container = containerRef.current;
+
+      if (!container || !canvasReady || gridX === 0 || gridY === 0) {
+        return;
+      }
+
+      const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+      const bounds = getZoomBounds(container, worldWidth, worldHeight);
+      const pointerOffsetX = container.clientWidth / 2;
+      const pointerOffsetY = container.clientHeight / 2;
+
+      setZoom((currentZoom) => {
+        const nextZoom = getNextZoom(currentZoom, zoomIn, bounds);
+
+        if (nextZoom === currentZoom) {
+          return currentZoom;
+        }
+
+        const currentWorldOffset = calculateWorldScreenOffset({
+          worldWidth,
+          worldHeight,
+          viewportWidth: container.clientWidth,
+          viewportHeight: container.clientHeight,
+          zoom: currentZoom,
+        });
+
+        pendingZoomAdjustmentRef.current = {
+          focusWorldX:
+            cameraXRef.current +
+            (pointerOffsetX - currentWorldOffset.x) / currentZoom,
+          focusWorldY:
+            cameraYRef.current +
+            (pointerOffsetY - currentWorldOffset.y) / currentZoom,
+          viewportOffsetX: pointerOffsetX,
+          viewportOffsetY: pointerOffsetY,
+        };
+
+        zoomRef.current = nextZoom;
+        return nextZoom;
+      });
+    },
+    [canvasReady, gridX, gridY],
+  );
 
   const resetCanvasZoom = useCallback(() => {
     const container = containerRef.current;
@@ -1037,12 +1152,13 @@ export default function useCanvasScene({
     setGridY,
     updateCells,
     updateMinimapCells,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleMouseLeave,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     isDraggingCanvas,
     handleWheel,
+    stepCanvasZoom,
     handleCanvasUpdated,
     handleCanvasBatchUpdated,
     clearSelectedCell,

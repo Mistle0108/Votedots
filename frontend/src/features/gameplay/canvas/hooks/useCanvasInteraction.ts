@@ -1,6 +1,8 @@
-import { useRef, useState, type RefObject } from "react";
+import { useRef, useState, type PointerEvent as ReactPointerEvent, type RefObject } from "react";
 import { getGameConfig } from "@/shared/config/game-config";
 import { Cell } from "../model/canvas.types";
+
+const TAP_DISTANCE_THRESHOLD = 6;
 
 interface UseCanvasInteractionParams {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -14,6 +16,11 @@ interface UseCanvasInteractionParams {
   worldOffsetY: number;
   onPan: (dx: number, dy: number) => void;
   onActivateCell: (cell: Cell, position: { x: number; y: number }) => void;
+  onPinchZoom?: (payload: {
+    centerClientX: number;
+    centerClientY: number;
+    scale: number;
+  }) => void;
 }
 
 function isInsideCanvas(clientX: number, clientY: number, rect: DOMRect) {
@@ -53,62 +60,200 @@ export function useCanvasInteraction({
   worldOffsetY,
   onPan,
   onActivateCell,
+  onPinchZoom,
 }: UseCanvasInteractionParams) {
-  const isPanning = useRef(false);
-  const hasPanned = useRef(false);
-  const lastPos = useRef({ x: 0, y: 0 });
+  const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
+  const activeGestureRef = useRef<{
+    pointerId: number;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastY: number;
+    hasPanned: boolean;
+  } | null>(null);
+  const pinchDistanceRef = useRef<number | null>(null);
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
 
-  const handleMouseDown = (event: React.MouseEvent) => {
-    if (event.button !== 0) return;
-
-    isPanning.current = true;
-    hasPanned.current = false;
+  const resetGesture = () => {
+    activeGestureRef.current = null;
+    pinchDistanceRef.current = null;
     setIsDraggingCanvas(false);
-    lastPos.current = { x: event.clientX, y: event.clientY };
   };
 
-  const handleMouseMove = (event: React.MouseEvent) => {
-    if (!isPanning.current) return;
+  const beginSinglePointerGesture = (pointerId: number, clientX: number, clientY: number) => {
+    activeGestureRef.current = {
+      pointerId,
+      startX: clientX,
+      startY: clientY,
+      lastX: clientX,
+      lastY: clientY,
+      hasPanned: false,
+    };
+    pinchDistanceRef.current = null;
+    setIsDraggingCanvas(false);
+  };
 
-    const dx = event.clientX - lastPos.current.x;
-    const dy = event.clientY - lastPos.current.y;
+  const getTrackedPointers = () => Array.from(activePointersRef.current.values()).slice(0, 2);
 
-    if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-      hasPanned.current = true;
-      setIsDraggingCanvas(true);
+  const getTrackedDistance = () => {
+    const [firstPointer, secondPointer] = getTrackedPointers();
+
+    if (!firstPointer || !secondPointer) {
+      return null;
     }
 
-    onPan(dx, dy);
-    lastPos.current = { x: event.clientX, y: event.clientY };
+    return Math.hypot(
+      secondPointer.x - firstPointer.x,
+      secondPointer.y - firstPointer.y,
+    );
   };
 
-  const handleMouseUp = (event: React.MouseEvent) => {
-    if (event.button !== 0) return;
-
-    const wasPanning = isPanning.current;
-    isPanning.current = false;
-    setIsDraggingCanvas(false);
-
-    if (!wasPanning) {
-      hasPanned.current = false;
+  const handlePointerDown = (event: ReactPointerEvent) => {
+    if (event.pointerType === "mouse" && event.button !== 0) {
       return;
     }
 
-    if (hasPanned.current) {
-      hasPanned.current = false;
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    try {
+      event.currentTarget.setPointerCapture(event.pointerId);
+    } catch {
+      // Ignore browsers that do not support explicit capture here.
+    }
+
+    if (activePointersRef.current.size === 1) {
+      beginSinglePointerGesture(event.pointerId, event.clientX, event.clientY);
+      return;
+    }
+
+    if (activePointersRef.current.size >= 2) {
+      activeGestureRef.current = null;
+      setIsDraggingCanvas(false);
+      pinchDistanceRef.current = getTrackedDistance();
+    }
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent) => {
+    if (!activePointersRef.current.has(event.pointerId)) {
+      return;
+    }
+
+    activePointersRef.current.set(event.pointerId, {
+      x: event.clientX,
+      y: event.clientY,
+    });
+
+    if (activePointersRef.current.size >= 2) {
+      const [firstPointer, secondPointer] = getTrackedPointers();
+      const nextDistance = getTrackedDistance();
+
+      if (!firstPointer || !secondPointer || nextDistance === null) {
+        return;
+      }
+
+      const previousDistance = pinchDistanceRef.current ?? nextDistance;
+
+      if (
+        onPinchZoom &&
+        previousDistance > 0 &&
+        nextDistance > 0 &&
+        Math.abs(nextDistance - previousDistance) > 0.5
+      ) {
+        onPinchZoom({
+          centerClientX: (firstPointer.x + secondPointer.x) / 2,
+          centerClientY: (firstPointer.y + secondPointer.y) / 2,
+          scale: nextDistance / previousDistance,
+        });
+      }
+
+      pinchDistanceRef.current = nextDistance;
+      setIsDraggingCanvas(false);
+      return;
+    }
+
+    const activeGesture = activeGestureRef.current;
+
+    if (!activeGesture || activeGesture.pointerId !== event.pointerId) {
+      return;
+    }
+
+    const dx = event.clientX - activeGesture.lastX;
+    const dy = event.clientY - activeGesture.lastY;
+    const totalDx = event.clientX - activeGesture.startX;
+    const totalDy = event.clientY - activeGesture.startY;
+
+    if (
+      !activeGesture.hasPanned &&
+      Math.hypot(totalDx, totalDy) > TAP_DISTANCE_THRESHOLD
+    ) {
+      activeGesture.hasPanned = true;
+      setIsDraggingCanvas(true);
+    }
+
+    if (activeGesture.hasPanned) {
+      onPan(dx, dy);
+    }
+
+    activeGesture.lastX = event.clientX;
+    activeGesture.lastY = event.clientY;
+  };
+
+  const handlePointerUp = (event: ReactPointerEvent) => {
+    const hadPointer = activePointersRef.current.has(event.pointerId);
+    const activeGesture = activeGestureRef.current;
+
+    activePointersRef.current.delete(event.pointerId);
+
+    try {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    } catch {
+      // Ignore browsers that do not support explicit release here.
+    }
+
+    if (!hadPointer) {
+      return;
+    }
+
+    if (activePointersRef.current.size >= 1) {
+      if (activePointersRef.current.size === 1) {
+        const [remainingPointerId, remainingPointer] =
+          activePointersRef.current.entries().next().value ?? [];
+
+        if (
+          typeof remainingPointerId === "number" &&
+          remainingPointer &&
+          typeof remainingPointer.x === "number"
+        ) {
+          beginSinglePointerGesture(
+            remainingPointerId,
+            remainingPointer.x,
+            remainingPointer.y,
+          );
+        }
+      }
+      return;
+    }
+
+    resetGesture();
+
+    if (!activeGesture || activeGesture.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (activeGesture.hasPanned) {
       return;
     }
 
     const canvas = canvasRef.current;
     if (!canvas || gridX === 0 || gridY === 0 || zoom <= 0) {
-      hasPanned.current = false;
       return;
     }
 
     const rect = canvas.getBoundingClientRect();
     if (!isInsideCanvas(event.clientX, event.clientY, rect)) {
-      hasPanned.current = false;
       return;
     }
 
@@ -128,7 +273,6 @@ export function useCanvasInteraction({
     const targetY = Math.floor(worldPoint.y / cellSize);
 
     if (targetX < 0 || targetX >= gridX || targetY < 0 || targetY >= gridY) {
-      hasPanned.current = false;
       return;
     }
 
@@ -141,23 +285,41 @@ export function useCanvasInteraction({
         status: "idle",
       } as Cell);
 
-    hasPanned.current = false;
     onActivateCell(targetCell, {
       x: event.clientX,
       y: event.clientY,
     });
   };
 
-  const handleMouseLeave = () => {
-    isPanning.current = false;
-    setIsDraggingCanvas(false);
+  const handlePointerCancel = (event: ReactPointerEvent) => {
+    activePointersRef.current.delete(event.pointerId);
+
+    if (activePointersRef.current.size === 1) {
+      const [remainingPointerId, remainingPointer] =
+        activePointersRef.current.entries().next().value ?? [];
+
+      if (
+        typeof remainingPointerId === "number" &&
+        remainingPointer &&
+        typeof remainingPointer.x === "number"
+      ) {
+        beginSinglePointerGesture(
+          remainingPointerId,
+          remainingPointer.x,
+          remainingPointer.y,
+        );
+        return;
+      }
+    }
+
+    resetGesture();
   };
 
   return {
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleMouseLeave,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     isDraggingCanvas,
   };
 }
