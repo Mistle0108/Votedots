@@ -1128,6 +1128,29 @@ export default function useCanvasScene({
     emitSelectionUpdate(null);
   }, [emitSelectionUpdate]);
 
+  const openVotePopupForCell = useCallback(
+    (cell: Cell, popupPosition?: { x: number; y: number }) => {
+      if (resetPreviewOnActivate) {
+        resetPreviewColor();
+      }
+
+      setSelectedCell(cell);
+      selectedCellRef.current = cell;
+      setSelectionVisible(true);
+      emitSelectionUpdate(cell);
+      openPopup(
+        popupPosition ?? getPopupPositionForCell(cell.x, cell.y) ?? { x: 0, y: 0 },
+      );
+    },
+    [
+      emitSelectionUpdate,
+      getPopupPositionForCell,
+      openPopup,
+      resetPreviewColor,
+      resetPreviewOnActivate,
+    ],
+  );
+
   return {
     paintCanvasRef,
     canvasRef,
@@ -1164,5 +1187,6 @@ export default function useCanvasScene({
     clearSelectedCell,
     applySelectedCellColor,
     hideSelectedCellVisual,
+    openVotePopupForCell,
   };
 }

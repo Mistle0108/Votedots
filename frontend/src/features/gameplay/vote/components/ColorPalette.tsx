@@ -188,72 +188,71 @@ export default function ColorPalette({
             />
           </>
         ) : (
-          <div className="mt-3 flex items-center gap-1.5">
-            <button
-              onClick={handleEyeDropper}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
-              title={t("vote.palette.eyeDropper")}
+          <>
+            <div
+              className="overflow-hidden rounded-md border border-[color:var(--page-theme-border-primary)]"
+              onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={eyedropperIcon}
-                alt=""
-                className="h-4 w-4 object-contain"
-                draggable={false}
-              />
-            </button>
-
-            <div className="flex flex-1 items-center overflow-hidden rounded border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)]">
-              <div
-                className="h-7 w-7 shrink-0 cursor-pointer"
-                style={{ backgroundColor: selected }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  colorInputRef.current?.click();
-                }}
-              />
-              <input
-                ref={colorInputRef}
-                type="color"
-                value={selected}
-                onChange={(e) => {
-                  e.stopPropagation();
-                  onChange(e.target.value);
-                }}
-                className="absolute h-0 w-0 opacity-0"
-              />
-              <input
-                type="text"
-                value={resolvedDraftHex}
-                onChange={handleHexInput}
-                onBlur={handleHexBlur}
-                onClick={(e) => e.stopPropagation()}
-                className="w-0 flex-1 bg-transparent px-1.5 text-xs text-[color:var(--page-theme-text-primary)] outline-none"
-                maxLength={7}
+              <HexColorPicker
+                color={selected}
+                onChange={onChange}
+                style={{ width: "100%", height: 148 }}
               />
             </div>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSlotAdd();
-              }}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-sm text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
-              title={t("vote.palette.addSlot")}
-            >
-              +
-            </button>
+            <div className="mt-3 flex items-center gap-1.5">
+              <button
+                onClick={handleEyeDropper}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
+                title={t("vote.palette.eyeDropper")}
+              >
+                <img
+                  src={eyedropperIcon}
+                  alt=""
+                  className="h-4 w-4 object-contain"
+                  draggable={false}
+                />
+              </button>
 
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onSlotReset();
-              }}
-              className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
-              title={t("vote.palette.reset")}
-            >
-              ↺
-            </button>
-          </div>
+              <div className="flex flex-1 items-center overflow-hidden rounded border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)]">
+                <div
+                  className="h-7 w-7 shrink-0"
+                  style={{ backgroundColor: selected }}
+                />
+                <input
+                  type="text"
+                  value={resolvedDraftHex}
+                  onChange={handleHexInput}
+                  onBlur={handleHexBlur}
+                  onClick={(e) => e.stopPropagation()}
+                  className="w-0 flex-1 bg-transparent px-1.5 text-xs text-[color:var(--page-theme-text-primary)] outline-none"
+                  maxLength={7}
+                />
+              </div>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSlotAdd();
+                }}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-sm text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
+                title={t("vote.palette.addSlot")}
+              >
+                +
+              </button>
+
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSlotReset();
+                }}
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded border border-[color:var(--page-theme-border-primary)] text-xs text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]"
+                title={t("vote.palette.reset")}
+              >
+                ↺
+              </button>
+            </div>
+          </>
         )}
       </div>
 

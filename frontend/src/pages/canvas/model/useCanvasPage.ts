@@ -117,6 +117,7 @@ export default function useCanvasPage({
     clearSelectedCell,
     applySelectedCellColor,
     hideSelectedCellVisual,
+    openVotePopupForCell,
   } = useCanvasScene({
     previewColor,
     votingCellIds,
@@ -449,5 +450,6 @@ export default function useCanvasPage({
     historyItems,
     historyLoading,
     historyError,
+    openVotePopupForCell,
   };
 }
