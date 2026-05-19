@@ -101,21 +101,41 @@ export function getLandingPreviewFilename(
 }
 
 export function getGameResultFilename(
-  canvasId: number,
   format: StorageImageFormat = "png",
 ): string {
-  return `canvas-${canvasId}-result.${format}`;
+  return `result.${format}`;
+}
+
+export function getGameResultRelativeDirectory(params: {
+  capturedAt: Date;
+  canvasId: number;
+}): string {
+  const year = String(params.capturedAt.getFullYear());
+  const month = formatMonth(params.capturedAt.getMonth() + 1);
+  const day = formatDay(params.capturedAt.getDate());
+
+  return path.posix.join(
+    GAME_RESULT_PREFIX,
+    year,
+    month,
+    day,
+    `canvas-${params.canvasId}`,
+  );
 }
 
 export function buildGameResultRelativePath(params: {
+  capturedAt: Date;
   canvasId: number;
   format?: StorageImageFormat;
 }): string {
   const format = params.format ?? "png";
 
   return path.posix.join(
-    GAME_RESULT_PREFIX,
-    getGameResultFilename(params.canvasId, format),
+    getGameResultRelativeDirectory({
+      capturedAt: params.capturedAt,
+      canvasId: params.canvasId,
+    }),
+    getGameResultFilename(format),
   );
 }
 
@@ -234,11 +254,17 @@ export async function ensureLandingPreviewDirectory(params: {
   };
 }
 
-export async function ensureGameResultDirectory(): Promise<{
+export async function ensureGameResultDirectory(params: {
+  capturedAt: Date;
+  canvasId: number;
+}): Promise<{
   relativeDirPath: string;
   absoluteDirPath: string;
 }> {
-  const relativeDirPath = GAME_RESULT_PREFIX;
+  const relativeDirPath = getGameResultRelativeDirectory({
+    capturedAt: params.capturedAt,
+    canvasId: params.canvasId,
+  });
   const absoluteDirPath = resolveGameHistoryAbsolutePath(relativeDirPath);
 
   await mkdir(absoluteDirPath, { recursive: true });

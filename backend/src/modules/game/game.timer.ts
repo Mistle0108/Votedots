@@ -258,6 +258,30 @@ export async function forceGameEnd(
   roomTerminationReason: RoomTerminationReason | null = null,
 ): Promise<void> {
   clearCanvasTimers(canvasId);
+
+  const activeRound = await roundRepository.findOne({
+    where: { canvas: { id: canvasId }, isActive: true },
+    order: { roundNumber: "DESC" },
+  });
+
+  if (activeRound) {
+    try {
+      await roundService.endRound(canvasId, activeRound.id, io);
+      await transitionToGameEnd(
+        io,
+        canvasId,
+        activeRound.roundNumber,
+        roomTerminationReason,
+      );
+      return;
+    } catch (error) {
+      console.error(
+        `[game-timer] failed to end active round before forced game end (canvasId=${canvasId}, roundId=${activeRound.id}):`,
+        error,
+      );
+    }
+  }
+
   await transitionToGameEnd(io, canvasId, roundNumber, roomTerminationReason);
 }
 

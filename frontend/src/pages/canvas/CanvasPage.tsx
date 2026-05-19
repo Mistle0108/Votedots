@@ -302,6 +302,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     RoomCurrentManageResponse["room"] | null
   >(null);
   const [roomEndGameLoading, setRoomEndGameLoading] = useState(false);
+  const [roomEndGameRequested, setRoomEndGameRequested] = useState(false);
   const [roomTerminateLoading, setRoomTerminateLoading] = useState(false);
   const [roomExpiredReason, setRoomExpiredReason] = useState<
     "expired" | "terminated_by_owner" | null
@@ -596,6 +597,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       return;
     }
 
+    setRoomEndGameRequested(true);
     setRoomEndGameLoading(true);
 
     try {
@@ -621,6 +623,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
             : "Failed to end the game.",
         );
       }
+      setRoomEndGameRequested(false);
     } finally {
       setRoomEndGameLoading(false);
     }
@@ -1814,7 +1817,11 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    disabled={roomEndGameLoading}
+                    disabled={
+                      roomEndGameLoading ||
+                      roomEndGameRequested ||
+                      phase === GAME_PHASE.GAME_END
+                    }
                     onClick={handleEndGame}
                     className="rounded-xl bg-[#272E37] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
                   >
@@ -2221,6 +2228,9 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
               sessionSourceApi.key === "room" ? currentRoomManage : null
             }
             roomEndGameLoading={roomEndGameLoading}
+            roomEndGameDisabled={
+              roomEndGameRequested || phase === GAME_PHASE.GAME_END
+            }
             onEndGame={handleEndGame}
             roomTerminateLoading={roomTerminateLoading}
             onTerminateRoom={handleTerminateRoom}

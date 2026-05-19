@@ -24,6 +24,16 @@ const finalResultDownloadLocks = new Map<string, Promise<string>>();
 
 type FinalResultDownloadVariant = "original" | "hd";
 
+function clearFinalResultMetadata(summary: GameSummary): void {
+  summary.finalResultStoragePath = null;
+  summary.finalResultMimeType = null;
+  summary.finalResultFormat = null;
+  summary.finalResultWidth = null;
+  summary.finalResultHeight = null;
+  summary.finalResultByteSize = null;
+  summary.finalResultCapturedAt = null;
+}
+
 export const finalResultImageService = {
   buildFinalResultImageApiPath(canvasId: number): string {
     return `/api/public/canvas/${canvasId}/final-result`;
@@ -171,6 +181,12 @@ export const finalResultImageService = {
       throw new Error(`Game summary was not found. (canvasId=${canvasId})`);
     }
 
+    if (gameSummary.totalVotes <= 0) {
+      clearFinalResultMetadata(gameSummary);
+      await gameSummaryRepository.save(gameSummary);
+      return;
+    }
+
     const cells = await cellRepository
       .createQueryBuilder("cell")
       .select(["cell.x", "cell.y", "cell.color"])
@@ -183,6 +199,7 @@ export const finalResultImageService = {
     });
     const resultTemplateImageBuffer =
       await loadResultTemplateAsset(resultTemplateAssetKey);
+    const capturedAt = canvas.endedAt ?? new Date();
 
     const renderedSnapshot = roundSnapshotRenderService.renderPngBuffer({
       gridWidth: canvas.gridX,
@@ -195,9 +212,13 @@ export const finalResultImageService = {
       backgroundImageBuffer: resultTemplateImageBuffer,
     });
 
-    await ensureGameResultDirectory();
+    await ensureGameResultDirectory({
+      capturedAt,
+      canvasId,
+    });
 
     const relativePath = buildGameResultRelativePath({
+      capturedAt,
       canvasId,
       format: "png",
     });
@@ -211,7 +232,7 @@ export const finalResultImageService = {
     gameSummary.finalResultWidth = renderedSnapshot.imageWidth;
     gameSummary.finalResultHeight = renderedSnapshot.imageHeight;
     gameSummary.finalResultByteSize = renderedSnapshot.buffer.byteLength;
-    gameSummary.finalResultCapturedAt = canvas.endedAt ?? new Date();
+    gameSummary.finalResultCapturedAt = capturedAt;
 
     await gameSummaryRepository.save(gameSummary);
   },
