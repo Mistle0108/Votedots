@@ -9,6 +9,7 @@ interface Props {
   onBackgroundModeChange: (mode: PlayBackgroundMode) => void;
   roomManage?: RoomCurrentManageResponse["room"] | null;
   roomEndGameLoading?: boolean;
+  roomEndGameDisabled?: boolean;
   onEndGame?: () => void;
   roomTerminateLoading?: boolean;
   onTerminateRoom?: () => void;
@@ -24,6 +25,7 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
       onBackgroundModeChange,
       roomManage,
       roomEndGameLoading = false,
+      roomEndGameDisabled = false,
       onEndGame,
       roomTerminateLoading = false,
       onTerminateRoom,
@@ -144,7 +146,9 @@ const VotePanelSettings = forwardRef<HTMLDivElement, Props>(
               </div>
               <button
                 type="button"
-                disabled={roomEndGameLoading || !onEndGame}
+                disabled={
+                  roomEndGameLoading || roomEndGameDisabled || !onEndGame
+                }
                 onClick={onEndGame}
                 className="mt-3 w-full rounded-lg bg-[#272E37] px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
               >

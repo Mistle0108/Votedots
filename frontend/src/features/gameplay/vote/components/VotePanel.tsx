@@ -56,6 +56,7 @@ interface Props {
   ) => void;
   currentRoomManage?: RoomCurrentManageResponse["room"] | null;
   roomEndGameLoading?: boolean;
+  roomEndGameDisabled?: boolean;
   onEndGame?: () => void;
   roomTerminateLoading?: boolean;
   onTerminateRoom?: () => void;
@@ -95,6 +96,7 @@ export default function VotePanel({
   onNavigateToCoordinate,
   currentRoomManage = null,
   roomEndGameLoading = false,
+  roomEndGameDisabled = false,
   onEndGame,
   roomTerminateLoading = false,
   onTerminateRoom,
@@ -229,6 +231,7 @@ export default function VotePanel({
               onBackgroundModeChange={onBackgroundModeChange}
               roomManage={currentRoomManage}
               roomEndGameLoading={roomEndGameLoading}
+              roomEndGameDisabled={roomEndGameDisabled}
               onEndGame={onEndGame}
               roomTerminateLoading={roomTerminateLoading}
               onTerminateRoom={onTerminateRoom}

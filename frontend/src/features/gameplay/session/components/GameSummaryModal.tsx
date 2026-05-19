@@ -366,13 +366,13 @@ export default function GameSummaryModal({
 
   return (
     <div
-      className="pointer-events-none fixed inset-0 z-50 bg-[color:var(--page-theme-overlay)] px-3 py-6"
+      className="pointer-events-none fixed inset-0 z-50 px-3 py-6"
     >
       <div
         className={
           mobileLayout
-            ? "pointer-events-auto fixed inset-0 bg-[color:var(--page-theme-overlay)]"
-            : "pointer-events-auto fixed bottom-0 right-0 bg-[color:var(--page-theme-overlay)]"
+            ? "pointer-events-auto fixed inset-0"
+            : "pointer-events-auto fixed bottom-0 right-0"
         }
         style={
           mobileLayout
