@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authApi } from "@/features/auth";
 import type { Cell, Viewport } from "@/features/gameplay/canvas";
 import type { PlayBackgroundMode } from "@/features/gameplay/canvas/model/background-assets";
 import { MiniMap } from "@/features/gameplay/canvas";
@@ -100,7 +99,6 @@ export default function VotePanel({
   const navigate = useNavigate();
   const { locale, setLocale, t } = useI18n();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [withdrawLoading, setWithdrawLoading] = useState(false);
   const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
   const settingsMenuRef = useRef<HTMLDivElement | null>(null);
   const votesPerRound = getGameConfig().rules.votesPerRound;
@@ -115,35 +113,6 @@ export default function VotePanel({
   const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
   const isSettingsVisible =
     forceSettingsOpen || (!settingsDisabled && isSettingsOpen);
-
-  const handleWithdraw = async () => {
-    const confirmed = window.confirm(t("session.withdrawConfirm"));
-
-    if (!confirmed) {
-      return;
-    }
-
-    setWithdrawLoading(true);
-    (
-      window as Window & {
-        __votedotsWithdrawPending?: boolean;
-      }
-    ).__votedotsWithdrawPending = true;
-
-    try {
-      await authApi.withdraw();
-      navigate("/login", { replace: true });
-    } catch {
-      (
-        window as Window & {
-          __votedotsWithdrawPending?: boolean;
-        }
-      ).__votedotsWithdrawPending = false;
-      window.alert(t("session.withdrawFailed"));
-    } finally {
-      setWithdrawLoading(false);
-    }
-  };
 
   useEffect(() => {
     if (!isSettingsOpen) {
@@ -225,15 +194,6 @@ export default function VotePanel({
           </div>
 
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleWithdraw}
-              disabled={withdrawLoading}
-              className="inline-flex h-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3 text-xs font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {withdrawLoading ? t("session.withdrawing") : t("session.withdraw")}
-            </button>
-
             <button
               ref={settingsButtonRef}
               type="button"

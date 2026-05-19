@@ -25,6 +25,7 @@ import {
 } from "@/features/room/model/room-session-context";
 import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { useI18n } from "@/shared/i18n";
+import type { Voter } from "@/features/auth";
 
 type AuthState = "authenticated" | "guest" | "unknown";
 type LobbyTab = "completed" | "rooms";
@@ -112,7 +113,7 @@ export default function LobbyPage() {
   const { locale, setLocale, t } = useI18n();
   const [authState, setAuthState] = useState<AuthState>("unknown");
   const [loginRequiredOpen, setLoginRequiredOpen] = useState(false);
-  const [nickname, setNickname] = useState<string | null>(null);
+  const [currentVoter, setCurrentVoter] = useState<Voter | null>(null);
 
   const [activeTab, setActiveTab] = useState<LobbyTab>("rooms");
   const [createModalOpen, setCreateModalOpen] = useState(false);
@@ -180,11 +181,11 @@ export default function LobbyPage() {
   const refreshAuthState = useCallback(async () => {
     try {
       const { data } = await authApi.me();
-      setNickname(data.voter.nickname);
+      setCurrentVoter(data.voter);
       setAuthState("authenticated");
     } catch {
       clearStoredRoomSessionContext();
-      setNickname(null);
+      setCurrentVoter(null);
       setAuthState("guest");
     }
   }, []);
@@ -402,11 +403,11 @@ export default function LobbyPage() {
     if (authState === "unknown") {
       try {
         const { data } = await authApi.me();
-        setNickname(data.voter.nickname);
+        setCurrentVoter(data.voter);
         setAuthState("authenticated");
         return true;
       } catch {
-        setNickname(null);
+        setCurrentVoter(null);
         setAuthState("guest");
       }
     }
@@ -589,7 +590,7 @@ export default function LobbyPage() {
       await logoutToLobby(navigate);
     } finally {
       setAuthState("guest");
-      setNickname(null);
+      setCurrentVoter(null);
     }
   }, [navigate]);
 
@@ -712,17 +713,22 @@ export default function LobbyPage() {
           <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
             <div className="grid gap-3">
               {authState === "authenticated" ? (
-                <div className="grid min-h-[48px] gap-3 rounded-2xl px-4 py-3 text-sm text-[#5f6368]">
-                  <span className="truncate font-semibold text-[#272E37]">
-                    {nickname ?? t("lobby.login.loggedInFallback")}
-                  </span>
-                  <div className="flex items-center justify-between gap-2">
+                <div className="grid gap-5 rounded-2xl px-2 py-2 text-sm text-[#5f6368]">
+                  <div className="min-w-0 px-2 py-1 text-left">
+                    <p className="truncate text-[18px] font-semibold tracking-[-0.03em] text-[#272E37]">
+                      {currentVoter?.nickname ?? t("lobby.login.loggedInFallback")}
+                    </p>
+                    <p className="mt-2 truncate text-[15px] font-medium text-[#7b6b62]">
+                      @{currentVoter?.username ?? ""}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={() => {
                         navigate("/mypage");
                       }}
-                      className="inline-flex h-9 items-center justify-center rounded-full border border-[#d9cdc1] px-4 text-sm font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
+                      className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
                     >
                       {t("lobby.actions.mypage")}
                     </button>
@@ -731,7 +737,7 @@ export default function LobbyPage() {
                       onClick={() => {
                         void handleLogout();
                       }}
-                      className="shrink-0 text-sm font-semibold text-[#e05746]"
+                      className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
                     >
                       {t("session.logout")}
                     </button>
@@ -748,23 +754,25 @@ export default function LobbyPage() {
                   {t("auth.login.submit")}
                 </button>
               )}
+            </div>
+          </section>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  type="button"
-                  onClick={handleCreateRoom}
-                  className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-                >
-                  {t("lobby.actions.createRoom")}
-                </button>
-                <button
-                  type="button"
-                  onClick={handleEnterRoom}
-                  className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-                >
-                  {t("lobby.actions.enterRoom")}
-                </button>
-              </div>
+          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={handleCreateRoom}
+                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
+              >
+                {t("lobby.actions.createRoom")}
+              </button>
+              <button
+                type="button"
+                onClick={handleEnterRoom}
+                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
+              >
+                {t("lobby.actions.enterRoom")}
+              </button>
             </div>
           </section>
 

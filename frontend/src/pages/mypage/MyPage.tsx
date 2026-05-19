@@ -14,6 +14,7 @@ import { useI18n } from "@/shared/i18n";
 import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
+import homeIcon from "@/assets/home-icon.png";
 import MypageResultModal from "@/features/mypage/components/MypageResultModal";
 
 type SizeFilterValue = "all" | "32x32" | "64x64" | "128x128" | "256x256";
@@ -585,10 +586,16 @@ export default function MyPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              className="rounded-full border-[#d9c7b7] bg-white px-4 text-[#6c5a4d] hover:bg-[#f6eee7]"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border-[#d9c7b7] bg-white p-0 text-[#6c5a4d] hover:bg-[#f6eee7]"
               onClick={() => navigate("/lobby")}
+              aria-label={t("mypage.backToLobby")}
             >
-              {t("mypage.backToLobby")}
+              <img
+                src={homeIcon}
+                alt=""
+                className="h-4.5 w-4.5 object-contain"
+                draggable={false}
+              />
             </Button>
             <Button
               variant="outline"
@@ -678,7 +685,7 @@ export default function MyPage() {
                     </p>
                   </div>
 
-                  <div className="mt-10 text-left">
+                  <div className="mt-10 pb-4 text-left">
                     <p className="text-sm font-semibold text-[#d8b18f]">
                       {t("mypage.profile.createdAt")}
                     </p>
@@ -701,7 +708,7 @@ export default function MyPage() {
                   <button
                     type="button"
                     onClick={handleOpenWithdrawModal}
-                    className="inline-flex h-[52px] items-center justify-center rounded-[20px] border border-[#cfc3b7] bg-white px-4 text-[15px] font-semibold text-[#2d2d2d] transition hover:bg-[#f6eee7]"
+                    className="inline-flex h-[52px] items-center justify-center rounded-[20px] border border-[#e4b8ad] bg-[#fff5f2] px-4 text-[15px] font-semibold text-[#c04f2c] transition hover:bg-[#fde7df]"
                   >
                     {t("mypage.account.withdraw")}
                   </button>
