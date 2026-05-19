@@ -670,48 +670,54 @@ export default function MyPage() {
           <section className="overflow-hidden rounded-[36px] border border-[#ead7c8] bg-[#fff7f0] shadow-[0_24px_80px_rgba(39,46,55,0.08)]">
             <div className="px-6 py-6 sm:px-8">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="flex flex-wrap gap-2 rounded-full bg-[#f6ece3] p-1.5">
-                  {SIZE_FILTERS.map((filterValue) => (
-                    <button
-                      key={filterValue}
-                      type="button"
-                      onMouseDown={(event) => {
-                        event.preventDefault();
-                      }}
-                      onClick={() => {
+                <p className="text-sm font-medium text-[#7a685b]">
+                  내가 참여한 캔버스를 확인할 수 있습니다.
+                </p>
+
+                <div className="flex flex-wrap items-center justify-end gap-2">
+                  <div className="flex flex-wrap rounded-full border border-[#d9cdc1] bg-white p-1">
+                    {SIZE_FILTERS.map((filterValue) => (
+                      <button
+                        key={filterValue}
+                        type="button"
+                        onMouseDown={(event) => {
+                          event.preventDefault();
+                        }}
+                        onClick={() => {
+                          pendingFilterScrollYRef.current = window.scrollY;
+                          setPage(1);
+                          setSizeFilter(filterValue);
+                        }}
+                        className={[
+                          "rounded-full px-3 py-1.5 text-sm font-semibold transition",
+                          sizeFilter === filterValue
+                            ? "bg-[#272E37] text-white"
+                            : "text-[#5f6368]",
+                        ].join(" ")}
+                      >
+                        {filterValue === "all" ? t("mypage.filter.all") : filterValue}
+                      </button>
+                    ))}
+                  </div>
+
+                  <label className="inline-flex self-start rounded-full border border-[#d9cdc1] bg-white px-4 py-2.5 lg:self-auto">
+                    <select
+                      value={visibilityFilter}
+                      onChange={(event) => {
                         pendingFilterScrollYRef.current = window.scrollY;
                         setPage(1);
-                        setSizeFilter(filterValue);
+                        setVisibilityFilter(event.target.value as VisibilityFilterValue);
                       }}
-                      className={[
-                        "rounded-full px-4 py-2.5 text-sm font-semibold transition",
-                        sizeFilter === filterValue
-                          ? "bg-[#2d2d2d] text-white"
-                          : "text-[#7a685b] hover:bg-white hover:text-[#2d2d2d]",
-                      ].join(" ")}
+                      className="bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
                     >
-                      {filterValue === "all" ? t("mypage.filter.all") : filterValue}
-                    </button>
-                  ))}
+                      {VISIBILITY_FILTERS.map((filterValue) => (
+                        <option key={filterValue} value={filterValue}>
+                          {t(`mypage.visibility.${filterValue}`)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
-
-                <label className="inline-flex self-start rounded-full border border-[#e1d3c4] bg-white px-4 py-2.5 lg:self-auto">
-                  <select
-                    value={visibilityFilter}
-                    onChange={(event) => {
-                      pendingFilterScrollYRef.current = window.scrollY;
-                      setPage(1);
-                      setVisibilityFilter(event.target.value as VisibilityFilterValue);
-                    }}
-                    className="bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-                  >
-                    {VISIBILITY_FILTERS.map((filterValue) => (
-                      <option key={filterValue} value={filterValue}>
-                        {t(`mypage.visibility.${filterValue}`)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
               </div>
             </div>
 

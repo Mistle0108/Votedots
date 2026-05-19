@@ -1,7 +1,8 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 interface CanvasResultCardProps {
   imageUrl: string | null;
+  secondaryImageUrl?: string | null;
   imageAlt: string;
   emptyMessage: string;
   footer: ReactNode;
@@ -11,32 +12,40 @@ interface CanvasResultCardProps {
 
 export default function CanvasResultCard({
   imageUrl,
+  secondaryImageUrl = null,
   imageAlt,
   emptyMessage,
   footer,
   actionLabel,
   onAction,
 }: CanvasResultCardProps) {
-  const [imageFailed, setImageFailed] = useState(false);
+  const [failedImageUrls, setFailedImageUrls] = useState<string[]>([]);
 
-  useEffect(() => {
-    setImageFailed(false);
-  }, [imageUrl]);
+  const activeImageUrl =
+    imageUrl && !failedImageUrls.includes(imageUrl)
+      ? imageUrl
+      : secondaryImageUrl && !failedImageUrls.includes(secondaryImageUrl)
+        ? secondaryImageUrl
+        : null;
 
-  const showFallback = !imageUrl || imageFailed;
+  const showFallback = !activeImageUrl;
 
   return (
     <article className="overflow-hidden rounded-[28px] border border-[#ead7c8] bg-white shadow-[0_18px_50px_rgba(39,46,55,0.08)]">
       <div className="aspect-square overflow-hidden bg-white">
         {!showFallback ? (
           <img
-            src={imageUrl}
+            src={activeImageUrl}
             alt={imageAlt}
             className="h-full w-full object-contain"
             style={{ imageRendering: "pixelated" }}
             draggable={false}
             onError={() => {
-              setImageFailed(true);
+              setFailedImageUrls((current) =>
+                activeImageUrl && !current.includes(activeImageUrl)
+                  ? [...current, activeImageUrl]
+                  : current,
+              );
             }}
           />
         ) : (

@@ -55,8 +55,11 @@ export default function CanvasResultModal({
   labels,
 }: CanvasResultModalProps) {
   const { formatNumber, locale, t } = useI18n();
-  const [previewImageFailed, setPreviewImageFailed] = useState(false);
-  const hasResultImage = Boolean(detail?.resultImageUrl) && !previewImageFailed;
+  const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  const currentPreviewUrl = detail?.resultImageUrl ?? null;
+  const previewImageFailed =
+    currentPreviewUrl !== null && failedPreviewUrl === currentPreviewUrl;
+  const hasResultImage = Boolean(currentPreviewUrl) && !previewImageFailed;
   const canDownloadDefault = Boolean(
     hasResultImage && detail?.downloadAvailable && detail?.downloadSnapshotUrl,
   );
@@ -114,10 +117,6 @@ export default function CanvasResultModal({
     };
   }, [onClose, open]);
 
-  useEffect(() => {
-    setPreviewImageFailed(false);
-  }, [detail?.canvasId, detail?.resultImageUrl, open]);
-
   if (!open || !detail) {
     return null;
   }
@@ -162,7 +161,13 @@ export default function CanvasResultModal({
                   maxLongestSide={420}
                   fallbackMessage={labels.noSnapshot}
                   onImageLoadStateChange={(state) => {
-                    setPreviewImageFailed(state === "error");
+                    if (!currentPreviewUrl) {
+                      return;
+                    }
+
+                    setFailedPreviewUrl(
+                      state === "error" ? currentPreviewUrl : null,
+                    );
                   }}
                 />
               ) : (

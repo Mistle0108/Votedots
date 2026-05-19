@@ -4,10 +4,7 @@ import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-e
 import { trackVisitEvent } from "@/features/analytics/model/visit-event";
 import { authApi, logoutToLobby } from "@/features/auth";
 import { landingApi } from "@/features/landing/api/landing.api";
-import type {
-  LandingCurrentGame,
-  LandingFeaturedPreviewItem,
-} from "@/features/landing/model/landing.types";
+import type { LandingCurrentGame } from "@/features/landing/model/landing.types";
 import CompletedCanvasSection from "@/features/lobby/components/CompletedCanvasSection";
 import {
   roomApi,
@@ -49,26 +46,6 @@ function getPixelPerfectPreviewDimensions(params: {
   return {
     width: gridX * scale,
     height: gridY * scale,
-  };
-}
-
-function buildCompletedRange(preset: CompletedPreset) {
-  const now = new Date();
-  const start = new Date(now);
-  start.setHours(0, 0, 0, 0);
-
-  if (preset === "7d") {
-    start.setDate(start.getDate() - 6);
-  } else if (preset === "30d") {
-    start.setDate(start.getDate() - 29);
-  }
-
-  const end = new Date(now);
-  end.setHours(23, 59, 59, 999);
-
-  return {
-    dateFrom: start.toISOString(),
-    dateTo: end.toISOString(),
   };
 }
 
@@ -136,11 +113,6 @@ export default function LobbyPage() {
   const [completedScope, setCompletedScope] = useState<CompletedScope>("plaza");
   const [completedPreset, setCompletedPreset] =
     useState<CompletedPreset>("today");
-  const [completedItems, setCompletedItems] = useState<
-    LandingFeaturedPreviewItem[]
-  >([]);
-  const [completedLoading, setCompletedLoading] = useState(false);
-  const [completedError, setCompletedError] = useState<string | null>(null);
 
   const [plazaCurrentGame, setPlazaCurrentGame] =
     useState<LandingCurrentGame | null>(null);
@@ -296,47 +268,6 @@ export default function LobbyPage() {
     loadRoomDetail,
     selectedRoomId,
   ]);
-
-  useEffect(() => {
-    if (activeTab !== "completed") {
-      return;
-    }
-
-    let cancelled = false;
-    const { dateFrom, dateTo } = buildCompletedRange(completedPreset);
-
-    const loadCompletedPreviews = async () => {
-      setCompletedLoading(true);
-      setCompletedError(null);
-
-      try {
-        const { data } = await landingApi.getCompletedPreviews({
-          scope: completedScope,
-          dateFrom,
-          dateTo,
-        });
-
-        if (!cancelled) {
-          setCompletedItems(data.items);
-        }
-      } catch {
-        if (!cancelled) {
-          setCompletedItems([]);
-          setCompletedError("완성된 캔버스를 불러오지 못했습니다.");
-        }
-      } finally {
-        if (!cancelled) {
-          setCompletedLoading(false);
-        }
-      }
-    };
-
-    void loadCompletedPreviews();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [activeTab, completedPreset, completedScope]);
 
   useEffect(() => {
     const element = rightPanelRef.current;
@@ -684,9 +615,6 @@ export default function LobbyPage() {
               <CompletedCanvasSection
                 scope={completedScope}
                 preset={completedPreset}
-                items={completedItems}
-                loading={completedLoading}
-                error={completedError}
                 onChangeScope={setCompletedScope}
                 onChangePreset={setCompletedPreset}
               />

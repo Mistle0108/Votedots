@@ -56,7 +56,7 @@ export interface LandingFeaturedPreviewTopVoter {
 }
 
 export interface LandingFeaturedPreviewMeta {
-  canvasId?: number;
+  canvasId: number;
   size: string;
   gridX: number;
   gridY: number;
