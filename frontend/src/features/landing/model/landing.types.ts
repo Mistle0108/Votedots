@@ -54,6 +54,7 @@ export interface LandingFeaturedPreviewTopVoter {
 }
 
 export interface LandingFeaturedPreviewMeta {
+  canvasId?: number;
   size: string;
   gridX: number;
   gridY: number;
@@ -66,9 +67,39 @@ export interface LandingFeaturedPreviewMeta {
 
 export interface LandingFeaturedPreviewItem {
   webpUrl: string;
+  resultImageUrl?: string | null;
+  downloadAvailable?: boolean;
+  downloadSnapshotUrl?: string | null;
+  highResolutionDownloadSnapshotUrl?: string | null;
   preview: LandingFeaturedPreviewMeta;
 }
 
 export interface LandingFeaturedPreviewPayload {
   items: LandingFeaturedPreviewItem[];
+  pagination?: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
+}
+
+export interface LandingCompletedPreviewDetail {
+  canvasId: number;
+  size: string;
+  endedAt: string;
+  totalRounds: number;
+  participantCount: number;
+  totalVotes: number;
+  topVoterName: string | null;
+  topVoterVoteCount: number;
+  participants: string[];
+  resultImageUrl: string | null;
+  downloadAvailable: boolean;
+  highResolutionDownloadAvailable: boolean;
+  downloadSnapshotUrl: string | null;
+  highResolutionDownloadSnapshotUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
