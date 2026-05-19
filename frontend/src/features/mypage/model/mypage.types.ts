@@ -1,3 +1,5 @@
+import type { CanvasResultDetailBase } from "@/features/canvas-result/model/canvas-result.types";
+
 export interface MypagePagination {
   page: number;
   limit: number;
@@ -23,30 +25,15 @@ export interface MypageParticipationsResponse {
   pagination: MypagePagination;
 }
 
-export interface MypageParticipationDetailData {
-  canvasId: number;
+export interface MypageParticipationDetailData extends CanvasResultDetailBase {
   gridX: number;
   gridY: number;
-  size: string;
-  endedAt: string;
   participatedAt: string;
   usedVoteCount: number;
   isTopVoter: boolean;
-  totalRounds: number;
-  participantCount: number;
-  totalVotes: number;
   canvasCompletionPercent: string;
-  topVoterName: string | null;
-  topVoterVoteCount: number;
   hottestRoundNumber: number | null;
   hottestRoundVoteCount: number;
-  resultImageUrl: string | null;
-  downloadSnapshotUrl: string | null;
-  highResolutionDownloadSnapshotUrl: string | null;
-  downloadAvailable: boolean;
-  highResolutionDownloadAvailable: boolean;
-  createdAt: string;
-  updatedAt: string;
 }
 
 export interface MypageParticipationDetailResponse {

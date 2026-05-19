@@ -115,6 +115,9 @@ export const mypageController = {
           topVoterVoteCount: result.gameSummary.topVoterVoteCount,
           hottestRoundNumber: result.gameSummary.hottestRoundNumber,
           hottestRoundVoteCount: result.gameSummary.hottestRoundVoteCount,
+          participants: (result.gameSummary.participantsJson ?? []).map(
+            (participant) => participant.name,
+          ),
           resultImageUrl: imageUrl,
           downloadSnapshotUrl: gameSummaryDownloads?.downloadSnapshotUrl ?? null,
           highResolutionDownloadSnapshotUrl:

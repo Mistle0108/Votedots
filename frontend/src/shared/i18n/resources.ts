@@ -316,7 +316,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "mypage.participations.notice":
       "1표 이상 사용한 종료된 캔버스 기준으로 집계됩니다.",
     "mypage.participations.participatedAt": "참여 시각",
-    "mypage.participations.viewResult": "결과 보기",
+    "mypage.participations.viewResult": "상세 보기",
     "mypage.participations.empty": "표시할 참여 내역이 없습니다.",
     "mypage.participations.resultUnavailable": "표시할 결과 이미지가 없습니다.",
     "mypage.participations.resultImageAlt": "참여한 캔버스 최종 결과 이미지",
@@ -809,7 +809,7 @@ export const resources: Record<Locale, Record<string, string>> = {
     "mypage.participations.notice":
       "Counts are based on ended canvases where you used at least one vote.",
     "mypage.participations.participatedAt": "Participated at",
-    "mypage.participations.viewResult": "View result",
+    "mypage.participations.viewResult": "View details",
     "mypage.participations.empty": "There is no participation history to display.",
     "mypage.participations.resultUnavailable":
       "There is no final result image to display.",

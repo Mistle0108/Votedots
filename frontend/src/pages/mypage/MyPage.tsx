@@ -15,7 +15,8 @@ import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
 import homeIcon from "@/assets/home-icon.png";
-import MypageResultModal from "@/features/mypage/components/MypageResultModal";
+import CanvasResultCard from "@/features/canvas-result/components/CanvasResultCard";
+import CanvasResultModal from "@/features/canvas-result/components/CanvasResultModal";
 
 type SizeFilterValue = "all" | "32x32" | "64x64" | "128x128" | "256x256";
 type VisibilityFilterValue = "all" | "public" | "private";
@@ -63,13 +64,6 @@ function getVisiblePageNumbers(
 function formatDate(value: string, locale: "ko" | "en") {
   return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
     dateStyle: "medium",
-  }).format(new Date(value));
-}
-
-function formatDateTime(value: string, locale: "ko" | "en") {
-  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
-    dateStyle: "medium",
-    timeStyle: "short",
   }).format(new Date(value));
 }
 
@@ -215,55 +209,11 @@ function PasswordVisibilityButton({
   );
 }
 
-function ParticipationCard({
-  item,
-  locale,
-  onOpenDetail,
-  t,
-}: {
-  item: MypageParticipationItem;
-  locale: "ko" | "en";
-  onOpenDetail: (canvasId: number) => void;
-  t: (key: string) => string;
-}) {
-  return (
-    <article className="overflow-hidden rounded-[28px] border border-[#ead7c8] bg-white shadow-[0_18px_50px_rgba(39,46,55,0.08)]">
-      <div className="aspect-square overflow-hidden bg-[linear-gradient(180deg,#f7efe7_0%,#efe0d2_100%)]">
-        {item.resultImageUrl ? (
-          <img
-            src={item.resultImageUrl}
-            alt={t("mypage.participations.resultImageAlt")}
-            className="h-full w-full object-contain"
-            style={{ imageRendering: "pixelated" }}
-            draggable={false}
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center px-6 text-center text-sm font-medium text-[#8a796c]">
-            {t("mypage.participations.resultUnavailable")}
-          </div>
-        )}
-      </div>
-
-      <div className="space-y-4 px-5 py-5">
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#cf6c45]">
-            {t("mypage.participations.participatedAt")}
-          </p>
-          <p className="mt-2 text-sm font-medium leading-6 text-[#2d2d2d]">
-            {formatDateTime(item.participatedAt, locale)}
-          </p>
-        </div>
-
-        <button
-          type="button"
-          onClick={() => onOpenDetail(item.canvasId)}
-          className="inline-flex h-11 w-full items-center justify-center rounded-full bg-[#d96d43] px-4 text-sm font-semibold text-white transition hover:bg-[#c95d34]"
-        >
-          {t("mypage.participations.viewResult")}
-        </button>
-      </div>
-    </article>
-  );
+function formatDateTime(value: string, locale: "ko" | "en") {
+  return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(new Date(value));
 }
 
 export default function MyPage() {
@@ -784,12 +734,23 @@ export default function MyPage() {
                 ) : (
                   <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
                     {participations.map((item) => (
-                      <ParticipationCard
+                      <CanvasResultCard
                         key={`${item.canvasId}-${item.participatedAt}`}
-                        item={item}
-                        locale={locale}
-                        onOpenDetail={handleOpenDetail}
-                        t={t}
+                        imageUrl={item.resultImageUrl}
+                        imageAlt={t("mypage.participations.resultImageAlt")}
+                        emptyMessage={t("mypage.participations.resultUnavailable")}
+                        footer={
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#cf6c45]">
+                              {t("mypage.participations.participatedAt")}
+                            </p>
+                            <p className="mt-2 text-sm font-medium leading-6 text-[#2d2d2d]">
+                              {formatDateTime(item.participatedAt, locale)}
+                            </p>
+                          </div>
+                        }
+                        actionLabel={t("mypage.participations.viewResult")}
+                        onAction={() => handleOpenDetail(item.canvasId)}
                       />
                     ))}
                   </div>
@@ -896,9 +857,23 @@ export default function MyPage() {
             </div>
           </div>
         ) : (
-          <MypageResultModal
+          <CanvasResultModal
             open={detailOpen}
             detail={detail}
+            labels={{
+              title: t("mypage.modal.title"),
+              close: t("mypage.modal.close"),
+              snapshotAlt: t("mypage.modal.snapshotAlt"),
+              noSnapshot: t("mypage.modal.noSnapshot"),
+              size: t("mypage.modal.size"),
+              endedAt: t("mypage.modal.endedAt"),
+              totalRounds: t("mypage.modal.totalRounds"),
+              participantCount: t("mypage.modal.participantCount"),
+              totalVotes: t("mypage.modal.totalVotes"),
+              topVoter: t("mypage.modal.topVoter"),
+              emptyValue: t("mypage.modal.emptyValue"),
+              participantList: t("lobby.completed.participantList"),
+            }}
             onClose={() => {
               setDetailOpen(false);
               setDetail(null);

@@ -1,3 +1,5 @@
+import type { CanvasResultDetailBase } from "@/features/canvas-result/model/canvas-result.types";
+
 export interface LandingCurrentGame {
   canvasId: number;
   gridX: number;
@@ -85,21 +87,4 @@ export interface LandingFeaturedPreviewPayload {
   };
 }
 
-export interface LandingCompletedPreviewDetail {
-  canvasId: number;
-  size: string;
-  endedAt: string;
-  totalRounds: number;
-  participantCount: number;
-  totalVotes: number;
-  topVoterName: string | null;
-  topVoterVoteCount: number;
-  participants: string[];
-  resultImageUrl: string | null;
-  downloadAvailable: boolean;
-  highResolutionDownloadAvailable: boolean;
-  downloadSnapshotUrl: string | null;
-  highResolutionDownloadSnapshotUrl: string | null;
-  createdAt: string;
-  updatedAt: string;
-}
+export interface LandingCompletedPreviewDetail extends CanvasResultDetailBase {}
