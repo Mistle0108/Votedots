@@ -1,3 +1,5 @@
+import type { CanvasResultDetailBase } from "@/features/canvas-result/model/canvas-result.types";
+
 export interface LandingCurrentGame {
   canvasId: number;
   gridX: number;
@@ -54,6 +56,7 @@ export interface LandingFeaturedPreviewTopVoter {
 }
 
 export interface LandingFeaturedPreviewMeta {
+  canvasId: number;
   size: string;
   gridX: number;
   gridY: number;
@@ -66,9 +69,22 @@ export interface LandingFeaturedPreviewMeta {
 
 export interface LandingFeaturedPreviewItem {
   webpUrl: string;
+  resultImageUrl?: string | null;
+  downloadAvailable?: boolean;
+  downloadSnapshotUrl?: string | null;
+  highResolutionDownloadSnapshotUrl?: string | null;
   preview: LandingFeaturedPreviewMeta;
 }
 
 export interface LandingFeaturedPreviewPayload {
   items: LandingFeaturedPreviewItem[];
+  pagination?: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
 }
+
+export interface LandingCompletedPreviewDetail extends CanvasResultDetailBase {}
