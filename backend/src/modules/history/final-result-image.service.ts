@@ -24,6 +24,16 @@ const finalResultDownloadLocks = new Map<string, Promise<string>>();
 
 type FinalResultDownloadVariant = "original" | "hd";
 
+function clearFinalResultMetadata(summary: GameSummary): void {
+  summary.finalResultStoragePath = null;
+  summary.finalResultMimeType = null;
+  summary.finalResultFormat = null;
+  summary.finalResultWidth = null;
+  summary.finalResultHeight = null;
+  summary.finalResultByteSize = null;
+  summary.finalResultCapturedAt = null;
+}
+
 export const finalResultImageService = {
   buildFinalResultImageApiPath(canvasId: number): string {
     return `/api/public/canvas/${canvasId}/final-result`;
@@ -169,6 +179,12 @@ export const finalResultImageService = {
 
     if (!gameSummary) {
       throw new Error(`Game summary was not found. (canvasId=${canvasId})`);
+    }
+
+    if (gameSummary.totalVotes <= 0) {
+      clearFinalResultMetadata(gameSummary);
+      await gameSummaryRepository.save(gameSummary);
+      return;
     }
 
     const cells = await cellRepository
