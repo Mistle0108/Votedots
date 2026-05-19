@@ -126,6 +126,9 @@ export default function IntroGuideModal({
   const touchStartXRef = useRef<number | null>(null);
 
   const description = useMemo(() => buildDescription(gameConfig), [gameConfig]);
+  const effectivePreviewMaxSize = mobileLayout
+    ? Math.min(previewMaxSize, 200)
+    : previewMaxSize;
   const interactionGuides = useMemo(
     () =>
       [
@@ -281,22 +284,26 @@ export default function IntroGuideModal({
   }
 
   const previewSection = (
-    <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4 xl:w-fit xl:justify-self-start">
-      <div className="mx-auto flex w-fit flex-col items-center gap-4">
+    <section
+      className={`rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] ${mobileLayout ? "p-3" : "p-4 xl:w-fit xl:justify-self-start"}`}
+    >
+      <div className={`mx-auto flex w-fit flex-col items-center ${mobileLayout ? "gap-3" : "gap-4"}`}>
         <div className="w-fit">
           <IntroCanvasPreview
             playBackgroundImageUrl={playBackgroundImageUrl}
             resultTemplateImageUrl={resultTemplateImageUrl}
             gridX={gridX}
             gridY={gridY}
-            maxSize={previewMaxSize}
+            maxSize={effectivePreviewMaxSize}
           />
         </div>
 
-        <div className="w-full rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3 text-sm font-bold text-[color:var(--page-theme-text-primary)]">
+        <div
+          className={`w-full rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] font-bold text-[color:var(--page-theme-text-primary)] ${mobileLayout ? "px-3 py-2 text-[13px]" : "px-4 py-3 text-sm"}`}
+        >
           <div className="mx-auto w-fit text-left">
             {introStats.map((stat) => (
-              <p key={stat.label} className="py-0.5">
+              <p key={stat.label} className={mobileLayout ? "py-0.5 leading-6" : "py-0.5"}>
                 {stat.label} : {stat.value}
               </p>
             ))}
@@ -412,9 +419,9 @@ export default function IntroGuideModal({
 
       <div
         ref={modalRef}
-        className={`pointer-events-auto fixed flex max-h-[calc(100vh-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl ${
+        className={`pointer-events-auto fixed flex max-h-[calc(100dvh-16px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl ${
           mobileLayout
-            ? "left-1/2 top-1/2 w-[min(92vw,720px)] -translate-x-1/2 -translate-y-1/2"
+            ? "left-1/2 top-1/2 w-[min(92vw,380px)] -translate-x-1/2 -translate-y-1/2"
             : "w-[1400px] max-w-[calc(100vw-24px)]"
         }`}
         style={mobileLayout ? undefined : { top: position.y, left: position.x }}
@@ -452,7 +459,7 @@ export default function IntroGuideModal({
         <div
           className={
             mobileLayout
-              ? "min-h-0 flex flex-1 flex-col px-4 py-4"
+              ? "min-h-0 flex flex-1 flex-col px-3 py-3"
               : "min-h-0 flex-1 overflow-y-auto px-5 py-4"
           }
         >
@@ -507,7 +514,7 @@ export default function IntroGuideModal({
                 </div>
               </div>
 
-              <div className="flex items-center justify-center gap-2 pt-4">
+              <div className="flex items-center justify-center gap-2 pt-3">
                 {mobilePages.map((_, index) => (
                   <button
                     key={index}

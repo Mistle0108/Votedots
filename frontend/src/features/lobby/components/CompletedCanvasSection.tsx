@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState, type TouchEvent } from "react";
 import { landingApi } from "@/features/landing/api/landing.api";
 import CanvasResultCard from "@/features/canvas-result/components/CanvasResultCard";
 import CanvasResultModal from "@/features/canvas-result/components/CanvasResultModal";
@@ -9,17 +9,16 @@ import type {
 } from "@/features/landing/model/landing.types";
 import { useI18n } from "@/shared/i18n";
 
-interface CompletedCanvasSectionProps {
+type CompletedCanvasSectionProps = {
   scope: "plaza" | "public";
   preset: "today" | "7d" | "30d";
   onChangeScope: (scope: "plaza" | "public") => void;
   onChangePreset: (preset: "today" | "7d" | "30d") => void;
-}
+  mobileMode?: boolean;
+};
 
 type CompletedSort = "latest" | "oldest";
-type CompletedPagination = NonNullable<
-  LandingFeaturedPreviewPayload["pagination"]
->;
+type CompletedPagination = NonNullable<LandingFeaturedPreviewPayload["pagination"]>;
 
 const EMPTY_PAGINATION: CompletedPagination = {
   page: 1,
@@ -28,23 +27,19 @@ const EMPTY_PAGINATION: CompletedPagination = {
   totalPages: 1,
   hasNextPage: false,
 };
+const MOBILE_SWIPE_THRESHOLD_PX = 40;
 
 function getVisiblePageNumbers(
   currentPage: number,
   totalPages: number,
-  windowSize = 5,
+  windowSize = 3,
 ) {
   if (totalPages <= 0) {
     return [];
   }
 
-  const halfWindow = Math.floor(windowSize / 2);
-  let startPage = Math.max(1, currentPage - halfWindow);
-  let endPage = Math.min(totalPages, startPage + windowSize - 1);
-
-  if (endPage - startPage + 1 < windowSize) {
-    startPage = Math.max(1, endPage - windowSize + 1);
-  }
+  const startPage = Math.floor((currentPage - 1) / windowSize) * windowSize + 1;
+  const endPage = Math.min(totalPages, startPage + windowSize - 1);
 
   return Array.from(
     { length: endPage - startPage + 1 },
@@ -79,25 +74,89 @@ function formatDateTime(value: string, locale: "ko" | "en") {
   }).format(new Date(value));
 }
 
+function CompletedPaginationControls({
+  page,
+  totalPages,
+  onSelect,
+  previousLabel,
+  nextLabel,
+}: {
+  page: number;
+  totalPages: number;
+  onSelect: (page: number) => void;
+  previousLabel: string;
+  nextLabel: string;
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const visiblePages = getVisiblePageNumbers(page, totalPages, 3);
+  const currentWindowStart = visiblePages[0] ?? 1;
+  const currentWindowEnd = visiblePages[visiblePages.length - 1] ?? totalPages;
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-[24px] border border-[#ead7c8] bg-white px-3 py-3">
+      <button
+        type="button"
+        disabled={currentWindowStart <= 1}
+        onClick={() => onSelect(Math.max(currentWindowStart - 3, 1))}
+        className="inline-flex h-10 min-w-10 items-center justify-center border-b-2 border-transparent px-3 text-sm font-semibold text-[#6c5a4d] transition hover:border-[#d9c7b7] hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label={previousLabel}
+      >
+        &lt;
+      </button>
+
+      <div className="flex items-center gap-0.5">
+        {visiblePages.map((pageNumber) => (
+          <button
+            key={pageNumber}
+            type="button"
+            onClick={() => onSelect(pageNumber)}
+            className={[
+              "inline-flex h-10 min-w-10 items-center justify-center border-b-2 px-3 text-sm font-semibold transition",
+              pageNumber === page
+                ? "border-[#2d2d2d] text-[#2d2d2d]"
+                : "border-transparent text-[#6c5a4d] hover:border-[#d9c7b7] hover:text-[#2d2d2d]",
+            ].join(" ")}
+          >
+            {pageNumber}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        disabled={currentWindowEnd >= totalPages}
+        onClick={() => onSelect(Math.min(currentWindowStart + 3, totalPages))}
+        className="inline-flex h-10 min-w-10 items-center justify-center border-b-2 border-transparent px-3 text-sm font-semibold text-[#6c5a4d] transition hover:border-[#d9c7b7] hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label={nextLabel}
+      >
+        &gt;
+      </button>
+    </div>
+  );
+}
+
 export default function CompletedCanvasSection({
   scope,
   preset,
   onChangeScope,
   onChangePreset,
+  mobileMode = false,
 }: CompletedCanvasSectionProps) {
   const { locale, t } = useI18n();
   const [sort, setSort] = useState<CompletedSort>("latest");
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<LandingFeaturedPreviewItem[]>([]);
-  const [pagination, setPagination] = useState<CompletedPagination>(
-    EMPTY_PAGINATION,
-  );
+  const [pagination, setPagination] = useState<CompletedPagination>(EMPTY_PAGINATION);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detail, setDetail] = useState<LandingCompletedPreviewDetail | null>(null);
+  const touchStartXRef = useRef<number | null>(null);
 
   const handleChangeScope = (nextScope: "plaza" | "public") => {
     setPage(1);
@@ -128,7 +187,7 @@ export default function CompletedCanvasSection({
           dateFrom,
           dateTo,
           page,
-          limit: 8,
+          limit: mobileMode ? 1 : 8,
           sort,
         });
 
@@ -158,7 +217,7 @@ export default function CompletedCanvasSection({
     return () => {
       cancelled = true;
     };
-  }, [page, preset, scope, sort, t]);
+  }, [mobileMode, page, preset, scope, sort, t]);
 
   const handleOpenDetail = async (canvasId: number) => {
     setDetailOpen(true);
@@ -176,81 +235,153 @@ export default function CompletedCanvasSection({
     }
   };
 
+  const handleTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    touchStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+  };
+
+  const handleTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    if (!mobileMode || pagination.totalPages <= 1) {
+      touchStartXRef.current = null;
+      return;
+    }
+
+    const startX = touchStartXRef.current;
+    const endX = event.changedTouches[0]?.clientX ?? null;
+    touchStartXRef.current = null;
+
+    if (
+      startX === null ||
+      endX === null ||
+      Math.abs(endX - startX) < MOBILE_SWIPE_THRESHOLD_PX
+    ) {
+      return;
+    }
+
+    if (endX < startX && pagination.hasNextPage) {
+      setPage((current) => current + 1);
+      return;
+    }
+
+    if (endX > startX && pagination.page > 1) {
+      setPage((current) => Math.max(1, current - 1));
+    }
+  };
+
+  const activeItem = items[0] ?? null;
+
   return (
     <div className="flex h-full min-h-0 flex-col rounded-[28px] bg-[#fbf7f2] p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-sm leading-6 text-[#5f6368]">
-            {t("lobby.completed.description")}
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <div className="flex rounded-full border border-[#d9cdc1] bg-white p-1">
-            <button
-              type="button"
-              onClick={() => handleChangeScope("plaza")}
-              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                scope === "plaza"
-                  ? "bg-[#272E37] text-white"
-                  : "text-[#5f6368]"
-              }`}
-            >
-              {t("lobby.completed.scope.plaza")}
-            </button>
-            <button
-              type="button"
-              onClick={() => handleChangeScope("public")}
-              className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                scope === "public"
-                  ? "bg-[#272E37] text-white"
-                  : "text-[#5f6368]"
-              }`}
-            >
-              {t("lobby.completed.scope.public")}
-            </button>
-          </div>
-          <div className="flex rounded-full border border-[#d9cdc1] bg-white p-1">
-            {(
-              [
-                ["today"],
-                ["7d"],
-                ["30d"],
-              ] as const
-            ).map(([value]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => handleChangePreset(value)}
-                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                  preset === value
-                    ? "bg-[#272E37] text-white"
-                    : "text-[#5f6368]"
-                }`}
+      {mobileMode ? (
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
+              {t("lobby.completed.filter.scopeLabel")}
+            </span>
+            <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
+              <select
+                value={scope}
+                onChange={(event) =>
+                  handleChangeScope(event.target.value as "plaza" | "public")
+                }
+                className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
               >
-                {value === "today"
-                  ? t("lobby.completed.preset.today")
-                  : value === "7d"
-                    ? t("lobby.completed.preset.7d")
-                    : t("lobby.completed.preset.30d")}
-              </button>
-            ))}
+                <option value="plaza">{t("lobby.completed.scope.plaza")}</option>
+                <option value="public">{t("lobby.completed.scope.public")}</option>
+              </select>
+            </label>
           </div>
-          <label className="inline-flex self-start rounded-full border border-[#d9cdc1] bg-white px-4 py-2.5">
-            <select
-              value={sort}
-              onChange={(event) => {
-                handleChangeSort(event.target.value as CompletedSort);
-              }}
-              className="bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-            >
-              <option value="latest">{t("lobby.completed.sort.latest")}</option>
-              <option value="oldest">{t("lobby.completed.sort.oldest")}</option>
-            </select>
-          </label>
+          <div className="flex items-center gap-3">
+            <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
+              {t("lobby.completed.filter.presetLabel")}
+            </span>
+            <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
+              <select
+                value={preset}
+                onChange={(event) =>
+                  handleChangePreset(event.target.value as "today" | "7d" | "30d")
+                }
+                className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
+              >
+                <option value="today">{t("lobby.completed.preset.today")}</option>
+                <option value="7d">{t("lobby.completed.preset.7d")}</option>
+                <option value="30d">{t("lobby.completed.preset.30d")}</option>
+              </select>
+            </label>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
+              {t("lobby.completed.filter.sortLabel")}
+            </span>
+            <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
+              <select
+                value={sort}
+                onChange={(event) => handleChangeSort(event.target.value as CompletedSort)}
+                className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
+              >
+                <option value="latest">{t("lobby.completed.sort.latest")}</option>
+                <option value="oldest">{t("lobby.completed.sort.oldest")}</option>
+              </select>
+            </label>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-sm leading-6 text-[#5f6368]">
+              {t("lobby.completed.description")}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <div className="flex rounded-full border border-[#d9cdc1] bg-white p-1">
+              <button
+                type="button"
+                onClick={() => handleChangeScope("plaza")}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${scope === "plaza" ? "bg-[#272E37] text-white" : "text-[#5f6368]"
+                  }`}
+              >
+                {t("lobby.completed.scope.plaza")}
+              </button>
+              <button
+                type="button"
+                onClick={() => handleChangeScope("public")}
+                className={`rounded-full px-3 py-1.5 text-sm font-semibold ${scope === "public" ? "bg-[#272E37] text-white" : "text-[#5f6368]"
+                  }`}
+              >
+                {t("lobby.completed.scope.public")}
+              </button>
+            </div>
+            <div className="flex rounded-full border border-[#d9cdc1] bg-white p-1">
+              {(["today", "7d", "30d"] as const).map((value) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => handleChangePreset(value)}
+                  className={`rounded-full px-3 py-1.5 text-sm font-semibold ${preset === value ? "bg-[#272E37] text-white" : "text-[#5f6368]"
+                    }`}
+                >
+                  {value === "today"
+                    ? t("lobby.completed.preset.today")
+                    : value === "7d"
+                      ? t("lobby.completed.preset.7d")
+                      : t("lobby.completed.preset.30d")}
+                </button>
+              ))}
+            </div>
+            <label className="inline-flex self-start rounded-full border border-[#d9cdc1] bg-white px-4 py-2.5">
+              <select
+                value={sort}
+                onChange={(event) => handleChangeSort(event.target.value as CompletedSort)}
+                className="bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
+              >
+                <option value="latest">{t("lobby.completed.sort.latest")}</option>
+                <option value="oldest">{t("lobby.completed.sort.oldest")}</option>
+              </select>
+            </label>
+          </div>
+        </div>
+      )}
 
-      <div className="mt-8 min-h-0 flex-1 overflow-y-auto pr-1">
+      <div className={`${mobileMode ? "mt-4" : "mt-8"} min-h-0 flex-1 ${mobileMode ? "" : "overflow-y-auto pr-1"}`}>
         {loading ? (
           <div className="text-sm text-[#5f6368]">{t("common.loading")}</div>
         ) : error ? (
@@ -258,6 +389,46 @@ export default function CompletedCanvasSection({
         ) : items.length === 0 ? (
           <div className="rounded-[24px] border border-dashed border-[#d9cdc1] bg-white px-6 py-10 text-sm text-[#5f6368]">
             {t("lobby.completed.empty")}
+          </div>
+        ) : mobileMode ? (
+          <div className="space-y-4">
+            <div onTouchStart={handleTouchStart} onTouchEnd={handleTouchEnd}>
+              <CanvasResultCard
+                key={`${activeItem?.preview.canvasId ?? "empty"}-${pagination.page}`}
+                imageUrl={activeItem?.webpUrl ?? null}
+                secondaryImageUrl={activeItem?.resultImageUrl ?? null}
+                imageAlt={t("mypage.participations.resultImageAlt")}
+                emptyMessage={t("mypage.participations.resultUnavailable")}
+                footer={
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#cf6c45]">
+                      {t("mypage.participations.participatedAt")}
+                    </p>
+                    <p className="mt-2 text-sm font-medium leading-6 text-[#2d2d2d]">
+                      {activeItem
+                        ? formatDateTime(activeItem.preview.endedAt, locale)
+                        : "-"}
+                    </p>
+                  </div>
+                }
+                actionLabel={t("mypage.participations.viewResult")}
+                onAction={() => {
+                  if (!activeItem) {
+                    return;
+                  }
+
+                  void handleOpenDetail(activeItem.preview.canvasId);
+                }}
+              />
+            </div>
+
+            <CompletedPaginationControls
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onSelect={setPage}
+              previousLabel={t("mypage.pagination.previous")}
+              nextLabel={t("mypage.pagination.next")}
+            />
           </div>
         ) : (
           <div className="space-y-6">
@@ -281,8 +452,7 @@ export default function CompletedCanvasSection({
                           {t("mypage.modal.topVoter")}
                         </p>
                         <p className="mt-2 text-sm font-medium leading-6 text-[#2d2d2d]">
-                          {item.preview.topVoter.name ??
-                            t("mypage.modal.emptyValue")}
+                          {item.preview.topVoter.name ?? t("mypage.modal.emptyValue")}
                         </p>
                       </div>
                     </div>
@@ -293,76 +463,13 @@ export default function CompletedCanvasSection({
               ))}
             </div>
 
-            {pagination.totalPages > 1 ? (
-              <div className="flex items-center justify-center gap-2 rounded-[24px] border border-[#ead7c8] bg-white px-5 py-4">
-                <button
-                  type="button"
-                  disabled={pagination.page <= 1}
-                  onClick={() => setPage((current) => Math.max(1, current - 1))}
-                  className="inline-flex h-10 w-10 items-center justify-center text-[#6c5a4d] transition hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={t("mypage.pagination.previous")}
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M12.5 4.5L7 10l5.5 5.5" />
-                  </svg>
-                </button>
-
-                <div className="flex items-center gap-1">
-                  {getVisiblePageNumbers(
-                    pagination.page,
-                    pagination.totalPages,
-                  ).map((pageNumber) => (
-                    <button
-                      key={pageNumber}
-                      type="button"
-                      onClick={() => setPage(pageNumber)}
-                      className={[
-                        "inline-flex h-10 min-w-10 items-center justify-center border-b-2 px-3 text-sm font-semibold transition",
-                        pageNumber === pagination.page
-                          ? "border-[#2d2d2d] text-[#2d2d2d]"
-                          : "border-transparent text-[#6c5a4d] hover:border-[#d9c7b7] hover:text-[#2d2d2d]",
-                      ].join(" ")}
-                    >
-                      {pageNumber}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  type="button"
-                  disabled={!pagination.hasNextPage}
-                  onClick={() =>
-                    setPage((current) =>
-                      pagination.hasNextPage ? current + 1 : current,
-                    )
-                  }
-                  className="inline-flex h-10 w-10 items-center justify-center text-[#6c5a4d] transition hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label={t("mypage.pagination.next")}
-                >
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 20 20"
-                    className="h-4 w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M7.5 4.5L13 10l-5.5 5.5" />
-                  </svg>
-                </button>
-              </div>
-            ) : null}
+            <CompletedPaginationControls
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              onSelect={setPage}
+              previousLabel={t("mypage.pagination.previous")}
+              nextLabel={t("mypage.pagination.next")}
+            />
           </div>
         )}
       </div>
@@ -378,27 +485,27 @@ export default function CompletedCanvasSection({
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(36,25,20,0.52)] px-4 py-6">
             <div className="rounded-[28px] border border-[#ead7c8] bg-white px-6 py-5 shadow-[0_18px_50px_rgba(39,46,55,0.08)]">
               <p className="text-sm font-medium text-[#c04f2c]">{detailError}</p>
-              <button
-                type="button"
-                onClick={() => {
-                  setDetailOpen(false);
-                  setDetailError(null);
-                }}
-                className="mt-4 inline-flex h-10 items-center justify-center rounded-full bg-[#2d2d2d] px-4 text-sm font-semibold text-white"
-              >
-                {t("common.confirm")}
-              </button>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDetailOpen(false)}
+                  className="rounded-full border border-[#d9c7b7] px-4 py-2 text-sm font-semibold text-[#6c5a4d]"
+                >
+                  {t("common.close")}
+                </button>
+              </div>
             </div>
           </div>
-        ) : (
+        ) : detail ? (
           <CanvasResultModal
-            open={detailOpen}
             detail={detail}
+            open={detailOpen}
+            onClose={() => setDetailOpen(false)}
             labels={{
-              title: t("mypage.modal.title"),
-              close: t("mypage.modal.close"),
+              title: t("mypage.participations.viewResult"),
+              close: t("common.close"),
               snapshotAlt: t("mypage.modal.snapshotAlt"),
-              noSnapshot: t("mypage.modal.noSnapshot"),
+              noSnapshot: t("mypage.participations.resultUnavailable"),
               size: t("mypage.modal.size"),
               endedAt: t("mypage.modal.endedAt"),
               totalRounds: t("mypage.modal.totalRounds"),
@@ -406,15 +513,10 @@ export default function CompletedCanvasSection({
               totalVotes: t("mypage.modal.totalVotes"),
               topVoter: t("mypage.modal.topVoter"),
               emptyValue: t("mypage.modal.emptyValue"),
-              participantList: t("lobby.completed.participantList"),
-            }}
-            onClose={() => {
-              setDetailOpen(false);
-              setDetail(null);
-              setDetailError(null);
+              participantList: t("mypage.modal.participantList"),
             }}
           />
-        )
+        ) : null
       ) : null}
     </div>
   );

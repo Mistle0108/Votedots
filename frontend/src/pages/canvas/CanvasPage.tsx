@@ -70,6 +70,7 @@ import { PLAY_THEME_STYLE } from "./model/play-theme";
 const INTRO_GUIDE_SEEN_STORAGE_KEY = "votedots:intro-guide-seen";
 const ROUND_SELECTION_GUIDE_DURATION_MS = 2500;
 const SELECTION_PULSE_DURATION_MS = 1000;
+const MOBILE_VOTE_ERROR_DURATION_MS = 3000;
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 const MOBILE_SLOT_COUNT = 8;
 
@@ -309,6 +310,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   >(null);
   const guideTimerRef = useRef<number | null>(null);
   const pulseTimerRef = useRef<number | null>(null);
+  const mobileVoteErrorTimerRef = useRef<number | null>(null);
   const lastAnnouncedRoundIdRef = useRef<number | null>(null);
   const hasPulsedSelectionThisRoundRef = useRef(false);
 
@@ -333,6 +335,29 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       mediaQuery.removeEventListener("change", handleMediaQueryChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (mobileVoteErrorTimerRef.current !== null) {
+      window.clearTimeout(mobileVoteErrorTimerRef.current);
+      mobileVoteErrorTimerRef.current = null;
+    }
+
+    if (!mobileVoteError) {
+      return undefined;
+    }
+
+    mobileVoteErrorTimerRef.current = window.setTimeout(() => {
+      setMobileVoteError("");
+      mobileVoteErrorTimerRef.current = null;
+    }, MOBILE_VOTE_ERROR_DURATION_MS);
+
+    return () => {
+      if (mobileVoteErrorTimerRef.current !== null) {
+        window.clearTimeout(mobileVoteErrorTimerRef.current);
+        mobileVoteErrorTimerRef.current = null;
+      }
+    };
+  }, [mobileVoteError]);
 
   const handleSessionEnded = useCallback(() => {
     if (
@@ -1197,17 +1222,17 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
         return;
       }
 
+      if (phase !== GAME_PHASE.ROUND_ACTIVE) {
+        setMobileVoteError(getVoteBlockedMessage(phase, t));
+        return;
+      }
+
       const resolvedCell = targetCell ?? selectedCell;
 
       if (!canvasId || !roundId || !resolvedCell) {
         setMobileVoteError(
           locale === "ko" ? "먼저 셀을 선택해 주세요." : "Select a cell first.",
         );
-        return;
-      }
-
-      if (phase !== GAME_PHASE.ROUND_ACTIVE) {
-        setMobileVoteError(getVoteBlockedMessage(phase, t));
         return;
       }
 

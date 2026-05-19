@@ -22,10 +22,12 @@ import {
 } from "@/features/room/model/room-session-context";
 import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { useI18n } from "@/shared/i18n";
+import { BrandLogo } from "@/shared/ui/brand-logo";
 import type { Voter } from "@/features/auth";
 
 type AuthState = "authenticated" | "guest" | "unknown";
 type LobbyTab = "completed" | "rooms";
+type LobbyMobileTab = "plaza" | "rooms" | "completed";
 type CompletedScope = "plaza" | "public";
 type CompletedPreset = "today" | "7d" | "30d";
 type RoomTypeFilter = "all" | "public" | "private";
@@ -33,6 +35,9 @@ type PixelPerfectPreviewDimensions = {
   width: number;
   height: number;
 };
+
+const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 767px)";
+const MOBILE_ROOM_LIST_PAGE_SIZE = 5;
 
 function getPixelPerfectPreviewDimensions(params: {
   gridX: number;
@@ -93,11 +98,20 @@ export default function LobbyPage() {
   const [currentVoter, setCurrentVoter] = useState<Voter | null>(null);
 
   const [activeTab, setActiveTab] = useState<LobbyTab>("rooms");
+  const [mobileTab, setMobileTab] = useState<LobbyMobileTab>("plaza");
+  const [isMobileLayout, setIsMobileLayout] = useState(() =>
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+      ? false
+      : window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches,
+  );
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [enterModalOpen, setEnterModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [enterLoading, setEnterLoading] = useState(false);
   const [roomTypeFilter, setRoomTypeFilter] = useState<RoomTypeFilter>("all");
+  const [mobileRoomPage, setMobileRoomPage] = useState(1);
+  const [mobileRoomDetailOpen, setMobileRoomDetailOpen] = useState(false);
   const [generatedAccessCode, setGeneratedAccessCode] = useState<string | null>(
     null,
   );
@@ -150,6 +164,20 @@ export default function LobbyPage() {
     return rooms.filter((room) => room.type === roomTypeFilter);
   }, [roomTypeFilter, rooms]);
 
+  const mobileRoomTotalPages = Math.max(
+    1,
+    Math.ceil(filteredRooms.length / MOBILE_ROOM_LIST_PAGE_SIZE),
+  );
+  const resolvedMobileRoomPage = Math.min(mobileRoomPage, mobileRoomTotalPages);
+  const mobilePagedRooms = useMemo(() => {
+    const startIndex =
+      (resolvedMobileRoomPage - 1) * MOBILE_ROOM_LIST_PAGE_SIZE;
+    return filteredRooms.slice(
+      startIndex,
+      startIndex + MOBILE_ROOM_LIST_PAGE_SIZE,
+    );
+  }, [filteredRooms, resolvedMobileRoomPage]);
+
   const refreshAuthState = useCallback(async () => {
     try {
       const { data } = await authApi.me();
@@ -180,6 +208,31 @@ export default function LobbyPage() {
   useEffect(() => {
     void Promise.resolve().then(refreshAuthState);
   }, [refreshAuthState]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobileLayout(event.matches);
+    };
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleChange);
+
+      return () => {
+        mediaQuery.removeEventListener("change", handleChange);
+      };
+    }
+
+    mediaQuery.addListener(handleChange);
+
+    return () => {
+      mediaQuery.removeListener(handleChange);
+    };
+  }, []);
 
   useEffect(() => {
     void Promise.resolve().then(loadPlazaCurrentGame);
@@ -315,7 +368,7 @@ export default function LobbyPage() {
     return () => {
       observer.disconnect();
     };
-  }, [plazaCurrentGame, plazaLoading, plazaError]);
+  }, [activeTab, isMobileLayout, mobileTab, plazaCurrentGame, plazaLoading, plazaError]);
 
   const plazaPreviewDimensions =
     plazaCurrentGame && plazaPreviewHostWidth
@@ -499,9 +552,12 @@ export default function LobbyPage() {
   const handleSelectRoom = useCallback(
     (roomId: number) => {
       setPrivateAccessCode("");
+      if (isMobileLayout) {
+        setMobileRoomDetailOpen(true);
+      }
       void loadRoomDetail(roomId);
     },
-    [loadRoomDetail],
+    [isMobileLayout, loadRoomDetail],
   );
 
   const handleCloseCreateModal = useCallback(() => {
@@ -516,6 +572,11 @@ export default function LobbyPage() {
     setModalError(null);
   }, []);
 
+  const handleChangeRoomTypeFilter = useCallback((nextValue: RoomTypeFilter) => {
+    setRoomTypeFilter(nextValue);
+    setMobileRoomPage(1);
+  }, []);
+
   const handleLogout = useCallback(async () => {
     try {
       await logoutToLobby(navigate);
@@ -525,12 +586,156 @@ export default function LobbyPage() {
     }
   }, [navigate]);
 
+  const accountPanel = (
+    <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
+      <div className="grid gap-3">
+        {authState === "authenticated" ? (
+          <div className="grid gap-5 rounded-2xl px-2 py-2 text-sm text-[#5f6368]">
+            <div className="min-w-0 px-2 py-1 text-left">
+              <p className="truncate text-[18px] font-semibold tracking-[-0.03em] text-[#272E37]">
+                {currentVoter?.nickname ?? t("lobby.login.loggedInFallback")}
+              </p>
+              <p className="mt-2 truncate text-[15px] font-medium text-[#7b6b62]">
+                @{currentVoter?.username ?? ""}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/mypage");
+                }}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
+              >
+                {t("lobby.actions.mypage")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleLogout();
+                }}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
+              >
+                {t("session.logout")}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              navigate("/login");
+            }}
+            className="min-h-[48px] w-full rounded-2xl border border-[#f26b5d] px-4 py-3 text-sm font-semibold text-[#e05746]"
+          >
+            {t("auth.login.submit")}
+          </button>
+        )}
+      </div>
+    </section>
+  );
+
+  const roomActionButtons = (
+    <div className="grid grid-cols-2 gap-3">
+      <button
+        type="button"
+        onClick={handleCreateRoom}
+        className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
+      >
+        {t("lobby.actions.createRoom")}
+      </button>
+      <button
+        type="button"
+        onClick={handleEnterRoom}
+        className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
+      >
+        {t("lobby.actions.enterRoom")}
+      </button>
+    </div>
+  );
+
+  const plazaPanel = (
+    <section className="rounded-[32px] border border-[#e3d9cf] bg-[#ff8870] p-6 text-white">
+      <p className="text-center text-base font-semibold tracking-[0.18em] text-white/72">
+        {t("lobby.plaza.label")}
+      </p>
+      {plazaLoading ? (
+        <p className="mt-3 text-sm leading-6 text-white/88">
+          {t("lobby.plaza.loading")}
+        </p>
+      ) : plazaError ? (
+        <p className="mt-3 text-sm leading-6 text-white/88">{plazaError}</p>
+      ) : plazaCurrentGame ? (
+        <div className="mt-4 space-y-4">
+          <div
+            ref={plazaPreviewHostRef}
+            className="rounded-[24px] bg-white/12 p-3"
+          >
+            <div className="overflow-auto rounded-[20px] bg-white">
+              <img
+                src={
+                  plazaCurrentGame.snapshotUrl ??
+                  plazaCurrentGame.fallbackImageUrl ??
+                  undefined
+                }
+                alt={t("lobby.plaza.previewAlt")}
+                className="mx-auto block"
+                style={{ imageRendering: "pixelated" }}
+                width={plazaPreviewDimensions?.width}
+                height={plazaPreviewDimensions?.height}
+                draggable={false}
+              />
+            </div>
+          </div>
+          <div className="rounded-[18px] bg-white/12 px-3 py-3">
+            <div className="flex items-center text-[17px] justify-between gap-4 border-b border-white/12 py-2 first:pt-0 last:border-b-0 last:pb-0">
+              <p className="font-semibold text-white/72">
+                {t("lobby.plaza.stats.grid")}
+              </p>
+              <p className="font-semibold">
+                {plazaCurrentGame.gridX} x {plazaCurrentGame.gridY}
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-4 border-b border-white/12 py-2 first:pt-0 last:border-b-0 last:pb-0">
+              <p className="font-semibold text-white/72">
+                {t("lobby.plaza.stats.round")}
+              </p>
+              <p className="font-semibold">
+                {plazaCurrentGame.currentRoundNumber} /{" "}
+                {plazaCurrentGame.totalRounds}
+              </p>
+            </div>
+            <div className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
+              <p className="font-semibold text-white/72">
+                {t("lobby.plaza.stats.participants")}
+              </p>
+              <p className="font-semibold">{plazaCurrentGame.participantCount}</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <p className="mt-3 text-sm leading-6 text-white/88">
+          {t("lobby.plaza.empty")}
+        </p>
+      )}
+      <button
+        type="button"
+        onClick={handleParticipatePlaza}
+        className="mt-5 w-full rounded-2xl bg-[#272E37] px-4 py-3 text-center text-sm font-semibold text-white"
+      >
+        {t("lobby.actions.joinPlaza")}
+      </button>
+    </section>
+  );
+
   return (
     <main
       className="min-h-screen bg-[#f7f2eb] p-[10px] text-[#272E37]"
       style={{ colorScheme: "light" }}
     >
-      <div className="flex justify-end">
+      <div className="flex items-center justify-between gap-3">
+        <BrandLogo variant="wordmark" className="w-30 sm:w-34" />
+
         <div className="flex shrink-0 rounded-full border border-[#d9cdc1] bg-white p-1 shadow-[0_12px_32px_rgba(39,46,55,0.08)]">
           <button
             type="button"
@@ -555,230 +760,191 @@ export default function LobbyPage() {
         </div>
       </div>
 
-      <div className="mt-4 grid w-full items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
-        <section
-          className="order-2 flex min-h-0 flex-col rounded-[32px] border border-[#e3d9cf] bg-white p-6 xl:order-1 lg:p-8"
-          style={
-            activeTab === "rooms" && leftPanelHeight
-              ? { height: `${leftPanelHeight}px` }
-              : undefined
-          }
-        >
-          <div className="flex w-full min-w-0 items-center rounded-[24px] border border-[#d9cdc1] bg-[#fbf7f2] p-2">
-            {(
-              [
-                ["rooms", t("lobby.tab.rooms")],
-                ["completed", t("lobby.tab.completed")],
-              ] as const
-            ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                onClick={() => setActiveTab(value)}
-                className={`rounded-[18px] px-4 py-2 text-sm font-semibold transition ${activeTab === value
-                    ? "bg-white text-[#272E37]"
-                    : "text-[#5f6368]"
-                  }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
+      {isMobileLayout ? (
+        <div className="mt-4 space-y-4">
+          {accountPanel}
 
-          {activeTab === "rooms" ? (
-            <div className="mt-4 flex flex-wrap gap-2">
+          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-5">
+            <div className="flex w-full min-w-0 items-center rounded-[24px] border border-[#d9cdc1] bg-[#fbf7f2] p-2">
               {(
                 [
-                  ["all", t("lobby.roomList.filter.all")],
-                  ["public", t("lobby.roomList.filter.public")],
-                  ["private", t("lobby.roomList.filter.private")],
+                  ["plaza", t("lobby.tab.plaza")],
+                  ["rooms", t("lobby.tab.rooms")],
+                  ["completed", t("lobby.tab.completed")],
                 ] as const
               ).map(([value, label]) => (
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setRoomTypeFilter(value)}
-                  className={`rounded-full px-3 py-1.5 text-sm font-semibold ${
-                    roomTypeFilter === value
-                      ? "bg-[#272E37] text-white"
-                      : "border border-[#d9cdc1] bg-white text-[#5f6368]"
-                  }`}
+                  onClick={() => {
+                    setMobileTab(value);
+                    setMobileRoomDetailOpen(false);
+                  }}
+                  className={`rounded-[18px] px-4 py-2 text-sm font-semibold transition ${mobileTab === value
+                      ? "bg-white text-[#272E37]"
+                      : "text-[#5f6368]"
+                    }`}
                 >
                   {label}
                 </button>
               ))}
             </div>
-          ) : null}
 
-          <div className="mt-5 min-h-0 flex-1">
-            {activeTab === "completed" ? (
-              <CompletedCanvasSection
-                scope={completedScope}
-                preset={completedPreset}
-                onChangeScope={setCompletedScope}
-                onChangePreset={setCompletedPreset}
-              />
-            ) : (
-              <RoomListSection
-                rooms={filteredRooms}
-                selectedRoomId={selectedRoomId}
-                selectedRoomDetail={selectedRoomDetail}
-                loading={loading}
-                error={error}
-                detailLoading={detailLoading}
-                detailError={detailError}
-                privateAccessCode={privateAccessCode}
-                onChangePrivateAccessCode={setPrivateAccessCode}
-                onSelectRoom={handleSelectRoom}
-                onEnterPublicRoom={handleEnterPublicRoom}
-                onEnterPrivateRoom={handleEnterRoomByAccessCode}
-              />
-            )}
-          </div>
-        </section>
+            <div className="mt-5">
+              {mobileTab === "plaza" ? (
+                plazaPanel
+              ) : mobileTab === "rooms" ? (
+                <div className="space-y-4">
+                  {roomActionButtons}
+                  <div className="flex items-center gap-3">
+                    <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
+                      {t("lobby.roomList.filter.typeLabel")}
+                    </span>
+                    <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
+                      <select
+                        value={roomTypeFilter}
+                        onChange={(event) =>
+                          handleChangeRoomTypeFilter(
+                            event.target.value as RoomTypeFilter,
+                          )
+                        }
+                        className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
+                      >
+                        <option value="all">{t("lobby.roomList.filter.all")}</option>
+                        <option value="public">
+                          {t("lobby.roomList.filter.public")}
+                        </option>
+                        <option value="private">
+                          {t("lobby.roomList.filter.private")}
+                        </option>
+                      </select>
+                    </label>
+                  </div>
 
-        <aside ref={rightPanelRef} className="order-1 grid gap-4 xl:order-2">
-          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
-            <div className="grid gap-3">
-              {authState === "authenticated" ? (
-                <div className="grid gap-5 rounded-2xl px-2 py-2 text-sm text-[#5f6368]">
-                  <div className="min-w-0 px-2 py-1 text-left">
-                    <p className="truncate text-[18px] font-semibold tracking-[-0.03em] text-[#272E37]">
-                      {currentVoter?.nickname ?? t("lobby.login.loggedInFallback")}
-                    </p>
-                    <p className="mt-2 truncate text-[15px] font-medium text-[#7b6b62]">
-                      @{currentVoter?.username ?? ""}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        navigate("/mypage");
-                      }}
-                      className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
-                    >
-                      {t("lobby.actions.mypage")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        void handleLogout();
-                      }}
-                      className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
-                    >
-                      {t("session.logout")}
-                    </button>
-                  </div>
+                  <RoomListSection
+                    rooms={mobilePagedRooms}
+                    selectedRoomId={selectedRoomId}
+                    selectedRoomDetail={selectedRoomDetail}
+                    loading={loading}
+                    error={error}
+                    detailLoading={detailLoading}
+                    detailError={detailError}
+                    privateAccessCode={privateAccessCode}
+                    onChangePrivateAccessCode={setPrivateAccessCode}
+                    onSelectRoom={handleSelectRoom}
+                    onEnterPublicRoom={handleEnterPublicRoom}
+                    onEnterPrivateRoom={handleEnterRoomByAccessCode}
+                    mobileMode
+                    page={resolvedMobileRoomPage}
+                    totalPages={mobileRoomTotalPages}
+                    onChangePage={setMobileRoomPage}
+                    mobileDetailOpen={mobileRoomDetailOpen}
+                    onCloseMobileDetail={() => setMobileRoomDetailOpen(false)}
+                  />
                 </div>
               ) : (
+                <CompletedCanvasSection
+                  scope={completedScope}
+                  preset={completedPreset}
+                  onChangeScope={setCompletedScope}
+                  onChangePreset={setCompletedPreset}
+                  mobileMode
+                />
+              )}
+            </div>
+          </section>
+        </div>
+      ) : (
+        <div className="mt-4 grid w-full items-start gap-4 xl:grid-cols-[minmax(0,1fr)_320px] 2xl:grid-cols-[minmax(0,1fr)_360px]">
+          <section
+            className="order-2 flex min-h-0 flex-col rounded-[32px] border border-[#e3d9cf] bg-white p-6 xl:order-1 lg:p-8"
+            style={
+              activeTab === "rooms" && leftPanelHeight
+                ? { height: `${leftPanelHeight}px` }
+                : undefined
+            }
+          >
+            <div className="flex w-full min-w-0 items-center rounded-[24px] border border-[#d9cdc1] bg-[#fbf7f2] p-2">
+              {(
+                [
+                  ["rooms", t("lobby.tab.rooms")],
+                  ["completed", t("lobby.tab.completed")],
+                ] as const
+              ).map(([value, label]) => (
                 <button
+                  key={value}
                   type="button"
-                  onClick={() => {
-                    navigate("/login");
-                  }}
-                  className="min-h-[48px] w-full rounded-2xl border border-[#f26b5d] px-4 py-3 text-sm font-semibold text-[#e05746]"
+                  onClick={() => setActiveTab(value)}
+                  className={`rounded-[18px] px-4 py-2 text-sm font-semibold transition ${activeTab === value
+                      ? "bg-white text-[#272E37]"
+                      : "text-[#5f6368]"
+                    }`}
                 >
-                  {t("auth.login.submit")}
+                  {label}
                 </button>
+              ))}
+            </div>
+
+            {activeTab === "rooms" ? (
+              <div className="mt-4 flex flex-wrap gap-2">
+                {(
+                  [
+                    ["all", t("lobby.roomList.filter.all")],
+                    ["public", t("lobby.roomList.filter.public")],
+                    ["private", t("lobby.roomList.filter.private")],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => handleChangeRoomTypeFilter(value)}
+                    className={`rounded-full px-3 py-1.5 text-sm font-semibold ${roomTypeFilter === value
+                        ? "bg-[#272E37] text-white"
+                        : "border border-[#d9cdc1] bg-white text-[#5f6368]"
+                      }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="mt-5 min-h-0 flex-1">
+              {activeTab === "completed" ? (
+                <CompletedCanvasSection
+                  scope={completedScope}
+                  preset={completedPreset}
+                  onChangeScope={setCompletedScope}
+                  onChangePreset={setCompletedPreset}
+                />
+              ) : (
+                <RoomListSection
+                  rooms={filteredRooms}
+                  selectedRoomId={selectedRoomId}
+                  selectedRoomDetail={selectedRoomDetail}
+                  loading={loading}
+                  error={error}
+                  detailLoading={detailLoading}
+                  detailError={detailError}
+                  privateAccessCode={privateAccessCode}
+                  onChangePrivateAccessCode={setPrivateAccessCode}
+                  onSelectRoom={handleSelectRoom}
+                  onEnterPublicRoom={handleEnterPublicRoom}
+                  onEnterPrivateRoom={handleEnterRoomByAccessCode}
+                />
               )}
             </div>
           </section>
 
-          <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
-            <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={handleCreateRoom}
-                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-              >
-                {t("lobby.actions.createRoom")}
-              </button>
-              <button
-                type="button"
-                onClick={handleEnterRoom}
-                className="rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
-              >
-                {t("lobby.actions.enterRoom")}
-              </button>
-            </div>
-          </section>
-
-          <section className="rounded-[32px] border border-[#e3d9cf] bg-[#ff8870] p-6 text-white">
-            <p className="text-center text-base font-semibold tracking-[0.18em] text-white/72">
-              {t("lobby.plaza.label")}
-            </p>
-            {plazaLoading ? (
-              <p className="mt-3 text-sm leading-6 text-white/88">
-                {t("lobby.plaza.loading")}
-              </p>
-            ) : plazaError ? (
-              <p className="mt-3 text-sm leading-6 text-white/88">{plazaError}</p>
-            ) : plazaCurrentGame ? (
-              <div className="mt-4 space-y-4">
-                <div
-                  ref={plazaPreviewHostRef}
-                  className="rounded-[24px] bg-white/12 p-3"
-                >
-                  <div className="overflow-auto rounded-[20px] bg-white">
-                    <img
-                      src={
-                        plazaCurrentGame.snapshotUrl ??
-                        plazaCurrentGame.fallbackImageUrl ??
-                        undefined
-                      }
-                      alt={t("lobby.plaza.previewAlt")}
-                      className="mx-auto block"
-                      style={{ imageRendering: "pixelated" }}
-                      width={plazaPreviewDimensions?.width}
-                      height={plazaPreviewDimensions?.height}
-                      draggable={false}
-                    />
-                  </div>
-                </div>
-                <div className="rounded-[18px] bg-white/12 px-3 py-3">
-                  <div className="flex items-center text-[17px] justify-between gap-4 border-b border-white/12 py-2 first:pt-0 last:border-b-0 last:pb-0">
-                    <p className=" font-semibold text-white/72">
-                      {t("lobby.plaza.stats.grid")}
-                    </p>
-                    <p className="font-semibold">
-                      {plazaCurrentGame.gridX} x {plazaCurrentGame.gridY}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 border-b border-white/12 py-2 first:pt-0 last:border-b-0 last:pb-0">
-                    <p className="font-semibold text-white/72">
-                      {t("lobby.plaza.stats.round")}
-                    </p>
-                    <p className="font-semibold">
-                      {plazaCurrentGame.currentRoundNumber} /{" "}
-                      {plazaCurrentGame.totalRounds}
-                    </p>
-                  </div>
-                  <div className="flex items-center justify-between gap-4 py-2 first:pt-0 last:pb-0">
-                    <p className="font-semibold text-white/72">
-                      {t("lobby.plaza.stats.participants")}
-                    </p>
-                    <p className="font-semibold">
-                      {plazaCurrentGame.participantCount}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <p className="mt-3 text-sm leading-6 text-white/88">
-                {t("lobby.plaza.empty")}
-              </p>
-            )}
-            <button
-              type="button"
-              onClick={handleParticipatePlaza}
-              className="mt-5 w-full rounded-2xl bg-[#272E37] px-4 py-3 text-center text-sm font-semibold text-white"
-            >
-              {t("lobby.actions.joinPlaza")}
-            </button>
-          </section>
-        </aside>
-      </div>
+          <aside ref={rightPanelRef} className="order-1 grid gap-4 xl:order-2">
+            {accountPanel}
+            <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
+              {roomActionButtons}
+            </section>
+            {plazaPanel}
+          </aside>
+        </div>
+      )}
 
       {loginRequiredOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
