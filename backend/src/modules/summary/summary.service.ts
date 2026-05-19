@@ -19,10 +19,6 @@ const voteRoundRepository = AppDataSource.getRepository(VoteRound);
 const roundSummaryRepository = AppDataSource.getRepository(RoundSummary);
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
 const roomRepository = AppDataSource.getRepository(Room);
-const canvasParticipantSummaryRepository = AppDataSource.getRepository(
-  CanvasParticipantSummary,
-);
-
 type TopCellAggregate = {
   x: number;
   y: number;

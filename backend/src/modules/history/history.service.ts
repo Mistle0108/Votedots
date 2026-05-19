@@ -134,20 +134,6 @@ function buildRoundSnapshotApiPath(canvasId: number, roundId: number): string {
   return `/api/canvas/${canvasId}/rounds/${roundId}/snapshot`;
 }
 
-function buildRoundDownloadSnapshotApiPath(
-  canvasId: number,
-  roundId: number,
-): string {
-  return `/api/canvas/${canvasId}/rounds/${roundId}/download-snapshot`;
-}
-
-function buildRoundHighResolutionDownloadSnapshotApiPath(
-  canvasId: number,
-  roundId: number,
-): string {
-  return `/api/canvas/${canvasId}/rounds/${roundId}/download-snapshot-hd`;
-}
-
 function getRoundSnapshotUrl(
   canvasId: number,
   snapshot: RoundSnapshot | null,
@@ -162,39 +148,6 @@ function getRoundSnapshotUrl(
 
   return roundId ? buildRoundSnapshotApiPath(canvasId, roundId) : null;
 }
-
-function getRoundDownloadSnapshotUrl(
-  canvasId: number,
-  snapshot: RoundSnapshot | null,
-  roundMap: Map<string, VoteRound>,
-): string | null {
-  if (!snapshot) {
-    return null;
-  }
-
-  const round = getRoundForSnapshot(snapshot, roundMap);
-  const roundId = round ? getEntityId(round) : null;
-
-  return roundId ? buildRoundDownloadSnapshotApiPath(canvasId, roundId) : null;
-}
-
-function getRoundHighResolutionDownloadSnapshotUrl(
-  canvasId: number,
-  snapshot: RoundSnapshot | null,
-  roundMap: Map<string, VoteRound>,
-): string | null {
-  if (!snapshot) {
-    return null;
-  }
-
-  const round = getRoundForSnapshot(snapshot, roundMap);
-  const roundId = round ? getEntityId(round) : null;
-
-  return roundId
-    ? buildRoundHighResolutionDownloadSnapshotApiPath(canvasId, roundId)
-    : null;
-}
-
 function serializeSnapshot(
   snapshot: RoundSnapshot | null,
   snapshotUrl: string | null,
