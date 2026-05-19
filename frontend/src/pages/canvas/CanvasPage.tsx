@@ -537,17 +537,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     };
   }, [sessionSourceApi.key]);
 
-  useEffect(() => {
-    if (sessionSourceApi.key !== "room") {
-      setRoomEndGameRequested(false);
-      return;
-    }
-
-    if (phase === GAME_PHASE.GAME_END) {
-      setRoomEndGameRequested(true);
-    }
-  }, [phase, sessionSourceApi.key]);
-
   const handleTerminateRoom = useCallback(async () => {
     if (sessionSourceApi.key !== "room" || !currentRoomManage) {
       return;
