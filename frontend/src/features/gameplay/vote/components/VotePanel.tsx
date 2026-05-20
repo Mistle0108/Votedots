@@ -59,6 +59,7 @@ interface Props {
   roomEndGameDisabled?: boolean;
   onEndGame?: () => void;
   roomTerminateLoading?: boolean;
+  roomTerminateDisabled?: boolean;
   onTerminateRoom?: () => void;
   voteMode: "select" | "instant";
   onVoteModeChange: (mode: "select" | "instant") => void;
@@ -99,6 +100,7 @@ export default function VotePanel({
   roomEndGameDisabled = false,
   onEndGame,
   roomTerminateLoading = false,
+  roomTerminateDisabled = false,
   onTerminateRoom,
   voteMode,
   onVoteModeChange,
@@ -234,6 +236,7 @@ export default function VotePanel({
               roomEndGameDisabled={roomEndGameDisabled}
               onEndGame={onEndGame}
               roomTerminateLoading={roomTerminateLoading}
+              roomTerminateDisabled={roomTerminateDisabled}
               onTerminateRoom={onTerminateRoom}
               tutorialId="tutorial-settings-panel"
             />

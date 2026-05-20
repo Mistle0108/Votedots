@@ -63,6 +63,7 @@ import { useI18n } from "@/shared/i18n";
 import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { BrandLogo } from "@/shared/ui/brand-logo";
+import { DropdownSelect } from "@/shared/ui/dropdown-select";
 import MobileBottomSheet from "./components/MobileBottomSheet";
 import useCanvasPage from "./model/useCanvasPage";
 import { PLAY_THEME_STYLE } from "./model/play-theme";
@@ -160,6 +161,21 @@ function PlusGlyph() {
       <path d="M5 12h14" />
     </svg>
   );
+}
+
+function getReadableTextColor(hexColor: string): "#111827" | "#ffffff" {
+  const normalized = hexColor.replace("#", "");
+
+  if (normalized.length !== 6) {
+    return "#111827";
+  }
+
+  const red = Number.parseInt(normalized.slice(0, 2), 16);
+  const green = Number.parseInt(normalized.slice(2, 4), 16);
+  const blue = Number.parseInt(normalized.slice(4, 6), 16);
+  const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
+
+  return luminance >= 160 ? "#111827" : "#ffffff";
 }
 
 function getPhaseLabelKey(phase: GamePhase): string {
@@ -1387,7 +1403,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
           gray: "회색",
           intro: "튜토리얼",
           language: "언어",
-          room: "방 정보",
+          room: "입장 코드",
           settings: "메뉴",
           title: "메뉴",
           white: "흰색",
@@ -1399,7 +1415,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
           gray: "Gray",
           intro: "Tutorial",
           language: "Language",
-          room: "Room",
+          room: "Access code",
           settings: "Menu",
           title: "Menu",
           white: "White",
@@ -1416,6 +1432,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       : "-/-";
   const activeMobileSheet =
     tutorialOpen && isMobileLayout ? tutorialMobileManagedSheet : mobileSheet;
+  const roomGameEndControlsDisabled = phase === GAME_PHASE.GAME_END;
   const selectedCellLabel = selectedCell
     ? `(${selectedCell.x}, ${selectedCell.y})`
     : locale === "ko"
@@ -1432,6 +1449,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     [selectedCell, votes],
   );
   const isPaletteSheetOpen = activeMobileSheet === "palette";
+  const mobilePaletteButtonTextColor = getReadableTextColor(mobilePaletteColor);
   const canSubmitMobileVote =
     Boolean(canvasId) &&
     Boolean(roundId) &&
@@ -1658,9 +1676,13 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                     }}
                     className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm backdrop-blur ${
                       isPaletteSheetOpen
-                        ? "border-[color:var(--page-theme-primary-action)] bg-[color:var(--page-theme-primary-action)] text-[color:var(--page-theme-primary-action-text)]"
-                        : "border-[color:var(--page-theme-border-primary)] bg-[color:rgba(255,255,255,0.94)] text-[color:var(--page-theme-text-primary)]"
+                        ? "border-[color:var(--page-theme-primary-action)]"
+                        : "border-[color:var(--page-theme-border-primary)]"
                     }`}
+                    style={{
+                      backgroundColor: mobilePaletteColor,
+                      color: mobilePaletteButtonTextColor,
+                    }}
                     aria-label={
                       locale === "ko" ? "팔레트 열기" : "Open palette"
                     }
@@ -1790,35 +1812,35 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                 <span className="text-sm font-medium text-[color:var(--page-theme-text-secondary)]">
                   {mobileMenuLabels.language}
                 </span>
-                <select
+                <DropdownSelect
                   value={locale}
-                  onChange={(event) =>
-                    setLocale(event.target.value as "ko" | "en")
-                  }
-                  className="rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-3 py-2 text-sm text-[color:var(--page-theme-text-primary)] outline-none"
-                >
-                  <option value="ko">KO</option>
-                  <option value="en">EN</option>
-                </select>
+                  onChange={setLocale}
+                  options={[
+                    { value: "ko", label: "KO" },
+                    { value: "en", label: "EN" },
+                  ]}
+                  variant="play"
+                  triggerClassName="rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-3 py-2 text-sm text-[color:var(--page-theme-text-primary)]"
+                  menuClassName="rounded-xl"
+                />
               </div>
 
               <div className="mt-3 flex items-center justify-between gap-3">
                 <span className="text-sm font-medium text-[color:var(--page-theme-text-secondary)]">
                   {mobileMenuLabels.background}
                 </span>
-                <select
+                <DropdownSelect
                   value={backgroundMode}
-                  onChange={(event) =>
-                    setBackgroundMode(
-                      event.target.value as typeof backgroundMode,
-                    )
-                  }
-                  className="rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-3 py-2 text-sm text-[color:var(--page-theme-text-primary)] outline-none"
-                >
-                  <option value="w">{mobileMenuLabels.white}</option>
-                  <option value="g">{mobileMenuLabels.gray}</option>
-                  <option value="b">{mobileMenuLabels.black}</option>
-                </select>
+                  onChange={setBackgroundMode}
+                  options={[
+                    { value: "w", label: mobileMenuLabels.white },
+                    { value: "g", label: mobileMenuLabels.gray },
+                    { value: "b", label: mobileMenuLabels.black },
+                  ]}
+                  variant="play"
+                  triggerClassName="rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-3 py-2 text-sm text-[color:var(--page-theme-text-primary)]"
+                  menuClassName="rounded-xl"
+                />
               </div>
             </div>
 
@@ -1827,17 +1849,8 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                 <h3 className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
                   {mobileMenuLabels.room}
                 </h3>
-                <div className="mt-2 grid gap-1 text-xs text-[color:var(--page-theme-text-secondary)]">
-                  <p>{currentRoomManage.title}</p>
-                  <p>{currentRoomManage.settings.profileKey}</p>
-                  <p>
-                    {locale === "ko" ? "총 라운드" : "Rounds"}:{" "}
-                    {currentRoomManage.settings.totalRounds}
-                  </p>
-                  <p>
-                    {locale === "ko" ? "표 수" : "Votes / round"}:{" "}
-                    {currentRoomManage.settings.votesPerRound}
-                  </p>
+                <div className="mt-2 rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] px-3 py-2 text-xs font-semibold tracking-[0.08em] text-[color:var(--page-theme-text-primary)]">
+                  {currentRoomManage.accessCode ?? "-"}
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <button
@@ -1845,7 +1858,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                     disabled={
                       roomEndGameLoading ||
                       roomEndGameRequested ||
-                      phase === GAME_PHASE.GAME_END
+                      roomGameEndControlsDisabled
                     }
                     onClick={handleEndGame}
                     className="rounded-xl bg-[#272E37] px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
@@ -2254,10 +2267,11 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
             }
             roomEndGameLoading={roomEndGameLoading}
             roomEndGameDisabled={
-              roomEndGameRequested || phase === GAME_PHASE.GAME_END
+              roomEndGameRequested || roomGameEndControlsDisabled
             }
             onEndGame={handleEndGame}
             roomTerminateLoading={roomTerminateLoading}
+            roomTerminateDisabled={false}
             onTerminateRoom={handleTerminateRoom}
             voteMode={desktopVoteMode}
             onVoteModeChange={(nextMode) => {

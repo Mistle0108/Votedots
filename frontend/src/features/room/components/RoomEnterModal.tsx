@@ -39,9 +39,6 @@ export default function RoomEnterModal({
           </button>
         </div>
 
-        <p className="mt-4 text-sm leading-6 text-[#5f6368]">
-          {t("lobby.roomEnter.description")}
-        </p>
         <input
           type="text"
           value={entryValue}

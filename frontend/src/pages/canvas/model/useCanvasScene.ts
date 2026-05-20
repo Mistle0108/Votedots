@@ -114,6 +114,37 @@ function clampCamera(
   };
 }
 
+function getDefaultView(params: {
+  container: HTMLDivElement;
+  gridX: number;
+  gridY: number;
+  viewportWidth: number;
+  viewportHeight: number;
+}) {
+  const { container, gridX, gridY, viewportWidth, viewportHeight } = params;
+  const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+  const bounds = getZoomBounds(container, worldWidth, worldHeight);
+  const largestGridSize = Math.max(gridX, gridY);
+  const zoom =
+    largestGridSize >= ZOOMED_ENTRY_GRID_THRESHOLD
+      ? clampZoom(bounds.minZoom * INITIAL_VIEWPORT_GRID_DIVISIONS, bounds)
+      : bounds.minZoom;
+  const camera = clampCamera(
+    (worldWidth - viewportWidth / zoom) / 2,
+    (worldHeight - viewportHeight / zoom) / 2,
+    worldWidth,
+    worldHeight,
+    viewportWidth,
+    viewportHeight,
+    zoom,
+  );
+
+  return {
+    zoom,
+    camera,
+  };
+}
+
 function isCellInsideVisibleBounds(
   x: number,
   y: number,
@@ -410,36 +441,27 @@ export default function useCanvasScene({
     const sceneKey = `${canvasId}:${gridX}:${gridY}`;
 
     if (sceneKeyRef.current !== sceneKey) {
-      const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
-      const bounds = getZoomBounds(container, worldWidth, worldHeight);
-      const largestGridSize = Math.max(gridX, gridY);
-      const initialZoom =
-        largestGridSize >= ZOOMED_ENTRY_GRID_THRESHOLD
-          ? clampZoom(bounds.minZoom * INITIAL_VIEWPORT_GRID_DIVISIONS, bounds)
-          : bounds.minZoom;
-      const initialCamera = clampCamera(
-        (worldWidth - viewportWidth / initialZoom) / 2,
-        (worldHeight - viewportHeight / initialZoom) / 2,
-        worldWidth,
-        worldHeight,
+      const defaultView = getDefaultView({
+        container,
+        gridX,
+        gridY,
         viewportWidth,
         viewportHeight,
-        initialZoom,
-      );
+      });
 
       sceneKeyRef.current = sceneKey;
       pendingZoomAdjustmentRef.current = null;
-      initialZoomRef.current = initialZoom;
-      initialCameraXRef.current = initialCamera.x;
-      initialCameraYRef.current = initialCamera.y;
-      zoomRef.current = initialZoom;
-      cameraXRef.current = initialCamera.x;
-      cameraYRef.current = initialCamera.y;
+      initialZoomRef.current = defaultView.zoom;
+      initialCameraXRef.current = defaultView.camera.x;
+      initialCameraYRef.current = defaultView.camera.y;
+      zoomRef.current = defaultView.zoom;
+      cameraXRef.current = defaultView.camera.x;
+      cameraYRef.current = defaultView.camera.y;
       selectedCellRef.current = null;
       scheduleStateUpdate(() => {
-        setZoom(initialZoom);
-        setCameraX(initialCamera.x);
-        setCameraY(initialCamera.y);
+        setZoom(defaultView.zoom);
+        setCameraX(defaultView.camera.x);
+        setCameraY(defaultView.camera.y);
         setSelectedCell(null);
         setSelectionVisible(false);
       });
@@ -666,10 +688,49 @@ export default function useCanvasScene({
       zoom,
     );
 
+    cameraXRef.current = nextCamera.x;
+    cameraYRef.current = nextCamera.y;
     setCameraX(nextCamera.x);
     setCameraY(nextCamera.y);
     pendingZoomAdjustmentRef.current = null;
   }, [zoom, canvasReady, gridX, gridY]);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+
+    if (!container || !canvasReady || gridX === 0 || gridY === 0) {
+      return;
+    }
+
+    const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
+    const bounds = getZoomBounds(container, worldWidth, worldHeight);
+    const nextZoom = clampZoom(zoomRef.current, bounds);
+    const nextCamera = clampCamera(
+      cameraXRef.current,
+      cameraYRef.current,
+      worldWidth,
+      worldHeight,
+      container.clientWidth,
+      container.clientHeight,
+      nextZoom,
+    );
+
+    if (
+      nextZoom === zoomRef.current &&
+      nextCamera.x === cameraXRef.current &&
+      nextCamera.y === cameraYRef.current
+    ) {
+      return;
+    }
+
+    pendingZoomAdjustmentRef.current = null;
+    zoomRef.current = nextZoom;
+    cameraXRef.current = nextCamera.x;
+    cameraYRef.current = nextCamera.y;
+    setZoom(nextZoom);
+    setCameraX(nextCamera.x);
+    setCameraY(nextCamera.y);
+  }, [canvasReady, gridX, gridY, viewportSize.height, viewportSize.width]);
 
   const { navigateToCoordinate } = useCanvasNavigation({
     containerRef,
@@ -927,26 +988,24 @@ export default function useCanvasScene({
       return;
     }
 
-    const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
-    const bounds = getZoomBounds(container, worldWidth, worldHeight);
-    const nextZoom = clampZoom(initialZoomRef.current, bounds);
-    const nextCamera = clampCamera(
-      initialCameraXRef.current,
-      initialCameraYRef.current,
-      worldWidth,
-      worldHeight,
-      container.clientWidth,
-      container.clientHeight,
-      nextZoom,
-    );
+    const defaultView = getDefaultView({
+      container,
+      gridX,
+      gridY,
+      viewportWidth: container.clientWidth,
+      viewportHeight: container.clientHeight,
+    });
 
     pendingZoomAdjustmentRef.current = null;
-    zoomRef.current = nextZoom;
-    cameraXRef.current = nextCamera.x;
-    cameraYRef.current = nextCamera.y;
-    setZoom(nextZoom);
-    setCameraX(nextCamera.x);
-    setCameraY(nextCamera.y);
+    initialZoomRef.current = defaultView.zoom;
+    initialCameraXRef.current = defaultView.camera.x;
+    initialCameraYRef.current = defaultView.camera.y;
+    zoomRef.current = defaultView.zoom;
+    cameraXRef.current = defaultView.camera.x;
+    cameraYRef.current = defaultView.camera.y;
+    setZoom(defaultView.zoom);
+    setCameraX(defaultView.camera.x);
+    setCameraY(defaultView.camera.y);
   }, [canvasReady, gridX, gridY]);
 
   const handleWheel = useCallback(

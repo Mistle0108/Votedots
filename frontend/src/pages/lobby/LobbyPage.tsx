@@ -23,6 +23,7 @@ import {
 import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { useI18n } from "@/shared/i18n";
 import { BrandLogo } from "@/shared/ui/brand-logo";
+import { DropdownSelect } from "@/shared/ui/dropdown-select";
 import type { Voter } from "@/features/auth";
 
 type AuthState = "authenticated" | "guest" | "unknown";
@@ -31,28 +32,9 @@ type LobbyMobileTab = "plaza" | "rooms" | "completed";
 type CompletedScope = "plaza" | "public";
 type CompletedPreset = "today" | "7d" | "30d";
 type RoomTypeFilter = "all" | "public" | "private";
-type PixelPerfectPreviewDimensions = {
-  width: number;
-  height: number;
-};
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 767px)";
 const MOBILE_ROOM_LIST_PAGE_SIZE = 5;
-
-function getPixelPerfectPreviewDimensions(params: {
-  gridX: number;
-  gridY: number;
-  maxLongestSide: number;
-}): PixelPerfectPreviewDimensions {
-  const { gridX, gridY, maxLongestSide } = params;
-  const longestSide = Math.max(gridX, gridY);
-  const scale = Math.max(1, Math.floor(maxLongestSide / longestSide));
-
-  return {
-    width: gridX * scale,
-    height: gridY * scale,
-  };
-}
 
 function getErrorMessage(
   error: unknown,
@@ -127,26 +109,25 @@ export default function LobbyPage() {
   const [completedScope, setCompletedScope] = useState<CompletedScope>("plaza");
   const [completedPreset, setCompletedPreset] =
     useState<CompletedPreset>("today");
+  const [hasLoadedPlaza, setHasLoadedPlaza] = useState(false);
+  const [roomsNeedRefresh, setRoomsNeedRefresh] = useState(false);
 
   const [plazaCurrentGame, setPlazaCurrentGame] =
     useState<LandingCurrentGame | null>(null);
   const [plazaLoading, setPlazaLoading] = useState(false);
   const [plazaError, setPlazaError] = useState<string | null>(null);
-  const [plazaPreviewHostWidth, setPlazaPreviewHostWidth] = useState<number | null>(
-    null,
-  );
 
   const [roomLifecycleNoticeReason, setRoomLifecycleNoticeReason] = useState<
     "expired" | "terminated_by_owner" | null
   >(() => consumeStoredRoomLifecycleNotice());
   const rightPanelRef = useRef<HTMLElement | null>(null);
-  const plazaPreviewHostRef = useRef<HTMLDivElement | null>(null);
   const [leftPanelHeight, setLeftPanelHeight] = useState<number | null>(null);
 
   const {
     rooms,
     selectedRoomId,
     selectedRoomDetail,
+    hasLoadedOnce: hasLoadedRooms,
     loading,
     error,
     detailLoading,
@@ -155,6 +136,14 @@ export default function LobbyPage() {
     loadRoomDetail,
     clearSelectedRoomDetail,
   } = useLobbyRooms();
+
+  const isPlazaVisible = !isMobileLayout || mobileTab === "plaza";
+  const isRoomsVisible = isMobileLayout
+    ? mobileTab === "rooms"
+    : activeTab === "rooms";
+  const isCompletedVisible = isMobileLayout
+    ? mobileTab === "completed"
+    : activeTab === "completed";
 
   const filteredRooms = useMemo(() => {
     if (roomTypeFilter === "all") {
@@ -197,6 +186,7 @@ export default function LobbyPage() {
     try {
       const { data } = await landingApi.getLandingPayload();
       setPlazaCurrentGame(data.currentGame);
+      setHasLoadedPlaza(true);
     } catch {
       setPlazaCurrentGame(null);
       setPlazaError(t("lobby.plaza.loadFailed"));
@@ -235,8 +225,12 @@ export default function LobbyPage() {
   }, []);
 
   useEffect(() => {
+    if (!isPlazaVisible || hasLoadedPlaza) {
+      return;
+    }
+
     void Promise.resolve().then(loadPlazaCurrentGame);
-  }, [loadPlazaCurrentGame]);
+  }, [hasLoadedPlaza, isPlazaVisible, loadPlazaCurrentGame]);
 
   useEffect(() => {
     let cancelled = false;
@@ -260,48 +254,39 @@ export default function LobbyPage() {
   }, []);
 
   useEffect(() => {
-    const handleWindowFocus = () => {
-      void refreshAuthState();
-      void loadPlazaCurrentGame();
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== "visible") {
-        return;
-      }
-
-      void refreshAuthState();
-      void loadPlazaCurrentGame();
-    };
-
-    window.addEventListener("focus", handleWindowFocus);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    return () => {
-      window.removeEventListener("focus", handleWindowFocus);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-    };
-  }, [loadPlazaCurrentGame, refreshAuthState]);
-
-  useEffect(() => {
-    if (authState === "unknown") {
+    if (authState === "unknown" || !isRoomsVisible) {
       return;
     }
 
-    void loadRooms().then((loadedRooms) => {
-      if (selectedRoomId !== null) {
-        void loadRoomDetail(selectedRoomId);
-        return;
-      }
+    if (hasLoadedRooms && !roomsNeedRefresh) {
+      return;
+    }
 
-      if (loadedRooms.length > 0) {
-        void loadRoomDetail(loadedRooms[0].roomId);
+    void (async () => {
+      const nextRooms = await loadRooms({ silent: hasLoadedRooms });
+
+      if (nextRooms !== null) {
+        setRoomsNeedRefresh(false);
       }
-    });
-  }, [authState, loadRoomDetail, loadRooms, selectedRoomId]);
+    })();
+  }, [
+    authState,
+    hasLoadedRooms,
+    isRoomsVisible,
+    loadRooms,
+    roomsNeedRefresh,
+  ]);
 
   useEffect(() => {
-    if (selectedRoomId === null) {
+    if (!isRoomsVisible || filteredRooms.length === 0 || selectedRoomId !== null) {
+      return;
+    }
+
+    void loadRoomDetail(filteredRooms[0].roomId);
+  }, [filteredRooms, isRoomsVisible, loadRoomDetail, selectedRoomId]);
+
+  useEffect(() => {
+    if (!isRoomsVisible || selectedRoomId === null) {
       return;
     }
 
@@ -318,6 +303,7 @@ export default function LobbyPage() {
   }, [
     clearSelectedRoomDetail,
     filteredRooms,
+    isRoomsVisible,
     loadRoomDetail,
     selectedRoomId,
   ]);
@@ -345,39 +331,6 @@ export default function LobbyPage() {
       observer.disconnect();
     };
   }, [activeTab, authState, plazaCurrentGame, plazaLoading, plazaError]);
-
-  useEffect(() => {
-    const element = plazaPreviewHostRef.current;
-
-    if (!element || typeof ResizeObserver === "undefined") {
-      return;
-    }
-
-    const updateWidth = () => {
-      setPlazaPreviewHostWidth(element.clientWidth);
-    };
-
-    updateWidth();
-
-    const observer = new ResizeObserver(() => {
-      updateWidth();
-    });
-
-    observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [activeTab, isMobileLayout, mobileTab, plazaCurrentGame, plazaLoading, plazaError]);
-
-  const plazaPreviewDimensions =
-    plazaCurrentGame && plazaPreviewHostWidth
-      ? getPixelPerfectPreviewDimensions({
-          gridX: plazaCurrentGame.gridX,
-          gridY: plazaCurrentGame.gridY,
-          maxLongestSide: plazaPreviewHostWidth,
-        })
-      : null;
 
   const requireLogin = useCallback(async (): Promise<boolean> => {
     if (authState === "authenticated") {
@@ -458,12 +411,18 @@ export default function LobbyPage() {
             ? "public_room_created"
             : "private_room_created",
         ).catch(() => {});
-        await loadRooms();
 
         if (data.entered) {
           enterRoomFromResponse(data.room);
           setCreateModalOpen(false);
           return;
+        }
+
+        if (isRoomsVisible) {
+          const nextRooms = await loadRooms({ silent: hasLoadedRooms });
+          setRoomsNeedRefresh(nextRooms === null);
+        } else {
+          setRoomsNeedRefresh(true);
         }
 
         setGeneratedAccessCode(data.accessCode);
@@ -474,7 +433,7 @@ export default function LobbyPage() {
         setCreateLoading(false);
       }
     },
-    [enterRoomFromResponse, loadRooms, t],
+    [enterRoomFromResponse, hasLoadedRooms, isRoomsVisible, loadRooms, t],
   );
 
   const handleEnterCreatedPrivateRoom = useCallback(async () => {
@@ -667,10 +626,7 @@ export default function LobbyPage() {
         <p className="mt-3 text-sm leading-6 text-white/88">{plazaError}</p>
       ) : plazaCurrentGame ? (
         <div className="mt-4 space-y-4">
-          <div
-            ref={plazaPreviewHostRef}
-            className="rounded-[24px] bg-white/12 p-3"
-          >
+          <div className="rounded-[24px] bg-white/12 p-3">
             <div className="overflow-auto rounded-[20px] bg-white">
               <img
                 src={
@@ -679,10 +635,10 @@ export default function LobbyPage() {
                   undefined
                 }
                 alt={t("lobby.plaza.previewAlt")}
-                className="mx-auto block"
+                className="mx-auto block h-[256px] w-[256px]"
                 style={{ imageRendering: "pixelated" }}
-                width={plazaPreviewDimensions?.width}
-                height={plazaPreviewDimensions?.height}
+                width={256}
+                height={256}
                 draggable={false}
               />
             </div>
@@ -791,34 +747,33 @@ export default function LobbyPage() {
             </div>
 
             <div className="mt-5">
-              {mobileTab === "plaza" ? (
-                plazaPanel
-              ) : mobileTab === "rooms" ? (
-                <div className="space-y-4">
+              <div className={mobileTab === "plaza" ? "" : "hidden"}>
+                {plazaPanel}
+              </div>
+
+              <div className={mobileTab === "rooms" ? "space-y-4" : "hidden"}>
                   {roomActionButtons}
                   <div className="flex items-center gap-3">
                     <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
                       {t("lobby.roomList.filter.typeLabel")}
                     </span>
-                    <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
-                      <select
-                        value={roomTypeFilter}
-                        onChange={(event) =>
-                          handleChangeRoomTypeFilter(
-                            event.target.value as RoomTypeFilter,
-                          )
-                        }
-                        className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-                      >
-                        <option value="all">{t("lobby.roomList.filter.all")}</option>
-                        <option value="public">
-                          {t("lobby.roomList.filter.public")}
-                        </option>
-                        <option value="private">
-                          {t("lobby.roomList.filter.private")}
-                        </option>
-                      </select>
-                    </label>
+                    <DropdownSelect
+                      value={roomTypeFilter}
+                      onChange={handleChangeRoomTypeFilter}
+                      options={[
+                        { value: "all", label: t("lobby.roomList.filter.all") },
+                        {
+                          value: "public",
+                          label: t("lobby.roomList.filter.public"),
+                        },
+                        {
+                          value: "private",
+                          label: t("lobby.roomList.filter.private"),
+                        },
+                      ]}
+                      className="w-full"
+                      triggerClassName="h-11 rounded-full border border-[#d9cdc1] bg-white px-4 text-sm font-semibold text-[#2d2d2d]"
+                    />
                   </div>
 
                   <RoomListSection
@@ -841,16 +796,18 @@ export default function LobbyPage() {
                     mobileDetailOpen={mobileRoomDetailOpen}
                     onCloseMobileDetail={() => setMobileRoomDetailOpen(false)}
                   />
-                </div>
-              ) : (
+              </div>
+
+              <div className={mobileTab === "completed" ? "" : "hidden"}>
                 <CompletedCanvasSection
                   scope={completedScope}
                   preset={completedPreset}
                   onChangeScope={setCompletedScope}
                   onChangePreset={setCompletedPreset}
                   mobileMode
+                  active={isCompletedVisible}
                 />
-              )}
+              </div>
             </div>
           </section>
         </div>
@@ -910,14 +867,7 @@ export default function LobbyPage() {
             ) : null}
 
             <div className="mt-5 min-h-0 flex-1">
-              {activeTab === "completed" ? (
-                <CompletedCanvasSection
-                  scope={completedScope}
-                  preset={completedPreset}
-                  onChangeScope={setCompletedScope}
-                  onChangePreset={setCompletedPreset}
-                />
-              ) : (
+              <div className={activeTab === "rooms" ? "h-full" : "hidden"}>
                 <RoomListSection
                   rooms={filteredRooms}
                   selectedRoomId={selectedRoomId}
@@ -932,7 +882,17 @@ export default function LobbyPage() {
                   onEnterPublicRoom={handleEnterPublicRoom}
                   onEnterPrivateRoom={handleEnterRoomByAccessCode}
                 />
-              )}
+              </div>
+
+              <div className={activeTab === "completed" ? "h-full" : "hidden"}>
+                <CompletedCanvasSection
+                  scope={completedScope}
+                  preset={completedPreset}
+                  onChangeScope={setCompletedScope}
+                  onChangePreset={setCompletedPreset}
+                  active={isCompletedVisible}
+                />
+              </div>
             </div>
           </section>
 

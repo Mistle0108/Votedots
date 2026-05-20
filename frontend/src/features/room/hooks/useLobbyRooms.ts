@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   roomApi,
   type RoomDetailResponse,
   type RoomListItem,
 } from "../api/room.api";
+import { useI18n } from "@/shared/i18n";
 
 export default function useLobbyRooms() {
+  const { t } = useI18n();
   const [rooms, setRooms] = useState<RoomListItem[]>([]);
   const [selectedRoomId, setSelectedRoomId] = useState<number | null>(
     null,
@@ -16,23 +18,38 @@ export default function useLobbyRooms() {
   const [error, setError] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
 
-  const loadRooms = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadRooms = useCallback(async (options?: { silent?: boolean }) => {
+    const silent = options?.silent ?? false;
+
+    if (!silent || !hasLoadedOnce) {
+      setLoading(true);
+    }
+
+    if (!silent) {
+      setError(null);
+    }
 
     try {
       const { data } = await roomApi.getRooms();
       setRooms(data.rooms);
+      setError(null);
+      setHasLoadedOnce(true);
       return data.rooms;
     } catch {
-      setError("방 목록을 불러오지 못했습니다.");
-      setRooms([]);
-      return [];
+      if (!silent || !hasLoadedOnce) {
+        setError(t("lobby.roomList.loadFailed"));
+        setRooms([]);
+      }
+
+      return null;
     } finally {
-      setLoading(false);
+      if (!silent || !hasLoadedOnce) {
+        setLoading(false);
+      }
     }
-  }, []);
+  }, [hasLoadedOnce, t]);
 
   const loadRoomDetail = useCallback(async (roomId: number) => {
     setDetailLoading(true);
@@ -46,12 +63,12 @@ export default function useLobbyRooms() {
     } catch {
       setSelectedRoomId(roomId);
       setSelectedRoomDetail(null);
-      setDetailError("방 정보를 불러오지 못했습니다.");
+      setDetailError(t("lobby.roomList.detailLoadFailed"));
       return null;
     } finally {
       setDetailLoading(false);
     }
-  }, []);
+  }, [t]);
 
   const clearSelectedRoomDetail = useCallback(() => {
     setSelectedRoomId(null);
@@ -59,48 +76,11 @@ export default function useLobbyRooms() {
     setDetailError(null);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    const bootstrapRooms = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const { data } = await roomApi.getRooms();
-
-        if (cancelled) {
-          return;
-        }
-
-        setRooms(data.rooms);
-
-        if (data.rooms.length > 0) {
-          void loadRoomDetail(data.rooms[0].roomId);
-        }
-      } catch {
-        if (!cancelled) {
-          setError("방 목록을 불러오지 못했습니다.");
-          setRooms([]);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    };
-
-    void bootstrapRooms();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [loadRoomDetail]);
-
   return {
     rooms,
     selectedRoomId,
     selectedRoomDetail,
+    hasLoadedOnce,
     loading,
     error,
     detailLoading,

@@ -117,6 +117,7 @@ export function buildCanvasCreationData({
     phaseStartedAt: now,
     phaseEndsAt,
     currentRoundNumber: 1,
+    pendingGameEnd: false,
     startedAt: now,
   };
 }
@@ -281,6 +282,7 @@ export const canvasService = {
           phaseStartedAt: now,
           phaseEndsAt: now,
           endedAt: now,
+          pendingGameEnd: false,
         },
       );
 

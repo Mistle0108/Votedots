@@ -1,8 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useI18n } from "@/shared/i18n";
+import { DropdownSelect } from "@/shared/ui/dropdown-select";
 import type { RoomConfigProfile } from "../api/room.api";
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 767px)";
+const COPY_NOTICE_DURATION_MS = 3000;
 
 interface RoomCreateSubmitPayload {
   title: string;
@@ -20,10 +22,12 @@ interface RoomCreateModalProps {
   generatedAccessCode: string | null;
   profiles: RoomConfigProfile[];
   onClose: () => void;
-  onCopyAccessCode: () => void;
+  onCopyAccessCode: () => Promise<void> | void;
   onEnterCreatedPrivateRoom: () => void;
   onSubmit: (payload: RoomCreateSubmitPayload) => void;
 }
+
+type CopyNoticeTone = "error" | "success";
 
 export default function RoomCreateModal({
   open,
@@ -36,7 +40,7 @@ export default function RoomCreateModal({
   onEnterCreatedPrivateRoom,
   onSubmit,
 }: RoomCreateModalProps) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [isMobileLayout, setIsMobileLayout] = useState(() =>
     typeof window === "undefined" ||
     typeof window.matchMedia !== "function"
@@ -56,6 +60,11 @@ export default function RoomCreateModal({
   const [votesPerRoundOverride, setVotesPerRoundOverride] = useState<number | null>(
     null,
   );
+  const [copyNotice, setCopyNotice] = useState<{
+    message: string;
+    tone: CopyNoticeTone;
+  } | null>(null);
+  const copyNoticeTimerRef = useRef<number | null>(null);
 
   const availableProfiles = useMemo(
     () =>
@@ -78,8 +87,7 @@ export default function RoomCreateModal({
   const selectedProfile =
     availableProfiles.find((profile) => profile.key === resolvedProfileKey) ?? null;
 
-  const introPhaseSec =
-    introPhaseSecOverride ?? selectedProfile?.snapshot.phases.introPhaseSec ?? 30;
+  const introPhaseSec = introPhaseSecOverride ?? 60;
 
   const maxRounds = useMemo(() => {
     if (!selectedProfile) {
@@ -127,6 +135,29 @@ export default function RoomCreateModal({
     };
   }, []);
 
+  useEffect(() => {
+    if (copyNoticeTimerRef.current !== null) {
+      window.clearTimeout(copyNoticeTimerRef.current);
+      copyNoticeTimerRef.current = null;
+    }
+
+    if (!copyNotice) {
+      return undefined;
+    }
+
+    copyNoticeTimerRef.current = window.setTimeout(() => {
+      setCopyNotice(null);
+      copyNoticeTimerRef.current = null;
+    }, COPY_NOTICE_DURATION_MS);
+
+    return () => {
+      if (copyNoticeTimerRef.current !== null) {
+        window.clearTimeout(copyNoticeTimerRef.current);
+        copyNoticeTimerRef.current = null;
+      }
+    };
+  }, [copyNotice]);
+
   const handleProfileChange = (nextProfileKey: string) => {
     setProfileKey(nextProfileKey);
     setIntroPhaseSecOverride(null);
@@ -136,8 +167,26 @@ export default function RoomCreateModal({
 
   const handleCloseModal = () => {
     setStep(1);
+    setCopyNotice(null);
     onClose();
   };
+
+  const handleCopyGeneratedAccessCode = async () => {
+    try {
+      await onCopyAccessCode();
+      setCopyNotice({
+        message: t("lobby.roomCreate.copyCodeSuccess"),
+        tone: "success",
+      });
+    } catch {
+      setCopyNotice({
+        message: t("lobby.roomCreate.copyCodeFailed"),
+        tone: "error",
+      });
+    }
+  };
+
+  const introPhaseMinuteOptions = Array.from({ length: 6 }, (_, index) => index * 60);
 
   if (!open) {
     return null;
@@ -147,7 +196,20 @@ export default function RoomCreateModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4">
-      <div className="w-full max-w-xl rounded-[28px] bg-white p-7 shadow-[0_30px_100px_rgba(39,46,55,0.28)]">
+      <div className="relative w-full max-w-xl rounded-[28px] bg-white p-7 shadow-[0_30px_100px_rgba(39,46,55,0.28)]">
+        {generatedAccessCode && copyNotice ? (
+          <div
+            className={`absolute left-1/2 top-4 z-10 w-[min(calc(100%-32px),340px)] -translate-x-1/2 rounded-2xl px-4 py-2 text-center text-sm font-medium shadow-sm ${
+              copyNotice.tone === "success"
+                ? "bg-[#272E37] text-white"
+                : "border border-[#d14d28] bg-[#fff1ed] text-[#d14d28]"
+            }`}
+            role="status"
+            aria-live="polite"
+          >
+            {copyNotice.message}
+          </div>
+        ) : null}
         {generatedAccessCode ? (
           <>
             <h2 className="text-2xl font-semibold text-[#272E37]">
@@ -161,7 +223,9 @@ export default function RoomCreateModal({
             <div className="mt-6 flex gap-3">
               <button
                 type="button"
-                onClick={onCopyAccessCode}
+                onClick={() => {
+                  void handleCopyGeneratedAccessCode();
+                }}
                 className="flex-1 rounded-2xl border border-[#d9cdc1] px-4 py-3 text-sm font-semibold text-[#272E37]"
               >
                 {t("lobby.roomCreate.copyCode")}
@@ -236,19 +300,21 @@ export default function RoomCreateModal({
                       <span className="text-sm font-semibold text-[#272E37]">
                         {t("lobby.roomCreate.field.type")}
                       </span>
-                      <select
+                      <DropdownSelect
                         value={type}
-                        onChange={(event) =>
-                          setType(event.target.value as "public" | "private")
-                        }
-                        className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
-                        style={{ colorScheme: "light" }}
-                      >
-                        <option value="public">{t("lobby.roomCreate.type.public")}</option>
-                        <option value="private">
-                          {t("lobby.roomCreate.type.private")}
-                        </option>
-                      </select>
+                        onChange={setType}
+                        options={[
+                          {
+                            value: "public",
+                            label: t("lobby.roomCreate.type.public"),
+                          },
+                          {
+                            value: "private",
+                            label: t("lobby.roomCreate.type.private"),
+                          },
+                        ]}
+                        triggerClassName="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37]"
+                      />
                       <div className="rounded-[20px] border border-[#e3d9cf] bg-[#fbf7f2] px-4 py-3 lg:hidden">
                         <h3 className="text-sm font-semibold text-[#272E37]">
                           {t("lobby.roomCreate.privateAccessCodeTitle")}
@@ -263,19 +329,16 @@ export default function RoomCreateModal({
                       <span className="text-sm font-semibold text-[#272E37]">
                         {t("lobby.roomCreate.field.canvasSize")}
                       </span>
-                      <select
+                      <DropdownSelect
                         value={resolvedProfileKey}
-                        onChange={(event) => handleProfileChange(event.target.value)}
+                        onChange={handleProfileChange}
+                        options={availableProfiles.map((profile) => ({
+                          value: profile.key,
+                          label: `${profile.snapshot.board.gridSizeX} x ${profile.snapshot.board.gridSizeY}`,
+                        }))}
                         disabled={availableProfiles.length === 0}
-                        className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
-                        style={{ colorScheme: "light" }}
-                      >
-                        {availableProfiles.map((profile) => (
-                          <option key={profile.key} value={profile.key}>
-                            {`${profile.snapshot.board.gridSizeX} x ${profile.snapshot.board.gridSizeY}`}
-                          </option>
-                        ))}
-                      </select>
+                        triggerClassName="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37]"
+                      />
                     </label>
                   </div>
                 </>
@@ -332,17 +395,18 @@ export default function RoomCreateModal({
                       <span className="text-sm font-semibold text-[#272E37]">
                         {t("lobby.roomCreate.field.introPhaseSec")}
                       </span>
-                      <input
-                        type="number"
-                        min={0}
-                        max={300}
-                        step={5}
+                      <DropdownSelect
                         value={introPhaseSec}
-                        onChange={(event) =>
-                          setIntroPhaseSecOverride(Number(event.target.value))
-                        }
-                        className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
-                        style={{ colorScheme: "light" }}
+                        onChange={setIntroPhaseSecOverride}
+                        options={introPhaseMinuteOptions.map((seconds) => {
+                          const minutes = seconds / 60;
+
+                          return {
+                            value: seconds,
+                            label: locale === "ko" ? `${minutes}분` : `${minutes} min`,
+                          };
+                        })}
+                        triggerClassName="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37]"
                       />
                       <span className="text-xs text-[#7b6b62]">
                         {t("lobby.roomCreate.introHint")}
@@ -353,22 +417,18 @@ export default function RoomCreateModal({
                       <span className="text-sm font-semibold text-[#272E37]">
                         {t("lobby.roomCreate.field.totalRounds")}
                       </span>
-                      <select
+                      <DropdownSelect
                         value={totalRounds}
-                        onChange={(event) =>
-                          setTotalRoundsOverride(Number(event.target.value))
-                        }
-                        className="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
-                        style={{ colorScheme: "light" }}
-                      >
-                        {Array.from({ length: maxRounds }, (_, index) => index + 1).map(
-                          (round) => (
-                            <option key={round} value={round}>
-                              {round}
-                            </option>
-                          ),
-                        )}
-                      </select>
+                        onChange={setTotalRoundsOverride}
+                        options={Array.from(
+                          { length: maxRounds },
+                          (_, index) => index + 1,
+                        ).map((round) => ({
+                          value: round,
+                          label: round,
+                        }))}
+                        triggerClassName="h-12 rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37]"
+                      />
                     </label>
 
                     <label className="grid gap-2">
@@ -405,7 +465,8 @@ export default function RoomCreateModal({
                   >
                     {t("lobby.roomCreate.step.back")}
                   </button>
-                ) : (
+                ) : null}
+                {step === 1 ? (
                   <button
                     type="button"
                     onClick={() => setStep(2)}
@@ -413,24 +474,27 @@ export default function RoomCreateModal({
                   >
                     {t("lobby.roomCreate.step.next")}
                   </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={loading || availableProfiles.length === 0}
+                    onClick={() =>
+                      onSubmit({
+                        title,
+                        type,
+                        profileKey: resolvedProfileKey,
+                        introPhaseSec,
+                        totalRounds,
+                        votesPerRound,
+                      })
+                    }
+                    className="flex-1 rounded-2xl bg-[#272E37] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
+                  >
+                    {loading
+                      ? t("lobby.roomCreate.creating")
+                      : t("lobby.roomCreate.create")}
+                  </button>
                 )}
-                <button
-                  type="button"
-                  disabled={loading || availableProfiles.length === 0 || step !== 2}
-                  onClick={() =>
-                    onSubmit({
-                      title,
-                      type,
-                      profileKey: resolvedProfileKey,
-                      introPhaseSec,
-                      totalRounds,
-                      votesPerRound,
-                    })
-                  }
-                  className="flex-1 rounded-2xl bg-[#272E37] px-4 py-3 text-sm font-semibold text-white disabled:opacity-60"
-                >
-                  {loading ? t("lobby.roomCreate.creating") : t("lobby.roomCreate.create")}
-                </button>
               </div>
             ) : (
               <button

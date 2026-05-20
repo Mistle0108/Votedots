@@ -85,9 +85,9 @@
 
   font: 18px/145% var(--sans);
   letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
+  color-scheme: light;
+  color: var(--color-text-primary, #000000);
+  background: var(--color-background-primary, #ffffff);
   font-synthesis: weight style;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -156,44 +156,6 @@
   --sidebar-border: oklch(0.922 0 0);
 
   --sidebar-ring: oklch(0.708 0 0)
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-text-primary: #f5f7fb;
-    --color-text-secondary: #cbd5e1;
-    --color-text-tertiary: #94a3b8;
-    --color-background-primary: #111827;
-    --color-background-secondary: #182131;
-    --color-background-tertiary: #243041;
-    --color-border-primary: rgba(226, 232, 240, 0.16);
-    --color-border-secondary: rgba(226, 232, 240, 0.08);
-    --color-overlay: rgba(2, 6, 23, 0.68);
-    --color-accent-blue: #60a5fa;
-    --color-accent-green: #4ade80;
-    --color-accent-red: #f87171;
-    --color-badge-blue-bg: rgba(96, 165, 250, 0.18);
-    --color-badge-blue-text: #bfdbfe;
-    --color-badge-green-bg: rgba(74, 222, 128, 0.18);
-    --color-badge-green-text: #bbf7d0;
-    --color-badge-red-bg: rgba(248, 113, 113, 0.18);
-    --color-badge-red-text: #fecaca;
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
 }
 
 body {
@@ -367,9 +329,17 @@ code {
   * {
     @apply border-border outline-ring/50;}
   body {
-    @apply bg-background text-foreground;}
+    @apply bg-background;
+    color: var(--color-text-primary, #000000);
+    background-color: var(--color-background-primary, #ffffff);}
   html {
-    @apply font-sans;}}
+    @apply font-sans;
+    color-scheme: light;}
+  button,
+  input,
+  select,
+  textarea {
+    color: inherit;}}
 
 @layer utilities {
   .document-force-light {
