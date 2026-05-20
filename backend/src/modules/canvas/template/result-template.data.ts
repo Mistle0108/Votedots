@@ -16,6 +16,13 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "cat-side-32x32",
   },
   {
+    id: "hamster-32x32",
+    name: "Hamster Template 32x32",
+    gridX: 32,
+    gridY: 32,
+    assetKey: "hamster-32x32",
+  },
+  {
     id: "empty-64x64",
     name: "Default Template 64x64",
     gridX: 64,
@@ -42,6 +49,13 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     gridX: 64,
     gridY: 64,
     assetKey: "sheep-side-64x64",
+  },
+  {
+    id: "hedgehog-64x64",
+    name: "Hedgehog Template 64x64",
+    gridX: 64,
+    gridY: 64,
+    assetKey: "hedgehog-64x64",
   },
   {
     id: "empty-128x128",
@@ -72,6 +86,20 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "cup-128x128",
   },
   {
+    id: "giraffe-128x128",
+    name: "Giraffe Template 128x128",
+    gridX: 128,
+    gridY: 128,
+    assetKey: "giraffe-128x128",
+  },
+  {
+    id: "snow-leopard-128x128",
+    name: "Snow Leopard Template 128x128",
+    gridX: 128,
+    gridY: 128,
+    assetKey: "snow-leopard-128x128",
+  },
+  {
     id: "empty-256x256",
     name: "Default Template 256x256",
     gridX: 256,
@@ -98,6 +126,20 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     gridX: 256,
     gridY: 256,
     assetKey: "boothpictures-256x256",
+  },
+  {
+    id: "converse-256x256",
+    name: "Converse Template 256x256",
+    gridX: 256,
+    gridY: 256,
+    assetKey: "converse-256x256",
+  },
+  {
+    id: "duck-256x256",
+    name: "Duck Template 256x256",
+    gridX: 256,
+    gridY: 256,
+    assetKey: "duck-256x256",
   },
   {
     id: "empty-512x512",
