@@ -47,7 +47,7 @@ export default function FeaturedPreviewImage({
   return (
     <div className="mx-auto flex w-fit justify-center">
       <div
-        className="flex-none overflow-hidden rounded-[24px] bg-white shadow-[0_24px_60px_rgba(39,46,55,0.10)]"
+        className="flex-none overflow-hidden rounded-[24px] border border-[#ead7c8] bg-white"
         style={{
           width: `${previewSize.width}px`,
           height: `${previewSize.height}px`,

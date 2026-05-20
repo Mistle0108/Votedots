@@ -36,6 +36,7 @@ interface Props {
   tutorialMode?: boolean;
   tutorialId?: string;
   fixedPosition?: { x: number; y: number } | null;
+  hideSubmitButton?: boolean;
   layerClassName?: string;
 }
 
@@ -111,6 +112,7 @@ export default function VotePopup({
   tutorialMode = false,
   tutorialId,
   fixedPosition = null,
+  hideSubmitButton = false,
   layerClassName = "z-50",
 }: Props) {
   const { locale, t } = useI18n();
@@ -532,14 +534,16 @@ export default function VotePopup({
           onSlotSelect={handleSlotSelect}
         />
 
-        <Button
-          type="button"
-          className="w-full"
-          disabled={isVoteDisabled}
-          onClick={handleSubmit}
-        >
-          {buttonLabel}
-        </Button>
+        {!hideSubmitButton ? (
+          <Button
+            type="button"
+            className="w-full"
+            disabled={isVoteDisabled}
+            onClick={handleSubmit}
+          >
+            {buttonLabel}
+          </Button>
+        ) : null}
 
         {!isVotingPhase && (
           <p className="text-sm text-[color:var(--page-theme-text-secondary)]">

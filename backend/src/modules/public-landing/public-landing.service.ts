@@ -12,6 +12,7 @@ import { Room, RoomType } from "../../entities/room.entity";
 import { roundSnapshotService } from "../history/round-snapshot.service";
 import { participantSessionService } from "../participant/participant-session.service";
 import { canvasService } from "../canvas/canvas.service";
+import { finalResultImageService } from "../history/final-result-image.service";
 
 const gameSummaryRepository = AppDataSource.getRepository(GameSummary);
 const gamePreviewRepository = AppDataSource.getRepository(GamePreview);
@@ -57,7 +58,12 @@ export interface PublicLandingPayload {
 
 export interface PublicLandingCompletedPreviewItem {
   webpUrl: string;
+  resultImageUrl: string | null;
+  downloadAvailable: boolean;
+  downloadSnapshotUrl: string | null;
+  highResolutionDownloadSnapshotUrl: string | null;
   preview: {
+    canvasId: number;
     size: string;
     gridX: number;
     gridY: number;
@@ -74,6 +80,32 @@ export interface PublicLandingCompletedPreviewItem {
 
 export interface PublicLandingCompletedPreviewsPayload {
   items: PublicLandingCompletedPreviewItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    totalItems: number;
+    totalPages: number;
+    hasNextPage: boolean;
+  };
+}
+
+export interface PublicLandingCompletedDetailPayload {
+  canvasId: number;
+  size: string;
+  endedAt: string;
+  totalRounds: number;
+  participantCount: number;
+  totalVotes: number;
+  topVoterName: string | null;
+  topVoterVoteCount: number;
+  participants: string[];
+  resultImageUrl: string | null;
+  downloadAvailable: boolean;
+  highResolutionDownloadAvailable: boolean;
+  downloadSnapshotUrl: string | null;
+  highResolutionDownloadSnapshotUrl: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 function buildPublicRoundSnapshotApiPath(canvasId: number, roundId: number): string {
@@ -267,12 +299,17 @@ export const publicLandingService = {
     scope: "plaza" | "public";
     dateFrom: Date;
     dateTo: Date;
+    page: number;
+    limit: number;
+    sort: "latest" | "oldest";
   }): Promise<PublicLandingCompletedPreviewsPayload> {
     const query = gamePreviewRepository
       .createQueryBuilder("preview")
       .innerJoinAndSelect("preview.canvas", "canvas")
+      .leftJoinAndSelect("preview.gameSummary", "gameSummary")
       .leftJoin(Room, "room", "room.canvas_id = canvas.id")
       .where("preview.status = :status", { status: GamePreviewStatus.READY })
+      .andWhere("preview.storagePath IS NOT NULL")
       .andWhere("preview.endedAt >= :dateFrom", { dateFrom: params.dateFrom })
       .andWhere("preview.endedAt <= :dateTo", { dateTo: params.dateTo });
 
@@ -286,16 +323,38 @@ export const publicLandingService = {
       });
     }
 
+    const totalItems = await query.clone().getCount();
     const previews = await query
-      .orderBy("preview.endedAt", "DESC")
-      .addOrderBy("preview.id", "DESC")
-      .limit(24)
+      .orderBy(
+        "preview.endedAt",
+        params.sort === "oldest" ? "ASC" : "DESC",
+      )
+      .addOrderBy("preview.id", params.sort === "oldest" ? "ASC" : "DESC")
+      .offset((params.page - 1) * params.limit)
+      .limit(params.limit)
       .getMany();
+    const totalPages = Math.max(1, Math.ceil(totalItems / params.limit));
 
     return {
       items: previews.map((preview) => ({
         webpUrl: buildPublicLandingPreviewApiPath(preview.id),
+        resultImageUrl: preview.gameSummary?.finalResultStoragePath
+          ? finalResultImageService.buildFinalResultImageApiPath(preview.canvas.id)
+          : null,
+        downloadAvailable: Boolean(preview.gameSummary?.finalResultStoragePath),
+        downloadSnapshotUrl: preview.gameSummary?.finalResultStoragePath
+          ? finalResultImageService.buildFinalResultDownloadApiPath(
+              preview.canvas.id,
+            )
+          : null,
+        highResolutionDownloadSnapshotUrl: preview.gameSummary
+          ?.finalResultStoragePath
+          ? finalResultImageService.buildFinalResultHighResolutionDownloadApiPath(
+              preview.canvas.id,
+            )
+          : null,
         preview: {
+          canvasId: preview.canvas.id,
           size: preview.size,
           gridX: preview.gridX,
           gridY: preview.gridY,
@@ -309,6 +368,60 @@ export const publicLandingService = {
           totalVotes: preview.totalVotes,
         },
       })),
+      pagination: {
+        page: params.page,
+        limit: params.limit,
+        totalItems,
+        totalPages,
+        hasNextPage: params.page < totalPages,
+      },
+    };
+  },
+
+  async getCompletedPreviewDetail(
+    canvasId: number,
+  ): Promise<PublicLandingCompletedDetailPayload | null> {
+    const summary = await gameSummaryRepository
+      .createQueryBuilder("summary")
+      .innerJoinAndSelect("summary.canvas", "canvas")
+      .where("summary.canvas_id = :canvasId", { canvasId })
+      .andWhere("canvas.status = :status", { status: CanvasStatus.FINISHED })
+      .andWhere("canvas.endedAt IS NOT NULL")
+      .getOne();
+
+    if (!summary || !summary.canvas.endedAt) {
+      return null;
+    }
+
+    const hasFinalResultImage = Boolean(summary.finalResultStoragePath);
+
+    return {
+      canvasId: summary.canvas.id,
+      size: `${summary.canvas.gridX}x${summary.canvas.gridY}`,
+      endedAt: summary.canvas.endedAt.toISOString(),
+      totalRounds: summary.totalRounds,
+      participantCount: summary.participantCount,
+      totalVotes: summary.totalVotes,
+      topVoterName: summary.topVoterName,
+      topVoterVoteCount: summary.topVoterVoteCount,
+      participants: (summary.participantsJson ?? []).map(
+        (participant) => participant.name,
+      ),
+      resultImageUrl: hasFinalResultImage
+        ? finalResultImageService.buildFinalResultImageApiPath(canvasId)
+        : null,
+      downloadAvailable: hasFinalResultImage,
+      highResolutionDownloadAvailable: hasFinalResultImage,
+      downloadSnapshotUrl: hasFinalResultImage
+        ? finalResultImageService.buildFinalResultDownloadApiPath(canvasId)
+        : null,
+      highResolutionDownloadSnapshotUrl: hasFinalResultImage
+        ? finalResultImageService.buildFinalResultHighResolutionDownloadApiPath(
+            canvasId,
+          )
+        : null,
+      createdAt: summary.createdAt.toISOString(),
+      updatedAt: summary.updatedAt.toISOString(),
     };
   },
 };

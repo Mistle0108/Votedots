@@ -6,6 +6,8 @@ interface PixelSnapshotPreviewProps {
   backgroundImageUrl?: string | null;
   backgroundAlt: string;
   maxLongestSide?: number;
+  fallbackMessage?: string;
+  onImageLoadStateChange?: (state: "ready" | "error") => void;
 }
 
 interface PreviewDimensions {
@@ -25,11 +27,11 @@ function getPreviewDimensions(
   }
 
   const longestSide = Math.max(naturalWidth, naturalHeight);
-  const scale = maxLongestSide / longestSide;
+  const scale = Math.max(1, Math.floor(maxLongestSide / longestSide));
 
   return {
-    width: Math.round(naturalWidth * scale),
-    height: Math.round(naturalHeight * scale),
+    width: naturalWidth * scale,
+    height: naturalHeight * scale,
   };
 }
 
@@ -39,9 +41,12 @@ export function PixelSnapshotPreview({
   backgroundImageUrl = null,
   backgroundAlt,
   maxLongestSide = DEFAULT_MAX_LONGEST_SIDE,
+  fallbackMessage,
+  onImageLoadStateChange,
 }: PixelSnapshotPreviewProps) {
   const [naturalDimensions, setNaturalDimensions] =
     useState<PreviewDimensions | null>(null);
+  const [imageLoadFailed, setImageLoadFailed] = useState(false);
 
   const previewDimensions = useMemo(() => {
     if (!naturalDimensions) {
@@ -61,14 +66,21 @@ export function PixelSnapshotPreview({
         height: `${previewDimensions.height}px`,
       }
     : undefined;
+  const fallbackPreviewStyle = {
+    width: `${maxLongestSide}px`,
+    height: `${maxLongestSide}px`,
+    maxWidth: "100%",
+  } as const;
 
   const handleSnapshotLoad = (event: SyntheticEvent<HTMLImageElement>) => {
     const image = event.currentTarget;
 
+    setImageLoadFailed(false);
     setNaturalDimensions({
       width: image.naturalWidth,
       height: image.naturalHeight,
     });
+    onImageLoadStateChange?.("ready");
   };
 
   return (
@@ -76,9 +88,9 @@ export function PixelSnapshotPreview({
       <div className="max-w-full overflow-auto">
         <div
           className="relative overflow-hidden rounded border border-[color:var(--page-theme-border-secondary)] bg-[color:var(--page-theme-surface-secondary)]"
-          style={previewStyle}
+          style={imageLoadFailed ? fallbackPreviewStyle : previewStyle}
         >
-          {backgroundImageUrl && (
+          {backgroundImageUrl && !imageLoadFailed && (
             <img
               src={backgroundImageUrl}
               alt={backgroundAlt}
@@ -90,20 +102,30 @@ export function PixelSnapshotPreview({
               }}
             />
           )}
-          <img
-            src={snapshotUrl}
-            alt={alt}
-            className={[
-              "relative block bg-transparent",
-              previewDimensions ? "h-full w-full" : "max-w-full",
-            ].join(" ")}
-            style={{ imageRendering: "pixelated" }}
-            draggable={false}
-            onDragStart={(event) => {
-              event.preventDefault();
-            }}
-            onLoad={handleSnapshotLoad}
-          />
+          {imageLoadFailed ? (
+            <div className="flex h-full min-h-[220px] w-full items-center justify-center px-6 text-center text-sm font-medium text-[#8a796c]">
+              {fallbackMessage ?? alt}
+            </div>
+          ) : (
+            <img
+              src={snapshotUrl}
+              alt={alt}
+              className={[
+                "relative block bg-transparent",
+                previewDimensions ? "h-full w-full" : "max-w-full",
+              ].join(" ")}
+              style={{ imageRendering: "pixelated" }}
+              draggable={false}
+              onDragStart={(event) => {
+                event.preventDefault();
+              }}
+              onLoad={handleSnapshotLoad}
+              onError={() => {
+                setImageLoadFailed(true);
+                onImageLoadStateChange?.("error");
+              }}
+            />
+          )}
         </div>
       </div>
     </div>

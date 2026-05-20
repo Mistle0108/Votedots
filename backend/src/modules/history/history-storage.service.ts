@@ -5,6 +5,7 @@ const DEFAULT_STORAGE_ROOT = path.resolve(process.cwd(), "storage");
 const GAME_HISTORY_PREFIX = "game-history";
 const DOWNLOAD_PREFIX = "download";
 const LANDING_PREVIEW_PREFIX = "landing-previews";
+const GAME_RESULT_PREFIX = "game-result";
 
 export type StorageImageFormat = "png" | "webp";
 
@@ -99,6 +100,75 @@ export function getLandingPreviewFilename(
   return `canvas-${canvasId}.${format}`;
 }
 
+export function getGameResultFilename(
+  format: StorageImageFormat = "png",
+): string {
+  return `result.${format}`;
+}
+
+export function getGameResultRelativeDirectory(params: {
+  capturedAt: Date;
+  canvasId: number;
+}): string {
+  const year = String(params.capturedAt.getFullYear());
+  const month = formatMonth(params.capturedAt.getMonth() + 1);
+  const day = formatDay(params.capturedAt.getDate());
+
+  return path.posix.join(
+    GAME_RESULT_PREFIX,
+    year,
+    month,
+    day,
+    `canvas-${params.canvasId}`,
+  );
+}
+
+export function buildGameResultRelativePath(params: {
+  capturedAt: Date;
+  canvasId: number;
+  format?: StorageImageFormat;
+}): string {
+  const format = params.format ?? "png";
+
+  return path.posix.join(
+    getGameResultRelativeDirectory({
+      capturedAt: params.capturedAt,
+      canvasId: params.canvasId,
+    }),
+    getGameResultFilename(format),
+  );
+}
+
+export function getGameResultDownloadFilename(params: {
+  canvasId: number;
+  format?: StorageImageFormat;
+  suffix?: string;
+}): string {
+  const format = params.format ?? "png";
+  const suffix = params.suffix ?? "";
+
+  return `canvas-${params.canvasId}-result${suffix}.${format}`;
+}
+
+export function buildGameResultDownloadRelativePath(params: {
+  capturedAt: Date;
+  canvasId: number;
+  format?: StorageImageFormat;
+  suffix?: string;
+}): string {
+  const format = params.format ?? "png";
+  const suffix = params.suffix ?? "";
+
+  return path.posix.join(
+    getRoundDownloadRelativeDirectory(params.capturedAt),
+    getGameResultDownloadFilename({
+      canvasId: params.canvasId,
+      format,
+      suffix,
+    }),
+  );
+}
+
 export function buildLandingPreviewRelativePath(params: {
   endedAt: Date;
   canvasId: number;
@@ -174,6 +244,27 @@ export async function ensureLandingPreviewDirectory(params: {
   endedAt: Date;
 }): Promise<{ relativeDirPath: string; absoluteDirPath: string }> {
   const relativeDirPath = getLandingPreviewRelativeDirectory(params.endedAt);
+  const absoluteDirPath = resolveGameHistoryAbsolutePath(relativeDirPath);
+
+  await mkdir(absoluteDirPath, { recursive: true });
+
+  return {
+    relativeDirPath,
+    absoluteDirPath,
+  };
+}
+
+export async function ensureGameResultDirectory(params: {
+  capturedAt: Date;
+  canvasId: number;
+}): Promise<{
+  relativeDirPath: string;
+  absoluteDirPath: string;
+}> {
+  const relativeDirPath = getGameResultRelativeDirectory({
+    capturedAt: params.capturedAt,
+    canvasId: params.canvasId,
+  });
   const absoluteDirPath = resolveGameHistoryAbsolutePath(relativeDirPath);
 
   await mkdir(absoluteDirPath, { recursive: true });

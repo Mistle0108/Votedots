@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { Cell } from "@/features/gameplay/canvas";
 import {
   resolvePlayBackgroundImageUrl,
   type PlayBackgroundMode,
@@ -24,6 +25,9 @@ interface UseCanvasPageParams {
   onRoomExpired: (payload: RoomExpiredPayload) => void;
   onContextMissing?: () => void;
   onUnauthorized: (message: string) => void;
+  openPopupOnActivate?: boolean;
+  resetPreviewOnActivate?: boolean;
+  onCellActivated?: (cell: Cell) => void;
 }
 
 const PLAY_BACKGROUND_MODE_STORAGE_KEY = "votedots:play-background-mode";
@@ -38,6 +42,9 @@ export default function useCanvasPage({
   onRoomExpired,
   onContextMissing,
   onUnauthorized,
+  openPopupOnActivate = true,
+  resetPreviewOnActivate = true,
+  onCellActivated,
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
   const lastAutoOpenedRoundIdRef = useRef<number | null>(null);
@@ -94,14 +101,15 @@ export default function useCanvasPage({
     worldOffset,
     navigateToCoordinate,
     resetCanvasZoom,
+    stepCanvasZoom,
     setCanvasId,
     setGridX,
     setGridY,
     updateCells,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleMouseLeave,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     isDraggingCanvas,
     handleWheel,
     handleCanvasUpdated,
@@ -109,12 +117,16 @@ export default function useCanvasPage({
     clearSelectedCell,
     applySelectedCellColor,
     hideSelectedCellVisual,
+    openVotePopupForCell,
   } = useCanvasScene({
     previewColor,
     votingCellIds,
     topColorMap,
     resetPreviewColor,
     openPopup,
+    openPopupOnActivate,
+    resetPreviewOnActivate,
+    onCellActivated,
   });
 
   const [resultTemplateImageUrl, setResultTemplateImageUrl] = useState<
@@ -371,10 +383,10 @@ export default function useCanvasPage({
     loading: gameplay.loading,
     error: gameplay.error,
     gameEnded: gameplay.gameEnded,
-    handleMouseDown,
-    handleMouseMove,
-    handleMouseUp,
-    handleMouseLeave,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    handlePointerCancel,
     isDraggingCanvas,
     handleWheel,
     popupOpen,
@@ -422,6 +434,7 @@ export default function useCanvasPage({
     worldOffset,
     navigateToCoordinate,
     resetCanvasZoom,
+    stepCanvasZoom,
     introGuideOpen,
     handleOpenIntroGuide,
     handleCloseIntroGuide,
@@ -437,5 +450,6 @@ export default function useCanvasPage({
     historyItems,
     historyLoading,
     historyError,
+    openVotePopupForCell,
   };
 }

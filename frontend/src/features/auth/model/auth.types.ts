@@ -14,6 +14,8 @@ export interface LoginRequest {
 
 export interface Voter {
   uuid: string;
+  username: string;
   nickname: string;
   role: string;
+  createdAt: string;
 }

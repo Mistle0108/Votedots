@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { authApi } from "@/features/auth";
 import type { Cell, Viewport } from "@/features/gameplay/canvas";
 import type { PlayBackgroundMode } from "@/features/gameplay/canvas/model/background-assets";
 import { MiniMap } from "@/features/gameplay/canvas";
@@ -57,9 +56,14 @@ interface Props {
   ) => void;
   currentRoomManage?: RoomCurrentManageResponse["room"] | null;
   roomEndGameLoading?: boolean;
+  roomEndGameDisabled?: boolean;
   onEndGame?: () => void;
   roomTerminateLoading?: boolean;
+  roomTerminateDisabled?: boolean;
   onTerminateRoom?: () => void;
+  voteMode: "select" | "instant";
+  onVoteModeChange: (mode: "select" | "instant") => void;
+  onOpenInstantVotePalette?: (anchorRect: DOMRect) => void;
 }
 
 export default function VotePanel({
@@ -93,14 +97,18 @@ export default function VotePanel({
   onNavigateToCoordinate,
   currentRoomManage = null,
   roomEndGameLoading = false,
+  roomEndGameDisabled = false,
   onEndGame,
   roomTerminateLoading = false,
+  roomTerminateDisabled = false,
   onTerminateRoom,
+  voteMode,
+  onVoteModeChange,
+  onOpenInstantVotePalette,
 }: Props) {
   const navigate = useNavigate();
   const { locale, setLocale, t } = useI18n();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [withdrawLoading, setWithdrawLoading] = useState(false);
   const settingsButtonRef = useRef<HTMLButtonElement | null>(null);
   const settingsMenuRef = useRef<HTMLDivElement | null>(null);
   const votesPerRound = getGameConfig().rules.votesPerRound;
@@ -115,35 +123,8 @@ export default function VotePanel({
   const isVotingPhase = phase === GAME_PHASE.ROUND_ACTIVE;
   const isSettingsVisible =
     forceSettingsOpen || (!settingsDisabled && isSettingsOpen);
-
-  const handleWithdraw = async () => {
-    const confirmed = window.confirm(t("session.withdrawConfirm"));
-
-    if (!confirmed) {
-      return;
-    }
-
-    setWithdrawLoading(true);
-    (
-      window as Window & {
-        __votedotsWithdrawPending?: boolean;
-      }
-    ).__votedotsWithdrawPending = true;
-
-    try {
-      await authApi.withdraw();
-      navigate("/login", { replace: true });
-    } catch {
-      (
-        window as Window & {
-          __votedotsWithdrawPending?: boolean;
-        }
-      ).__votedotsWithdrawPending = false;
-      window.alert(t("session.withdrawFailed"));
-    } finally {
-      setWithdrawLoading(false);
-    }
-  };
+  const shouldShowInstantVoteTicketsMessage =
+    voteMode === "instant" && isVotingPhase && remaining !== null && remaining <= 0;
 
   useEffect(() => {
     if (!isSettingsOpen) {
@@ -226,15 +207,6 @@ export default function VotePanel({
 
           <div className="flex items-center gap-2">
             <button
-              type="button"
-              onClick={handleWithdraw}
-              disabled={withdrawLoading}
-              className="inline-flex h-9 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3 text-xs font-semibold text-[color:var(--page-theme-text-secondary)] shadow-sm transition hover:bg-[color:var(--page-theme-surface-secondary)] hover:text-[color:var(--page-theme-text-primary)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {withdrawLoading ? t("session.withdrawing") : t("session.withdraw")}
-            </button>
-
-            <button
               ref={settingsButtonRef}
               type="button"
               disabled={settingsDisabled && !forceSettingsOpen}
@@ -261,8 +233,10 @@ export default function VotePanel({
               onBackgroundModeChange={onBackgroundModeChange}
               roomManage={currentRoomManage}
               roomEndGameLoading={roomEndGameLoading}
+              roomEndGameDisabled={roomEndGameDisabled}
               onEndGame={onEndGame}
               roomTerminateLoading={roomTerminateLoading}
+              roomTerminateDisabled={roomTerminateDisabled}
               onTerminateRoom={onTerminateRoom}
               tutorialId="tutorial-settings-panel"
             />
@@ -285,19 +259,67 @@ export default function VotePanel({
           votingParticipantCount={votingParticipantCount}
         />
 
-        <div className="flex min-h-2 items-center justify-between gap-3">
-          <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
-            {t("vote.remainingVotes")}
-          </p>
-          {isVotingPhase && remaining !== null ? (
-            <span className="text-sm font-bold text-[color:var(--page-theme-primary-action)]">
-              {remaining}/{votesPerRound}
-            </span>
-          ) : (
-            <span className="text-sm text-[color:var(--page-theme-text-tertiary)]">
-              -
-            </span>
-          )}
+        <div className="rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] p-2.5">
+          <div className="mb-2 flex items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
+              {locale === "ko" ? "투표 모드" : "Vote mode"}
+            </p>
+            {shouldShowInstantVoteTicketsMessage ? (
+              <span className="text-xs font-medium text-[color:var(--page-theme-alert)]">
+                {locale === "ko"
+                  ? "남은 투표권이 없어요"
+                  : "No votes remaining"}
+              </span>
+            ) : null}
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              onClick={() => onVoteModeChange("select")}
+              className={[
+                "rounded-full border px-3 py-2 text-xs font-semibold transition",
+                voteMode === "select"
+                  ? "border-[color:var(--page-theme-primary-action)] bg-[color:var(--page-theme-primary-action)] text-[color:var(--page-theme-primary-action-text)]"
+                  : "border-[color:var(--page-theme-border-primary)] text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]",
+              ].join(" ")}
+            >
+              {locale === "ko" ? "색상 선택" : "Color select"}
+            </button>
+            <button
+              type="button"
+              onClick={(event) => {
+                onVoteModeChange("instant");
+                onOpenInstantVotePalette?.(
+                  event.currentTarget.getBoundingClientRect(),
+                );
+              }}
+              className={[
+                "rounded-full border px-3 py-2 text-xs font-semibold transition",
+                voteMode === "instant"
+                  ? "border-[color:var(--page-theme-primary-action)] bg-[color:var(--page-theme-primary-action)] text-[color:var(--page-theme-primary-action-text)]"
+                  : "border-[color:var(--page-theme-border-primary)] text-[color:var(--page-theme-text-secondary)] hover:bg-[color:var(--page-theme-surface-secondary)]",
+              ].join(" ")}
+            >
+              {locale === "ko" ? "바로 투표" : "Instant vote"}
+            </button>
+          </div>
+        </div>
+
+        <div className="rounded-xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3 py-2.5">
+          <div className="flex min-h-2 items-center justify-between gap-3">
+            <p className="text-sm font-semibold text-[color:var(--page-theme-text-primary)]">
+              {t("vote.remainingVotes")}
+            </p>
+            {isVotingPhase && remaining !== null ? (
+              <span className="text-sm font-bold text-[color:var(--page-theme-primary-action)]">
+                {remaining}/{votesPerRound}
+              </span>
+            ) : (
+              <span className="text-sm text-[color:var(--page-theme-text-tertiary)]">
+                -
+              </span>
+            )}
+          </div>
         </div>
       </div>
 

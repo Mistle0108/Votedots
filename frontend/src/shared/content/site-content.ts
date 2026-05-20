@@ -6,8 +6,10 @@ interface TutorialCardContent {
   title: string;
   description: string;
   imageUrl: string;
+  mobileImageUrl?: string;
   imageAlt: string;
   iconUrl?: string;
+  mobileIconUrl?: string;
 }
 
 interface InfoSectionContent {
@@ -48,6 +50,11 @@ interface SiteContent {
   featured: {
     title: string;
     description: string;
+    sections: {
+      plaza: string;
+      public: string;
+      empty: string;
+    };
     stats: {
       participants: string;
       votes: string;
@@ -85,9 +92,9 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       home: "홈",
     },
     hero: {
-      title: "직접 그리고 함께 투표하는\n픽셀 캔버스",
+      title: "직접 그리고 투표하는\n픽셀 캔버스",
       description:
-        "색을 고르고, 투표를 하고, 함께 완성하세요.",
+        "색을 고르고,\n투표를 하고,\n함께 완성하세요.",
       cta: "참여하기",
     },
     currentGame: {
@@ -108,6 +115,11 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       title: "완성된 캔버스",
       description:
         "현재 로테이션에 포함된 보드 크기별로 참여자가 가장 많았던 게임을 보여줍니다.",
+      sections: {
+        plaza: "광장",
+        public: "공개방",
+        empty: "아직 표시할 완성된 캔버스가 없습니다.",
+      },
       stats: {
         participants: "참여자",
         votes: "총 투표 수",
@@ -127,6 +139,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "원하는 칸과 색을 골라 직접 표를 던질 수 있습니다.\n가장 많은 표를 받은 한 가지 색으로 결정됩니다.",
           imageUrl: "/landing/guide/place-dot-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-place-dot-demo.webp",
           imageAlt: "도트 배치 데모",
         },
         {
@@ -136,6 +149,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "다른 사람이 투표한 칸과 색을 실시간으로 확인할 수 있습니다.\n상대방이 고른 색이 마음에 들지 않으면 표를 더 사용하면 됩니다.",
           imageUrl: "/landing/guide/live-presence-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-live-presence-demo.webp",
           imageAlt: "실시간 참여 데모",
         },
         {
@@ -145,6 +159,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "시간에 따라 다른 크기와 템플릿으로 교체됩니다.\n템플릿은 가이드라인일 뿐, 언제나 원하는 그림을 그릴 수 있습니다.",
           imageUrl: "/landing/guide/template-rotation.webp",
+          mobileImageUrl: "/landing/guide/mobile-template-rotation-demo.webp",
           imageAlt: "템플릿 순환 데모",
         },
         {
@@ -154,6 +169,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "각 라운드가 끝날 때마다 결과 스냅샷이 기록됩니다.\n이전 라운드의 진행 과정을 다시 보면서 어떤 선택이 반영됐는지 확인할 수 있습니다.",
           imageUrl: "/landing/guide/round-history-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-round-history-demo.webp",
           imageAlt: "라운드 결과 히스토리 데모",
         },
         {
@@ -163,8 +179,10 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "게임이 종료되면 최종 결과 이미지를 저장할 수 있습니다.\n다운로드 파일은 배경 템플릿 도트가 제외된 투명 PNG로 제공됩니다.",
           imageUrl: "/landing/guide/download-result-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-download-result-demo.png",
           imageAlt: "완성 이미지 다운로드 데모",
-          iconUrl: "/landing/guide/download-result-fox.png",
+          iconUrl: "/landing/guide/download-result.png",
+          mobileIconUrl: "/landing/guide/mobile-download-result.png",
         },
       ],
     },
@@ -226,10 +244,14 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
             ],
           },
           {
-            heading: "7. 게임 결과, 닉네임 및 공개 정보의 이용",
+            heading: "7. 게임 결과, 캔버스 작업물의 저장 및 이용",
             paragraphs: [
-              "VoteDots는 서비스 운영, 게임 결과 안내, 서비스 소개 및 기록 보관을 위하여 회원의 닉네임, 게임 결과, 참여 통계 및 이에 부수되는 공개 정보를 서비스 내에 표시할 수 있습니다. 게임 결과에는 캔버스 이미지, 라운드 진행 내역, 참여 인원, 투표 통계, 닉네임 기반 요약 정보, 스냅샷 및 이에 준하는 정보가 포함될 수 있습니다.",
-              "회원은 서비스 이용 과정에서 자신의 닉네임 및 게임 참여 결과가 위와 같은 범위에서 공개될 수 있음을 이해하고 이에 동의합니다. 다만 VoteDots는 관련 법령, 회원 탈퇴, 운영상 필요 또는 권리 보호를 위하여 공개 정보의 전부 또는 일부를 수정, 비공개 처리, 삭제 또는 비식별 처리할 수 있으며, 유해하거나 부적절하다고 판단되는 이미지, 결과물 또는 관련 공개 정보를 숨김 또는 삭제할 수 있습니다.",
+              "VoteDots는 서비스 운영, 게임 진행, 게임 결과 제공, 기록 보관, 분쟁 대응, 서비스 개선 및 안내를 위하여 회원이 서비스 이용 과정에서 생성하거나 참여한 정보와 결과물을 서버에 저장할 수 있습니다. 여기에는 광장, 공개방, 비공개방을 포함한 모든 방의 정보와 게임 결과가 포함되며, 방 정보에는 방의 생성 및 설정 정보, 캔버스 이미지, 라운드 진행 내역, 참여 인원, 투표 기록 및 통계, 스냅샷, 닉네임 기반 요약 정보 및 이에 준하는 정보가 포함될 수 있습니다.",
+              "비공개방은 외부에 공개되지 않을 수 있으나, 서비스 운영, 기록 보관, 장애 대응, 분쟁 대응 및 권리 보호를 위하여 서버에 저장될 수 있습니다. 회원은 서비스 이용 과정에서 자신의 닉네임, 게임 참여 결과 및 관련 공개 정보가 서비스 내 또는 VoteDots가 정한 범위에서 표시되거나 보관될 수 있음을 이해하고 이에 동의합니다.",
+              "회원이 서비스 이용 과정에서 생성한 캔버스 작업물 또는 이에 포함된 개별 창작 요소에 대한 저작권은 원칙적으로 해당 회원 또는 정당한 권리자에게 귀속됩니다. 다만 VoteDots의 게임 결과는 다수 회원의 참여, 투표 및 시스템 처리에 의해 결합되어 형성되는 협업형 결과물일 수 있으며, 회원은 자신의 참여 결과가 다른 참여자의 결과와 함께 하나의 게임 결과로 저장, 표시, 보관될 수 있음을 이해하고 이에 동의합니다.",
+              "회원은 VoteDots에 대하여 서비스 운영, 게임 결과 제공, 표시, 복제, 저장, 전송, 공개, 기록 보관, 백업, 서비스 소개, 비식별 통계 작성 및 서비스 개선에 필요한 범위 내에서 자신의 캔버스 작업물, 게임 결과, 스냅샷, 닉네임 및 관련 공개 정보를 이용할 수 있는 비독점적, 무상, 전 세계적 이용허락을 부여합니다. 이 이용허락에는 서비스 운영에 필요한 범위 내에서의 썸네일 생성, 스냅샷 생성, 포맷 변환, 크기 조정, 비식별화, 아카이빙 및 이에 준하는 수정 또는 편집이 포함될 수 있습니다.",
+              "회원은 자신이 참여하여 생성된 게임 결과 및 캔버스 작업물을 상업적 이용이 아닌 범위에서는 자유롭게 열람, 저장, 공유 및 게시할 수 있습니다. 다만 관련 법령, 제3자의 권리, 개인정보, 서비스 운영정책 또는 본 약관을 위반하는 방식의 이용은 허용되지 않으며, 상업적 이용을 하고자 하는 경우에는 해당 결과물에 포함된 권리관계와 제3자 권리를 스스로 확인하여야 합니다.",
+              "VoteDots는 관련 법령, 회원 탈퇴, 운영상 필요, 권리 보호 또는 유해성 판단에 따라 공개 정보, 게임 결과, 캔버스 작업물 또는 관련 기록의 전부 또는 일부를 수정, 비공개 처리, 삭제 또는 비식별 처리할 수 있으며, 유해하거나 부적절하다고 판단되는 이미지, 결과물 또는 관련 공개 정보를 숨김 또는 삭제할 수 있습니다.",
             ],
           },
           {
@@ -390,7 +412,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       title:
         "Draw and vote together\non a shared pixel canvas.",
       description:
-        "Pick a color, cast your vote, and complete it together.",
+        "Pick a color,\ncast your vote,\nand complete it together.",
       cta: "Join the game",
     },
     currentGame: {
@@ -411,6 +433,11 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       title: "Completed canvases",
       description:
         "Shows the game with the most participants for each board size in the current rotation.",
+      sections: {
+        plaza: "Plaza",
+        public: "Public room",
+        empty: "There are no completed canvases to show yet.",
+      },
       stats: {
         participants: "Participants",
         votes: "Total votes",
@@ -430,6 +457,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "Choose the cell and color you want, then cast your vote directly.\nEach cell is decided by the single color that receives the most votes.",
           imageUrl: "/landing/guide/place-dot-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-place-dot-demo.webp",
           imageAlt: "Dot placement demo",
         },
         {
@@ -439,6 +467,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "You can see in real time which cells and colors other people are voting on.\nIf you do not like the color someone else picked, you can use more votes to change the outcome.",
           imageUrl: "/landing/guide/live-presence-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-live-presence-demo.webp",
           imageAlt: "Live presence demo",
         },
         {
@@ -448,6 +477,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "Different board sizes and templates rotate over time.\nThe template is only a guideline, and you can always draw whatever image you want.",
           imageUrl: "/landing/guide/template-rotation.webp",
+          mobileImageUrl: "/landing/guide/mobile-template-rotation-demo.webp",
           imageAlt: "Template rotation demo",
         },
         {
@@ -457,6 +487,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "A result snapshot is recorded whenever a round ends.\nYou can look back at previous rounds to see which choices were reflected on the canvas.",
           imageUrl: "/landing/guide/round-history-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-round-history-demo.webp",
           imageAlt: "Round history demo",
         },
         {
@@ -466,8 +497,10 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "When the game ends, you can save the final result image.\nThe download is provided as a transparent PNG without the background template dots.",
           imageUrl: "/landing/guide/download-result-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-download-result-demo.png",
           imageAlt: "Download finished image demo",
-          iconUrl: "/landing/guide/download-result-fox.png",
+          iconUrl: "/landing/guide/download-result.png",
+          mobileIconUrl: "/landing/guide/mobile-download-result.png",
         },
       ],
     },
@@ -529,10 +562,14 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
             ],
           },
           {
-            heading: "7. Use of game results, nicknames, and public information",
+            heading: "7. Storage and use of game results and canvas works",
             paragraphs: [
-              "VoteDots may display member nicknames, game results, participation statistics, and related public information within the service for service operation, game result guidance, service presentation, and record keeping. Game results may include the canvas image, round history, participant counts, voting statistics, nickname-based summaries, snapshots, and similar information.",
-              "Members understand and agree that their nickname and gameplay results may be displayed within that scope. However, VoteDots may modify, hide, delete, or de-identify all or part of public information when required by law, account withdrawal, operational needs, or protection of rights, and may hide or delete images, results, or public records considered harmful or inappropriate.",
+              "VoteDots may store on its servers the information and outputs that a member creates or participates in through the service for service operation, gameplay, game result delivery, record keeping, dispute response, service improvement, and notices. This includes information and game results for all rooms, including the plaza, public rooms, and private rooms. Room information may include room creation and settings, canvas images, round history, participant counts, voting records and statistics, snapshots, nickname-based summaries, and similar information.",
+              "A private room may not be publicly visible to others, but it may still be stored on the server for service operation, record keeping, incident response, dispute response, and protection of rights. Members understand and agree that their nickname, gameplay results, and related public information may be displayed or retained within the service or within a scope designated by VoteDots.",
+              "Copyright in a canvas work created through use of the service, or in an individual creative element contained in it, in principle belongs to the relevant member or other legitimate right holder. However, a game result on VoteDots may be a collaborative output formed through the participation, voting, and system processing of multiple members, and each member understands and agrees that their contribution may be stored, displayed, and retained together with the contributions of other participants as a single game result.",
+              "Each member grants VoteDots a non-exclusive, royalty-free, worldwide license to use that member's canvas works, game results, snapshots, nickname, and related public information to the extent necessary for service operation, game result delivery, display, reproduction, storage, transmission, publication, record keeping, backup, service presentation, de-identified statistics, and service improvement. This license may include creating thumbnails and snapshots, format conversion, resizing, de-identification, archiving, and similar edits or modifications to the extent necessary for service operation.",
+              "Members may freely view, save, share, and post the game results and canvas works in which they participated, provided that the use is non-commercial. However, use that violates applicable law, third-party rights, personal information, the service policy, or these terms is not permitted. If a member intends to use a result commercially, that member is responsible for confirming the rights involved in the result and any third-party rights included in it.",
+              "VoteDots may modify, hide, delete, or de-identify all or part of public information, game results, canvas works, or related records when required by law, account withdrawal, operational needs, protection of rights, or a determination of harmfulness, and may hide or delete images, results, or public records considered harmful or inappropriate.",
             ],
           },
           {

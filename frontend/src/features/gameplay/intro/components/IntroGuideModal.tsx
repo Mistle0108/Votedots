@@ -14,6 +14,8 @@ interface Props {
   resultTemplateImageUrl: string | null;
   gridX: number;
   gridY: number;
+  previewMaxSize?: number;
+  mobileLayout?: boolean;
   gameConfig: GameConfig;
   formattedGameEndTime: string | null;
   onClose: () => void;
@@ -108,18 +110,25 @@ export default function IntroGuideModal({
   resultTemplateImageUrl,
   gridX,
   gridY,
+  previewMaxSize = 500,
+  mobileLayout = false,
   gameConfig,
   formattedGameEndTime,
   onClose,
 }: Props) {
   const { t } = useI18n();
   const [position, setPosition] = useState(getDefaultPosition);
+  const [mobilePageIndex, setMobilePageIndex] = useState(0);
 
   const modalRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
+  const touchStartXRef = useRef<number | null>(null);
 
   const description = useMemo(() => buildDescription(gameConfig), [gameConfig]);
+  const effectivePreviewMaxSize = mobileLayout
+    ? Math.min(previewMaxSize, 200)
+    : previewMaxSize;
   const interactionGuides = useMemo(
     () =>
       [
@@ -274,34 +283,164 @@ export default function IntroGuideModal({
     return null;
   }
 
+  const previewSection = (
+    <section
+      className={`rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] ${mobileLayout ? "p-3" : "p-4 xl:w-fit xl:justify-self-start"}`}
+    >
+      <div className={`mx-auto flex w-fit flex-col items-center ${mobileLayout ? "gap-3" : "gap-4"}`}>
+        <div className="w-fit">
+          <IntroCanvasPreview
+            playBackgroundImageUrl={playBackgroundImageUrl}
+            resultTemplateImageUrl={resultTemplateImageUrl}
+            gridX={gridX}
+            gridY={gridY}
+            maxSize={effectivePreviewMaxSize}
+          />
+        </div>
+
+        <div
+          className={`w-full rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] font-bold text-[color:var(--page-theme-text-primary)] ${mobileLayout ? "px-3 py-2 text-[13px]" : "px-4 py-3 text-sm"}`}
+        >
+          <div className="mx-auto w-fit text-left">
+            {introStats.map((stat) => (
+              <p key={stat.label} className={mobileLayout ? "py-0.5 leading-6" : "py-0.5"}>
+                {stat.label} : {stat.value}
+              </p>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
+  const gameDescriptionSection = (
+    <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
+      <h3 className="text-center font-semibold text-[color:var(--page-theme-primary-action)]">
+        {t("intro.section.gameDescription")}
+      </h3>
+      <div className="mt-3 rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3">
+        <ul className="list-disc space-y-1.5 pl-8 text-left marker:text-[color:var(--page-theme-text-secondary)]">
+          <li>
+            {t("intro.rule.totalRoundsPrefix")}
+            <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
+              {description.totalRounds}
+            </span>
+            {t("intro.rule.totalRoundsSuffix")}
+          </li>
+          <li>
+            {t("intro.rule.roundDurationPrefix")}
+            <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
+              {description.roundDurationSec}
+            </span>
+            {t("intro.rule.roundDurationMiddle")}
+            <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
+              {description.votesPerRound}
+            </span>
+            {t("intro.rule.roundDurationSuffix")}
+          </li>
+          <li>{t("intro.rule.voteFlexibility")}</li>
+          <li>{t("intro.rule.applyVotes")}</li>
+          <li>{t("intro.rule.tieBreaker")}</li>
+        </ul>
+
+        <div className="mt-3 rounded-2xl border border-[#DE5548]/30 bg-[#FFF5F3] px-3 py-2.5 text-left">
+          <p className="font-bold text-[#DE5548]">{warningGuide.title}</p>
+          {warningGuide.bodyLines.map((line, index) => (
+            <p
+              key={`${warningGuide.title}-${index}`}
+              className="mt-1.5 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]"
+            >
+              {line}
+            </p>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+
+  const voteGuideSection = (
+    <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4">
+      <h3 className="text-center font-semibold text-[color:var(--page-theme-primary-action)]">
+        {t("intro.section.voteGuide")}
+      </h3>
+
+      <div className="mt-3 space-y-3">
+        {interactionGuides.map((guide) => (
+          <article
+            key={guide.key}
+            className="rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3"
+          >
+            <div className="flex items-start gap-3">
+              <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] text-sm font-bold text-[color:var(--page-theme-primary-action)]">
+                {guide.order}
+              </span>
+
+              <div className="min-w-0 space-y-1.5">
+                <h4 className="text-base font-semibold text-[color:var(--page-theme-text-primary)]">
+                  {guide.title}
+                </h4>
+                {guide.bodyLines.map((line, index) => (
+                  <p
+                    key={`${guide.key}-${index}`}
+                    className="text-sm leading-6 text-[color:var(--page-theme-text-secondary)]"
+                  >
+                    {renderHighlightedText(line, guide.highlightPhrases)}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+
+  const mobilePages = [previewSection, gameDescriptionSection, voteGuideSection];
+
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
       <div
-        className="pointer-events-auto fixed bottom-0 right-0"
-        style={{
-          top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
-          left: `${HISTORY_PANEL_WIDTH}px`,
-        }}
+        className={
+          mobileLayout
+            ? "pointer-events-auto fixed inset-0"
+            : "pointer-events-auto fixed bottom-0 right-0"
+        }
+        style={
+          mobileLayout
+            ? undefined
+            : {
+                top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
+                left: `${HISTORY_PANEL_WIDTH}px`,
+              }
+        }
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       />
 
       <div
         ref={modalRef}
-        className="pointer-events-auto fixed flex max-h-[calc(100vh-24px)] w-[1400px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
-        style={{ top: position.y, left: position.x }}
+        className={`pointer-events-auto fixed flex max-h-[calc(100dvh-16px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl ${
+          mobileLayout
+            ? "left-1/2 top-1/2 w-[min(92vw,380px)] -translate-x-1/2 -translate-y-1/2"
+            : "w-[1400px] max-w-[calc(100vw-24px)]"
+        }`}
+        style={mobileLayout ? undefined : { top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div
           className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-4 py-3"
-          onMouseDown={(event) => {
-            isDraggingRef.current = true;
-            dragOffsetRef.current = {
-              x: event.clientX - position.x,
-              y: event.clientY - position.y,
-            };
-          }}
+          onMouseDown={
+            mobileLayout
+              ? undefined
+              : (event) => {
+                  isDraggingRef.current = true;
+                  dragOffsetRef.current = {
+                    x: event.clientX - position.x,
+                    y: event.clientY - position.y,
+                  };
+                }
+          }
         >
           <p className="text-center text-base font-semibold text-[color:var(--page-theme-primary-action)]">
             {t("intro.modal.title")}
@@ -317,117 +456,89 @@ export default function IntroGuideModal({
           </button>
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
-          <div className="grid gap-4 xl:grid-cols-[max-content_minmax(0,1fr)]">
-            <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4 xl:w-fit xl:justify-self-start">
-              <div className="mx-auto flex w-fit flex-col items-center gap-4">
-                <div className="w-fit">
-                  <IntroCanvasPreview
-                    playBackgroundImageUrl={playBackgroundImageUrl}
-                    resultTemplateImageUrl={resultTemplateImageUrl}
-                    gridX={gridX}
-                    gridY={gridY}
-                    maxSize={500}
-                  />
-                </div>
+        <div
+          className={
+            mobileLayout
+              ? "min-h-0 flex flex-1 flex-col px-3 py-3"
+              : "min-h-0 flex-1 overflow-y-auto px-5 py-4"
+          }
+        >
+          {mobileLayout ? (
+            <>
+              <div
+                className="min-h-0 flex-1 overflow-hidden"
+                onTouchStart={(event) => {
+                  touchStartXRef.current = event.touches[0]?.clientX ?? null;
+                }}
+                onTouchEnd={(event) => {
+                  const startX = touchStartXRef.current;
+                  const endX = event.changedTouches[0]?.clientX ?? null;
 
-                <div className="w-full rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3 text-sm font-bold text-[color:var(--page-theme-text-primary)]">
-                  <div className="mx-auto w-fit text-left">
-                    {introStats.map((stat) => (
-                      <p key={stat.label} className="py-0.5">
-                        {stat.label} : {stat.value}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </section>
+                  touchStartXRef.current = null;
 
-            <div className="space-y-4">
-              <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
-                <h3 className="text-center font-semibold text-[color:var(--page-theme-primary-action)]">
-                  {t("intro.section.gameDescription")}
-                </h3>
-                <div className="mt-3 rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3">
-                  <ul className="list-disc space-y-1.5 pl-8 text-left marker:text-[color:var(--page-theme-text-secondary)]">
-                    <li>
-                      {t("intro.rule.totalRoundsPrefix")}
-                      <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
-                        {description.totalRounds}
-                      </span>
-                      {t("intro.rule.totalRoundsSuffix")}
-                    </li>
-                    <li>
-                      {t("intro.rule.roundDurationPrefix")}
-                      <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
-                        {description.roundDurationSec}
-                      </span>
-                      {t("intro.rule.roundDurationMiddle")}
-                      <span className="text-[19px] font-bold text-[color:var(--page-theme-accent-warm)]">
-                        {description.votesPerRound}
-                      </span>
-                      {t("intro.rule.roundDurationSuffix")}
-                    </li>
-                    <li>{t("intro.rule.voteFlexibility")}</li>
-                    <li>{t("intro.rule.applyVotes")}</li>
-                    <li>{t("intro.rule.tieBreaker")}</li>
-                  </ul>
+                  if (startX === null || endX === null) {
+                    return;
+                  }
 
-                  <div className="mt-3 rounded-2xl border border-[#DE5548]/30 bg-[#FFF5F3] px-3 py-2.5 text-left">
-                    <p className="font-bold text-[#DE5548]">
-                      {warningGuide.title}
-                    </p>
-                    {warningGuide.bodyLines.map((line, index) => (
-                      <p
-                        key={`${warningGuide.title}-${index}`}
-                        className="mt-1.5 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]"
-                      >
-                        {line}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-              </section>
+                  const deltaX = endX - startX;
 
-              <section className="rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] p-4">
-                <h3 className="text-center font-semibold text-[color:var(--page-theme-primary-action)]">
-                  {t("intro.section.voteGuide")}
-                </h3>
+                  if (Math.abs(deltaX) < 40) {
+                    return;
+                  }
 
-                <div className="mt-3 space-y-3">
-                  {interactionGuides.map((guide) => (
-                    <article
-                      key={guide.key}
-                      className="rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3"
+                  setMobilePageIndex((current) => {
+                    if (deltaX < 0) {
+                      return Math.min(current + 1, mobilePages.length - 1);
+                    }
+
+                    return Math.max(current - 1, 0);
+                  });
+                }}
+              >
+                <div
+                  className="flex h-full transition-transform duration-300 ease-out"
+                  style={{
+                    width: `${mobilePages.length * 100}%`,
+                    transform: `translateX(-${mobilePageIndex * (100 / mobilePages.length)}%)`,
+                  }}
+                >
+                  {mobilePages.map((page, index) => (
+                    <div
+                      key={index}
+                      className="h-full shrink-0 overflow-y-auto px-0.5"
+                      style={{ width: `${100 / mobilePages.length}%` }}
                     >
-                      <div className="flex items-start gap-3">
-                        <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] text-sm font-bold text-[color:var(--page-theme-primary-action)]">
-                          {guide.order}
-                        </span>
-
-                        <div className="min-w-0 space-y-1.5">
-                          <h4 className="text-base font-semibold text-[color:var(--page-theme-text-primary)]">
-                            {guide.title}
-                          </h4>
-                          {guide.bodyLines.map((line, index) => (
-                            <p
-                              key={`${guide.key}-${index}`}
-                              className="text-sm leading-6 text-[color:var(--page-theme-text-secondary)]"
-                            >
-                              {renderHighlightedText(
-                                line,
-                                guide.highlightPhrases,
-                              )}
-                            </p>
-                          ))}
-                        </div>
-                      </div>
-                    </article>
+                      {page}
+                    </div>
                   ))}
                 </div>
-              </section>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 pt-3">
+                {mobilePages.map((_, index) => (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={() => setMobilePageIndex(index)}
+                    aria-label={`${index + 1} page`}
+                    className={`h-2.5 w-2.5 rounded-full transition ${
+                      index === mobilePageIndex
+                        ? "bg-[color:var(--page-theme-primary-action)]"
+                        : "bg-[color:var(--page-theme-border-primary)]"
+                    }`}
+                  />
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="grid gap-4 xl:grid-cols-[max-content_minmax(0,1fr)]">
+              {previewSection}
+              <div className="space-y-4">
+                {gameDescriptionSection}
+                {voteGuideSection}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

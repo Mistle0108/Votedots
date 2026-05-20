@@ -1,4 +1,5 @@
 import { useState, type FormEvent, type ReactNode } from "react";
+import { ArrowLeft } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { authApi } from "@/features/auth";
 import {
@@ -99,6 +100,7 @@ export default function RegisterPage() {
   const siteContent = getSiteContent(locale);
   const copy = REGISTER_COPY[locale];
   const privacyPath = `/${locale}/privacy`;
+  const backLabel = locale === "ko" ? "뒤로가기" : "Back";
 
   usePageRootClass("page-shell-root");
 
@@ -188,9 +190,29 @@ export default function RegisterPage() {
     }
   };
 
+  const handleBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/lobby", { replace: true });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-8">
+    <div className="relative flex min-h-screen items-center justify-center bg-[#f7f2eb] px-4 py-8 text-[#272E37]">
       <div className="flex w-full max-w-sm flex-col gap-6 pb-8">
+        <div className="absolute left-4 top-6">
+          <button
+            type="button"
+            onClick={handleBack}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-[#d9cdc1] bg-white text-[#272E37] shadow-[0_12px_32px_rgba(39,46,55,0.08)] transition hover:bg-[#f7f2eb]"
+            aria-label={backLabel}
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </button>
+        </div>
+
         <div className="flex justify-end">
           <LanguageSwitcher />
         </div>

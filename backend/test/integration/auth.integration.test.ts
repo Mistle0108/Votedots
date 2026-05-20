@@ -52,11 +52,13 @@ describe("auth integration", () => {
 
     expect(meResponse.status).toBe(200);
     expect(meResponse.body).toEqual({
-      voter: {
+      voter: expect.objectContaining({
         uuid: expect.any(String),
+        username: "user0002",
         nickname: "Tester02",
         role: "user",
-      },
+        createdAt: expect.any(String),
+      }),
     });
   });
 });

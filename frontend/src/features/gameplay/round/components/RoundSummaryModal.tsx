@@ -12,6 +12,8 @@ interface RoundSummaryModalProps {
   summary: RoundSummaryData | null;
   snapshot: string | null;
   playBackgroundImageUrl: string | null;
+  snapshotMaxLongestSide?: number;
+  centerOnScreen?: boolean;
   position: { x: number; y: number };
   onClose: () => void;
   onDragStart: (event: MouseEvent<HTMLDivElement>) => void;
@@ -43,6 +45,8 @@ export default function RoundSummaryModal({
   summary,
   snapshot,
   playBackgroundImageUrl,
+  snapshotMaxLongestSide = 512,
+  centerOnScreen = false,
   position,
   onClose,
   onDragStart,
@@ -79,18 +83,30 @@ export default function RoundSummaryModal({
   return (
     <div className="pointer-events-none fixed inset-0 z-50">
       <div
-        className="pointer-events-auto fixed bottom-0 right-0"
-        style={{
-          top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
-          left: `${HISTORY_PANEL_WIDTH}px`,
-        }}
+        className={
+          centerOnScreen
+            ? "pointer-events-auto fixed inset-0"
+            : "pointer-events-auto fixed bottom-0 right-0"
+        }
+        style={
+          centerOnScreen
+            ? undefined
+            : {
+                top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
+                left: `${HISTORY_PANEL_WIDTH}px`,
+              }
+        }
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       />
 
       <div
-        className="pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[700px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl"
-        style={{ top: position.y, left: position.x }}
+        className={`pointer-events-auto fixed flex max-h-[calc(100vh-48px)] w-[700px] max-w-[calc(100vw-24px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl ${
+          centerOnScreen
+            ? "left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2"
+            : ""
+        }`}
+        style={centerOnScreen ? undefined : { top: position.y, left: position.x }}
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
@@ -122,7 +138,7 @@ export default function RoundSummaryModal({
                 })}
                 backgroundImageUrl={playBackgroundImageUrl}
                 backgroundAlt="Round summary play background"
-                maxLongestSide={512}
+                maxLongestSide={snapshotMaxLongestSide}
               />
             )}
 
