@@ -128,6 +128,13 @@ export const RESULT_TEMPLATES: ResultTemplate[] = [
     assetKey: "boothpictures-256x256",
   },
   {
+    id: "converse-256x256",
+    name: "Converse Template 256x256",
+    gridX: 256,
+    gridY: 256,
+    assetKey: "converse-256x256",
+  },
+  {
     id: "duck-256x256",
     name: "Duck Template 256x256",
     gridX: 256,
