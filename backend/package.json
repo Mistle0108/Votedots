@@ -15,6 +15,7 @@
     "test:integration": "vitest run test/integration",
     "test:coverage": "vitest run --coverage",
     "analytics:rollup": "ts-node src/scripts/analytics-rollup.ts",
+    "analytics:send-host-fallback": "node scripts/send-analytics-rollup-host.mjs",
     "analytics:cleanup": "ts-node src/scripts/analytics-cleanup.ts",
     "migration:generate": "ts-node --require tsconfig-paths/register ./node_modules/typeorm/cli.js migration:generate -d src/database/data-source.ts",
     "migration:run": "node ./node_modules/typeorm/cli.js migration:run -d dist/database/data-source.js",

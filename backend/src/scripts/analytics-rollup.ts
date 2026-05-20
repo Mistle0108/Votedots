@@ -1,4 +1,6 @@
 import "reflect-metadata";
+import { mkdir, rename, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { loadEnvironment } from "../config/load-env";
 import { AppDataSource } from "../database/data-source";
 import { analyticsRetentionService } from "../modules/analytics/analytics-retention.service";
@@ -8,6 +10,8 @@ interface AnalyticsRollupCliOptions {
   apply: boolean;
   before?: Date;
 }
+
+const ANALYTICS_ROLLUP_MESSAGE_PATH_ENV = "ANALYTICS_ROLLUP_MESSAGE_PATH";
 
 function parseBeforeDate(value: string): Date {
   const parsed = new Date(value);
@@ -73,10 +77,24 @@ function printSummary(summary: Awaited<
   console.log("[analytics:rollup] markedEventCount:", summary.markedEventCount);
 }
 
+async function writeRollupMessageFile(messagePath: string, text: string): Promise<void> {
+  const directoryPath = path.dirname(messagePath);
+  const temporaryPath = `${messagePath}.tmp`;
+
+  await mkdir(directoryPath, { recursive: true });
+  await writeFile(temporaryPath, text, "utf8");
+  await rename(temporaryPath, messagePath);
+}
+
+async function removeRollupMessageFile(messagePath: string): Promise<void> {
+  await rm(messagePath, { force: true });
+}
+
 async function main() {
   loadEnvironment();
 
   const options = parseArgs(process.argv.slice(2));
+  const rollupMessagePath = process.env[ANALYTICS_ROLLUP_MESSAGE_PATH_ENV]?.trim() || null;
 
   await AppDataSource.initialize();
 
@@ -85,8 +103,22 @@ async function main() {
     printSummary(summary);
 
     if (options.apply) {
+      const messageText =
+        analyticsRollupTelegramService.buildRollupSummaryMessage(summary);
+
+      if (rollupMessagePath) {
+        await writeRollupMessageFile(rollupMessagePath, messageText);
+        console.log("[analytics:rollup] fallback message file written:", rollupMessagePath);
+      }
+
       try {
-        await analyticsRollupTelegramService.sendRollupSummary(summary);
+        await analyticsRollupTelegramService.sendTextMessage(messageText);
+
+        if (rollupMessagePath) {
+          await removeRollupMessageFile(rollupMessagePath);
+          console.log("[analytics:rollup] fallback message file removed:", rollupMessagePath);
+        }
+
         console.log("[analytics:rollup] telegram notification sent");
       } catch (error) {
         console.error("[analytics:rollup] telegram notification failed:", error);
