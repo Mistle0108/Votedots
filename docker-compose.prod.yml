@@ -36,6 +36,9 @@ services:
       - ./frontend/public/result-templates:/app/result-templates:ro
       - /opt/votedots/data/storage:/votedots-storage
       - /opt/votedots/data/login-board:/votedots-login-board
+      - /opt/votedots/data/runtime:/votedots-runtime
+    environment:
+      ANALYTICS_ROLLUP_MESSAGE_PATH: /votedots-runtime/analytics-rollup-message.txt
     networks:
       - default
       - shared-db-network

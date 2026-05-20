@@ -29,6 +29,8 @@ interface TelegramApiResponse {
   ok: boolean;
 }
 
+const TELEGRAM_RETRY_DELAYS_MS = [5_000, 15_000];
+
 function getRequiredEnvironmentValue(name: string): string {
   const value = process.env[name]?.trim();
 
@@ -154,6 +156,47 @@ function buildRollupSummaryMessage(summary: AnalyticsRollupSummary): string {
   return lines.join("\n");
 }
 
+function isRetryableTelegramError(error: unknown): boolean {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  const message = error.message.toLowerCase();
+
+  if (
+    message.includes("timedout") ||
+    message.includes("fetch failed") ||
+    message.includes("econnreset") ||
+    message.includes("enetunreach") ||
+    message.includes("eai_again")
+  ) {
+    return true;
+  }
+
+  const cause = "cause" in error ? error.cause : null;
+
+  if (cause instanceof Error) {
+    return isRetryableTelegramError(cause);
+  }
+
+  if (
+    typeof cause === "object" &&
+    cause !== null &&
+    "errors" in cause &&
+    Array.isArray(cause.errors)
+  ) {
+    return cause.errors.some((childError) => isRetryableTelegramError(childError));
+  }
+
+  return false;
+}
+
+function wait(delayMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+}
+
 async function parseTelegramApiResponse(response: Response): Promise<TelegramApiResponse | null> {
   const raw = await response.text();
 
@@ -195,8 +238,36 @@ async function sendMessage(text: string): Promise<void> {
   }
 }
 
+async function sendMessageWithRetry(text: string): Promise<void> {
+  let lastError: unknown = null;
+
+  for (let attempt = 0; attempt <= TELEGRAM_RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      await sendMessage(text);
+      return;
+    } catch (error) {
+      lastError = error;
+
+      if (
+        attempt >= TELEGRAM_RETRY_DELAYS_MS.length ||
+        !isRetryableTelegramError(error)
+      ) {
+        break;
+      }
+
+      await wait(TELEGRAM_RETRY_DELAYS_MS[attempt]);
+    }
+  }
+
+  throw lastError;
+}
+
 export const analyticsRollupTelegramService = {
+  buildRollupSummaryMessage,
+  async sendTextMessage(text: string): Promise<void> {
+    await sendMessageWithRetry(text);
+  },
   async sendRollupSummary(summary: AnalyticsRollupSummary): Promise<void> {
-    await sendMessage(buildRollupSummaryMessage(summary));
+    await sendMessageWithRetry(buildRollupSummaryMessage(summary));
   },
 };
