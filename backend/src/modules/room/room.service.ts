@@ -40,7 +40,7 @@ export interface RoomSessionContext {
 const MAX_INTRO_PHASE_SEC = 60 * 5;
 const MAX_VOTES_PER_ROUND = 120;
 const MAX_GAME_DURATION_SEC = 60 * 60;
-const MAX_ACTIVE_ROOMS_PER_OWNER = 2;
+const MAX_ACTIVE_ROOMS_PER_OWNER = 3;
 const MAX_ROOM_TITLE_LENGTH = 30;
 
 async function expireElapsedRooms(): Promise<void> {

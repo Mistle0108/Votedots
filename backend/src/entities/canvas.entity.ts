@@ -61,6 +61,9 @@ export class Canvas extends BaseEntity {
   @Column({ type: "smallint", default: 0 })
   currentRoundNumber!: number;
 
+  @Column({ type: "boolean", default: false })
+  pendingGameEnd!: boolean;
+
   @Column({ type: "timestamptz", default: () => "NOW()" })
   startedAt!: Date;
 

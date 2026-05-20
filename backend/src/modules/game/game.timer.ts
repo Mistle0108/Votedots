@@ -139,6 +139,7 @@ async function transitionToRoundStartWait(
     phaseStartedAt,
     phaseEndsAt,
     currentRoundNumber: roundNumber,
+    pendingGameEnd: false,
   });
 
   logPhaseChange({
@@ -200,6 +201,7 @@ async function transitionToGameEnd(
     phaseEndsAt,
     currentRoundNumber: roundNumber,
     endedAt: phaseStartedAt,
+    pendingGameEnd: false,
   });
 
   logPhaseChange({
@@ -258,6 +260,8 @@ export async function forceGameEnd(
   roomTerminationReason: RoomTerminationReason | null = null,
 ): Promise<void> {
   clearCanvasTimers(canvasId);
+  const canvas = await getCanvasOrThrow(canvasId);
+  const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
 
   const activeRound = await roundRepository.findOne({
     where: { canvas: { id: canvasId }, isActive: true },
@@ -265,21 +269,79 @@ export async function forceGameEnd(
   });
 
   if (activeRound) {
+    await canvasRepository.update(canvasId, {
+      pendingGameEnd: true,
+    });
+
     try {
       await roundService.endRound(canvasId, activeRound.id, io);
-      await transitionToGameEnd(
-        io,
+      scheduleTimer(
         canvasId,
-        activeRound.roundNumber,
-        roomTerminationReason,
+        () => {
+          void (async () => {
+            try {
+              await transitionAfterRoundResult(
+                io,
+                canvasId,
+                activeRound.roundNumber,
+                roomTerminationReason,
+              );
+            } catch (error) {
+              console.error(
+                `[game-timer] failed to transition after forced round end (canvasId=${canvasId}, round=${activeRound.roundNumber}):`,
+                error,
+              );
+              clearScheduledTimer(canvasId);
+            }
+          })();
+        },
+        canvasGameConfig.phases.roundResultDelaySec * 1000,
       );
       return;
     } catch (error) {
+      await canvasRepository.update(canvasId, {
+        pendingGameEnd: false,
+      });
       console.error(
         `[game-timer] failed to end active round before forced game end (canvasId=${canvasId}, roundId=${activeRound.id}):`,
         error,
       );
     }
+  }
+
+  if (canvas.phase === GamePhase.ROUND_RESULT) {
+    await canvasRepository.update(canvasId, {
+      pendingGameEnd: true,
+    });
+
+    const remainingResultDelayMs = Math.max(
+      0,
+      (canvas.phaseEndsAt?.getTime() ?? Date.now()) - Date.now(),
+    );
+
+    scheduleTimer(
+      canvasId,
+      () => {
+        void (async () => {
+          try {
+            await transitionAfterRoundResult(
+              io,
+              canvasId,
+              canvas.currentRoundNumber,
+              roomTerminationReason,
+            );
+          } catch (error) {
+            console.error(
+              `[game-timer] failed to transition after forced round-result game end (canvasId=${canvasId}, round=${canvas.currentRoundNumber}):`,
+              error,
+            );
+            clearScheduledTimer(canvasId);
+          }
+        })();
+      },
+      remainingResultDelayMs,
+    );
+    return;
   }
 
   await transitionToGameEnd(io, canvasId, roundNumber, roomTerminationReason);
@@ -481,9 +543,20 @@ async function transitionAfterRoundResult(
   io: Server,
   canvasId: number,
   roundNumber: number,
+  roomTerminationReason: RoomTerminationReason | null = null,
 ): Promise<void> {
   const canvas = await getCanvasOrThrow(canvasId);
   const canvasGameConfig = getCanvasGameConfigSnapshot(canvas);
+
+  if (canvas.pendingGameEnd) {
+    await transitionToGameEnd(
+      io,
+      canvasId,
+      roundNumber,
+      roomTerminationReason,
+    );
+    return;
+  }
 
   if (roundNumber >= canvasGameConfig.rules.totalRounds) {
     await transitionToGameEnd(io, canvasId, roundNumber);
@@ -534,6 +607,7 @@ async function resumeRoundStartWaitFromBoundary(
     phaseStartedAt: waitStartedAt,
     phaseEndsAt: waitEndsAt,
     currentRoundNumber: nextRoundNumber,
+    pendingGameEnd: false,
   });
 
   logPhaseChange({
@@ -593,6 +667,7 @@ async function resumeGameEndFromBoundary(
     phaseEndsAt: gameEndEndsAt,
     currentRoundNumber: roundNumber,
     endedAt: gameEndStartedAt,
+    pendingGameEnd: false,
   });
 
   logPhaseChange({
@@ -795,6 +870,11 @@ async function resumeRoundResult(io: Server, canvas: Canvas): Promise<void> {
       },
       remainingResultDelayMs,
     );
+    return;
+  }
+
+  if (canvas.pendingGameEnd) {
+    await resumeGameEndFromBoundary(io, canvas, roundNumber, resultEndsAt);
     return;
   }
 

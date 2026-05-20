@@ -150,17 +150,21 @@ function RoomDetailContent({
   }
 
   if (!selectedRoomDetail) {
-    return <div className="text-sm text-[#5f6368]">{t("lobby.roomList.noneSelected")}</div>;
+    return (
+      <div className="flex min-h-[180px] w-full items-center justify-center text-center text-[21px] leading-7 text-[#5f6368]">
+        {t("lobby.roomList.noneSelected")}
+      </div>
+    );
   }
 
   if (selectedRoomDetail.room.type === "private") {
+    const ownerAccessCode = selectedRoomDetail.room.manage?.accessCode?.trim() ?? "";
+    const canEnterWithoutCode = ownerAccessCode.length > 0;
+
     return (
       <div className="w-full max-w-md">
-        <p className="mt-3 text-sm leading-6 text-[#5f6368]">
-          {t("lobby.roomList.privateDescription")}
-        </p>
         {selectedRoomDetail.room.manage?.accessCode ? (
-          <div className="mt-5 rounded-2xl border border-[#d9cdc1] bg-white px-4 py-3">
+          <div className="rounded-2xl border border-[#d9cdc1] bg-white px-4 py-3">
             <p className="text-xs font-semibold text-[#7b6b62]">
               {t("lobby.roomList.manage.accessCode")}
             </p>
@@ -169,19 +173,23 @@ function RoomDetailContent({
             </p>
           </div>
         ) : null}
-        <input
-          type="text"
-          value={privateAccessCode}
-          onChange={(event) =>
-            onChangePrivateAccessCode(event.target.value.toUpperCase())
-          }
-          placeholder={t("lobby.roomList.privateAccessCodePlaceholder")}
-          className="mt-5 h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
-          style={{ colorScheme: "light" }}
-        />
+        {!canEnterWithoutCode ? (
+          <input
+            type="text"
+            value={privateAccessCode}
+            onChange={(event) =>
+              onChangePrivateAccessCode(event.target.value.toUpperCase())
+            }
+            placeholder={t("lobby.roomList.privateAccessCodePlaceholder")}
+            className="h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none"
+            style={{ colorScheme: "light" }}
+          />
+        ) : null}
         <button
           type="button"
-          onClick={() => void onEnterPrivateRoom()}
+          onClick={() =>
+            void onEnterPrivateRoom(canEnterWithoutCode ? ownerAccessCode : undefined)
+          }
           className="mt-3 w-full rounded-2xl bg-[#272E37] px-5 py-3 text-sm font-semibold text-white"
         >
           {t("lobby.roomList.enter")}
@@ -392,7 +400,14 @@ export default function RoomListSection({
         {mobileDetailOpen ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-6">
             <div className="w-full max-w-sm rounded-[28px] border border-[#ead7c8] bg-[#fbf7f2] p-5 shadow-[0_18px_50px_rgba(39,46,55,0.08)]">
-              <div className="flex items-center justify-end">
+              <div className="flex items-center justify-between gap-4">
+                {selectedRoomDetail?.room.type === "private" ? (
+                  <h3 className="text-xl font-semibold text-[#272E37]">
+                    {t("lobby.roomEnter.title")}
+                  </h3>
+                ) : (
+                  <div />
+                )}
                 <button
                   type="button"
                   onClick={onCloseMobileDetail}
@@ -403,7 +418,11 @@ export default function RoomListSection({
                 </button>
               </div>
 
-              <div className="mt-4 flex justify-center">
+              <div
+                className={`flex justify-center ${
+                  selectedRoomDetail?.room.type === "private" ? "" : "mt-4"
+                }`}
+              >
                 <RoomDetailContent
                   selectedRoomDetail={selectedRoomDetail}
                   detailLoading={detailLoading}

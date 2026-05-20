@@ -8,6 +8,7 @@ import type {
   LandingFeaturedPreviewPayload,
 } from "@/features/landing/model/landing.types";
 import { useI18n } from "@/shared/i18n";
+import { DropdownSelect } from "@/shared/ui/dropdown-select";
 
 type CompletedCanvasSectionProps = {
   scope: "plaza" | "public";
@@ -15,6 +16,7 @@ type CompletedCanvasSectionProps = {
   onChangeScope: (scope: "plaza" | "public") => void;
   onChangePreset: (preset: "today" | "7d" | "30d") => void;
   mobileMode?: boolean;
+  active?: boolean;
 };
 
 type CompletedSort = "latest" | "oldest";
@@ -144,19 +146,21 @@ export default function CompletedCanvasSection({
   onChangeScope,
   onChangePreset,
   mobileMode = false,
+  active = true,
 }: CompletedCanvasSectionProps) {
   const { locale, t } = useI18n();
   const [sort, setSort] = useState<CompletedSort>("latest");
   const [page, setPage] = useState(1);
   const [items, setItems] = useState<LandingFeaturedPreviewItem[]>([]);
   const [pagination, setPagination] = useState<CompletedPagination>(EMPTY_PAGINATION);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailError, setDetailError] = useState<string | null>(null);
   const [detail, setDetail] = useState<LandingCompletedPreviewDetail | null>(null);
   const touchStartXRef = useRef<number | null>(null);
+  const loadedRequestKeyRef = useRef<string | null>(null);
 
   const handleChangeScope = (nextScope: "plaza" | "public") => {
     setPage(1);
@@ -174,8 +178,23 @@ export default function CompletedCanvasSection({
   };
 
   useEffect(() => {
+    if (!active) {
+      return undefined;
+    }
+
     let cancelled = false;
     const { dateFrom, dateTo } = buildCompletedRange(preset);
+    const requestKey = [
+      scope,
+      preset,
+      sort,
+      page,
+      mobileMode ? 1 : 8,
+    ].join(":");
+
+    if (loadedRequestKeyRef.current === requestKey) {
+      return undefined;
+    }
 
     const loadCompletedPreviews = async () => {
       setLoading(true);
@@ -197,6 +216,7 @@ export default function CompletedCanvasSection({
 
         setItems(data.items);
         setPagination(data.pagination ?? EMPTY_PAGINATION);
+        loadedRequestKeyRef.current = requestKey;
       } catch {
         if (cancelled) {
           return;
@@ -217,7 +237,7 @@ export default function CompletedCanvasSection({
     return () => {
       cancelled = true;
     };
-  }, [mobileMode, page, preset, scope, sort, t]);
+  }, [active, mobileMode, page, preset, scope, sort, t]);
 
   const handleOpenDetail = async (canvasId: number) => {
     setDetailOpen(true);
@@ -277,51 +297,47 @@ export default function CompletedCanvasSection({
             <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
               {t("lobby.completed.filter.scopeLabel")}
             </span>
-            <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
-              <select
-                value={scope}
-                onChange={(event) =>
-                  handleChangeScope(event.target.value as "plaza" | "public")
-                }
-                className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-              >
-                <option value="plaza">{t("lobby.completed.scope.plaza")}</option>
-                <option value="public">{t("lobby.completed.scope.public")}</option>
-              </select>
-            </label>
+            <DropdownSelect
+              value={scope}
+              onChange={handleChangeScope}
+              options={[
+                { value: "plaza", label: t("lobby.completed.scope.plaza") },
+                { value: "public", label: t("lobby.completed.scope.public") },
+              ]}
+              className="w-full"
+              triggerClassName="h-11 rounded-full border border-[#d9cdc1] bg-white px-4 text-sm font-semibold text-[#2d2d2d]"
+            />
           </div>
           <div className="flex items-center gap-3">
             <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
               {t("lobby.completed.filter.presetLabel")}
             </span>
-            <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
-              <select
-                value={preset}
-                onChange={(event) =>
-                  handleChangePreset(event.target.value as "today" | "7d" | "30d")
-                }
-                className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-              >
-                <option value="today">{t("lobby.completed.preset.today")}</option>
-                <option value="7d">{t("lobby.completed.preset.7d")}</option>
-                <option value="30d">{t("lobby.completed.preset.30d")}</option>
-              </select>
-            </label>
+            <DropdownSelect
+              value={preset}
+              onChange={handleChangePreset}
+              options={[
+                { value: "today", label: t("lobby.completed.preset.today") },
+                { value: "7d", label: t("lobby.completed.preset.7d") },
+                { value: "30d", label: t("lobby.completed.preset.30d") },
+              ]}
+              className="w-full"
+              triggerClassName="h-11 rounded-full border border-[#d9cdc1] bg-white px-4 text-sm font-semibold text-[#2d2d2d]"
+            />
           </div>
           <div className="flex items-center gap-3">
             <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
               {t("lobby.completed.filter.sortLabel")}
             </span>
-            <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
-              <select
-                value={sort}
-                onChange={(event) => handleChangeSort(event.target.value as CompletedSort)}
-                className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-              >
-                <option value="latest">{t("lobby.completed.sort.latest")}</option>
-                <option value="oldest">{t("lobby.completed.sort.oldest")}</option>
-              </select>
-            </label>
+            <DropdownSelect
+              value={sort}
+              onChange={handleChangeSort}
+              options={[
+                { value: "latest", label: t("lobby.completed.sort.latest") },
+                { value: "oldest", label: t("lobby.completed.sort.oldest") },
+              ]}
+              className="w-full"
+              triggerClassName="h-11 rounded-full border border-[#d9cdc1] bg-white px-4 text-sm font-semibold text-[#2d2d2d]"
+            />
           </div>
         </div>
       ) : (
@@ -367,16 +383,15 @@ export default function CompletedCanvasSection({
                 </button>
               ))}
             </div>
-            <label className="inline-flex self-start rounded-full border border-[#d9cdc1] bg-white px-4 py-2.5">
-              <select
-                value={sort}
-                onChange={(event) => handleChangeSort(event.target.value as CompletedSort)}
-                className="bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-              >
-                <option value="latest">{t("lobby.completed.sort.latest")}</option>
-                <option value="oldest">{t("lobby.completed.sort.oldest")}</option>
-              </select>
-            </label>
+            <DropdownSelect
+              value={sort}
+              onChange={handleChangeSort}
+              options={[
+                { value: "latest", label: t("lobby.completed.sort.latest") },
+                { value: "oldest", label: t("lobby.completed.sort.oldest") },
+              ]}
+              triggerClassName="rounded-full border border-[#d9cdc1] bg-white px-4 py-2.5 text-sm font-semibold text-[#2d2d2d]"
+            />
           </div>
         </div>
       )}

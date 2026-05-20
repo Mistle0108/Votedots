@@ -16,9 +16,34 @@ interface SiteHeaderProps {
   translucent?: boolean;
 }
 
-function HeaderItem({ item }: { item: SiteHeaderItem }) {
+function getResponsiveLabel(
+  item: SiteHeaderItem,
+  locale: PublicSiteLocale,
+): string {
+  if (locale !== "ko") {
+    return item.label;
+  }
+
+  if (item.key === "patches") {
+    return "패치\n노트";
+  }
+
+  if (item.key === "roadmap") {
+    return "로드\n맵";
+  }
+
+  return item.label;
+}
+
+function HeaderItem({
+  item,
+  locale,
+}: {
+  item: SiteHeaderItem;
+  locale: PublicSiteLocale;
+}) {
   const className = [
-    "rounded-full px-2.5 py-2 text-xs font-semibold transition sm:px-3 sm:text-sm",
+    "rounded-full px-2.5 py-2 text-center text-xs font-semibold leading-[1.05] transition sm:px-3 sm:text-sm sm:leading-normal",
     item.active
       ? "bg-[#272E37] text-white"
       : "text-[#5f6368] hover:bg-white/80 hover:text-[#272E37]",
@@ -26,7 +51,9 @@ function HeaderItem({ item }: { item: SiteHeaderItem }) {
 
   return (
     <Link to={item.to} className={className}>
-      {item.label}
+      <span className="block whitespace-pre-line sm:whitespace-nowrap">
+        {getResponsiveLabel(item, locale)}
+      </span>
     </Link>
   );
 }
@@ -61,7 +88,7 @@ export function SiteHeader({
 
           <nav className="flex min-w-0 items-center gap-1 rounded-full bg-[#f7f2eb] p-1">
             {items.map((item) => (
-              <HeaderItem key={item.key} item={item} />
+              <HeaderItem key={item.key} item={item} locale={locale} />
             ))}
           </nav>
         </div>

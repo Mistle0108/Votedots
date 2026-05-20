@@ -23,6 +23,7 @@ import { useI18n } from "@/shared/i18n";
 import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { Button } from "@/shared/ui/button";
+import { DropdownSelect } from "@/shared/ui/dropdown-select";
 import homeIcon from "@/assets/home-icon.png";
 import CanvasResultCard from "@/features/canvas-result/components/CanvasResultCard";
 import CanvasResultModal from "@/features/canvas-result/components/CanvasResultModal";
@@ -902,44 +903,41 @@ export default function MyPage() {
                           <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
                             {t("mypage.filter.sizeLabel")}
                           </span>
-                          <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
-                            <select
-                              value={sizeFilter}
-                              onChange={(event) => {
-                                setPage(1);
-                                setSizeFilter(event.target.value as SizeFilterValue);
-                              }}
-                              className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-                            >
-                              {SIZE_FILTERS.map((filterValue) => (
-                                <option key={filterValue} value={filterValue}>
-                                  {filterValue === "all" ? t("mypage.filter.all") : filterValue}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <DropdownSelect
+                            value={sizeFilter}
+                            onChange={(nextValue) => {
+                              setPage(1);
+                              setSizeFilter(nextValue);
+                            }}
+                            options={SIZE_FILTERS.map((filterValue) => ({
+                              value: filterValue,
+                              label:
+                                filterValue === "all"
+                                  ? t("mypage.filter.all")
+                                  : filterValue,
+                            }))}
+                            className="w-full"
+                            triggerClassName="h-11 rounded-full border border-[#d9cdc1] bg-white px-4 text-sm font-semibold text-[#2d2d2d]"
+                          />
                         </div>
 
                         <div className="flex items-center gap-3">
                           <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
                             {t("mypage.filter.visibilityLabel")}
                           </span>
-                          <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
-                            <select
-                              value={visibilityFilter}
-                              onChange={(event) => {
-                                setPage(1);
-                                setVisibilityFilter(event.target.value as VisibilityFilterValue);
-                              }}
-                              className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-                            >
-                              {VISIBILITY_FILTERS.map((filterValue) => (
-                                <option key={filterValue} value={filterValue}>
-                                  {t(`mypage.visibility.${filterValue}`)}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
+                          <DropdownSelect
+                            value={visibilityFilter}
+                            onChange={(nextValue) => {
+                              setPage(1);
+                              setVisibilityFilter(nextValue);
+                            }}
+                            options={VISIBILITY_FILTERS.map((filterValue) => ({
+                              value: filterValue,
+                              label: t(`mypage.visibility.${filterValue}`),
+                            }))}
+                            className="w-full"
+                            triggerClassName="h-11 rounded-full border border-[#d9cdc1] bg-white px-4 text-sm font-semibold text-[#2d2d2d]"
+                          />
                         </div>
                       </div>
 
@@ -1175,23 +1173,20 @@ export default function MyPage() {
                     </div>
                   </div>
 
-                  <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4 lg:h-auto lg:w-auto lg:self-auto lg:py-2.5">
-                    <select
-                      value={visibilityFilter}
-                      onChange={(event) => {
-                        pendingFilterScrollYRef.current = window.scrollY;
-                        setPage(1);
-                        setVisibilityFilter(event.target.value as VisibilityFilterValue);
-                      }}
-                      className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
-                    >
-                      {VISIBILITY_FILTERS.map((filterValue) => (
-                        <option key={filterValue} value={filterValue}>
-                          {t(`mypage.visibility.${filterValue}`)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                  <DropdownSelect
+                    value={visibilityFilter}
+                    onChange={(nextValue) => {
+                      pendingFilterScrollYRef.current = window.scrollY;
+                      setPage(1);
+                      setVisibilityFilter(nextValue);
+                    }}
+                    options={VISIBILITY_FILTERS.map((filterValue) => ({
+                      value: filterValue,
+                      label: t(`mypage.visibility.${filterValue}`),
+                    }))}
+                    className="w-full lg:w-auto"
+                    triggerClassName="h-11 rounded-full border border-[#d9cdc1] bg-white px-4 text-sm font-semibold text-[#2d2d2d] lg:h-auto lg:py-2.5"
+                  />
                 </div>
               </div>
             </div>
