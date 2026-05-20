@@ -1,54 +1,39 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
 import FeaturedPreviewSection from "@/features/landing/components/FeaturedPreviewSection";
 import type { LandingFeaturedPreviewItem } from "@/features/landing/model/landing.types";
 
 const labels = {
   title: "Completed canvases",
   description: "Preview cards",
-  participants: "Participants",
-  votes: "Votes",
-  topVoter: "Top voter",
+  plaza: "Plaza",
+  public: "Public",
+  empty: "No completed canvases yet.",
 };
 
-function getCardImages() {
-  return Array.from(document.querySelectorAll("img"));
-}
-
 describe("FeaturedPreviewSection", () => {
-  it("always renders four fixed slots with fallback images when preview items are empty", () => {
+  it("renders plaza and public sections with empty state when items are missing", () => {
     render(
-      <FeaturedPreviewSection locale="en" items={[]} labels={labels} />,
+      <FeaturedPreviewSection
+        labels={labels}
+        actionLabel="View details"
+        onOpenDetail={() => {}}
+      />,
     );
 
-    expect(
-      screen.getByRole("heading", { name: "32 x 32" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "64 x 64" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "128 x 128" }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("heading", { name: "256 x 256" }),
-    ).toBeInTheDocument();
-
-    const images = getCardImages();
-    expect(images).toHaveLength(4);
-    images.forEach((image) => {
-      expect(image.getAttribute("src")).toContain(
-        "/landing/fallback/en/featured-preview-fallback.png",
-      );
-    });
-
-    expect(screen.getAllByText("-").length).toBeGreaterThan(0);
+    expect(screen.getByText("Completed canvases")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Plaza" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Public" })).toBeInTheDocument();
+    expect(screen.getAllByText("No completed canvases yet.")).toHaveLength(2);
   });
 
-  it("renders webp and preview metadata only for the matching size slot", () => {
-    const items: LandingFeaturedPreviewItem[] = [
+  it("renders cards for plaza/public items and forwards detail action", () => {
+    const handleOpenDetail = vi.fn();
+    const plazaItems: LandingFeaturedPreviewItem[] = [
       {
         webpUrl: "/api/public/landing/previews/1/asset",
         preview: {
+          canvasId: 1,
           size: "64x64",
           gridX: 64,
           gridY: 64,
@@ -63,19 +48,52 @@ describe("FeaturedPreviewSection", () => {
         },
       },
     ];
+    const publicItems: LandingFeaturedPreviewItem[] = [
+      {
+        webpUrl: "/api/public/landing/previews/2/asset",
+        preview: {
+          canvasId: 2,
+          size: "128x128",
+          gridX: 128,
+          gridY: 128,
+          endedAt: "2026-05-08T07:59:35.417Z",
+          participantCount: 2,
+          participants: ["Chris"],
+          topVoter: {
+            name: "Chris",
+            voteCount: 18,
+          },
+          totalVotes: 30,
+        },
+      },
+    ];
 
     render(
-      <FeaturedPreviewSection locale="en" items={items} labels={labels} />,
+      <FeaturedPreviewSection
+        plazaItems={plazaItems}
+        publicItems={publicItems}
+        labels={labels}
+        actionLabel="View details"
+        onOpenDetail={handleOpenDetail}
+      />,
     );
 
-    const images = getCardImages();
-    const webpImage = images.find((image) =>
-      image.getAttribute("src")?.includes("/api/public/landing/previews/1/asset"),
-    );
+    const images = Array.from(document.querySelectorAll("img"));
+    expect(
+      images.some((image) =>
+        image.getAttribute("src")?.includes("/api/public/landing/previews/1/asset"),
+      ),
+    ).toBe(true);
+    expect(
+      images.some((image) =>
+        image.getAttribute("src")?.includes("/api/public/landing/previews/2/asset"),
+      ),
+    ).toBe(true);
 
-    expect(webpImage).toBeDefined();
-    expect(screen.getByText("5")).toBeInTheDocument();
-    expect(screen.getByText("120")).toBeInTheDocument();
-    expect(screen.getByText("Alice (50)")).toBeInTheDocument();
+    const buttons = screen.getAllByRole("button", { name: "View details" });
+    expect(buttons).toHaveLength(2);
+
+    fireEvent.click(buttons[0]);
+    expect(handleOpenDetail).toHaveBeenCalledWith(1);
   });
 });

@@ -2,8 +2,8 @@ import CanvasResultCard from "@/features/canvas-result/components/CanvasResultCa
 import type { LandingFeaturedPreviewItem } from "../model/landing.types";
 
 interface FeaturedPreviewSectionProps {
-  plazaItems: LandingFeaturedPreviewItem[];
-  publicItems: LandingFeaturedPreviewItem[];
+  plazaItems?: LandingFeaturedPreviewItem[];
+  publicItems?: LandingFeaturedPreviewItem[];
   actionLabel: string;
   onOpenDetail: (canvasId: number) => void;
   labels: {
@@ -59,8 +59,8 @@ function PreviewGroup({
 }
 
 export default function FeaturedPreviewSection({
-  plazaItems,
-  publicItems,
+  plazaItems = [],
+  publicItems = [],
   actionLabel,
   onOpenDetail,
   labels,
