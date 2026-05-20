@@ -8,6 +8,7 @@ import {
   HISTORY_PANEL_WIDTH,
   RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT,
 } from "@/pages/canvas/model/modal-position";
+import { useSwipeDownDismiss } from "@/shared/hooks/use-swipe-down-dismiss";
 import { useI18n } from "@/shared/i18n";
 import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
 import { PixelSnapshotPreview } from "@/shared/ui/pixel-snapshot-preview";
@@ -129,6 +130,14 @@ export default function GameSummaryModal({
   const { formatNumber, formatPercent, locale, t } = useI18n();
   const [mobilePageIndex, setMobilePageIndex] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
+  const {
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleTouchCancel,
+  } = useSwipeDownDismiss({
+    onDismiss: onClose,
+  });
   const finalSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
   const {
     canDownload: canDownloadDefaultSnapshot,
@@ -367,6 +376,16 @@ export default function GameSummaryModal({
   return (
     <div
       className="pointer-events-none fixed inset-0 z-50 px-3 py-6"
+      style={
+        mobileLayout
+          ? {
+              paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
+              paddingRight: "calc(env(safe-area-inset-right, 0px) + 12px)",
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+              paddingLeft: "calc(env(safe-area-inset-left, 0px) + 12px)",
+            }
+          : undefined
+      }
     >
       <div
         className={
@@ -383,7 +402,7 @@ export default function GameSummaryModal({
               }
         }
         onMouseDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
+        onClick={mobileLayout ? onClose : (event) => event.stopPropagation()}
       />
 
       <div
@@ -399,6 +418,10 @@ export default function GameSummaryModal({
         <div
           className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4"
           onMouseDown={mobileLayout ? undefined : onDragStart}
+          onTouchStart={mobileLayout ? handleTouchStart : undefined}
+          onTouchMove={mobileLayout ? handleTouchMove : undefined}
+          onTouchEnd={mobileLayout ? handleTouchEnd : undefined}
+          onTouchCancel={mobileLayout ? handleTouchCancel : undefined}
         >
           <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
             {t("gameSummary.title")}

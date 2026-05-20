@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { useSwipeDownDismiss } from "@/shared/hooks/use-swipe-down-dismiss";
 
 interface MobileBottomSheetProps {
   open: boolean;
@@ -23,6 +24,15 @@ export default function MobileBottomSheet({
   headerActionsOffsetClassName = "",
   tutorialId,
 }: MobileBottomSheetProps) {
+  const {
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleTouchCancel,
+  } = useSwipeDownDismiss({
+    onDismiss: onClose,
+  });
+
   if (!open) {
     return null;
   }
@@ -34,6 +44,11 @@ export default function MobileBottomSheet({
           type="button"
           aria-label="close"
           className="pointer-events-auto absolute inset-0 bg-[rgba(0,0,0,0.28)]"
+          onPointerDown={onClose}
+          onPointerMove={onClose}
+          onTouchStart={onClose}
+          onTouchMove={onClose}
+          onTouchEnd={onClose}
           onClick={onClose}
         />
       ) : null}
@@ -45,11 +60,23 @@ export default function MobileBottomSheet({
         }}
         data-tutorial-id={tutorialId}
       >
-        <div className="flex justify-center pt-3">
+        <div
+          className="flex justify-center pt-3"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
+        >
           <span className="h-1.5 w-12 rounded-full bg-[color:var(--page-theme-border-primary)]" />
         </div>
 
-        <div className="flex items-center justify-between gap-3 px-5 pb-3 pt-0">
+        <div
+          className="flex items-center justify-between gap-3 px-5 pb-3 pt-0"
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchCancel}
+        >
           <div className="flex min-w-0 flex-1 self-stretch items-center">
             {title}
           </div>

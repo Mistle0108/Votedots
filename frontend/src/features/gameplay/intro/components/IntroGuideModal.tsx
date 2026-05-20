@@ -5,6 +5,7 @@ import {
   HISTORY_PANEL_WIDTH,
   RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT,
 } from "@/pages/canvas/model/modal-position";
+import { useSwipeDownDismiss } from "@/shared/hooks/use-swipe-down-dismiss";
 import { useI18n } from "@/shared/i18n";
 import IntroCanvasPreview from "./IntroCanvasPreview";
 
@@ -116,7 +117,7 @@ export default function IntroGuideModal({
   formattedGameEndTime,
   onClose,
 }: Props) {
-  const { t } = useI18n();
+  const { locale, t } = useI18n();
   const [position, setPosition] = useState(getDefaultPosition);
   const [mobilePageIndex, setMobilePageIndex] = useState(0);
 
@@ -124,6 +125,14 @@ export default function IntroGuideModal({
   const isDraggingRef = useRef(false);
   const dragOffsetRef = useRef({ x: 0, y: 0 });
   const touchStartXRef = useRef<number | null>(null);
+  const {
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleTouchCancel,
+  } = useSwipeDownDismiss({
+    onDismiss: onClose,
+  });
 
   const description = useMemo(() => buildDescription(gameConfig), [gameConfig]);
   const effectivePreviewMaxSize = mobileLayout
@@ -166,6 +175,67 @@ export default function IntroGuideModal({
         };
       }),
     [t],
+  );
+  const resolvedInteractionGuides = useMemo(
+    () =>
+      mobileLayout
+        ? [
+            {
+              key: "mobile-palette",
+              order: "01",
+              title: locale === "ko" ? "색상 바꾸기" : "Change color",
+              bodyLines:
+                locale === "ko"
+                  ? [
+                      "우상단 팔레트 버튼을 눌러 현재 투표 색상을 바꿉니다.",
+                      "버튼 아래에는 최근에 고른 색상이 최신순으로 최대 6개까지 쌓입니다.",
+                    ]
+                  : [
+                      "Tap the top-right palette button to change your current vote color.",
+                      "Up to six recent colors stack below it with the newest color first.",
+                    ],
+              highlightPhrases:
+                locale === "ko"
+                  ? ["우상단 팔레트 버튼", "최근에 고른 색상"]
+                  : ["top-right palette button", "recent colors"],
+            },
+            {
+              key: "mobile-vote",
+              order: "02",
+              title: locale === "ko" ? "바로 투표하기" : "Vote instantly",
+              bodyLines:
+                locale === "ko"
+                  ? [
+                      "모바일에서는 타일을 누르면 현재 선택한 색상으로 바로 투표합니다.",
+                    ]
+                  : [
+                      "On mobile, tapping a tile votes immediately with the color you currently selected.",
+                    ],
+              highlightPhrases:
+                locale === "ko"
+                  ? ["현재 선택한 색상"]
+                  : ["votes immediately"],
+            },
+            {
+              key: "mobile-move",
+              order: "03",
+              title: locale === "ko" ? "이동과 확대" : "Move and zoom",
+              bodyLines:
+                locale === "ko"
+                  ? [
+                      "드래그로 화면을 이동하고, 두 손가락으로 확대하거나 축소할 수 있습니다.",
+                    ]
+                  : [
+                      "Drag to move the canvas, and use two fingers to zoom in or out.",
+                    ],
+              highlightPhrases:
+                locale === "ko"
+                  ? ["드래그", "두 손가락"]
+                  : ["Drag", "two fingers"],
+            },
+          ]
+        : interactionGuides,
+    [interactionGuides, locale, mobileLayout],
   );
   const warningGuide = useMemo(
     () => parseGuideText(t("intro.vote.warning")),
@@ -365,7 +435,7 @@ export default function IntroGuideModal({
       </h3>
 
       <div className="mt-3 space-y-3">
-        {interactionGuides.map((guide) => (
+        {resolvedInteractionGuides.map((guide) => (
           <article
             key={guide.key}
             className="rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 py-3"
@@ -398,7 +468,19 @@ export default function IntroGuideModal({
   const mobilePages = [previewSection, gameDescriptionSection, voteGuideSection];
 
   return (
-    <div className="pointer-events-none fixed inset-0 z-50">
+    <div
+      className="pointer-events-none fixed inset-0 z-50"
+      style={
+        mobileLayout
+          ? {
+              paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
+              paddingRight: "calc(env(safe-area-inset-right, 0px) + 12px)",
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+              paddingLeft: "calc(env(safe-area-inset-left, 0px) + 12px)",
+            }
+          : undefined
+      }
+    >
       <div
         className={
           mobileLayout
@@ -414,7 +496,7 @@ export default function IntroGuideModal({
               }
         }
         onMouseDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
+        onClick={mobileLayout ? onClose : (event) => event.stopPropagation()}
       />
 
       <div
@@ -441,6 +523,10 @@ export default function IntroGuideModal({
                   };
                 }
           }
+          onTouchStart={mobileLayout ? handleTouchStart : undefined}
+          onTouchMove={mobileLayout ? handleTouchMove : undefined}
+          onTouchEnd={mobileLayout ? handleTouchEnd : undefined}
+          onTouchCancel={mobileLayout ? handleTouchCancel : undefined}
         >
           <p className="text-center text-base font-semibold text-[color:var(--page-theme-primary-action)]">
             {t("intro.modal.title")}
