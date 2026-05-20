@@ -301,6 +301,16 @@ export default function LandingPage({ locale }: LandingPageProps) {
     featuredPreviewItems[activeCompletedPageIndex] ?? null;
   const activeGuideCard =
     siteContent.tutorial.cards[activeGuidePageIndex] ?? null;
+  const activeGuideCardImageUrl =
+    activeGuideCard &&
+    (isMobileLayout
+      ? activeGuideCard.mobileImageUrl ?? activeGuideCard.imageUrl
+      : activeGuideCard.imageUrl);
+  const activeGuideCardIconUrl =
+    activeGuideCard &&
+    (isMobileLayout
+      ? activeGuideCard.mobileIconUrl ?? activeGuideCard.iconUrl
+      : activeGuideCard.iconUrl);
   const shouldShowCompletedPagination =
     mobileTab === "completed" && completedPageCount > 1;
   const shouldShowGuidePagination = mobileTab === "guide" && guidePageCount > 1;
@@ -742,9 +752,14 @@ export default function LandingPage({ locale }: LandingPageProps) {
                         <article className="overflow-hidden rounded-[30px] bg-white shadow-[0_24px_70px_rgba(39,46,55,0.08)]">
                           <div className="bg-[linear-gradient(180deg,#fff4e9_0%,#f6ede5_100%)] p-4">
                             <div className="mx-auto w-full max-w-[240px] overflow-hidden rounded-[24px] shadow-[0_24px_60px_rgba(39,46,55,0.10)]">
-                              <div className="aspect-video w-full">
+                              <div
+                                className={[
+                                  "w-full",
+                                  isMobileLayout ? "aspect-[4/3]" : "aspect-video",
+                                ].join(" ")}
+                              >
                                 <img
-                                  src={activeGuideCard.imageUrl}
+                                  src={activeGuideCardImageUrl}
                                   alt={activeGuideCard.imageAlt}
                                   className="block h-full w-full object-contain"
                                   draggable={false}
@@ -758,9 +773,9 @@ export default function LandingPage({ locale }: LandingPageProps) {
                               <h3 className="text-xl font-semibold text-[#272E37]">
                                 {activeGuideCard.title}
                               </h3>
-                              {activeGuideCard.iconUrl ? (
+                              {activeGuideCardIconUrl ? (
                                 <img
-                                  src={activeGuideCard.iconUrl}
+                                  src={activeGuideCardIconUrl}
                                   alt=""
                                   aria-hidden="true"
                                   className="h-12 w-12 flex-none object-contain"

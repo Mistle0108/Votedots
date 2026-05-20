@@ -6,8 +6,10 @@ interface TutorialCardContent {
   title: string;
   description: string;
   imageUrl: string;
+  mobileImageUrl?: string;
   imageAlt: string;
   iconUrl?: string;
+  mobileIconUrl?: string;
 }
 
 interface InfoSectionContent {
@@ -137,6 +139,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "원하는 칸과 색을 골라 직접 표를 던질 수 있습니다.\n가장 많은 표를 받은 한 가지 색으로 결정됩니다.",
           imageUrl: "/landing/guide/place-dot-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-place-dot-demo.webp",
           imageAlt: "도트 배치 데모",
         },
         {
@@ -146,6 +149,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "다른 사람이 투표한 칸과 색을 실시간으로 확인할 수 있습니다.\n상대방이 고른 색이 마음에 들지 않으면 표를 더 사용하면 됩니다.",
           imageUrl: "/landing/guide/live-presence-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-live-presence-demo.webp",
           imageAlt: "실시간 참여 데모",
         },
         {
@@ -155,6 +159,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "시간에 따라 다른 크기와 템플릿으로 교체됩니다.\n템플릿은 가이드라인일 뿐, 언제나 원하는 그림을 그릴 수 있습니다.",
           imageUrl: "/landing/guide/template-rotation.webp",
+          mobileImageUrl: "/landing/guide/mobile-template-rotation-demo.webp",
           imageAlt: "템플릿 순환 데모",
         },
         {
@@ -164,6 +169,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "각 라운드가 끝날 때마다 결과 스냅샷이 기록됩니다.\n이전 라운드의 진행 과정을 다시 보면서 어떤 선택이 반영됐는지 확인할 수 있습니다.",
           imageUrl: "/landing/guide/round-history-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-round-history-demo.webp",
           imageAlt: "라운드 결과 히스토리 데모",
         },
         {
@@ -173,8 +179,10 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "게임이 종료되면 최종 결과 이미지를 저장할 수 있습니다.\n다운로드 파일은 배경 템플릿 도트가 제외된 투명 PNG로 제공됩니다.",
           imageUrl: "/landing/guide/download-result-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-download-result-demo.png",
           imageAlt: "완성 이미지 다운로드 데모",
-          iconUrl: "/landing/guide/download-result-fox.png",
+          iconUrl: "/landing/guide/download-result.png",
+          mobileIconUrl: "/landing/guide/mobile-download-result.png",
         },
       ],
     },
@@ -449,6 +457,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "Choose the cell and color you want, then cast your vote directly.\nEach cell is decided by the single color that receives the most votes.",
           imageUrl: "/landing/guide/place-dot-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-place-dot-demo.webp",
           imageAlt: "Dot placement demo",
         },
         {
@@ -458,6 +467,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "You can see in real time which cells and colors other people are voting on.\nIf you do not like the color someone else picked, you can use more votes to change the outcome.",
           imageUrl: "/landing/guide/live-presence-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-live-presence-demo.webp",
           imageAlt: "Live presence demo",
         },
         {
@@ -467,6 +477,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "Different board sizes and templates rotate over time.\nThe template is only a guideline, and you can always draw whatever image you want.",
           imageUrl: "/landing/guide/template-rotation.webp",
+          mobileImageUrl: "/landing/guide/mobile-template-rotation-demo.webp",
           imageAlt: "Template rotation demo",
         },
         {
@@ -476,6 +487,7 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "A result snapshot is recorded whenever a round ends.\nYou can look back at previous rounds to see which choices were reflected on the canvas.",
           imageUrl: "/landing/guide/round-history-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-round-history-demo.webp",
           imageAlt: "Round history demo",
         },
         {
@@ -485,8 +497,10 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
           description:
             "When the game ends, you can save the final result image.\nThe download is provided as a transparent PNG without the background template dots.",
           imageUrl: "/landing/guide/download-result-demo.webp",
+          mobileImageUrl: "/landing/guide/mobile-download-result-demo.png",
           imageAlt: "Download finished image demo",
-          iconUrl: "/landing/guide/download-result-fox.png",
+          iconUrl: "/landing/guide/download-result.png",
+          mobileIconUrl: "/landing/guide/mobile-download-result.png",
         },
       ],
     },
