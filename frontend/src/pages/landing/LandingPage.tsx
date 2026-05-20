@@ -2,8 +2,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { landingApi } from "@/features/landing/api/landing.api";
+import CanvasResultCard from "@/features/canvas-result/components/CanvasResultCard";
+import CanvasResultModal from "@/features/canvas-result/components/CanvasResultModal";
 import FeaturedPreviewSection from "@/features/landing/components/FeaturedPreviewSection";
 import type {
+  LandingCompletedPreviewDetail,
   LandingFeaturedPreviewItem,
   LandingPayload,
 } from "@/features/landing/model/landing.types";
@@ -34,12 +37,6 @@ function readMobileLayoutMatch(): boolean {
 }
 
 type MobileLandingTab = "current" | "completed" | "guide";
-type CarouselAnimationStage =
-  | "idle"
-  | "out-left"
-  | "out-right"
-  | "in-left"
-  | "in-right";
 
 interface LandingPageProps {
   locale: PublicSiteLocale;
@@ -152,14 +149,27 @@ export default function LandingPage({ locale }: LandingPageProps) {
   const [completedPageIndex, setCompletedPageIndex] = useState(0);
   const [guidePageIndex, setGuidePageIndex] = useState(0);
   const [completedAnimationStage, setCompletedAnimationStage] =
-    useState<CarouselAnimationStage>("idle");
+    useState<"idle" | "out-left" | "out-right" | "in-left" | "in-right">(
+      "idle",
+    );
   const [guideAnimationStage, setGuideAnimationStage] =
-    useState<CarouselAnimationStage>("idle");
+    useState<"idle" | "out-left" | "out-right" | "in-left" | "in-right">(
+      "idle",
+    );
 
   const [landingData, setLandingData] = useState<LandingPayload | null>(null);
-  const [featuredPreviewItems, setFeaturedPreviewItems] = useState<
+  const [plazaPreviewItems, setPlazaPreviewItems] = useState<
     LandingFeaturedPreviewItem[]
   >([]);
+  const [publicPreviewItems, setPublicPreviewItems] = useState<
+    LandingFeaturedPreviewItem[]
+  >([]);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
+  const [detail, setDetail] = useState<LandingCompletedPreviewDetail | null>(
+    null,
+  );
   const [landingError, setLandingError] = useState("");
   const currentGamePanelRef = useRef<HTMLDivElement | null>(null);
   const completedSwipeStartXRef = useRef<number | null>(null);
@@ -196,9 +206,27 @@ export default function LandingPage({ locale }: LandingPageProps) {
 
     const loadLanding = async () => {
       try {
-        const [landingResult, previewResult] = await Promise.allSettled([
+        const now = new Date();
+        const wideDateFrom = new Date("2000-01-01T00:00:00.000Z");
+        const [landingResult, plazaPreviewResult, publicPreviewResult] =
+          await Promise.allSettled([
           landingApi.getLandingPayload(),
-          landingApi.getLandingPreviews(),
+          landingApi.getCompletedPreviews({
+            scope: "plaza",
+            dateFrom: wideDateFrom.toISOString(),
+            dateTo: now.toISOString(),
+            page: 1,
+            limit: 4,
+            sort: "latest",
+          }),
+          landingApi.getCompletedPreviews({
+            scope: "public",
+            dateFrom: wideDateFrom.toISOString(),
+            dateTo: now.toISOString(),
+            page: 1,
+            limit: 4,
+            sort: "latest",
+          }),
         ]);
 
         if (cancelled) {
@@ -212,15 +240,21 @@ export default function LandingPage({ locale }: LandingPageProps) {
           setLandingError(siteContent.currentGame.loadError);
         }
 
-        if (previewResult.status === "fulfilled") {
-          setFeaturedPreviewItems(previewResult.value.data.items);
-        } else {
-          setFeaturedPreviewItems([]);
-        }
+        setPlazaPreviewItems(
+          plazaPreviewResult.status === "fulfilled"
+            ? plazaPreviewResult.value.data.items
+            : [],
+        );
+        setPublicPreviewItems(
+          publicPreviewResult.status === "fulfilled"
+            ? publicPreviewResult.value.data.items
+            : [],
+        );
       } catch {
         if (!cancelled) {
           setLandingError(siteContent.currentGame.loadError);
-          setFeaturedPreviewItems([]);
+          setPlazaPreviewItems([]);
+          setPublicPreviewItems([]);
         }
       }
     };
@@ -237,6 +271,13 @@ export default function LandingPage({ locale }: LandingPageProps) {
   };
 
   const currentGame = landingData?.currentGame ?? null;
+  const featuredPreviewItems = useMemo(
+    () =>
+      [...plazaPreviewItems, ...publicPreviewItems].sort((left, right) =>
+        right.preview.endedAt.localeCompare(left.preview.endedAt),
+      ),
+    [plazaPreviewItems, publicPreviewItems],
+  );
   const mobileTabLabels = locale === "ko"
     ? {
         current: "진행중인\n게임",
@@ -260,12 +301,52 @@ export default function LandingPage({ locale }: LandingPageProps) {
     featuredPreviewItems[activeCompletedPageIndex] ?? null;
   const activeGuideCard =
     siteContent.tutorial.cards[activeGuidePageIndex] ?? null;
+  const activeGuideCardImageUrl =
+    activeGuideCard &&
+    (isMobileLayout
+      ? activeGuideCard.mobileImageUrl ?? activeGuideCard.imageUrl
+      : activeGuideCard.imageUrl);
+  const activeGuideCardIconUrl =
+    activeGuideCard &&
+    (isMobileLayout
+      ? activeGuideCard.mobileIconUrl ?? activeGuideCard.iconUrl
+      : activeGuideCard.iconUrl);
   const shouldShowCompletedPagination =
     mobileTab === "completed" && completedPageCount > 1;
   const shouldShowGuidePagination = mobileTab === "guide" && guidePageCount > 1;
+  const detailActionLabel = locale === "ko" ? "상세 보기" : "View details";
+  const canvasResultModalLabels = locale === "ko"
+    ? {
+        title: "상세 보기",
+        close: "상세 모달 닫기",
+        snapshotAlt: "캔버스 결과 이미지",
+        noSnapshot: "캔버스를 확인할 수 없습니다.",
+        size: "캔버스 크기",
+        endedAt: "종료 시각",
+        totalRounds: "총 라운드 수",
+        participantCount: "참여자 수",
+        totalVotes: "총 투표 수",
+        topVoter: "최다 득표자",
+        emptyValue: "-",
+        participantList: "참여자 목록",
+      }
+    : {
+        title: "View details",
+        close: "Close detail modal",
+        snapshotAlt: "Canvas result image",
+        noSnapshot: "Canvas preview is unavailable.",
+        size: "Canvas size",
+        endedAt: "Ended at",
+        totalRounds: "Total rounds",
+        participantCount: "Participants",
+        totalVotes: "Total votes",
+        topVoter: "Top voter",
+        emptyValue: "-",
+        participantList: "Participants",
+      };
 
   const resolveCarouselAnimationClassName = (
-    animationStage: CarouselAnimationStage,
+    animationStage: "idle" | "out-left" | "out-right" | "in-left" | "in-right",
   ) => {
     switch (animationStage) {
       case "out-left":
@@ -285,7 +366,11 @@ export default function LandingPage({ locale }: LandingPageProps) {
     direction: "previous" | "next",
     count: number,
     setIndex: React.Dispatch<React.SetStateAction<number>>,
-    setAnimationStage: React.Dispatch<React.SetStateAction<CarouselAnimationStage>>,
+    setAnimationStage: React.Dispatch<
+      React.SetStateAction<
+        "idle" | "out-left" | "out-right" | "in-left" | "in-right"
+      >
+    >,
   ) => {
     if (count <= 1) {
       return;
@@ -311,19 +396,6 @@ export default function LandingPage({ locale }: LandingPageProps) {
     }, 160);
   };
 
-  const handleCompletedPaginationSelect = (index: number) => {
-    if (index === activeCompletedPageIndex) {
-      return;
-    }
-
-    runCarouselTransition(
-      index > activeCompletedPageIndex ? "next" : "previous",
-      completedPageCount,
-      setCompletedPageIndex,
-      setCompletedAnimationStage,
-    );
-  };
-
   const handleGuidePaginationSelect = (index: number) => {
     if (index === activeGuidePageIndex) {
       return;
@@ -337,13 +409,29 @@ export default function LandingPage({ locale }: LandingPageProps) {
     );
   };
 
+  const handleCompletedPaginationSelect = (index: number) => {
+    if (index === activeCompletedPageIndex) {
+      return;
+    }
+
+    runCarouselTransition(
+      index > activeCompletedPageIndex ? "next" : "previous",
+      completedPageCount,
+      setCompletedPageIndex,
+      setCompletedAnimationStage,
+    );
+  };
+
   const handleCompletedTouchStart = (
     event: React.TouchEvent<HTMLDivElement>,
   ) => {
-    completedSwipeStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+    completedSwipeStartXRef.current =
+      event.changedTouches[0]?.clientX ?? null;
   };
 
-  const handleCompletedTouchEnd = (event: React.TouchEvent<HTMLDivElement>) => {
+  const handleCompletedTouchEnd = (
+    event: React.TouchEvent<HTMLDivElement>,
+  ) => {
     const startX = completedSwipeStartXRef.current;
     const endX = event.changedTouches[0]?.clientX ?? null;
     completedSwipeStartXRef.current = null;
@@ -373,6 +461,26 @@ export default function LandingPage({ locale }: LandingPageProps) {
       setCompletedPageIndex,
       setCompletedAnimationStage,
     );
+  };
+
+  const handleOpenDetail = async (canvasId: number) => {
+    setDetailOpen(true);
+    setDetailLoading(true);
+    setDetailError("");
+
+    try {
+      const response = await landingApi.getCompletedPreviewDetail(canvasId);
+      setDetail(response.data);
+    } catch {
+      setDetail(null);
+      setDetailError(
+        locale === "ko"
+          ? "상세 정보를 불러오지 못했습니다."
+          : "Failed to load details.",
+      );
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const handleGuideTouchStart = (event: React.TouchEvent<HTMLDivElement>) => {
@@ -608,55 +716,25 @@ export default function LandingPage({ locale }: LandingPageProps) {
                             ),
                           ].join(" ")}
                         >
-                          <div className="space-y-4">
-                            <SnapshotImage
-                              imageUrl={
-                                activeCompletedItem.resultImageUrl ??
-                                activeCompletedItem.webpUrl
-                              }
-                              alt={`${activeCompletedItem.preview.gridX} x ${activeCompletedItem.preview.gridY}`}
-                              size={currentGameSnapshotSize}
-                            />
-
-                            <div
-                              className="mx-auto w-full max-w-full rounded-2xl bg-[#f6ede5] px-4 py-2 shadow-[0_10px_24px_rgba(39,46,55,0.05)]"
-                              style={{ maxWidth: `${currentGameSnapshotSize}px` }}
-                            >
-                              <InfoStatRow
-                                label={siteContent.currentGame.stats.grid}
-                                value={`${activeCompletedItem.preview.gridX} x ${activeCompletedItem.preview.gridY}`}
-                              />
-                              <div className="h-px bg-[#ead7c8]" />
-                              <InfoStatRow
-                                label={siteContent.featured.stats.votes}
-                                value={formatNumber.format(
-                                  activeCompletedItem.preview.totalVotes,
-                                )}
-                              />
-                              <div className="h-px bg-[#ead7c8]" />
-                              <InfoStatRow
-                                label={siteContent.featured.stats.topVoter}
-                                value={
-                                  activeCompletedItem.preview.topVoter.name
-                                    ? `${activeCompletedItem.preview.topVoter.name} (${formatNumber.format(
-                                        activeCompletedItem.preview.topVoter.voteCount,
-                                      )})`
-                                    : "-"
-                                }
-                                valueClassName="max-w-[10rem] truncate"
-                              />
-                            </div>
-                          </div>
+                          <CanvasResultCard
+                            key={`${activeCompletedItem.preview.canvasId}-${activeCompletedPageIndex}`}
+                            imageUrl={activeCompletedItem.webpUrl}
+                            imageAlt={`${activeCompletedItem.preview.gridX} x ${activeCompletedItem.preview.gridY}`}
+                            emptyMessage={siteContent.featured.sections.empty}
+                            gridX={activeCompletedItem.preview.gridX}
+                            gridY={activeCompletedItem.preview.gridY}
+                            actionLabel={detailActionLabel}
+                            onAction={() =>
+                              void handleOpenDetail(
+                                activeCompletedItem.preview.canvasId,
+                              )
+                            }
+                          />
                         </div>
                       </div>
                     ) : (
-                      <div className="flex min-h-[420px] flex-col items-start justify-center rounded-[28px] bg-[#f6ede5] px-6 text-left">
-                        <h2 className="text-2xl font-semibold text-[#272E37]">
-                          {siteContent.featured.title}
-                        </h2>
-                        <p className="mt-4 whitespace-pre-line text-base leading-7 text-[#5f6368]">
-                          {siteContent.featured.description}
-                        </p>
+                      <div className="flex min-h-[220px] items-center justify-center rounded-[28px] bg-[#f6ede5] px-6 text-center text-sm text-[#5f6368]">
+                        {siteContent.featured.sections.empty}
                       </div>
                     )
                   ) : activeGuideCard ? (
@@ -674,9 +752,14 @@ export default function LandingPage({ locale }: LandingPageProps) {
                         <article className="overflow-hidden rounded-[30px] bg-white shadow-[0_24px_70px_rgba(39,46,55,0.08)]">
                           <div className="bg-[linear-gradient(180deg,#fff4e9_0%,#f6ede5_100%)] p-4">
                             <div className="mx-auto w-full max-w-[240px] overflow-hidden rounded-[24px] shadow-[0_24px_60px_rgba(39,46,55,0.10)]">
-                              <div className="aspect-video w-full">
+                              <div
+                                className={[
+                                  "w-full",
+                                  isMobileLayout ? "aspect-[4/3]" : "aspect-video",
+                                ].join(" ")}
+                              >
                                 <img
-                                  src={activeGuideCard.imageUrl}
+                                  src={activeGuideCardImageUrl}
                                   alt={activeGuideCard.imageAlt}
                                   className="block h-full w-full object-contain"
                                   draggable={false}
@@ -690,9 +773,9 @@ export default function LandingPage({ locale }: LandingPageProps) {
                               <h3 className="text-xl font-semibold text-[#272E37]">
                                 {activeGuideCard.title}
                               </h3>
-                              {activeGuideCard.iconUrl ? (
+                              {activeGuideCardIconUrl ? (
                                 <img
-                                  src={activeGuideCard.iconUrl}
+                                  src={activeGuideCardIconUrl}
                                   alt=""
                                   aria-hidden="true"
                                   className="h-12 w-12 flex-none object-contain"
@@ -766,14 +849,18 @@ export default function LandingPage({ locale }: LandingPageProps) {
         {!isMobileLayout ? (
           <>
             <FeaturedPreviewSection
-              locale={locale}
-              items={featuredPreviewItems}
+              plazaItems={plazaPreviewItems}
+              publicItems={publicPreviewItems}
+              actionLabel={detailActionLabel}
+              onOpenDetail={(canvasId) => {
+                void handleOpenDetail(canvasId);
+              }}
               labels={{
                 title: siteContent.featured.title,
                 description: siteContent.featured.description,
-                participants: siteContent.featured.stats.participants,
-                votes: siteContent.featured.stats.votes,
-                topVoter: siteContent.featured.stats.topVoter,
+                plaza: siteContent.featured.sections.plaza,
+                public: siteContent.featured.sections.public,
+                empty: siteContent.featured.sections.empty,
               }}
             />
 
@@ -832,6 +919,39 @@ export default function LandingPage({ locale }: LandingPageProps) {
           </>
         ) : null}
       </main>
+
+      {detailOpen ? (
+        detailLoading ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(36,25,20,0.52)] px-4 py-6">
+            <div className="rounded-[28px] border border-[#ead7c8] bg-white px-6 py-5 text-sm font-medium text-[#7a685b] shadow-[0_18px_50px_rgba(39,46,55,0.08)]">
+              {locale === "ko" ? "불러오는 중..." : "Loading..."}
+            </div>
+          </div>
+        ) : detailError ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-[rgba(36,25,20,0.52)] px-4 py-6">
+            <div className="rounded-[28px] border border-[#ead7c8] bg-white px-6 py-5 shadow-[0_18px_50px_rgba(39,46,55,0.08)]">
+              <p className="text-sm font-medium text-[#c04f2c]">{detailError}</p>
+              <div className="mt-4 flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setDetailOpen(false)}
+                  className="rounded-full border border-[#d9c7b7] px-4 py-2 text-sm font-semibold text-[#6c5a4d]"
+                >
+                  {locale === "ko" ? "닫기" : "Close"}
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <CanvasResultModal
+            detail={detail}
+            open={detailOpen}
+            onClose={() => setDetailOpen(false)}
+            labels={canvasResultModalLabels}
+            showDownloadActions={false}
+          />
+        )
+      ) : null}
 
       <footer className="border-t border-[#20262f] bg-[#272E37] px-4 pb-10 pt-7 text-[#f6ede5] sm:px-6 sm:py-10 lg:px-10">
         <div className="mx-auto flex max-w-6xl flex-col gap-4 md:flex-row md:flex-wrap md:items-center md:justify-between md:gap-5">

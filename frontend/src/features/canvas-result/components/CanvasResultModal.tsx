@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "@/shared/i18n";
 import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
+import { BrandLogo } from "@/shared/ui/brand-logo";
 import { PixelSnapshotPreview } from "@/shared/ui/pixel-snapshot-preview";
 import type { CanvasResultDetailBase } from "../model/canvas-result.types";
 
@@ -26,6 +27,7 @@ interface CanvasResultModalProps {
   open: boolean;
   onClose: () => void;
   labels: CanvasResultModalLabels;
+  showDownloadActions?: boolean;
 }
 
 function formatDateTime(value: string, locale: "ko" | "en") {
@@ -76,6 +78,7 @@ export default function CanvasResultModal({
   open,
   onClose,
   labels,
+  showDownloadActions = true,
 }: CanvasResultModalProps) {
   const { formatNumber, locale, t } = useI18n();
   const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
@@ -193,11 +196,7 @@ export default function CanvasResultModal({
             isMobileLayout ? "px-4 py-4" : "px-6 py-5",
           ].join(" ")}
         >
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#cf6c45]">
-              VoteDots
-            </p>
-          </div>
+          <BrandLogo variant="wordmark" className="w-[112px]" />
 
           <button
             type="button"
@@ -245,61 +244,63 @@ export default function CanvasResultModal({
                 </div>
               )}
 
-              <div className={isMobileLayout ? "space-y-2.5" : "space-y-3"}>
-                <div className="flex flex-row gap-2">
-                  <button
-                    type="button"
-                    onClick={
-                      defaultDownloadError
-                        ? retryDefaultSnapshot
-                        : downloadDefaultSnapshot
-                    }
-                    disabled={
-                      isDownloadingDefaultSnapshot ||
-                      !canDownloadDefaultSnapshot
-                    }
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-[#d8c8bb] bg-white px-4 text-sm font-semibold text-[#2d2d2d] transition hover:border-[#d96d43] hover:bg-[#fbf3eb] disabled:cursor-not-allowed disabled:border-[#e1d4c8] disabled:bg-[#ece2d9] disabled:text-[#9a8778]"
-                  >
-                    {isDownloadingDefaultSnapshot
-                      ? t("gameSummary.downloading")
-                      : defaultDownloadError
-                        ? t("gameSummary.downloadRetry")
-                        : t("gameSummary.download")}
-                  </button>
+              {showDownloadActions ? (
+                <div className={isMobileLayout ? "space-y-2.5" : "space-y-3"}>
+                  <div className="flex flex-row gap-2">
+                    <button
+                      type="button"
+                      onClick={
+                        defaultDownloadError
+                          ? retryDefaultSnapshot
+                          : downloadDefaultSnapshot
+                      }
+                      disabled={
+                        isDownloadingDefaultSnapshot ||
+                        !canDownloadDefaultSnapshot
+                      }
+                      className="inline-flex h-11 flex-1 items-center justify-center rounded-full border border-[#d8c8bb] bg-white px-4 text-sm font-semibold text-[#2d2d2d] transition hover:border-[#d96d43] hover:bg-[#fbf3eb] disabled:cursor-not-allowed disabled:border-[#e1d4c8] disabled:bg-[#ece2d9] disabled:text-[#9a8778]"
+                    >
+                      {isDownloadingDefaultSnapshot
+                        ? t("gameSummary.downloading")
+                        : defaultDownloadError
+                          ? t("gameSummary.downloadRetry")
+                          : t("gameSummary.download")}
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={
-                      highResolutionDownloadError
-                        ? retryHighResolutionSnapshot
-                        : downloadHighResolutionSnapshot
-                    }
-                    disabled={
-                      isDownloadingHighResolutionSnapshot ||
-                      !canDownloadHighResolutionSnapshot
-                    }
-                    className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#d96d43] px-4 text-sm font-semibold text-white transition hover:bg-[#c95d34] disabled:cursor-not-allowed disabled:bg-[#d9cec3] disabled:text-[#8a796c]"
-                  >
-                    {isDownloadingHighResolutionSnapshot
-                      ? t("gameSummary.downloadingHd")
-                      : highResolutionDownloadError
-                        ? t("gameSummary.downloadHdRetry")
-                        : t("gameSummary.downloadHd")}
-                  </button>
+                    <button
+                      type="button"
+                      onClick={
+                        highResolutionDownloadError
+                          ? retryHighResolutionSnapshot
+                          : downloadHighResolutionSnapshot
+                      }
+                      disabled={
+                        isDownloadingHighResolutionSnapshot ||
+                        !canDownloadHighResolutionSnapshot
+                      }
+                      className="inline-flex h-11 flex-1 items-center justify-center rounded-full bg-[#d96d43] px-4 text-sm font-semibold text-white transition hover:bg-[#c95d34] disabled:cursor-not-allowed disabled:bg-[#d9cec3] disabled:text-[#8a796c]"
+                    >
+                      {isDownloadingHighResolutionSnapshot
+                        ? t("gameSummary.downloadingHd")
+                        : highResolutionDownloadError
+                          ? t("gameSummary.downloadHdRetry")
+                          : t("gameSummary.downloadHd")}
+                    </button>
+                  </div>
+
+                  {defaultDownloadError ? (
+                    <p className="text-sm font-medium text-[#c04f2c]">
+                      {defaultDownloadError}
+                    </p>
+                  ) : null}
+
+                  {highResolutionDownloadError ? (
+                    <p className="text-sm font-medium text-[#c04f2c]">
+                      {highResolutionDownloadError}
+                    </p>
+                  ) : null}
                 </div>
-
-                {defaultDownloadError ? (
-                  <p className="text-sm font-medium text-[#c04f2c]">
-                    {defaultDownloadError}
-                  </p>
-                ) : null}
-
-                {highResolutionDownloadError ? (
-                  <p className="text-sm font-medium text-[#c04f2c]">
-                    {highResolutionDownloadError}
-                  </p>
-                ) : null}
-              </div>
+              ) : null}
             </div>
 
             <div

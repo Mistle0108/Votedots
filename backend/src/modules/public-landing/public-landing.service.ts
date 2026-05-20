@@ -309,6 +309,7 @@ export const publicLandingService = {
       .leftJoinAndSelect("preview.gameSummary", "gameSummary")
       .leftJoin(Room, "room", "room.canvas_id = canvas.id")
       .where("preview.status = :status", { status: GamePreviewStatus.READY })
+      .andWhere("preview.storagePath IS NOT NULL")
       .andWhere("preview.endedAt >= :dateFrom", { dateFrom: params.dateFrom })
       .andWhere("preview.endedAt <= :dateTo", { dateTo: params.dateTo });
 

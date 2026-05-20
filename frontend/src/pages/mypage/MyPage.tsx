@@ -971,6 +971,8 @@ export default function MyPage() {
                             imageUrl={activeMobileParticipation.resultImageUrl ?? null}
                             imageAlt={t("mypage.participations.resultImageAlt")}
                             emptyMessage={t("mypage.participations.resultUnavailable")}
+                            gridX={activeMobileParticipation.gridX}
+                            gridY={activeMobileParticipation.gridY}
                             footer={
                               <div>
                                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#cf6c45]">
@@ -1218,6 +1220,8 @@ export default function MyPage() {
                         imageUrl={item.resultImageUrl}
                         imageAlt={t("mypage.participations.resultImageAlt")}
                         emptyMessage={t("mypage.participations.resultUnavailable")}
+                        gridX={item.gridX}
+                        gridY={item.gridY}
                         footer={
                           <div>
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#cf6c45]">
