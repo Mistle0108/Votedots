@@ -48,6 +48,11 @@ interface SiteContent {
   featured: {
     title: string;
     description: string;
+    sections: {
+      plaza: string;
+      public: string;
+      empty: string;
+    };
     stats: {
       participants: string;
       votes: string;
@@ -108,6 +113,11 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       title: "완성된 캔버스",
       description:
         "현재 로테이션에 포함된 보드 크기별로 참여자가 가장 많았던 게임을 보여줍니다.",
+      sections: {
+        plaza: "광장",
+        public: "공개방",
+        empty: "아직 표시할 완성된 캔버스가 없습니다.",
+      },
       stats: {
         participants: "참여자",
         votes: "총 투표 수",
@@ -415,6 +425,11 @@ const SITE_CONTENT: Record<Locale, SiteContent> = {
       title: "Completed canvases",
       description:
         "Shows the game with the most participants for each board size in the current rotation.",
+      sections: {
+        plaza: "Plaza",
+        public: "Public room",
+        empty: "There are no completed canvases to show yet.",
+      },
       stats: {
         participants: "Participants",
         votes: "Total votes",

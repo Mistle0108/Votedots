@@ -399,6 +399,8 @@ export default function CompletedCanvasSection({
                 secondaryImageUrl={activeItem?.resultImageUrl ?? null}
                 imageAlt={t("mypage.participations.resultImageAlt")}
                 emptyMessage={t("mypage.participations.resultUnavailable")}
+                gridX={activeItem?.preview.gridX}
+                gridY={activeItem?.preview.gridY}
                 footer={
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#cf6c45]">
@@ -440,6 +442,8 @@ export default function CompletedCanvasSection({
                   secondaryImageUrl={item.resultImageUrl ?? null}
                   imageAlt={t("mypage.modal.snapshotAlt")}
                   emptyMessage={t("mypage.participations.resultUnavailable")}
+                  gridX={item.preview.gridX}
+                  gridY={item.preview.gridY}
                   footer={
                     <div className="space-y-3 text-center">
                       <div>
@@ -513,7 +517,7 @@ export default function CompletedCanvasSection({
               totalVotes: t("mypage.modal.totalVotes"),
               topVoter: t("mypage.modal.topVoter"),
               emptyValue: t("mypage.modal.emptyValue"),
-              participantList: t("mypage.modal.participantList"),
+              participantList: t("lobby.completed.participantList"),
             }}
           />
         ) : null

@@ -27,11 +27,11 @@ function getPreviewDimensions(
   }
 
   const longestSide = Math.max(naturalWidth, naturalHeight);
-  const scale = maxLongestSide / longestSide;
+  const scale = Math.max(1, Math.floor(maxLongestSide / longestSide));
 
   return {
-    width: Math.round(naturalWidth * scale),
-    height: Math.round(naturalHeight * scale),
+    width: naturalWidth * scale,
+    height: naturalHeight * scale,
   };
 }
 
