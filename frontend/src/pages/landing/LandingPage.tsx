@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { landingApi } from "@/features/landing/api/landing.api";
-import FeaturedPreviewCard from "@/features/landing/components/FeaturedPreviewCard";
 import FeaturedPreviewSection from "@/features/landing/components/FeaturedPreviewSection";
 import type {
   LandingFeaturedPreviewItem,
@@ -81,11 +80,26 @@ function SnapshotImage({
   );
 }
 
-function InfoStatRow({ label, value }: { label: string; value: string }) {
+function InfoStatRow({
+  label,
+  value,
+  valueClassName = "",
+}: {
+  label: string;
+  value: string;
+  valueClassName?: string;
+}) {
   return (
     <div className="flex items-center justify-between gap-4 py-3">
       <p className="text-[17px] font-semibold text-[#7b6b62]">{label}</p>
-      <p className="text-[17px] font-semibold text-[#272E37]">{value}</p>
+      <p
+        className={[
+          "min-w-0 text-right text-[17px] font-semibold text-[#272E37]",
+          valueClassName,
+        ].join(" ")}
+      >
+        {value}
+      </p>
     </div>
   );
 }
@@ -225,8 +239,8 @@ export default function LandingPage({ locale }: LandingPageProps) {
   const currentGame = landingData?.currentGame ?? null;
   const mobileTabLabels = locale === "ko"
     ? {
-        current: "진행중인 게임",
-        completed: "완성된 캔버스",
+        current: "진행중인\n게임",
+        completed: "완성된\n캔버스",
         guide: "게임 소개",
       }
     : {
@@ -505,7 +519,7 @@ export default function LandingPage({ locale }: LandingPageProps) {
                         type="button"
                         onClick={() => setMobileTab(tabKey)}
                         className={[
-                          "rounded-full px-2 py-2 text-[11px] font-semibold transition sm:text-xs",
+                          "rounded-full px-2 py-2 text-[11px] font-semibold leading-tight whitespace-pre-line transition sm:text-xs",
                           mobileTab === tabKey
                             ? "bg-white text-[#272E37]"
                             : "text-white/82",
@@ -594,13 +608,45 @@ export default function LandingPage({ locale }: LandingPageProps) {
                             ),
                           ].join(" ")}
                         >
-                          <FeaturedPreviewCard
-                            locale={locale}
-                            gridX={activeCompletedItem.preview.gridX}
-                            gridY={activeCompletedItem.preview.gridY}
-                            item={activeCompletedItem}
-                            labels={siteContent.featured.stats}
-                          />
+                          <div className="space-y-4">
+                            <SnapshotImage
+                              imageUrl={
+                                activeCompletedItem.resultImageUrl ??
+                                activeCompletedItem.webpUrl
+                              }
+                              alt={`${activeCompletedItem.preview.gridX} x ${activeCompletedItem.preview.gridY}`}
+                              size={currentGameSnapshotSize}
+                            />
+
+                            <div
+                              className="mx-auto w-full max-w-full rounded-2xl bg-[#f6ede5] px-4 py-2 shadow-[0_10px_24px_rgba(39,46,55,0.05)]"
+                              style={{ maxWidth: `${currentGameSnapshotSize}px` }}
+                            >
+                              <InfoStatRow
+                                label={siteContent.currentGame.stats.grid}
+                                value={`${activeCompletedItem.preview.gridX} x ${activeCompletedItem.preview.gridY}`}
+                              />
+                              <div className="h-px bg-[#ead7c8]" />
+                              <InfoStatRow
+                                label={siteContent.featured.stats.votes}
+                                value={formatNumber.format(
+                                  activeCompletedItem.preview.totalVotes,
+                                )}
+                              />
+                              <div className="h-px bg-[#ead7c8]" />
+                              <InfoStatRow
+                                label={siteContent.featured.stats.topVoter}
+                                value={
+                                  activeCompletedItem.preview.topVoter.name
+                                    ? `${activeCompletedItem.preview.topVoter.name} (${formatNumber.format(
+                                        activeCompletedItem.preview.topVoter.voteCount,
+                                      )})`
+                                    : "-"
+                                }
+                                valueClassName="max-w-[10rem] truncate"
+                              />
+                            </div>
+                          </div>
                         </div>
                       </div>
                     ) : (

@@ -4,6 +4,8 @@ import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
 import { PixelSnapshotPreview } from "@/shared/ui/pixel-snapshot-preview";
 import type { CanvasResultDetailBase } from "../model/canvas-result.types";
 
+const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 767px)";
+
 interface CanvasResultModalLabels {
   title: string;
   close: string;
@@ -36,14 +38,35 @@ function formatDateTime(value: string, locale: "ko" | "en") {
 function StatLine({
   label,
   value,
+  compact = false,
 }: {
   label: string;
   value: string;
+  compact?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between gap-4 border-b border-[#eadfce] py-3 last:border-b-0">
-      <dt className="text-sm font-semibold text-[#6c5a4d]">{label}</dt>
-      <dd className="text-right text-sm font-medium text-[#2d2d2d]">{value}</dd>
+    <div
+      className={[
+        "flex items-start justify-between border-b border-[#eadfce] last:border-b-0",
+        compact ? "gap-3 py-2.5" : "gap-4 py-3",
+      ].join(" ")}
+    >
+      <dt
+        className={[
+          "font-semibold text-[#6c5a4d]",
+          compact ? "text-[13px]" : "text-sm",
+        ].join(" ")}
+      >
+        {label}
+      </dt>
+      <dd
+        className={[
+          "text-right font-medium text-[#2d2d2d]",
+          compact ? "text-[13px]" : "text-sm",
+        ].join(" ")}
+      >
+        {value}
+      </dd>
     </div>
   );
 }
@@ -56,6 +79,12 @@ export default function CanvasResultModal({
 }: CanvasResultModalProps) {
   const { formatNumber, locale, t } = useI18n();
   const [failedPreviewUrl, setFailedPreviewUrl] = useState<string | null>(null);
+  const [isMobileLayout, setIsMobileLayout] = useState(() =>
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+      ? false
+      : window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches,
+  );
   const currentPreviewUrl = detail?.resultImageUrl ?? null;
   const previewImageFailed =
     currentPreviewUrl !== null && failedPreviewUrl === currentPreviewUrl;
@@ -100,6 +129,31 @@ export default function CanvasResultModal({
   });
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobileLayout(event.matches);
+    };
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleChange);
+
+      return () => {
+        mediaQuery.removeEventListener("change", handleChange);
+      };
+    }
+
+    mediaQuery.addListener(handleChange);
+
+    return () => {
+      mediaQuery.removeListener(handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!open) {
       return undefined;
     }
@@ -133,7 +187,12 @@ export default function CanvasResultModal({
       <div className="absolute inset-0" onClick={onClose} aria-hidden="true" />
 
       <section className="relative z-10 flex max-h-[calc(100vh-48px)] w-full max-w-4xl flex-col overflow-hidden rounded-[32px] border border-[#e8d5c3] bg-[#fffaf5] shadow-[0_28px_90px_rgba(42,27,19,0.22)]">
-        <header className="flex items-center justify-between border-b border-[#eadfce] px-6 py-5">
+        <header
+          className={[
+            "flex items-center justify-between border-b border-[#eadfce]",
+            isMobileLayout ? "px-4 py-4" : "px-6 py-5",
+          ].join(" ")}
+        >
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#cf6c45]">
               VoteDots
@@ -150,15 +209,25 @@ export default function CanvasResultModal({
           </button>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]">
-            <div className="space-y-5">
+        <div
+          className={[
+            "min-h-0 flex-1 overflow-y-auto",
+            isMobileLayout ? "px-4 py-4" : "px-6 py-6",
+          ].join(" ")}
+        >
+          <div
+            className={[
+              "grid lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,0.95fr)]",
+              isMobileLayout ? "gap-4" : "gap-6",
+            ].join(" ")}
+          >
+            <div className={isMobileLayout ? "space-y-4" : "space-y-5"}>
               {detail.resultImageUrl ? (
                 <PixelSnapshotPreview
                   snapshotUrl={detail.resultImageUrl}
                   alt={labels.snapshotAlt}
                   backgroundAlt={labels.snapshotAlt}
-                  maxLongestSide={420}
+                  maxLongestSide={isMobileLayout ? 256 : 420}
                   fallbackMessage={labels.noSnapshot}
                   onImageLoadStateChange={(state) => {
                     if (!currentPreviewUrl) {
@@ -176,8 +245,8 @@ export default function CanvasResultModal({
                 </div>
               )}
 
-              <div className="space-y-3">
-                <div className="flex flex-col gap-2 sm:flex-row">
+              <div className={isMobileLayout ? "space-y-2.5" : "space-y-3"}>
+                <div className="flex flex-row gap-2">
                   <button
                     type="button"
                     onClick={
@@ -233,38 +302,70 @@ export default function CanvasResultModal({
               </div>
             </div>
 
-            <div className="rounded-[28px] border border-[#eadfce] bg-white px-5 py-4">
+            <div
+              className={[
+                "rounded-[28px] border border-[#eadfce] bg-white",
+                isMobileLayout ? "px-4 py-3.5" : "px-5 py-4",
+              ].join(" ")}
+            >
               <dl>
-                <StatLine label={labels.size} value={detail.size} />
+                <StatLine
+                  label={labels.size}
+                  value={detail.size}
+                  compact={isMobileLayout}
+                />
                 <StatLine
                   label={labels.endedAt}
                   value={formatDateTime(detail.endedAt, locale)}
+                  compact={isMobileLayout}
                 />
                 <StatLine
                   label={labels.totalRounds}
                   value={formatNumber(detail.totalRounds)}
+                  compact={isMobileLayout}
                 />
                 <StatLine
                   label={labels.participantCount}
                   value={formatNumber(detail.participantCount)}
+                  compact={isMobileLayout}
                 />
                 <StatLine
                   label={labels.totalVotes}
                   value={formatNumber(detail.totalVotes)}
+                  compact={isMobileLayout}
                 />
-                <StatLine label={labels.topVoter} value={topVoterLabel} />
+                <StatLine
+                  label={labels.topVoter}
+                  value={topVoterLabel}
+                  compact={isMobileLayout}
+                />
               </dl>
 
               {participants.length > 0 ? (
-                <div className="mt-3 border-t border-[#eadfce] pt-3">
-                  <p className="text-sm font-semibold text-[#6c5a4d]">
+                <div
+                  className={[
+                    "border-t border-[#eadfce]",
+                    isMobileLayout ? "mt-2.5 pt-2.5" : "mt-3 pt-3",
+                  ].join(" ")}
+                >
+                  <p
+                    className={[
+                      "font-semibold text-[#6c5a4d]",
+                      isMobileLayout ? "text-[13px]" : "text-sm",
+                    ].join(" ")}
+                  >
                     {labels.participantList}
                   </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
+                  <div className={isMobileLayout ? "mt-2.5 flex flex-wrap gap-1.5" : "mt-3 flex flex-wrap gap-2"}>
                     {participants.map((participant, index) => (
                       <span
                         key={`${participant}-${index}`}
-                        className="inline-flex items-center rounded-full border border-[#e3d3c4] bg-[#fff8f1] px-3 py-1.5 text-sm font-medium text-[#2d2d2d]"
+                        className={[
+                          "inline-flex items-center rounded-full border border-[#e3d3c4] bg-[#fff8f1] font-medium text-[#2d2d2d]",
+                          isMobileLayout
+                            ? "px-2.5 py-1 text-[13px]"
+                            : "px-3 py-1.5 text-sm",
+                        ].join(" ")}
                       >
                         {participant}
                       </span>

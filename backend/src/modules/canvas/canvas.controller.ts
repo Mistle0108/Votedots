@@ -108,7 +108,7 @@ export const canvasController = {
 
   async getCurrent(req: Request, res: Response) {
     try {
-      const canvas = await canvasService.getCurrentPlayingPlaza();
+      const canvas = await canvasService.getCurrentPlaza();
       if (!canvas) {
         return res
           .status(404)

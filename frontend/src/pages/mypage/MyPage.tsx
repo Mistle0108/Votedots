@@ -1,4 +1,13 @@
-import { useEffect, useRef, useState, type ChangeEvent, type FormEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type ChangeEvent,
+  type Dispatch,
+  type FormEvent,
+  type SetStateAction,
+  type TouchEvent,
+} from "react";
 import { useNavigate } from "react-router-dom";
 import { authApi, logoutToLobby, type Voter } from "@/features/auth";
 import { mypageApi } from "@/features/mypage/api/mypage.api";
@@ -20,6 +29,13 @@ import CanvasResultModal from "@/features/canvas-result/components/CanvasResultM
 
 type SizeFilterValue = "all" | "32x32" | "64x64" | "128x128" | "256x256";
 type VisibilityFilterValue = "all" | "public" | "private";
+type MobileMyPageTab = "participations" | "stats" | "account";
+type CarouselAnimationStage =
+  | "idle"
+  | "out-left"
+  | "out-right"
+  | "in-left"
+  | "in-right";
 
 const SIZE_FILTERS: SizeFilterValue[] = [
   "all",
@@ -29,6 +45,8 @@ const SIZE_FILTERS: SizeFilterValue[] = [
   "256x256",
 ];
 const VISIBILITY_FILTERS: VisibilityFilterValue[] = ["all", "public", "private"];
+const MOBILE_SWIPE_THRESHOLD_PX = 40;
+const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 767px)";
 
 const EMPTY_PAGINATION: MypagePagination = {
   page: 1,
@@ -41,19 +59,14 @@ const EMPTY_PAGINATION: MypagePagination = {
 function getVisiblePageNumbers(
   currentPage: number,
   totalPages: number,
-  windowSize = 5,
+  windowSize = 3,
 ) {
   if (totalPages <= 0) {
     return [];
   }
 
-  const halfWindow = Math.floor(windowSize / 2);
-  let startPage = Math.max(1, currentPage - halfWindow);
-  let endPage = Math.min(totalPages, startPage + windowSize - 1);
-
-  if (endPage - startPage + 1 < windowSize) {
-    startPage = Math.max(1, endPage - windowSize + 1);
-  }
+  const startPage = Math.floor((currentPage - 1) / windowSize) * windowSize + 1;
+  const endPage = Math.min(totalPages, startPage + windowSize - 1);
 
   return Array.from(
     { length: endPage - startPage + 1 },
@@ -144,14 +157,21 @@ function sanitizePasswordValue(value: string) {
 function TopMetric({
   label,
   value,
+  className = "",
 }: {
   label: string;
   value: string;
+  className?: string;
 }) {
   return (
-    <div className="min-w-0 px-6 py-2 text-center sm:px-10">
-      <p className="px-3 text-sm font-medium text-[#7a685b]">{label}</p>
-      <p className="mt-[18px] px-3 text-[44px] leading-none font-semibold tracking-[-0.05em] text-[#2d2d2d]">
+    <div
+      className={[
+        "min-w-0 rounded-[24px] border border-[#ead7c8] bg-white px-4 py-4 text-left sm:rounded-none sm:border-0 sm:bg-transparent sm:px-10 sm:py-2 sm:text-center",
+        className,
+      ].join(" ")}
+    >
+      <p className="text-xs font-medium text-[#7a685b] sm:px-3 sm:text-sm">{label}</p>
+      <p className="mt-3 text-[34px] leading-none font-semibold tracking-[-0.05em] text-[#2d2d2d] sm:mt-[18px] sm:px-3 sm:text-[44px]">
         {value}
       </p>
     </div>
@@ -209,6 +229,70 @@ function PasswordVisibilityButton({
   );
 }
 
+function MobileParticipationPageControls({
+  page,
+  totalPages,
+  onSelect,
+  previousLabel,
+  nextLabel,
+}: {
+  page: number;
+  totalPages: number;
+  onSelect: (page: number) => void;
+  previousLabel: string;
+  nextLabel: string;
+}) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
+  const visiblePages = getVisiblePageNumbers(page, totalPages, 3);
+  const currentWindowStart = visiblePages[0] ?? 1;
+  const currentWindowEnd = visiblePages[visiblePages.length - 1] ?? totalPages;
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-[24px] border border-[#ead7c8] bg-white px-3 py-3">
+      <button
+        type="button"
+        disabled={currentWindowStart <= 1}
+        onClick={() => onSelect(Math.max(currentWindowStart - 3, 1))}
+        className="inline-flex h-10 min-w-10 items-center justify-center border-b-2 border-transparent px-3 text-sm font-semibold text-[#6c5a4d] transition hover:border-[#d9c7b7] hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label={previousLabel}
+      >
+        &lt;
+      </button>
+
+      <div className="flex items-center gap-0.5">
+        {visiblePages.map((pageNumber) => (
+          <button
+            key={pageNumber}
+            type="button"
+            onClick={() => onSelect(pageNumber)}
+            className={[
+              "inline-flex h-10 min-w-10 items-center justify-center border-b-2 px-3 text-sm font-semibold transition",
+              pageNumber === page
+                ? "border-[#2d2d2d] text-[#2d2d2d]"
+                : "border-transparent text-[#6c5a4d] hover:border-[#d9c7b7] hover:text-[#2d2d2d]",
+            ].join(" ")}
+          >
+            {pageNumber}
+          </button>
+        ))}
+      </div>
+
+      <button
+        type="button"
+        disabled={currentWindowEnd >= totalPages}
+        onClick={() => onSelect(Math.min(currentWindowStart + 3, totalPages))}
+        className="inline-flex h-10 min-w-10 items-center justify-center border-b-2 border-transparent px-3 text-sm font-semibold text-[#6c5a4d] transition hover:border-[#d9c7b7] hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label={nextLabel}
+      >
+        &gt;
+      </button>
+    </div>
+  );
+}
+
 function formatDateTime(value: string, locale: "ko" | "en") {
   return new Intl.DateTimeFormat(locale === "ko" ? "ko-KR" : "en-US", {
     dateStyle: "medium",
@@ -255,7 +339,68 @@ export default function MyPage() {
   const [showNewPasswordConfirm, setShowNewPasswordConfirm] = useState(false);
   const [showWithdrawPassword, setShowWithdrawPassword] = useState(false);
   const pendingFilterScrollYRef = useRef<number | null>(null);
+  const statsSectionRef = useRef<HTMLElement | null>(null);
+  const accountSectionRef = useRef<HTMLElement | null>(null);
+  const participationsSectionRef = useRef<HTMLElement | null>(null);
+  const [mobileTab, setMobileTab] = useState<MobileMyPageTab>("participations");
+  const [isMobileLayout, setIsMobileLayout] = useState(() =>
+    typeof window === "undefined" ||
+    typeof window.matchMedia !== "function"
+      ? false
+      : window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches,
+  );
+  const [mobileParticipationAnimationStage, setMobileParticipationAnimationStage] =
+    useState<CarouselAnimationStage>("idle");
+  const participationSwipeStartXRef = useRef<number | null>(null);
   const sizeCounts = buildSizeCounts(stats);
+  const participationQueryLimit = isMobileLayout ? 1 : 8;
+
+  const mobileTabLabels = {
+    participations: t("mypage.tabs.participations"),
+    stats: t("mypage.tabs.stats"),
+    account: t("mypage.tabs.account"),
+  };
+
+  const resolveCarouselAnimationClassName = (
+    animationStage: CarouselAnimationStage,
+  ) => {
+    switch (animationStage) {
+      case "out-left":
+        return "-translate-x-5 opacity-0";
+      case "out-right":
+        return "translate-x-5 opacity-0";
+      case "in-left":
+        return "-translate-x-3 opacity-0";
+      case "in-right":
+        return "translate-x-3 opacity-0";
+      default:
+        return "translate-x-0 opacity-100";
+    }
+  };
+
+  const runCarouselTransition = (
+    direction: "previous" | "next",
+    count: number,
+    applyTransition: () => void,
+    setAnimationStage: Dispatch<SetStateAction<CarouselAnimationStage>>,
+  ) => {
+    if (count <= 1) {
+      return;
+    }
+
+    setAnimationStage(direction === "next" ? "out-left" : "out-right");
+
+    window.setTimeout(() => {
+      applyTransition();
+      setAnimationStage(direction === "next" ? "in-right" : "in-left");
+
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+          setAnimationStage("idle");
+        });
+      });
+    }, 150);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -300,6 +445,31 @@ export default function MyPage() {
   }, [locale, navigate, t]);
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return undefined;
+    }
+
+    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
+    const handleChange = (event: MediaQueryListEvent) => {
+      setIsMobileLayout(event.matches);
+    };
+
+    if (typeof mediaQuery.addEventListener === "function") {
+      mediaQuery.addEventListener("change", handleChange);
+
+      return () => {
+        mediaQuery.removeEventListener("change", handleChange);
+      };
+    }
+
+    mediaQuery.addListener(handleChange);
+
+    return () => {
+      mediaQuery.removeListener(handleChange);
+    };
+  }, []);
+
+  useEffect(() => {
     if (participationsLoading || pendingFilterScrollYRef.current === null) {
       return;
     }
@@ -325,7 +495,7 @@ export default function MyPage() {
       try {
         const { data } = await mypageApi.getParticipations({
           page,
-          limit: 8,
+          limit: participationQueryLimit,
           size: sizeFilter === "all" ? undefined : sizeFilter,
           visibility:
             visibilityFilter === "all" ? undefined : visibilityFilter,
@@ -367,7 +537,15 @@ export default function MyPage() {
     return () => {
       cancelled = true;
     };
-  }, [locale, navigate, page, sizeFilter, t, visibilityFilter]);
+  }, [
+    locale,
+    navigate,
+    page,
+    participationQueryLimit,
+    sizeFilter,
+    t,
+    visibilityFilter,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -517,6 +695,133 @@ export default function MyPage() {
         setter(sanitizePasswordValue(event.target.value));
       };
 
+  const handleParticipationPaginationSelect = (nextPage: number) => {
+    if (nextPage === page || nextPage < 1 || nextPage > pagination.totalPages) {
+      return;
+    }
+
+    runCarouselTransition(
+      nextPage > page ? "next" : "previous",
+      pagination.totalPages,
+      () => setPage(nextPage),
+      setMobileParticipationAnimationStage,
+    );
+  };
+
+  const mobileStatsSlides = [
+    <div key="summary" className="grid grid-cols-1 gap-3">
+      <TopMetric
+        label={t("mypage.summary.totalParticipatedCanvasCount")}
+        value={formatNumber(stats?.totalParticipatedCanvasCount ?? 0)}
+      />
+      <TopMetric
+        label={t("mypage.summary.totalUsedVoteCount")}
+        value={formatNumber(stats?.totalUsedVoteCount ?? 0)}
+      />
+      <TopMetric
+        label={t("mypage.summary.topVoterAchievedCount")}
+        value={formatNumber(stats?.topVoterAchievedCount ?? 0)}
+      />
+    </div>,
+    <div
+      key="breakdown"
+      className="overflow-hidden rounded-[24px] border border-[#e6d8c9] bg-white"
+    >
+      <div className="grid grid-cols-2">
+        {(["32x32", "64x64", "128x128", "256x256"] as const).map(
+          (size, index) => (
+            <article
+              key={size}
+              className={[
+                "px-4 py-4 text-center",
+                index % 2 === 1 ? "border-l border-[#efe3d7]" : "",
+                index >= 2 ? "border-t border-[#efe3d7]" : "",
+              ].join(" ")}
+            >
+              <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#d96d43]">
+                {size}
+              </p>
+              <p className="mt-3 text-[38px] font-semibold leading-none tracking-[-0.05em] text-[#2d2d2d]">
+                {formatNumber(sizeCounts[size])}
+              </p>
+            </article>
+          ),
+        )}
+      </div>
+    </div>,
+  ];
+  const mobileAccountSlides = [
+    <div
+      key="profile"
+      className="rounded-[24px] border border-[#e6d8c9] bg-[#fffaf5] px-5 py-5"
+    >
+      <h2 className="text-[28px] font-semibold tracking-[-0.05em] text-[#151515]">
+        {profile?.nickname ?? "-"}
+      </h2>
+      <p className="mt-2 text-[15px] font-medium text-[#6c5a4d]">
+        @{profile?.username ?? "-"}
+      </p>
+      <div className="mt-6 border-t border-[#e6d8c9] pt-4 text-left">
+        <p className="text-sm font-semibold text-[#d8b18f]">
+          {t("mypage.profile.createdAt")}
+        </p>
+        <p className="mt-2 text-[20px] font-medium tracking-[-0.04em] text-[#2d2d2d]">
+          {profile ? formatDate(profile.createdAt, locale) : "-"}
+        </p>
+      </div>
+    </div>,
+    <div
+      key="actions"
+      className="rounded-[24px] border border-[#e6d8c9] bg-[#fffaf5] px-5 py-5"
+    >
+      <div className="space-y-3">
+        <button
+          type="button"
+          onClick={handleOpenChangePasswordModal}
+          className="inline-flex h-[52px] w-full items-center justify-center rounded-[20px] border border-[#cfc3b7] bg-white px-4 text-[15px] font-semibold text-[#2d2d2d] transition hover:bg-[#f6eee7]"
+        >
+          {t("mypage.account.changePassword")}
+        </button>
+        <button
+          type="button"
+          onClick={handleOpenWithdrawModal}
+          className="inline-flex h-[52px] w-full items-center justify-center rounded-[20px] border border-[#e4b8ad] bg-[#fff5f2] px-4 text-[15px] font-semibold text-[#c04f2c] transition hover:bg-[#fde7df]"
+        >
+          {t("mypage.account.withdraw")}
+        </button>
+      </div>
+    </div>,
+  ];
+  const activeMobileParticipation = participations[0] ?? null;
+
+  const handleParticipationTouchStart = (event: TouchEvent<HTMLDivElement>) => {
+    participationSwipeStartXRef.current = event.changedTouches[0]?.clientX ?? null;
+  };
+
+  const handleParticipationTouchEnd = (event: TouchEvent<HTMLDivElement>) => {
+    const startX = participationSwipeStartXRef.current;
+    const endX = event.changedTouches[0]?.clientX ?? null;
+    participationSwipeStartXRef.current = null;
+
+    if (
+      startX === null ||
+      endX === null ||
+      pagination.totalPages <= 1 ||
+      Math.abs(endX - startX) < MOBILE_SWIPE_THRESHOLD_PX
+    ) {
+      return;
+    }
+
+    if (endX < startX) {
+      handleParticipationPaginationSelect(
+        Math.min(pagination.page + 1, pagination.totalPages),
+      );
+      return;
+    }
+
+    handleParticipationPaginationSelect(Math.max(pagination.page - 1, 1));
+  };
+
   if (profileLoading) {
     return (
       <div className="min-h-screen bg-[linear-gradient(180deg,#f8efe6_0%,#fffdf9_100%)] px-4 py-12 text-[#2d2d2d]">
@@ -528,12 +833,12 @@ export default function MyPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(217,109,67,0.18),transparent_25%),linear-gradient(180deg,#f8efe6_0%,#fffdf9_100%)] px-4 py-6 text-[#2d2d2d] sm:px-6 lg:px-10">
+    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(217,109,67,0.18),transparent_25%),linear-gradient(180deg,#f8efe6_0%,#fffdf9_100%)] px-4 py-4 text-[#2d2d2d] sm:px-6 sm:py-6 lg:px-10">
       <main className="mx-auto max-w-7xl">
-        <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-          <BrandLogo variant="wordmark" className="w-34" />
+        <div className="mb-4 flex items-center justify-between gap-3 sm:mb-5 sm:flex-wrap">
+          <BrandLogo variant="wordmark" className="w-30 sm:w-34" />
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center justify-end gap-2">
             <Button
               variant="outline"
               className="inline-flex h-9 w-9 items-center justify-center rounded-full border-[#d9c7b7] bg-white p-0 text-[#6c5a4d] hover:bg-[#f6eee7]"
@@ -562,8 +867,158 @@ export default function MyPage() {
             <p className="text-sm font-medium text-[#c04f2c]">{pageError}</p>
           ) : null}
 
-          <div className="grid items-stretch gap-0 overflow-hidden rounded-[32px] border border-[#ddcfbf] bg-[#fdf8f1] shadow-[0_18px_60px_rgba(39,46,55,0.08)] xl:grid-cols-[minmax(0,5fr)_minmax(320px,2fr)]">
-            <section className="order-2 px-6 py-6 sm:px-8 sm:py-7 xl:order-1">
+          <section className="overflow-hidden rounded-[28px] border border-[#ead7c8] bg-[#fff7f0] shadow-[0_24px_80px_rgba(39,46,55,0.08)] md:hidden">
+            <div className="px-4 py-4">
+              <div className="grid grid-cols-3 rounded-full bg-[#f8ece1] p-1">
+                {(
+                  [
+                    ["participations", mobileTabLabels.participations],
+                    ["stats", mobileTabLabels.stats],
+                    ["account", mobileTabLabels.account],
+                  ] as const
+                ).map(([tabKey, label]) => (
+                  <button
+                    key={tabKey}
+                    type="button"
+                    onClick={() => setMobileTab(tabKey)}
+                    className={[
+                      "rounded-full px-2 py-2 text-[12px] font-semibold transition",
+                      mobileTab === tabKey
+                        ? "bg-[#272E37] text-white"
+                        : "text-[#5f6368]",
+                    ].join(" ")}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="mt-4">
+                {mobileTab === "participations" ? (
+                  <>
+                    <div className="mt-4 space-y-4">
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-3">
+                          <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
+                            {t("mypage.filter.sizeLabel")}
+                          </span>
+                          <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
+                            <select
+                              value={sizeFilter}
+                              onChange={(event) => {
+                                setPage(1);
+                                setSizeFilter(event.target.value as SizeFilterValue);
+                              }}
+                              className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
+                            >
+                              {SIZE_FILTERS.map((filterValue) => (
+                                <option key={filterValue} value={filterValue}>
+                                  {filterValue === "all" ? t("mypage.filter.all") : filterValue}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                          <span className="w-16 shrink-0 text-sm font-semibold text-[#6c5a4d]">
+                            {t("mypage.filter.visibilityLabel")}
+                          </span>
+                          <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4">
+                            <select
+                              value={visibilityFilter}
+                              onChange={(event) => {
+                                setPage(1);
+                                setVisibilityFilter(event.target.value as VisibilityFilterValue);
+                              }}
+                              className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
+                            >
+                              {VISIBILITY_FILTERS.map((filterValue) => (
+                                <option key={filterValue} value={filterValue}>
+                                  {t(`mypage.visibility.${filterValue}`)}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                        </div>
+                      </div>
+
+                      {participationsError ? (
+                        <p className="text-sm font-medium text-[#c04f2c]">
+                          {participationsError}
+                        </p>
+                      ) : participationsLoading ? (
+                        <p className="text-sm font-medium text-[#7a685b]">
+                          {t("common.loading")}
+                        </p>
+                      ) : !activeMobileParticipation ? (
+                        <div className="rounded-[28px] border border-dashed border-[#d9c7b7] bg-[#fffaf5] px-6 py-12 text-center text-sm font-medium text-[#8a796c]">
+                          {t("mypage.participations.empty")}
+                        </div>
+                      ) : (
+                        <div
+                          onTouchStart={handleParticipationTouchStart}
+                          onTouchEnd={handleParticipationTouchEnd}
+                          className={[
+                            "transition-all duration-200 ease-out",
+                            resolveCarouselAnimationClassName(
+                              mobileParticipationAnimationStage,
+                            ),
+                          ].join(" ")}
+                        >
+                          <CanvasResultCard
+                            key={`${activeMobileParticipation.canvasId}-${activeMobileParticipation.participatedAt}-${pagination.page}`}
+                            imageUrl={activeMobileParticipation.resultImageUrl ?? null}
+                            imageAlt={t("mypage.participations.resultImageAlt")}
+                            emptyMessage={t("mypage.participations.resultUnavailable")}
+                            footer={
+                              <div>
+                                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[#cf6c45]">
+                                  {t("mypage.participations.participatedAt")}
+                                </p>
+                                <p className="mt-2 text-sm font-medium leading-6 text-[#2d2d2d]">
+                                  {formatDateTime(
+                                    activeMobileParticipation.participatedAt,
+                                    locale,
+                                  )}
+                                </p>
+                              </div>
+                            }
+                            actionLabel={t("mypage.participations.viewResult")}
+                            onAction={() => {
+                              void handleOpenDetail(activeMobileParticipation.canvasId);
+                            }}
+                          />
+                        </div>
+                      )}
+
+                      <MobileParticipationPageControls
+                        page={pagination.page}
+                        totalPages={pagination.totalPages}
+                        onSelect={handleParticipationPaginationSelect}
+                        previousLabel={t("mypage.pagination.previous")}
+                        nextLabel={t("mypage.pagination.next")}
+                      />
+                    </div>
+                  </>
+                ) : mobileTab === "stats" ? (
+                  <div className="mt-4 space-y-4">
+                    {mobileStatsSlides}
+                  </div>
+                ) : (
+                  <div className="mt-4 space-y-4">
+                    {mobileAccountSlides}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <div className="hidden items-stretch gap-0 overflow-hidden rounded-[28px] border border-[#ddcfbf] bg-[#fdf8f1] shadow-[0_18px_60px_rgba(39,46,55,0.08)] md:grid md:rounded-[32px] xl:grid-cols-[minmax(0,5fr)_minmax(320px,2fr)]">
+            <section
+              ref={statsSectionRef}
+              className="order-2 px-5 py-5 sm:px-8 sm:py-7 xl:order-1"
+            >
               <p className="text-sm font-medium text-[#7a685b]">
                 {t("mypage.participations.notice")}
               </p>
@@ -572,7 +1027,7 @@ export default function MyPage() {
                 <p className="mt-4 text-sm font-medium text-[#c04f2c]">{statsError}</p>
               ) : null}
 
-              <div className="mt-7 grid gap-6 border-b border-[#e6d8c9] pb-8 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[#000000]">
+              <div className="mt-6 grid grid-cols-2 gap-3 border-b border-[#e6d8c9] pb-6 sm:mt-7 sm:grid-cols-3 sm:gap-0 sm:divide-x sm:divide-[#000000] sm:pb-8">
                 <TopMetric
                   label={t("mypage.summary.totalParticipatedCanvasCount")}
                   value={formatNumber(stats?.totalParticipatedCanvasCount ?? 0)}
@@ -584,13 +1039,19 @@ export default function MyPage() {
                 <TopMetric
                   label={t("mypage.summary.topVoterAchievedCount")}
                   value={formatNumber(stats?.topVoterAchievedCount ?? 0)}
+                  className="col-span-2 sm:col-span-1"
                 />
               </div>
 
-              <div className="mt-8">
-                <h2 className="text-[24px] font-semibold tracking-[-0.04em] text-[#2d2d2d]">
-                  {t("mypage.stats.sizeBreakdownTitle")}
-                </h2>
+              <div className="mt-7 sm:mt-8">
+                <div className="flex flex-col gap-1 sm:flex-row sm:items-end sm:justify-between">
+                  <h2 className="text-[22px] font-semibold tracking-[-0.04em] text-[#2d2d2d] sm:text-[24px]">
+                    {t("mypage.stats.sizeBreakdownTitle")}
+                  </h2>
+                  <p className="text-xs font-medium text-[#8a796c]">
+                    {t("mypage.stats.notice")}
+                  </p>
+                </div>
 
                 {statsLoading ? (
                   <p className="mt-4 text-sm font-medium text-[#7a685b]">
@@ -598,20 +1059,21 @@ export default function MyPage() {
                   </p>
                 ) : (
                   <div className="mt-4 overflow-hidden rounded-[24px] border border-[#e6d8c9] bg-white">
-                    <div className="grid sm:grid-cols-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4">
                       {(["32x32", "64x64", "128x128", "256x256"] as const).map(
                         (size, index) => (
                           <article
                             key={size}
                             className={[
-                              "px-6 py-5 text-center",
-                              index > 0 ? "border-t border-[#efe3d7] sm:border-l sm:border-t-0" : "",
+                              "px-4 py-4 text-center sm:px-6 sm:py-5",
+                              index % 2 === 1 ? "border-l border-[#efe3d7] sm:border-l sm:border-t-0" : "",
+                              index >= 2 ? "border-t border-[#efe3d7] sm:border-t-0" : "",
                             ].join(" ")}
                           >
                             <p className="text-sm font-semibold uppercase tracking-[0.12em] text-[#d96d43]">
                               {size}
                             </p>
-                            <p className="mt-3 text-[48px] font-semibold leading-none tracking-[-0.05em] text-[#2d2d2d]">
+                            <p className="mt-3 text-[38px] font-semibold leading-none tracking-[-0.05em] text-[#2d2d2d] sm:text-[48px]">
                               {formatNumber(sizeCounts[size])}
                             </p>
                           </article>
@@ -623,11 +1085,14 @@ export default function MyPage() {
               </div>
             </section>
 
-            <aside className="order-1 flex flex-col h-full border-b border-[#e6d8c9] bg-[#fffaf5] px-7 py-8 sm:px-8 xl:order-2 xl:border-b-0 xl:border-l xl:border-t-0">
-              <div className="flex flex-1 flex-col items-center justify-center">
-                <div className="w-full max-w-[220px]">
+            <aside
+              ref={accountSectionRef}
+              className="order-1 flex h-full flex-col border-b border-[#e6d8c9] bg-[#fffaf5] px-5 py-6 sm:px-8 sm:py-8 xl:order-2 xl:border-t-0 xl:border-r-0 xl:border-b-0 xl:border-l"
+            >
+              <div className="flex flex-1 flex-col justify-center">
+                <div className="w-full xl:max-w-[220px]">
                   <div className="text-left">
-                    <h2 className="text-[32px] font-semibold tracking-[-0.05em] text-[#151515]">
+                    <h2 className="text-[28px] font-semibold tracking-[-0.05em] text-[#151515] sm:text-[32px]">
                       {profile?.nickname ?? "-"}
                     </h2>
                     <p className="mt-2 text-[15px] font-medium text-[#6c5a4d]">
@@ -635,7 +1100,7 @@ export default function MyPage() {
                     </p>
                   </div>
 
-                  <div className="mt-10 pb-4 text-left">
+                  <div className="mt-7 pb-4 text-left sm:mt-10">
                     <p className="text-sm font-semibold text-[#d8b18f]">
                       {t("mypage.profile.createdAt")}
                     </p>
@@ -646,7 +1111,10 @@ export default function MyPage() {
                 </div>
               </div>
 
-              <div className="border-t border-[#e6d8c9] pt-6">
+              <div className="mt-4 border-t border-[#e6d8c9] pt-5 sm:pt-6">
+                <p className="mb-3 text-sm font-semibold text-[#7a685b] xl:hidden">
+                  {t("mypage.tabs.account")}
+                </p>
                 <div className="flex flex-col gap-3">
                   <button
                     type="button"
@@ -667,15 +1135,19 @@ export default function MyPage() {
             </aside>
           </div>
 
-          <section className="overflow-hidden rounded-[36px] border border-[#ead7c8] bg-[#fff7f0] shadow-[0_24px_80px_rgba(39,46,55,0.08)]">
-            <div className="px-6 py-6 sm:px-8">
+          <section
+            ref={participationsSectionRef}
+            className="hidden overflow-hidden rounded-[28px] border border-[#ead7c8] bg-[#fff7f0] shadow-[0_24px_80px_rgba(39,46,55,0.08)] md:block md:rounded-[36px]"
+          >
+            <div className="px-5 py-5 sm:px-8 sm:py-6">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <p className="text-sm font-medium text-[#7a685b]">
                   내가 참여한 캔버스를 확인할 수 있습니다.
                 </p>
 
-                <div className="flex flex-wrap items-center justify-end gap-2">
-                  <div className="flex flex-wrap rounded-full border border-[#d9cdc1] bg-white p-1">
+                <div className="flex w-full flex-col items-stretch gap-2 lg:w-auto lg:flex-row lg:items-center lg:justify-end">
+                  <div className="flex rounded-full border border-[#d9cdc1] bg-white p-1 lg:flex-wrap">
+                    <div className="no-scrollbar flex min-w-0 flex-1 gap-1 overflow-x-auto">
                     {SIZE_FILTERS.map((filterValue) => (
                       <button
                         key={filterValue}
@@ -689,7 +1161,7 @@ export default function MyPage() {
                           setSizeFilter(filterValue);
                         }}
                         className={[
-                          "rounded-full px-3 py-1.5 text-sm font-semibold transition",
+                          "shrink-0 rounded-full px-3 py-1.5 text-sm font-semibold transition",
                           sizeFilter === filterValue
                             ? "bg-[#272E37] text-white"
                             : "text-[#5f6368]",
@@ -698,9 +1170,10 @@ export default function MyPage() {
                         {filterValue === "all" ? t("mypage.filter.all") : filterValue}
                       </button>
                     ))}
+                    </div>
                   </div>
 
-                  <label className="inline-flex self-start rounded-full border border-[#d9cdc1] bg-white px-4 py-2.5 lg:self-auto">
+                  <label className="inline-flex h-11 w-full rounded-full border border-[#d9cdc1] bg-white px-4 lg:h-auto lg:w-auto lg:self-auto lg:py-2.5">
                     <select
                       value={visibilityFilter}
                       onChange={(event) => {
@@ -708,7 +1181,7 @@ export default function MyPage() {
                         setPage(1);
                         setVisibilityFilter(event.target.value as VisibilityFilterValue);
                       }}
-                      className="bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
+                      className="w-full bg-transparent pr-6 text-sm font-semibold text-[#2d2d2d] outline-none"
                     >
                       {VISIBILITY_FILTERS.map((filterValue) => (
                         <option key={filterValue} value={filterValue}>
@@ -721,8 +1194,8 @@ export default function MyPage() {
               </div>
             </div>
 
-            <div className="px-6 pb-6 sm:px-8 sm:pb-8">
-              <section className="mt-6 space-y-6">
+            <div className="px-5 pb-5 sm:px-8 sm:pb-8">
+              <section className="mt-5 space-y-5 sm:mt-6 sm:space-y-6">
                 {participationsError ? (
                   <p className="text-sm font-medium text-[#c04f2c]">
                     {participationsError}
@@ -738,7 +1211,7 @@ export default function MyPage() {
                     {t("mypage.participations.empty")}
                   </div>
                 ) : (
-                  <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-4 sm:gap-5 md:grid-cols-2 xl:grid-cols-4">
                     {participations.map((item) => (
                       <CanvasResultCard
                         key={`${item.canvasId}-${item.participatedAt}`}
@@ -763,11 +1236,22 @@ export default function MyPage() {
                 )}
 
                 {participations.length > 0 && pagination.totalPages > 1 ? (
-                  <div className="flex items-center justify-center gap-2 rounded-[24px] border border-[#ead7c8] bg-white px-5 py-4">
+                  <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-[24px] border border-[#ead7c8] bg-white px-3 py-3 sm:gap-2 sm:px-5 sm:py-4">
+                    {(() => {
+                      const visiblePages = getVisiblePageNumbers(
+                        pagination.page,
+                        pagination.totalPages,
+                      );
+                      const currentWindowStart = visiblePages[0] ?? 1;
+                      const currentWindowEnd =
+                        visiblePages[visiblePages.length - 1] ?? pagination.totalPages;
+
+                      return (
+                        <>
                     <button
                       type="button"
-                      disabled={pagination.page <= 1}
-                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      disabled={currentWindowStart <= 1}
+                      onClick={() => setPage(Math.max(currentWindowStart - 3, 1))}
                       className="inline-flex h-10 w-10 items-center justify-center text-[#6c5a4d] transition hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
                       aria-label={t("mypage.pagination.previous")}
                     >
@@ -785,11 +1269,8 @@ export default function MyPage() {
                       </svg>
                     </button>
 
-                    <div className="flex items-center gap-1">
-                      {getVisiblePageNumbers(
-                        pagination.page,
-                        pagination.totalPages,
-                      ).map((pageNumber) => (
+                    <div className="flex items-center gap-0.5 sm:gap-1">
+                      {visiblePages.map((pageNumber) => (
                         <button
                           key={pageNumber}
                           type="button"
@@ -808,10 +1289,10 @@ export default function MyPage() {
 
                     <button
                       type="button"
-                      disabled={!pagination.hasNextPage}
+                      disabled={currentWindowEnd >= pagination.totalPages}
                       onClick={() =>
-                        setPage((current) =>
-                          pagination.hasNextPage ? current + 1 : current,
+                        setPage(
+                          Math.min(currentWindowStart + 3, pagination.totalPages),
                         )
                       }
                       className="inline-flex h-10 w-10 items-center justify-center text-[#6c5a4d] transition hover:text-[#2d2d2d] disabled:cursor-not-allowed disabled:opacity-40"
@@ -830,6 +1311,9 @@ export default function MyPage() {
                         <path d="M7.5 4.5L13 10l-5.5 5.5" />
                       </svg>
                     </button>
+                        </>
+                      );
+                    })()}
                   </div>
                 ) : null}
 
