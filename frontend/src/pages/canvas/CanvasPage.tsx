@@ -65,14 +65,21 @@ const INTRO_GUIDE_SEEN_STORAGE_KEY = "votedots:intro-guide-seen";
 const ROUND_SELECTION_GUIDE_DURATION_MS = 2500;
 const SELECTION_PULSE_DURATION_MS = 1000;
 const MOBILE_VOTE_ERROR_DURATION_MS = 3000;
-const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 const MOBILE_LANDSCAPE_MEDIA_QUERY = "(orientation: landscape)";
 const MOBILE_RECENT_COLOR_LIMIT = 6;
 const MOBILE_RECENT_COLORS_STORAGE_KEY = "votedots:mobile-recent-colors";
 const MOBILE_CANVAS_EDGE_PADDING = 72;
+const MOBILE_OR_TABLET_USER_AGENT_PATTERN =
+  /Android|iPhone|iPad|iPod|Mobile|Tablet|Silk|Kindle|PlayBook|Opera Mini|Opera Mobi/i;
 
 type MobileSheetType = "menu" | "participants" | "history" | null;
 type VoteMode = "select" | "instant";
+
+interface NavigatorWithUserAgentData extends Navigator {
+  userAgentData?: {
+    mobile?: boolean;
+  };
+}
 
 function MenuGlyph() {
   return (
@@ -304,13 +311,33 @@ function buildIntroGuideSeenStorageKey(canvasId: number): string {
   return `${INTRO_GUIDE_SEEN_STORAGE_KEY}:${canvasId}`;
 }
 
+function isMobileOrTabletTouchDevice() {
+  if (
+    typeof window === "undefined" ||
+    typeof navigator === "undefined"
+  ) {
+    return false;
+  }
+
+  const typedNavigator = navigator as NavigatorWithUserAgentData;
+  const hasTouchCapability =
+    window.matchMedia("(pointer: coarse)").matches ||
+    navigator.maxTouchPoints > 0 ||
+    "ontouchstart" in window;
+  const isMobileOrTabletUserAgent =
+    typedNavigator.userAgentData?.mobile === true ||
+    MOBILE_OR_TABLET_USER_AGENT_PATTERN.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+  return hasTouchCapability && isMobileOrTabletUserAgent;
+}
 function getInitialMobileLandscapeState() {
   if (typeof window === "undefined") {
     return false;
   }
 
   return (
-    window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches &&
+    isMobileOrTabletTouchDevice() &&
     window.matchMedia(MOBILE_LANDSCAPE_MEDIA_QUERY).matches
   );
 }
@@ -325,7 +352,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       return false;
     }
 
-    return window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches;
+    return isMobileOrTabletTouchDevice();
   });
   const [isMobileLandscape, setIsMobileLandscape] = useState(
     getInitialMobileLandscapeState,
@@ -387,10 +414,10 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       return undefined;
     }
 
-    const mobileQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
+    const coarsePointerQuery = window.matchMedia("(pointer: coarse)");
     const landscapeQuery = window.matchMedia(MOBILE_LANDSCAPE_MEDIA_QUERY);
     const syncMobileState = () => {
-      const nextIsMobile = mobileQuery.matches;
+      const nextIsMobile = isMobileOrTabletTouchDevice();
       const nextIsMobileLandscape = nextIsMobile && landscapeQuery.matches;
 
       setIsMobileLayout(nextIsMobile);
@@ -404,12 +431,12 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     };
 
     syncMobileState();
-    mobileQuery.addEventListener("change", syncMobileState);
+    coarsePointerQuery.addEventListener("change", syncMobileState);
     landscapeQuery.addEventListener("change", syncMobileState);
     window.addEventListener("resize", syncMobileState);
 
     return () => {
-      mobileQuery.removeEventListener("change", syncMobileState);
+      coarsePointerQuery.removeEventListener("change", syncMobileState);
       landscapeQuery.removeEventListener("change", syncMobileState);
       window.removeEventListener("resize", syncMobileState);
     };

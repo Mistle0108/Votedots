@@ -4,6 +4,7 @@ import {
   useLayoutEffect,
   useRef,
   useState,
+  type MutableRefObject,
 } from "react";
 import {
   Cell,
@@ -28,6 +29,7 @@ interface UseCanvasSceneParams {
   topColorMap: Map<string, string>;
   resetPreviewColor: () => void;
   openPopup: (position: { x: number; y: number }) => void;
+  selectionSyncEnabledRef?: MutableRefObject<boolean>;
   openPopupOnActivate?: boolean;
   resetPreviewOnActivate?: boolean;
   onCellActivated?: (cell: Cell) => void;
@@ -261,6 +263,7 @@ export default function useCanvasScene({
   topColorMap,
   resetPreviewColor,
   openPopup,
+  selectionSyncEnabledRef,
   openPopupOnActivate = true,
   resetPreviewOnActivate = true,
   onCellActivated,
@@ -302,6 +305,7 @@ export default function useCanvasScene({
   const pendingZoomAdjustmentRef = useRef<PendingZoomAdjustment | null>(null);
   const panFrameRef = useRef<number | null>(null);
   const pendingPanDeltaRef = useRef({ dx: 0, dy: 0 });
+  const hasSyncedSelectionRef = useRef(false);
 
   const [cells, setCells] = useState<Cell[]>([]);
   const [minimapCells, setMinimapCells] = useState<Cell[]>([]);
@@ -444,6 +448,7 @@ export default function useCanvasScene({
         cameraXRef.current = 0;
         cameraYRef.current = 0;
         selectedCellRef.current = null;
+        hasSyncedSelectionRef.current = false;
         scheduleStateUpdate(() => {
           setCanvasReady(false);
           setSelectedCell(null);
@@ -502,6 +507,7 @@ export default function useCanvasScene({
       cameraXRef.current = defaultView.camera.x;
       cameraYRef.current = defaultView.camera.y;
       selectedCellRef.current = null;
+      hasSyncedSelectionRef.current = false;
       scheduleStateUpdate(() => {
         setZoom(defaultView.zoom);
         setCameraX(defaultView.camera.x);
@@ -645,10 +651,21 @@ export default function useCanvasScene({
   const emitSelectionUpdate = useCallback(
     (nextSelectedCell: Pick<Cell, "x" | "y"> | null) => {
       const activeCanvasId = canvasIdRef.current;
+      const selectionSyncEnabled = selectionSyncEnabledRef?.current ?? true;
+
+      if (nextSelectedCell && !selectionSyncEnabled) {
+        return;
+      }
+
+      if (!nextSelectedCell && !hasSyncedSelectionRef.current) {
+        return;
+      }
 
       if (!socket.connected || !activeCanvasId) {
         return;
       }
+
+      hasSyncedSelectionRef.current = nextSelectedCell !== null;
 
       socket.emit("selection:update", {
         canvasId: activeCanvasId,
@@ -656,7 +673,7 @@ export default function useCanvasScene({
         y: nextSelectedCell?.y ?? null,
       });
     },
-    [],
+    [selectionSyncEnabledRef],
   );
 
   const activateCell = useCallback(
