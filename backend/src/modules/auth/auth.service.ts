@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import bcrypt from "bcrypt";
 import { QueryFailedError } from "typeorm";
 import { AppDataSource } from "../../database/data-source";
@@ -11,14 +11,20 @@ import {
 import { Voter, VoterRole } from "../../entities/voter.entity";
 import {
   CURRENT_TERMS_VERSION,
+  GUEST_USERNAME_PREFIX,
   WITHDRAWN_VOTER_NICKNAME,
 } from "./auth.constants";
 import { AUTH_ERROR_MESSAGES } from "./auth.validation";
 
 const voterRepository = AppDataSource.getRepository(Voter);
+const MAX_GUEST_CREATION_ATTEMPTS = 5;
 
 function buildWithdrawnUsername(voterId: number): string {
   return `withdrawn-${voterId.toString(36)}-${Date.now().toString(36)}`;
+}
+
+function buildGuestUsername(): string {
+  return `${GUEST_USERNAME_PREFIX}${randomBytes(8).toString("hex")}`;
 }
 
 function deidentifyTopVoters(
@@ -143,6 +149,7 @@ export const authService = {
     const voter = await voterRepository.findOne({
       where: {
         username,
+        isGuest: false,
         isWithdrawn: false,
       },
     });
@@ -160,7 +167,46 @@ export const authService = {
       uuid: voter.uuid,
       nickname: voter.nickname,
       role: voter.role,
+      isGuest: voter.isGuest,
     };
+  },
+
+  async createGuest(nickname: string) {
+    for (let attempt = 0; attempt < MAX_GUEST_CREATION_ATTEMPTS; attempt += 1) {
+      const voter = voterRepository.create({
+        username: buildGuestUsername(),
+        password: await bcrypt.hash(`guest:${randomUUID()}`, 10),
+        nickname,
+        isGuest: true,
+        termsAcceptedAt: null,
+        termsAcceptedLocale: null,
+        termsVersion: null,
+        isAge14OrOlderConfirmed: false,
+        role: VoterRole.USER,
+      });
+
+      try {
+        await voterRepository.save(voter);
+
+        return {
+          id: voter.id,
+          uuid: voter.uuid,
+          username: voter.username,
+          nickname: voter.nickname,
+          role: voter.role,
+          isGuest: voter.isGuest,
+          createdAt: voter.createdAt,
+        };
+      } catch (err) {
+        if (isUsernameUniqueViolation(err)) {
+          continue;
+        }
+
+        throw err;
+      }
+    }
+
+    throw new Error(AUTH_ERROR_MESSAGES.GUEST_CREATION_FAILED);
   },
 
   async changePassword(voterId: number, currentPassword: string, newPassword: string) {

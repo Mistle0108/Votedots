@@ -57,6 +57,54 @@ describe("auth integration", () => {
         username: "user0002",
         nickname: "Tester02",
         role: "user",
+        isGuest: false,
+        createdAt: expect.any(String),
+      }),
+    });
+  });
+
+  it("creates a guest session and returns the current guest voter", async () => {
+    const agent = suite.agent();
+
+    const guestSessionResponse = await agent.post("/auth/guest-session").send({
+      nickname: "Guest01",
+    });
+
+    expect(guestSessionResponse.status).toBe(201);
+    expect(guestSessionResponse.body).toEqual({
+      message: "GUEST_SESSION_CREATED",
+      voter: expect.objectContaining({
+        uuid: expect.any(String),
+        username: expect.stringMatching(/^guest-/),
+        nickname: "Guest01",
+        role: "user",
+        isGuest: true,
+        createdAt: expect.any(String),
+      }),
+    });
+    expect(guestSessionResponse.headers["set-cookie"]).toBeDefined();
+
+    const guestUsername = String(guestSessionResponse.body.voter.username);
+    const storedGuest = await voterRepository.findOneByOrFail({
+      username: guestUsername,
+    });
+
+    expect(storedGuest.isGuest).toBe(true);
+    expect(storedGuest.termsAcceptedAt).toBeNull();
+    expect(storedGuest.termsAcceptedLocale).toBeNull();
+    expect(storedGuest.termsVersion).toBeNull();
+    expect(storedGuest.isAge14OrOlderConfirmed).toBe(false);
+
+    const meResponse = await agent.get("/auth/me");
+
+    expect(meResponse.status).toBe(200);
+    expect(meResponse.body).toEqual({
+      voter: expect.objectContaining({
+        uuid: expect.any(String),
+        username: guestUsername,
+        nickname: "Guest01",
+        role: "user",
+        isGuest: true,
         createdAt: expect.any(String),
       }),
     });

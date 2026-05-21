@@ -14,7 +14,17 @@ const registerRateLimit = createRateLimitMiddleware({
   max: 5,
   message: "TOO_MANY_REGISTER_ATTEMPTS",
 });
+const guestSessionRateLimit = createRateLimitMiddleware({
+  windowMs: 1000 * 60 * 5,
+  max: 10,
+  message: "TOO_MANY_GUEST_SESSION_ATTEMPTS",
+});
 
+router.post(
+  "/guest-session",
+  guestSessionRateLimit,
+  authController.createGuestSession,
+);
 router.post("/register", registerRateLimit, authController.register);
 router.post("/login", loginRateLimit, authController.login);
 router.post("/logout", authMiddleware, authController.logout);

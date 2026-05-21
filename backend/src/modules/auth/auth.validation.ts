@@ -6,6 +6,8 @@ export const AUTH_ERROR_MESSAGES = {
   INVALID_NICKNAME: "AUTH_INVALID_NICKNAME",
   INVALID_PASSWORD: "AUTH_INVALID_PASSWORD",
   INVALID_CREDENTIALS: "AUTH_INVALID_CREDENTIALS",
+  SESSION_ALREADY_EXISTS: "AUTH_SESSION_ALREADY_EXISTS",
+  GUEST_CREATION_FAILED: "AUTH_GUEST_CREATION_FAILED",
 } as const;
 
 const USERNAME_REGEX = /^[a-z0-9]{4,20}$/;
@@ -68,6 +70,22 @@ export function validateRegisterInput(params: {
 
   if (!PASSWORD_REGEX.test(password)) {
     return AUTH_ERROR_MESSAGES.INVALID_PASSWORD;
+  }
+
+  return null;
+}
+
+export function validateGuestSessionInput(params: {
+  nickname: unknown;
+}): string | null {
+  const { nickname } = params;
+
+  if (!isNonEmptyString(nickname)) {
+    return AUTH_ERROR_MESSAGES.MISSING_FIELDS;
+  }
+
+  if (!NICKNAME_REGEX.test(nickname)) {
+    return AUTH_ERROR_MESSAGES.INVALID_NICKNAME;
   }
 
   return null;

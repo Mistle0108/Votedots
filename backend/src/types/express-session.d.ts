@@ -8,6 +8,7 @@ declare module "express-session" {
       uuid: string;
       nickname: string;
       role: string;
+      isGuest: boolean;
     };
     room?: {
       roomId: number;

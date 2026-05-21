@@ -24,6 +24,9 @@ export class Voter extends BaseEntity {
   @Column({ type: "varchar", length: 32 })
   nickname!: string;
 
+  @Column({ type: "boolean", name: "is_guest", default: false })
+  isGuest!: boolean;
+
   @Column({ type: "timestamptz", nullable: true })
   termsAcceptedAt!: Date | null;
 

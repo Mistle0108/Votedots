@@ -3,6 +3,8 @@ import { participantSessionService } from "../participant/participant-session.se
 import { authSessionService } from "./auth-session.service";
 import { authService } from "./auth.service";
 import {
+  AUTH_ERROR_MESSAGES,
+  validateGuestSessionInput,
   validateLoginInput,
   validatePasswordValue,
   validateRegisterInput,
@@ -36,6 +38,51 @@ function destroyRequestSession(req: Request): Promise<void> {
 }
 
 export const authController = {
+  async createGuestSession(req: Request, res: Response) {
+    try {
+      const { nickname } = req.body ?? {};
+      const validationError = validateGuestSessionInput({ nickname });
+
+      if (validationError) {
+        return res.status(400).json({ message: validationError });
+      }
+
+      if (req.session.voter) {
+        return res.status(409).json({
+          message: AUTH_ERROR_MESSAGES.SESSION_ALREADY_EXISTS,
+        });
+      }
+
+      await regenerateSession(req);
+
+      const voter = await authService.createGuest(nickname);
+
+      req.session.voter = {
+        id: voter.id,
+        uuid: voter.uuid,
+        nickname: voter.nickname,
+        role: voter.role,
+        isGuest: voter.isGuest,
+      };
+
+      return res.status(201).json({
+        message: "GUEST_SESSION_CREATED",
+        voter: {
+          uuid: voter.uuid,
+          username: voter.username,
+          nickname: voter.nickname,
+          role: voter.role,
+          isGuest: voter.isGuest,
+          createdAt: voter.createdAt.toISOString(),
+        },
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+
+      return res.status(500).json({ message });
+    }
+  },
+
   async register(req: Request, res: Response) {
     try {
       const {
@@ -89,6 +136,7 @@ export const authController = {
         uuid: voter.uuid,
         nickname: voter.nickname,
         role: voter.role,
+        isGuest: voter.isGuest,
       };
 
       const previousSessionId = await authSessionService.replaceActiveSession(
@@ -230,6 +278,7 @@ export const authController = {
         username: voter.username,
         nickname: voter.nickname,
         role: voter.role,
+        isGuest: voter.isGuest,
         createdAt: voter.createdAt.toISOString(),
       },
     });
