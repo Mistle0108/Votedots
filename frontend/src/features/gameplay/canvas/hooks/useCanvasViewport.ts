@@ -4,6 +4,7 @@ import {
   calculateVisibleCellBounds,
 } from "../model/viewport";
 import type { Viewport, VisibleCellBounds } from "../model/canvas.types";
+import type { CanvasViewportPadding } from "../model/viewport";
 
 interface UseCanvasViewportParams {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -13,6 +14,7 @@ interface UseCanvasViewportParams {
   cameraX: number;
   cameraY: number;
   zoom: number;
+  viewportPadding?: CanvasViewportPadding;
 }
 
 export function useCanvasViewport({
@@ -23,6 +25,7 @@ export function useCanvasViewport({
   cameraX,
   cameraY,
   zoom,
+  viewportPadding,
 }: UseCanvasViewportParams) {
   const [viewport, setViewport] = useState<Viewport | null>(null);
   const [visibleCellBounds, setVisibleCellBounds] =
@@ -55,6 +58,7 @@ export function useCanvasViewport({
         zoom,
         viewportWidth,
         viewportHeight,
+        viewportPadding,
       }),
     );
 
@@ -67,9 +71,10 @@ export function useCanvasViewport({
         zoom,
         viewportWidth,
         viewportHeight,
+        viewportPadding,
       }),
     );
-  }, [containerRef, gridX, gridY, cameraX, cameraY, zoom]);
+  }, [containerRef, gridX, gridY, cameraX, cameraY, zoom, viewportPadding]);
 
   useEffect(() => {
     if (!canvasReady) {

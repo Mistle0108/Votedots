@@ -4,6 +4,7 @@ import {
   resolvePlayBackgroundImageUrl,
   type PlayBackgroundMode,
 } from "@/features/gameplay/canvas/model/background-assets";
+import type { CanvasViewportPadding } from "@/features/gameplay/canvas/model/viewport";
 import { useChunkLoader } from "@/features/gameplay/canvas/hooks/useChunkLoader";
 import { useCanvasHistory } from "@/features/gameplay/history/hooks/useCanvasHistory";
 import { useVotePopup, useVoteState } from "@/features/gameplay/vote";
@@ -28,6 +29,7 @@ interface UseCanvasPageParams {
   openPopupOnActivate?: boolean;
   resetPreviewOnActivate?: boolean;
   onCellActivated?: (cell: Cell) => void;
+  viewportPadding?: CanvasViewportPadding;
 }
 
 const PLAY_BACKGROUND_MODE_STORAGE_KEY = "votedots:play-background-mode";
@@ -45,6 +47,7 @@ export default function useCanvasPage({
   openPopupOnActivate = true,
   resetPreviewOnActivate = true,
   onCellActivated,
+  viewportPadding,
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
   const lastAutoOpenedRoundIdRef = useRef<number | null>(null);
@@ -94,6 +97,7 @@ export default function useCanvasPage({
     selectedCell,
     displaySelectedCell,
     viewport,
+    loadViewport,
     surfaceSize,
     cameraX,
     cameraY,
@@ -127,6 +131,7 @@ export default function useCanvasPage({
     openPopupOnActivate,
     resetPreviewOnActivate,
     onCellActivated,
+    viewportPadding,
   });
 
   const [resultTemplateImageUrl, setResultTemplateImageUrl] = useState<
@@ -167,7 +172,7 @@ export default function useCanvasPage({
     canvasId,
     gridX,
     gridY,
-    viewport,
+    viewport: loadViewport,
     updateCells,
   });
 

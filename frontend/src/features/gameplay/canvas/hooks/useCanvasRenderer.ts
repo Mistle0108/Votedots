@@ -4,7 +4,7 @@ import {
   renderOverlayLayer,
   renderPaintWorldCache,
 } from "../model/canvas.render";
-import type { Cell, VisibleCellBounds } from "../model/canvas.types";
+import type { Cell } from "../model/canvas.types";
 
 interface UseCanvasRendererParams {
   paintCanvasRef: RefObject<HTMLCanvasElement | null>;
@@ -15,7 +15,6 @@ interface UseCanvasRendererParams {
   previewColor: string | null;
   votingCellIds: Set<string>;
   topColorMap: Map<string, string>;
-  visibleCellBounds: VisibleCellBounds | null;
   cameraX: number;
   cameraY: number;
   zoom: number;
@@ -35,7 +34,6 @@ export function useCanvasRenderer({
   previewColor,
   votingCellIds,
   topColorMap,
-  visibleCellBounds,
   cameraX,
   cameraY,
   zoom,
@@ -146,7 +144,6 @@ export function useCanvasRenderer({
         previewColor,
         votingCellIds,
         topColorMap,
-        visibleCellBounds,
         cameraX,
         cameraY,
         zoom,
@@ -180,7 +177,6 @@ export function useCanvasRenderer({
     previewColor,
     votingCellIds,
     topColorMap,
-    visibleCellBounds,
     cameraX,
     cameraY,
     zoom,

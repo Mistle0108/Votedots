@@ -2,7 +2,9 @@ import { useRef, useState, type PointerEvent as ReactPointerEvent, type RefObjec
 import { getGameConfig } from "@/shared/config/game-config";
 import { Cell } from "../model/canvas.types";
 
-const TAP_DISTANCE_THRESHOLD = 6;
+const MOUSE_TAP_DISTANCE_THRESHOLD = 6;
+const TOUCH_TAP_DISTANCE_THRESHOLD = 12;
+const GESTURE_TAP_SUPPRESSION_MS = 240;
 
 interface UseCanvasInteractionParams {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -65,6 +67,7 @@ export function useCanvasInteraction({
   const activePointersRef = useRef(new Map<number, { x: number; y: number }>());
   const activeGestureRef = useRef<{
     pointerId: number;
+    pointerType: string;
     startX: number;
     startY: number;
     lastX: number;
@@ -72,6 +75,7 @@ export function useCanvasInteraction({
     hasPanned: boolean;
   } | null>(null);
   const pinchDistanceRef = useRef<number | null>(null);
+  const suppressTapUntilRef = useRef(0);
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
 
   const resetGesture = () => {
@@ -80,9 +84,15 @@ export function useCanvasInteraction({
     setIsDraggingCanvas(false);
   };
 
-  const beginSinglePointerGesture = (pointerId: number, clientX: number, clientY: number) => {
+  const beginSinglePointerGesture = (
+    pointerId: number,
+    pointerType: string,
+    clientX: number,
+    clientY: number,
+  ) => {
     activeGestureRef.current = {
       pointerId,
+      pointerType,
       startX: clientX,
       startY: clientY,
       lastX: clientX,
@@ -125,7 +135,12 @@ export function useCanvasInteraction({
     }
 
     if (activePointersRef.current.size === 1) {
-      beginSinglePointerGesture(event.pointerId, event.clientX, event.clientY);
+      beginSinglePointerGesture(
+        event.pointerId,
+        event.pointerType,
+        event.clientX,
+        event.clientY,
+      );
       return;
     }
 
@@ -133,6 +148,7 @@ export function useCanvasInteraction({
       activeGestureRef.current = null;
       setIsDraggingCanvas(false);
       pinchDistanceRef.current = getTrackedDistance();
+      suppressTapUntilRef.current = performance.now() + GESTURE_TAP_SUPPRESSION_MS;
     }
   };
 
@@ -184,13 +200,18 @@ export function useCanvasInteraction({
     const dy = event.clientY - activeGesture.lastY;
     const totalDx = event.clientX - activeGesture.startX;
     const totalDy = event.clientY - activeGesture.startY;
+    const tapDistanceThreshold =
+      activeGesture.pointerType === "mouse"
+        ? MOUSE_TAP_DISTANCE_THRESHOLD
+        : TOUCH_TAP_DISTANCE_THRESHOLD;
 
     if (
       !activeGesture.hasPanned &&
-      Math.hypot(totalDx, totalDy) > TAP_DISTANCE_THRESHOLD
+      Math.hypot(totalDx, totalDy) > tapDistanceThreshold
     ) {
       activeGesture.hasPanned = true;
       setIsDraggingCanvas(true);
+      suppressTapUntilRef.current = performance.now() + GESTURE_TAP_SUPPRESSION_MS;
     }
 
     if (activeGesture.hasPanned) {
@@ -229,6 +250,7 @@ export function useCanvasInteraction({
         ) {
           beginSinglePointerGesture(
             remainingPointerId,
+            event.pointerType,
             remainingPointer.x,
             remainingPointer.y,
           );
@@ -244,6 +266,10 @@ export function useCanvasInteraction({
     }
 
     if (activeGesture.hasPanned) {
+      return;
+    }
+
+    if (performance.now() < suppressTapUntilRef.current) {
       return;
     }
 
@@ -305,6 +331,7 @@ export function useCanvasInteraction({
       ) {
         beginSinglePointerGesture(
           remainingPointerId,
+          event.pointerType,
           remainingPointer.x,
           remainingPointer.y,
         );
