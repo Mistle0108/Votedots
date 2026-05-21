@@ -34,6 +34,7 @@ type TopVoterAggregate = {
   voterId: number;
   name: string;
   voteCount: number;
+  isGuest: boolean;
 };
 
 type ParticipantVoteAggregate = {
@@ -41,6 +42,7 @@ type ParticipantVoteAggregate = {
   name: string;
   voteCount: number;
   lastVotedAt: Date;
+  isGuest: boolean;
 };
 
 function toPercent(numerator: number, denominator: number): string {
@@ -307,7 +309,10 @@ export const summaryService = {
       }),
     ]);
 
-    const participantMap = new Map<number, { voterId: number; name: string }>();
+    const participantMap = new Map<
+      number,
+      { voterId: number | null; name: string }
+    >();
     const voterCountMap = new Map<number, TopVoterAggregate>();
     const participantVoteMap = new Map<number, ParticipantVoteAggregate>();
     const cellVoteMap = new Map<
@@ -322,7 +327,7 @@ export const summaryService = {
 
     for (const vote of votes) {
       participantMap.set(vote.voter.id, {
-        voterId: vote.voter.id,
+        voterId: vote.voter.isGuest ? null : vote.voter.id,
         name: vote.voter.nickname,
       });
 
@@ -334,6 +339,7 @@ export const summaryService = {
           voterId: vote.voter.id,
           name: vote.voter.nickname,
           voteCount: 1,
+          isGuest: vote.voter.isGuest,
         });
       }
 
@@ -365,6 +371,7 @@ export const summaryService = {
           name: vote.voter.nickname,
           voteCount: 1,
           lastVotedAt: vote.createdAt,
+          isGuest: vote.voter.isGuest,
         });
       }
 
@@ -477,7 +484,7 @@ export const summaryService = {
       mostSelectedColorVoteCount: mostSelectedColor?.voteCount ?? 0,
       mostPaintedColor: mostPaintedColor?.color ?? null,
       mostPaintedColorCellCount: mostPaintedColor?.voteCount ?? 0,
-      topVoterId: topVoter?.voterId ?? null,
+      topVoterId: topVoter && !topVoter.isGuest ? topVoter.voterId : null,
       topVoterName: topVoter?.name ?? null,
       topVoterVoteCount: topVoter?.voteCount ?? 0,
       hottestRoundId: hottestRound?.roundId ?? null,
@@ -487,7 +494,7 @@ export const summaryService = {
         .sort((a, b) => b.voteCount - a.voteCount)
         .slice(0, 10)
         .map((voter) => ({
-          voterId: voter.voterId,
+          voterId: voter.isGuest ? null : voter.voterId,
           name: voter.name,
           voteCount: voter.voteCount,
         })),
@@ -509,8 +516,9 @@ export const summaryService = {
         canvas: { id: canvasId },
       });
 
-      const participantSummaries = Array.from(participantVoteMap.values()).map(
-        (participant) =>
+      const participantSummaries = Array.from(participantVoteMap.values())
+        .filter((participant) => !participant.isGuest)
+        .map((participant) =>
           transactionalCanvasParticipantSummaryRepository.create({
             canvas: { id: canvasId },
             voter: { id: participant.voterId },
@@ -524,7 +532,7 @@ export const summaryService = {
             endedAt,
             roomType,
           }),
-      );
+        );
 
       if (participantSummaries.length > 0) {
         await transactionalCanvasParticipantSummaryRepository.save(
