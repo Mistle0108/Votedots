@@ -97,6 +97,7 @@ export default function useCanvasPage({
     selectedCell,
     displaySelectedCell,
     viewport,
+    loadViewport,
     surfaceSize,
     cameraX,
     cameraY,
@@ -171,7 +172,7 @@ export default function useCanvasPage({
     canvasId,
     gridX,
     gridY,
-    viewport,
+    viewport: loadViewport,
     updateCells,
   });
 

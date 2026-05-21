@@ -158,20 +158,14 @@ export function calculateVisibleCellBounds({
   zoom,
   viewportWidth,
   viewportHeight,
-  viewportPadding,
 }: CalculateViewportParams): VisibleCellBounds | null {
   if (gridX === 0 || gridY === 0 || zoom <= 0) {
     return null;
   }
 
   const cellSize = getGameConfig().board.cellSize;
-  const usableViewport = getUsableViewportSize({
-    viewportWidth,
-    viewportHeight,
-    viewportPadding,
-  });
-  const visibleWorldWidth = usableViewport.width / zoom;
-  const visibleWorldHeight = usableViewport.height / zoom;
+  const visibleWorldWidth = viewportWidth / zoom;
+  const visibleWorldHeight = viewportHeight / zoom;
 
   if (visibleWorldWidth <= 0 || visibleWorldHeight <= 0) {
     return null;

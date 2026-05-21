@@ -13,6 +13,7 @@ import {
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
 import {
+  calculateViewport,
   calculateWorldScreenOffset,
   getUsableViewportSize,
   type CanvasViewportPadding,
@@ -532,6 +533,18 @@ export default function useCanvasScene({
     zoom,
     viewportPadding,
   });
+  const loadViewport =
+    viewportSize.width > 0 && viewportSize.height > 0
+      ? calculateViewport({
+          gridX,
+          gridY,
+          cameraX,
+          cameraY,
+          zoom,
+          viewportWidth: viewportSize.width,
+          viewportHeight: viewportSize.height,
+        })
+      : null;
 
   const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
   const worldOffset = calculateWorldScreenOffset({
@@ -934,7 +947,6 @@ export default function useCanvasScene({
     previewColor,
     votingCellIds,
     topColorMap,
-    visibleCellBounds,
     cameraX,
     cameraY,
     zoom,
@@ -1314,6 +1326,7 @@ export default function useCanvasScene({
     selectedCell,
     displaySelectedCell: selectionVisible ? selectedCell : null,
     viewport,
+    loadViewport,
     surfaceSize: viewportSize,
     cameraX,
     cameraY,
