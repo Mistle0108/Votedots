@@ -14,6 +14,7 @@ import type {
 } from "@/features/gameplay/session/api/session.api";
 import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
 import type { SessionBootstrapResult } from "@/features/gameplay/session";
+import { isRoundActivePhase } from "@/features/gameplay/session/model/game-phase.types";
 import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import type { RoomExpiredPayload } from "@/features/gameplay/session/model/socket.types";
 import useCanvasGameplay from "./useCanvasGameplay";
@@ -50,6 +51,7 @@ export default function useCanvasPage({
   viewportPadding,
 }: UseCanvasPageParams) {
   const isRoundExpiredRef = useRef(false);
+  const selectionSyncEnabledRef = useRef(false);
   const lastAutoOpenedRoundIdRef = useRef<number | null>(null);
   const handledRoundSummaryEventRef = useRef(0);
   const handledGameSummaryEventRef = useRef(0);
@@ -128,6 +130,7 @@ export default function useCanvasPage({
     topColorMap,
     resetPreviewColor,
     openPopup,
+    selectionSyncEnabledRef,
     openPopupOnActivate,
     resetPreviewOnActivate,
     onCellActivated,
@@ -328,6 +331,10 @@ export default function useCanvasPage({
     applyVoteUpdate,
     resetVoteState,
   });
+
+  useEffect(() => {
+    selectionSyncEnabledRef.current = isRoundActivePhase(gameplay.phase);
+  }, [gameplay.phase]);
 
   useEffect(() => {
     isRoundExpiredRef.current = gameplay.isRoundExpiredRefValue;
