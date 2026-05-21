@@ -75,12 +75,14 @@ export function useCanvasInteraction({
     hasPanned: boolean;
   } | null>(null);
   const pinchDistanceRef = useRef<number | null>(null);
+  const gestureIncludesMultiTouchRef = useRef(false);
   const suppressTapUntilRef = useRef(0);
   const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
 
   const resetGesture = () => {
     activeGestureRef.current = null;
     pinchDistanceRef.current = null;
+    gestureIncludesMultiTouchRef.current = false;
     setIsDraggingCanvas(false);
   };
 
@@ -145,6 +147,7 @@ export function useCanvasInteraction({
     }
 
     if (activePointersRef.current.size >= 2) {
+      gestureIncludesMultiTouchRef.current = true;
       activeGestureRef.current = null;
       setIsDraggingCanvas(false);
       pinchDistanceRef.current = getTrackedDistance();
@@ -259,6 +262,7 @@ export function useCanvasInteraction({
       return;
     }
 
+    const shouldSuppressActivation = gestureIncludesMultiTouchRef.current;
     resetGesture();
 
     if (!activeGesture || activeGesture.pointerId !== event.pointerId) {
@@ -270,6 +274,10 @@ export function useCanvasInteraction({
     }
 
     if (performance.now() < suppressTapUntilRef.current) {
+      return;
+    }
+
+    if (shouldSuppressActivation) {
       return;
     }
 
