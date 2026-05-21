@@ -6,6 +6,7 @@ const EXACT_KEY_MAP: Record<string, string> = {
   AUTH_INVALID_CREDENTIALS: "server.auth.invalidCredentials",
   AUTH_MISSING_CREDENTIALS: "server.auth.missingCredentials",
   AUTH_MISSING_FIELDS: "server.auth.missingFields",
+  AUTH_SESSION_ALREADY_EXISTS: "server.auth.sessionAlreadyExists",
   AUTH_INVALID_USERNAME: "server.auth.invalidUsername",
   AUTH_INVALID_NICKNAME: "server.auth.invalidNickname",
   AUTH_INVALID_PASSWORD: "server.auth.invalidPassword",

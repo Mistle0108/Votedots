@@ -3,9 +3,19 @@ import { useNavigate } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { trackVisitEvent } from "@/features/analytics/model/visit-event";
 import { authApi, logoutToLobby } from "@/features/auth";
+import {
+  clearActiveGuestEntryScope,
+  getActiveGuestEntryScope,
+  hasGuestEntryLock,
+  isSameGuestEntryScope,
+  markGuestEntryLock,
+  setActiveGuestEntryScope,
+  type GuestEntryScope,
+} from "@/features/auth/model/guest-entry";
 import { landingApi } from "@/features/landing/api/landing.api";
 import type { LandingCurrentGame } from "@/features/landing/model/landing.types";
 import CompletedCanvasSection from "@/features/lobby/components/CompletedCanvasSection";
+import GuestEntryModal from "@/features/lobby/components/GuestEntryModal";
 import {
   roomApi,
   type RoomConfigProfile,
@@ -22,6 +32,7 @@ import {
 } from "@/features/room/model/room-session-context";
 import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { useI18n } from "@/shared/i18n";
+import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { DropdownSelect } from "@/shared/ui/dropdown-select";
 import type { Voter } from "@/features/auth";
@@ -32,6 +43,10 @@ type LobbyMobileTab = "plaza" | "rooms" | "completed";
 type CompletedScope = "plaza" | "public";
 type CompletedPreset = "today" | "7d" | "30d";
 type RoomTypeFilter = "all" | "public" | "private";
+type GuestEntryRequest =
+  | { type: "plaza"; canvasId: number }
+  | { type: "public-room"; roomId: number }
+  | { type: "room-access-code"; accessCode: string };
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 767px)";
 const MOBILE_ROOM_LIST_PAGE_SIZE = 5;
@@ -39,6 +54,7 @@ const MOBILE_ROOM_LIST_PAGE_SIZE = 5;
 function getErrorMessage(
   error: unknown,
   t: (key: string) => string,
+  locale: "ko" | "en",
 ): string {
   if (
     typeof error === "object" &&
@@ -57,6 +73,8 @@ function getErrorMessage(
     switch (message) {
       case "ROOM_EXPIRED":
         return t("lobby.error.roomExpired");
+      case "ROOM_NOT_FOUND":
+        return t("lobby.error.roomNotFound");
       case "ROOM_ACTIVE_LIMIT_REACHED":
         return t("lobby.error.activeLimitReached");
       case "ROOM_ACCESS_CODE_REQUIRED":
@@ -66,11 +84,29 @@ function getErrorMessage(
       case "ROOM_PRIVATE_ENTRY_REQUIRES_MEMBER":
         return t("lobby.error.privateRoomMembersOnly");
       default:
-        return message;
+        return translateServerMessage(message, t, locale);
     }
   }
 
+  if (error instanceof Error) {
+    return translateServerMessage(error.message, t, locale);
+  }
+
   return t("lobby.error.requestFailed");
+}
+
+function buildPlazaGuestEntryScope(canvasId: number): GuestEntryScope {
+  return {
+    kind: "plaza",
+    canvasId,
+  };
+}
+
+function buildRoomGuestEntryScope(roomId: number): GuestEntryScope {
+  return {
+    kind: "room",
+    roomId,
+  };
 }
 
 export default function LobbyPage() {
@@ -95,6 +131,9 @@ export default function LobbyPage() {
   const [enterModalOpen, setEnterModalOpen] = useState(false);
   const [createLoading, setCreateLoading] = useState(false);
   const [enterLoading, setEnterLoading] = useState(false);
+  const [guestEntryModalOpen, setGuestEntryModalOpen] = useState(false);
+  const [guestEntryLoading, setGuestEntryLoading] = useState(false);
+  const [guestEntryBlocked, setGuestEntryBlocked] = useState(false);
   const [roomTypeFilter, setRoomTypeFilter] = useState<RoomTypeFilter>("all");
   const [mobileRoomPage, setMobileRoomPage] = useState(1);
   const [mobileRoomDetailOpen, setMobileRoomDetailOpen] = useState(false);
@@ -109,6 +148,9 @@ export default function LobbyPage() {
   >(null);
   const [privateAccessCode, setPrivateAccessCode] = useState("");
   const [modalError, setModalError] = useState<string | null>(null);
+  const [guestEntryError, setGuestEntryError] = useState<string | null>(null);
+  const [pendingGuestEntry, setPendingGuestEntry] =
+    useState<GuestEntryRequest | null>(null);
 
   const [completedScope, setCompletedScope] = useState<CompletedScope>("plaza");
   const [completedPreset, setCompletedPreset] =
@@ -175,9 +217,16 @@ export default function LobbyPage() {
     try {
       const { data } = await authApi.me();
       setCurrentVoter(data.voter);
+      if (data.voter.isGuest) {
+        setAuthState("guest");
+        return;
+      }
+
+      clearActiveGuestEntryScope();
       setAuthState("authenticated");
     } catch {
       clearStoredRoomSessionContext();
+      clearActiveGuestEntryScope();
       setCurrentVoter(null);
       setAuthState("guest");
     }
@@ -336,8 +385,8 @@ export default function LobbyPage() {
     };
   }, [activeTab, authState, plazaCurrentGame, plazaLoading, plazaError]);
 
-  const requireLogin = useCallback(async (): Promise<boolean> => {
-    if (authState === "authenticated") {
+  const ensureMemberSession = useCallback(async (): Promise<boolean> => {
+    if (authState === "authenticated" && currentVoter && !currentVoter.isGuest) {
       return true;
     }
 
@@ -345,9 +394,16 @@ export default function LobbyPage() {
       try {
         const { data } = await authApi.me();
         setCurrentVoter(data.voter);
-        setAuthState("authenticated");
-        return true;
+
+        if (!data.voter.isGuest) {
+          clearActiveGuestEntryScope();
+          setAuthState("authenticated");
+          return true;
+        }
+
+        setAuthState("guest");
       } catch {
+        clearActiveGuestEntryScope();
         setCurrentVoter(null);
         setAuthState("guest");
       }
@@ -355,7 +411,87 @@ export default function LobbyPage() {
 
     setLoginRequiredOpen(true);
     return false;
-  }, [authState]);
+  }, [authState, currentVoter]);
+
+  const syncSessionState = useCallback(async () => {
+    if (authState === "authenticated" && currentVoter && !currentVoter.isGuest) {
+      return { kind: "member" as const, voter: currentVoter };
+    }
+
+    if (authState === "guest") {
+      return {
+        kind: "guest" as const,
+        voter: currentVoter?.isGuest ? currentVoter : null,
+      };
+    }
+
+    try {
+      const { data } = await authApi.me();
+      setCurrentVoter(data.voter);
+
+      if (data.voter.isGuest) {
+        setAuthState("guest");
+        return { kind: "guest" as const, voter: data.voter };
+      }
+
+      clearActiveGuestEntryScope();
+      setAuthState("authenticated");
+      return { kind: "member" as const, voter: data.voter };
+    } catch {
+      clearActiveGuestEntryScope();
+      setCurrentVoter(null);
+      setAuthState("guest");
+      return { kind: "guest" as const, voter: null };
+    }
+  }, [authState, currentVoter]);
+
+  const resolveGuestScopeLabel = useCallback(
+    (scope: GuestEntryScope) =>
+      scope.kind === "plaza"
+        ? t("lobby.guestEntry.scope.plaza")
+        : t("lobby.guestEntry.scope.publicRoom"),
+    [t],
+  );
+
+  const buildGuestReentryBlockedMessage = useCallback(
+    (scope: GuestEntryScope) =>
+      t("lobby.guestEntry.reentryBlocked", {
+        scope: resolveGuestScopeLabel(scope),
+      }),
+    [resolveGuestScopeLabel, t],
+  );
+
+  const getKnownGuestEntryScope = useCallback(
+    (request: GuestEntryRequest): GuestEntryScope | null => {
+      switch (request.type) {
+        case "plaza":
+          return buildPlazaGuestEntryScope(request.canvasId);
+        case "public-room":
+          return buildRoomGuestEntryScope(request.roomId);
+        case "room-access-code":
+          return null;
+      }
+    },
+    [],
+  );
+
+  const openGuestEntryModal = useCallback(
+    (request: GuestEntryRequest, options?: { blocked?: boolean; error?: string | null }) => {
+      setPendingGuestEntry(request);
+      setGuestEntryBlocked(Boolean(options?.blocked));
+      setGuestEntryError(options?.error ?? null);
+      setGuestEntryModalOpen(true);
+    },
+    [],
+  );
+
+  const closeGuestEntryModal = useCallback(() => {
+    setGuestEntryModalOpen(false);
+    setGuestEntryLoading(false);
+    setGuestEntryBlocked(false);
+    setGuestEntryError(null);
+    setPendingGuestEntry(null);
+  }, []);
 
   const enterRoomFromResponse = useCallback(
     (room: {
@@ -368,16 +504,197 @@ export default function LobbyPage() {
     [navigate],
   );
 
+  const enterRoomByAccessCodeWithCurrentSession = useCallback(
+    async (accessCode: string) => {
+      const { data } = await roomApi.enterRoom(accessCode);
+      return data.room;
+    },
+    [],
+  );
+
+  const enterPublicRoomWithCurrentSession = useCallback(
+    async (roomId: number) => {
+      const { data } = await roomApi.enterPublicRoomById(roomId);
+      return data.room;
+    },
+    [],
+  );
+
+  const completeGuestEntryForScope = useCallback((scope: GuestEntryScope) => {
+    markGuestEntryLock(scope);
+    setActiveGuestEntryScope(scope);
+  }, []);
+
+  const handleSubmitGuestEntry = useCallback(
+    async (nickname: string) => {
+      if (!pendingGuestEntry) {
+        return;
+      }
+
+      setGuestEntryLoading(true);
+      setGuestEntryError(null);
+      setGuestEntryBlocked(false);
+
+      const knownScope = getKnownGuestEntryScope(pendingGuestEntry);
+
+      if (knownScope && hasGuestEntryLock(knownScope)) {
+        setGuestEntryBlocked(true);
+        setGuestEntryError(buildGuestReentryBlockedMessage(knownScope));
+        setGuestEntryLoading(false);
+        return;
+      }
+
+      let createdGuestSession = false;
+
+      try {
+        if (currentVoter?.isGuest) {
+          try {
+            await authApi.logout();
+          } catch {
+            // Best effort: the next guest-session request will fail if the old session remains.
+          }
+
+          clearActiveGuestEntryScope();
+          clearStoredRoomSessionContext();
+          setCurrentVoter(null);
+          setAuthState("guest");
+        }
+
+        const { data: guestData } = await authApi.createGuestSession({ nickname });
+        createdGuestSession = true;
+        setCurrentVoter(guestData.voter);
+        setAuthState("guest");
+
+        if (pendingGuestEntry.type === "plaza") {
+          const scope = buildPlazaGuestEntryScope(pendingGuestEntry.canvasId);
+          completeGuestEntryForScope(scope);
+          closeGuestEntryModal();
+          navigate("/plaza");
+          return;
+        }
+
+        if (pendingGuestEntry.type === "public-room") {
+          const scope = buildRoomGuestEntryScope(pendingGuestEntry.roomId);
+          const room = await enterPublicRoomWithCurrentSession(pendingGuestEntry.roomId);
+          completeGuestEntryForScope(scope);
+          closeGuestEntryModal();
+          enterRoomFromResponse(room);
+          return;
+        }
+
+        const room = await enterRoomByAccessCodeWithCurrentSession(
+          pendingGuestEntry.accessCode,
+        );
+
+        if (room.type !== "public") {
+          throw new Error("ROOM_PRIVATE_ENTRY_REQUIRES_MEMBER");
+        }
+
+        const scope = buildRoomGuestEntryScope(room.roomId);
+
+        if (hasGuestEntryLock(scope)) {
+          if (createdGuestSession) {
+            try {
+              await authApi.logout();
+            } catch {
+              // Ignore logout failure and keep the UI in a blocked state.
+            }
+          }
+
+          clearActiveGuestEntryScope();
+          clearStoredRoomSessionContext();
+          setCurrentVoter(null);
+          setAuthState("guest");
+          setGuestEntryBlocked(true);
+          setGuestEntryError(buildGuestReentryBlockedMessage(scope));
+          return;
+        }
+
+        completeGuestEntryForScope(scope);
+        closeGuestEntryModal();
+        enterRoomFromResponse(room);
+      } catch (error) {
+        if (createdGuestSession) {
+          try {
+            await authApi.logout();
+          } catch {
+            // Ignore logout failure so the user can still see the translated error.
+          }
+
+          clearActiveGuestEntryScope();
+          clearStoredRoomSessionContext();
+          setCurrentVoter(null);
+          setAuthState("guest");
+        }
+
+        const message = getErrorMessage(error, t, locale);
+        setGuestEntryError(message);
+      } finally {
+        setGuestEntryLoading(false);
+      }
+    },
+    [
+      buildGuestReentryBlockedMessage,
+      closeGuestEntryModal,
+      completeGuestEntryForScope,
+      currentVoter,
+      enterPublicRoomWithCurrentSession,
+      enterRoomByAccessCodeWithCurrentSession,
+      enterRoomFromResponse,
+      getKnownGuestEntryScope,
+      locale,
+      navigate,
+      pendingGuestEntry,
+      t,
+    ],
+  );
+
   const handleParticipatePlaza = useCallback(async () => {
-    if (!(await requireLogin())) {
+    if (!plazaCurrentGame) {
+      setPlazaError(t("lobby.plaza.empty"));
       return;
     }
 
-    navigate("/plaza");
-  }, [navigate, requireLogin]);
+    const sessionState = await syncSessionState();
+    const scope = buildPlazaGuestEntryScope(plazaCurrentGame.canvasId);
+    const activeGuestScope = getActiveGuestEntryScope();
+
+    if (sessionState.kind === "member") {
+      navigate("/plaza");
+      return;
+    }
+
+    if (
+      sessionState.voter?.isGuest &&
+      isSameGuestEntryScope(activeGuestScope, scope)
+    ) {
+      navigate("/plaza");
+      return;
+    }
+
+    if (hasGuestEntryLock(scope)) {
+      openGuestEntryModal(
+        { type: "plaza", canvasId: plazaCurrentGame.canvasId },
+        {
+          blocked: true,
+          error: buildGuestReentryBlockedMessage(scope),
+        },
+      );
+      return;
+    }
+
+    openGuestEntryModal({ type: "plaza", canvasId: plazaCurrentGame.canvasId });
+  }, [
+    buildGuestReentryBlockedMessage,
+    navigate,
+    openGuestEntryModal,
+    plazaCurrentGame,
+    syncSessionState,
+    t,
+  ]);
 
   const handleCreateRoom = useCallback(async () => {
-    if (!(await requireLogin())) {
+    if (!(await ensureMemberSession())) {
       return;
     }
 
@@ -385,16 +702,12 @@ export default function LobbyPage() {
     setGeneratedAccessCode(null);
     setCreatedPrivateAccessCode(null);
     setCreateModalOpen(true);
-  }, [requireLogin]);
+  }, [ensureMemberSession]);
 
   const handleEnterRoom = useCallback(async () => {
-    if (!(await requireLogin())) {
-      return;
-    }
-
     setModalError(null);
     setEnterModalOpen(true);
-  }, [requireLogin]);
+  }, []);
 
   const handleSubmitCreateRoom = useCallback(
     async (payload: {
@@ -432,12 +745,19 @@ export default function LobbyPage() {
         setGeneratedAccessCode(data.accessCode);
         setCreatedPrivateAccessCode(data.accessCode);
       } catch (error) {
-        setModalError(getErrorMessage(error, t));
+        setModalError(getErrorMessage(error, t, locale));
       } finally {
         setCreateLoading(false);
       }
     },
-    [enterRoomFromResponse, hasLoadedRooms, isRoomsVisible, loadRooms, t],
+    [
+      enterRoomFromResponse,
+      hasLoadedRooms,
+      isRoomsVisible,
+      loadRooms,
+      locale,
+      t,
+    ],
   );
 
   const handleEnterCreatedPrivateRoom = useCallback(async () => {
@@ -453,11 +773,11 @@ export default function LobbyPage() {
       setGeneratedAccessCode(null);
       enterRoomFromResponse(data.room);
     } catch (error) {
-      setModalError(getErrorMessage(error, t));
+      setModalError(getErrorMessage(error, t, locale));
     } finally {
       setCreateLoading(false);
     }
-  }, [createdPrivateAccessCode, enterRoomFromResponse, t]);
+  }, [createdPrivateAccessCode, enterRoomFromResponse, locale, t]);
 
   const handleCopyAccessCode = useCallback(async () => {
     if (!generatedAccessCode) {
@@ -469,47 +789,113 @@ export default function LobbyPage() {
 
   const handleEnterRoomByAccessCode = useCallback(
     async (code?: string) => {
-      if (!(await requireLogin())) {
+      setModalError(null);
+      const accessCode = (code ?? privateAccessCode).trim().toUpperCase();
+      const sessionState = await syncSessionState();
+
+      if (!accessCode) {
+        setModalError(t("lobby.error.accessCodeRequired"));
         return;
       }
 
-      setEnterLoading(true);
-      setModalError(null);
+      if (sessionState.kind === "member") {
+        setEnterLoading(true);
 
-      try {
-        const accessCode = (code ?? privateAccessCode).trim();
-        const { data } = await roomApi.enterRoom(accessCode);
-        setEnterModalOpen(false);
-        setPrivateAccessCode("");
-        enterRoomFromResponse(data.room);
-      } catch (error) {
-        setModalError(getErrorMessage(error, t));
-      } finally {
-        setEnterLoading(false);
+        try {
+          const room = await enterRoomByAccessCodeWithCurrentSession(accessCode);
+          setEnterModalOpen(false);
+          setPrivateAccessCode("");
+          enterRoomFromResponse(room);
+        } catch (error) {
+          setModalError(getErrorMessage(error, t, locale));
+        } finally {
+          setEnterLoading(false);
+        }
+
+        return;
       }
+
+      setEnterModalOpen(false);
+      setPrivateAccessCode("");
+      openGuestEntryModal({
+        type: "room-access-code",
+        accessCode,
+      });
     },
-    [enterRoomFromResponse, privateAccessCode, requireLogin, t],
+    [
+      enterRoomByAccessCodeWithCurrentSession,
+      enterRoomFromResponse,
+      locale,
+      openGuestEntryModal,
+      privateAccessCode,
+      syncSessionState,
+      t,
+    ],
   );
 
   const handleEnterPublicRoom = useCallback(
     async (roomId: number) => {
-      if (!(await requireLogin())) {
+      const sessionState = await syncSessionState();
+      const scope = buildRoomGuestEntryScope(roomId);
+      const activeGuestScope = getActiveGuestEntryScope();
+
+      if (sessionState.kind === "member") {
+        setEnterLoading(true);
+        setModalError(null);
+
+        try {
+          const room = await enterPublicRoomWithCurrentSession(roomId);
+          enterRoomFromResponse(room);
+        } catch (error) {
+          setModalError(getErrorMessage(error, t, locale));
+        } finally {
+          setEnterLoading(false);
+        }
+
         return;
       }
 
-      setEnterLoading(true);
-      setModalError(null);
+      if (
+        sessionState.voter?.isGuest &&
+        isSameGuestEntryScope(activeGuestScope, scope)
+      ) {
+        setEnterLoading(true);
+        setModalError(null);
 
-      try {
-        const { data } = await roomApi.enterPublicRoomById(roomId);
-        enterRoomFromResponse(data.room);
-      } catch (error) {
-        setModalError(getErrorMessage(error, t));
-      } finally {
-        setEnterLoading(false);
+        try {
+          const room = await enterPublicRoomWithCurrentSession(roomId);
+          enterRoomFromResponse(room);
+        } catch (error) {
+          setModalError(getErrorMessage(error, t, locale));
+        } finally {
+          setEnterLoading(false);
+        }
+
+        return;
       }
+
+      if (hasGuestEntryLock(scope)) {
+        openGuestEntryModal(
+          { type: "public-room", roomId },
+          {
+            blocked: true,
+            error: buildGuestReentryBlockedMessage(scope),
+          },
+        );
+        return;
+      }
+
+      openGuestEntryModal({ type: "public-room", roomId });
     },
-    [enterRoomFromResponse, requireLogin, t],
+    [
+      buildGuestReentryBlockedMessage,
+      enterPublicRoomWithCurrentSession,
+      enterRoomFromResponse,
+      locale,
+      openGuestEntryModal,
+      syncSessionState,
+      t,
+    ],
   );
 
   const handleSelectRoom = useCallback(
@@ -535,6 +921,10 @@ export default function LobbyPage() {
     setModalError(null);
   }, []);
 
+  const handleCloseGuestEntryModal = useCallback(() => {
+    closeGuestEntryModal();
+  }, [closeGuestEntryModal]);
+
   const handleChangeRoomTypeFilter = useCallback((nextValue: RoomTypeFilter) => {
     setRoomTypeFilter(nextValue);
     setMobileRoomPage(1);
@@ -552,7 +942,7 @@ export default function LobbyPage() {
   const accountPanel = (
     <section className="rounded-[32px] border border-[#e3d9cf] bg-white p-4">
       <div className="grid gap-3">
-        {authState === "authenticated" ? (
+        {authState === "authenticated" && currentVoter && !currentVoter.isGuest ? (
           <div className="grid gap-5 rounded-2xl px-2 py-2 text-sm text-[#5f6368]">
             <div className="min-w-0 px-2 py-1 text-left">
               <p className="truncate text-[18px] font-semibold tracking-[-0.03em] text-[#272E37]">
@@ -571,6 +961,42 @@ export default function LobbyPage() {
                 className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
               >
                 {t("lobby.actions.mypage")}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void handleLogout();
+                }}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
+              >
+                {t("session.logout")}
+              </button>
+            </div>
+          </div>
+        ) : currentVoter?.isGuest ? (
+          <div className="grid gap-5 rounded-2xl px-2 py-2 text-sm text-[#5f6368]">
+            <div className="min-w-0 px-2 py-1 text-left">
+              <div className="flex items-center gap-2">
+                <p className="truncate text-[18px] font-semibold tracking-[-0.03em] text-[#272E37]">
+                  {currentVoter.nickname}
+                </p>
+                <span className="rounded-full bg-[#272E37] px-2.5 py-1 text-[11px] font-semibold text-white">
+                  {t("lobby.account.guestBadge")}
+                </span>
+              </div>
+              <p className="mt-2 text-[14px] leading-6 text-[#7b6b62]">
+                {t("lobby.account.guestDescription")}
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  navigate("/login");
+                }}
+                className="inline-flex min-h-[48px] items-center justify-center rounded-full border border-[#d9cdc1] bg-white px-4 text-xs font-semibold text-[#272E37] transition hover:bg-[#f7f2eb]"
+              >
+                {t("auth.login.submit")}
               </button>
               <button
                 type="button"
@@ -978,6 +1404,22 @@ export default function LobbyPage() {
         error={modalError}
         onClose={handleCloseEnterModal}
         onEnterRoom={handleEnterRoomByAccessCode}
+      />
+
+      <GuestEntryModal
+        open={guestEntryModalOpen}
+        loading={guestEntryLoading}
+        blocked={guestEntryBlocked}
+        error={guestEntryError}
+        scopeLabel={
+          pendingGuestEntry?.type === "plaza"
+            ? t("lobby.guestEntry.scope.plaza")
+            : pendingGuestEntry?.type === "public-room"
+              ? t("lobby.guestEntry.scope.publicRoom")
+              : t("lobby.guestEntry.scope.room")
+        }
+        onClose={handleCloseGuestEntryModal}
+        onSubmit={handleSubmitGuestEntry}
       />
     </main>
   );

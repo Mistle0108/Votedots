@@ -46,6 +46,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "server.auth.invalidCredentials": "아이디 또는 비밀번호가 올바르지 않아요.",
     "server.auth.missingCredentials": "아이디와 비밀번호를 입력해주세요.",
     "server.auth.missingFields": "모든 항목을 입력해주세요.",
+    "server.auth.sessionAlreadyExists":
+      "이미 사용 중인 세션이 있어 새 게스트 세션을 만들 수 없어요.",
     "server.auth.invalidUsername":
       "아이디는 영문 소문자와 숫자만 사용하며 4~20자여야 해요.",
     "server.auth.invalidNickname":
@@ -116,7 +118,29 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.login.passwordPlaceholder": "비밀번호",
     "lobby.login.loggedInFallback": "로그인됨",
     "lobby.loginRequired.description":
-      "광장 참여, 방 생성, 방 입장은 로그인한 사용자만 사용할 수 있습니다.",
+      "방 생성과 비공개방 입장은 회원만 사용할 수 있습니다.",
+    "lobby.guestEntry.title": "게스트 입장",
+    "lobby.guestEntry.description":
+      "{{scope}}에서 사용할 닉네임을 입력해 주세요.",
+    "lobby.guestEntry.nicknameLabel": "닉네임",
+    "lobby.guestEntry.nicknamePlaceholder": "닉네임 입력",
+    "lobby.guestEntry.nicknameHint":
+      "한글, 영문, 숫자만 사용해 2~20자로 입력해 주세요.",
+    "lobby.guestEntry.noticePrefix": "입장하면",
+    "lobby.guestEntry.noticeTerms": "이용약관",
+    "lobby.guestEntry.noticeConnector": "및",
+    "lobby.guestEntry.noticePrivacy": "개인정보처리방침",
+    "lobby.guestEntry.noticeSuffix": "에 동의한 것으로 간주됩니다.",
+    "lobby.guestEntry.submit": "동의하고 입장",
+    "lobby.guestEntry.submitting": "입장 중...",
+    "lobby.guestEntry.scope.plaza": "광장",
+    "lobby.guestEntry.scope.publicRoom": "공개방",
+    "lobby.guestEntry.scope.room": "방",
+    "lobby.guestEntry.reentryBlocked":
+      "이 브라우저에서는 이미 {{scope}}에 게스트로 참여한 기록이 있어 다시 입장할 수 없어요.",
+    "lobby.account.guestBadge": "게스트",
+    "lobby.account.guestDescription":
+      "광장과 공개방은 게스트로 참여할 수 있고, 회원 전용 기능은 로그인 후 사용할 수 있어요.",
     "lobby.notice.roomExpired": "방이 만료되었습니다.",
     "lobby.notice.roomTerminated": "방이 종료되었습니다.",
     "lobby.completed.title": "완성된 캔버스",
@@ -526,6 +550,8 @@ export const resources: Record<Locale, Record<string, string>> = {
     "server.auth.missingCredentials":
       "Please enter your username and password.",
     "server.auth.missingFields": "Please fill in all required fields.",
+    "server.auth.sessionAlreadyExists":
+      "An active session already exists, so a new guest session cannot be created.",
     "server.auth.invalidUsername":
       "Username must be 4-20 characters using only lowercase letters and numbers.",
     "server.auth.invalidNickname":
@@ -601,6 +627,33 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.error.privateRoomMembersOnly":
       "Private rooms are only available to registered members.",
     "lobby.error.requestFailed": "We couldn't process the request.",
+    "lobby.login.usernamePlaceholder": "Username",
+    "lobby.login.passwordPlaceholder": "Password",
+    "lobby.login.loggedInFallback": "Signed in",
+    "lobby.loginRequired.description":
+      "Room creation and private room entry are only available to registered members.",
+    "lobby.guestEntry.title": "Guest entry",
+    "lobby.guestEntry.description":
+      "Enter the nickname you want to use in {{scope}}.",
+    "lobby.guestEntry.nicknameLabel": "Nickname",
+    "lobby.guestEntry.nicknamePlaceholder": "Enter a nickname",
+    "lobby.guestEntry.nicknameHint":
+      "Use 2-20 Korean, English, or numeric characters without spaces.",
+    "lobby.guestEntry.noticePrefix": "By entering, you agree to the",
+    "lobby.guestEntry.noticeTerms": "Terms of Service",
+    "lobby.guestEntry.noticeConnector": "and",
+    "lobby.guestEntry.noticePrivacy": "Privacy Policy",
+    "lobby.guestEntry.noticeSuffix": ".",
+    "lobby.guestEntry.submit": "Agree and enter",
+    "lobby.guestEntry.submitting": "Entering...",
+    "lobby.guestEntry.scope.plaza": "the plaza",
+    "lobby.guestEntry.scope.publicRoom": "the public room",
+    "lobby.guestEntry.scope.room": "the room",
+    "lobby.guestEntry.reentryBlocked":
+      "This browser has already joined {{scope}} as a guest, so it cannot enter again.",
+    "lobby.account.guestBadge": "Guest",
+    "lobby.account.guestDescription":
+      "You can join the plaza and public rooms as a guest. Member-only features are available after signing in.",
     "lobby.roomCreate.title": "Create room",
     "lobby.roomCreate.close": "Close",
     "lobby.roomCreate.create": "Create",
@@ -637,11 +690,6 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.roomCreate.step.detail": "Detailed settings",
     "lobby.roomCreate.step.next": "Next",
     "lobby.roomCreate.step.back": "Back",
-    "lobby.login.usernamePlaceholder": "Username",
-    "lobby.login.passwordPlaceholder": "Password",
-    "lobby.login.loggedInFallback": "Signed in",
-    "lobby.loginRequired.description":
-      "Joining the plaza, creating a room, and entering a room require sign-in.",
     "lobby.notice.roomExpired": "This room has expired.",
     "lobby.notice.roomTerminated": "This room was closed.",
     "lobby.completed.title": "Completed canvases",

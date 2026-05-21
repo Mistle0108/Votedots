@@ -12,10 +12,15 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface GuestSessionRequest {
+  nickname: string;
+}
+
 export interface Voter {
   uuid: string;
   username: string;
   nickname: string;
   role: string;
+  isGuest: boolean;
   createdAt: string;
 }
