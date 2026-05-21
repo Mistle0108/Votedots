@@ -43,21 +43,12 @@ import {
   LoadingScreen,
 } from "@/features/gameplay/session";
 import {
-  ColorPalette,
   VotePanel,
   VotePopup,
   voteApi,
 } from "@/features/gameplay/vote";
-import pinIcon from "@/assets/pin-icon.png";
 import {
-  CHECKER_PATTERN,
-  INITIAL_SLOTS,
-  STORAGE_KEYS,
-} from "@/features/gameplay/vote/model/vote.constants";
-import {
-  buildVotePopupEntries,
   loadLastPaletteColor,
-  loadSlotColors,
 } from "@/features/gameplay/vote/model/vote.utils";
 import { useI18n } from "@/shared/i18n";
 import { translateServerMessage } from "@/shared/i18n/server-messages";
@@ -65,6 +56,7 @@ import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { DropdownSelect } from "@/shared/ui/dropdown-select";
 import MobileBottomSheet from "./components/MobileBottomSheet";
+import MobileFloatingPalette from "./components/MobileFloatingPalette";
 import useCanvasPage from "./model/useCanvasPage";
 import { PLAY_THEME_STYLE } from "./model/play-theme";
 
@@ -73,10 +65,11 @@ const ROUND_SELECTION_GUIDE_DURATION_MS = 2500;
 const SELECTION_PULSE_DURATION_MS = 1000;
 const MOBILE_VOTE_ERROR_DURATION_MS = 3000;
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
-const MOBILE_SLOT_COUNT = 8;
+const MOBILE_RECENT_COLOR_LIMIT = 6;
+const MOBILE_RECENT_COLORS_STORAGE_KEY = "votedots:mobile-recent-colors";
 
-type MobileSheetType = "menu" | "participants" | "history" | "palette" | null;
-type MobileVoteMode = "select" | "instant";
+type MobileSheetType = "menu" | "participants" | "history" | null;
+type VoteMode = "select" | "instant";
 
 function MenuGlyph() {
   return (
@@ -176,6 +169,44 @@ function getReadableTextColor(hexColor: string): "#111827" | "#ffffff" {
   const luminance = (red * 299 + green * 587 + blue * 114) / 1000;
 
   return luminance >= 160 ? "#111827" : "#ffffff";
+}
+
+function normalizeHexColor(color: string): string {
+  const normalized = color.trim();
+
+  if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) {
+    return normalized;
+  }
+
+  return `#${normalized.slice(1).toUpperCase()}`;
+}
+
+function loadMobileRecentColors(): string[] {
+  if (typeof window === "undefined") {
+    return [];
+  }
+
+  try {
+    const stored = window.localStorage.getItem(MOBILE_RECENT_COLORS_STORAGE_KEY);
+
+    if (!stored) {
+      return [];
+    }
+
+    const parsed = JSON.parse(stored);
+
+    if (!Array.isArray(parsed)) {
+      return [];
+    }
+
+    return parsed
+      .filter((color): color is string => typeof color === "string")
+      .map((color) => normalizeHexColor(color))
+      .filter((color) => /^#[0-9A-F]{6}$/.test(color))
+      .slice(0, MOBILE_RECENT_COLOR_LIMIT);
+  } catch {
+    return [];
+  }
 }
 
 function getPhaseLabelKey(phase: GamePhase): string {
@@ -283,22 +314,18 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     return window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches;
   });
   const [mobileSheet, setMobileSheet] = useState<MobileSheetType>(null);
-  const [mobileVoteMode, setMobileVoteMode] =
-    useState<MobileVoteMode>("select");
-  const [desktopVoteMode, setDesktopVoteMode] =
-    useState<MobileVoteMode>("select");
+  const [desktopVoteMode, setDesktopVoteMode] = useState<VoteMode>("select");
   const [desktopPaletteColor, setDesktopPaletteColor] = useState(() =>
     loadLastPaletteColor(),
   );
   const [desktopVoteLoading, setDesktopVoteLoading] = useState(false);
-  const [mobilePalettePinned, setMobilePalettePinned] = useState(false);
+  const [mobilePaletteOpen, setMobilePaletteOpen] = useState(false);
   const [mobilePaletteColor, setMobilePaletteColor] = useState(() =>
-    loadLastPaletteColor(),
+    normalizeHexColor(loadLastPaletteColor()),
   );
-  const [mobileSlotColors, setMobileSlotColors] = useState(() =>
-    loadSlotColors().slice(0, MOBILE_SLOT_COUNT),
+  const [mobileRecentColors, setMobileRecentColors] = useState(() =>
+    loadMobileRecentColors(),
   );
-  const [mobileSlotCursor, setMobileSlotCursor] = useState(0);
   const [mobileVoteError, setMobileVoteError] = useState("");
   const [mobileVoteLoading, setMobileVoteLoading] = useState(false);
 
@@ -327,6 +354,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const guideTimerRef = useRef<number | null>(null);
   const pulseTimerRef = useRef<number | null>(null);
   const mobileVoteErrorTimerRef = useRef<number | null>(null);
+  const mobilePaletteAreaRef = useRef<HTMLDivElement | null>(null);
   const lastAnnouncedRoundIdRef = useRef<number | null>(null);
   const hasPulsedSelectionThisRoundRef = useRef(false);
 
@@ -341,6 +369,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
       if (!event.matches) {
         setMobileSheet(null);
+        setMobilePaletteOpen(false);
         setMobileVoteError("");
       }
     };
@@ -351,6 +380,37 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       mediaQuery.removeEventListener("change", handleMediaQueryChange);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof document === "undefined" || !mobilePaletteOpen) {
+      return;
+    }
+
+    const handlePointerDownOutside = (event: PointerEvent) => {
+      const paletteArea = mobilePaletteAreaRef.current;
+      const target = event.target;
+
+      if (!(target instanceof Node)) {
+        return;
+      }
+
+      if (paletteArea?.contains(target)) {
+        return;
+      }
+
+      setMobilePaletteOpen(false);
+    };
+
+    document.addEventListener("pointerdown", handlePointerDownOutside, true);
+
+    return () => {
+      document.removeEventListener(
+        "pointerdown",
+        handlePointerDownOutside,
+        true,
+      );
+    };
+  }, [mobilePaletteOpen]);
 
   useEffect(() => {
     if (mobileVoteErrorTimerRef.current !== null) {
@@ -686,29 +746,25 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
             {
               id: "mobile-controls",
               targetIds: [
-                "tutorial-mobile-vote-controls",
                 "tutorial-mobile-palette-button",
+                "tutorial-mobile-recent-colors",
               ],
-              title:
-                locale === "ko"
-                  ? "투표 모드와 팔레트"
-                  : "Vote mode and palette",
+              title: locale === "ko" ? "팔레트" : "Palette",
               description:
                 locale === "ko"
-                  ? "좌하단에서 투표 모드를 바꾸고, 우하단 팔레트 버튼으로 색상 패널을 열 수 있습니다.\n색상 선택 모드는 표 하나마다 색상을 선택하고 투표합니다.\n바로 투표 모드는 처음 지정한 색상으로 선택함과 동시에 투표합니다."
-                  : "Switch vote modes at the bottom left and open the color palette from the bottom right button.\nSelect color vote lets you choose a color for each tile before voting.\nInstant vote submits immediately with the color you set first.",
+                  ? "우상단 팔레트 버튼으로 색상을 바꾸고, 그 아래 최근 색상 목록에서 빠르게 다시 선택할 수 있습니다.\n모바일에서는 현재 선택한 색상으로 셀을 누르면 바로 투표합니다."
+                  : "Use the top-right palette button to change colors, and quickly reselect recent colors from the list below.\nOn mobile, tapping a cell immediately votes with the currently selected color.",
               padding: 8,
               panelPosition: "center",
             },
             {
               id: "vote-modal",
-              targetIds: ["tutorial-vote-modal"],
-              title:
-                locale === "ko" ? "팔레트" : "Palette",
+              targetIds: ["tutorial-mobile-palette-panel"],
+              title: locale === "ko" ? "색상 선택" : "Color selection",
               description:
                 locale === "ko"
-                  ? "팔레트에서 색을 고르고, 실시간 현황과 즐겨찾기를 확인할 수 있습니다."
-                  : "Pick colors from the palette and review live status and favorites.",
+                  ? "플로팅 팔레트에서 바로 색상을 고를 수 있습니다."
+                  : "Pick a color directly from the floating palette.",
               padding: 8,
             },
             {
@@ -831,8 +887,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     }
 
     switch (tutorialCurrentStepId) {
-      case "vote-modal":
-        return "palette";
       case "top-actions":
         return "menu";
       case "participants":
@@ -843,6 +897,8 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
         return null;
     }
   }, [isMobileLayout, tutorialCurrentStepId, tutorialOpen]);
+  const shouldOpenTutorialMobilePalette =
+    tutorialOpen && isMobileLayout && tutorialCurrentStepId === "vote-modal";
   const tutorialVoteSelectedCell = useMemo(() => {
     if (selectedCell) {
       return selectedCell;
@@ -1081,13 +1137,14 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
   const handleOpenTutorial = useCallback(() => {
     setTutorialStepIndex(0);
-    setMobilePalettePinned(false);
+    setMobilePaletteOpen(false);
     setTutorialOpen(true);
   }, []);
 
   const handleCloseTutorial = useCallback(() => {
     setTutorialOpen(false);
     setMobileSheet(null);
+    setMobilePaletteOpen(false);
   }, []);
 
   useEffect(() => {
@@ -1163,74 +1220,51 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     handleColorChange(mobilePaletteColor);
   }, [handleColorChange, isMobileLayout, mobilePaletteColor]);
 
-  const persistMobileSlotColors = useCallback((nextSlotColors: string[]) => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    const normalized = nextSlotColors.slice(0, MOBILE_SLOT_COUNT);
-
-    while (normalized.length < MOBILE_SLOT_COUNT) {
-      normalized.push("");
-    }
-
-    window.localStorage.setItem(
-      STORAGE_KEYS.slotColors,
-      JSON.stringify([
-        ...normalized,
-        ...INITIAL_SLOTS.slice(MOBILE_SLOT_COUNT),
-      ]),
-    );
-  }, []);
-
   const handleMobilePaletteColorChange = useCallback((nextColor: string) => {
+    const normalizedColor = normalizeHexColor(nextColor);
+
     if (typeof window !== "undefined") {
-      window.localStorage.setItem(STORAGE_KEYS.lastPaletteColor, nextColor);
+      window.localStorage.setItem(
+        "votedots:last-palette-color",
+        normalizedColor,
+      );
     }
 
-    setMobilePaletteColor(nextColor);
+    setMobilePaletteColor(normalizedColor);
     setMobileVoteError("");
   }, []);
 
-  const handleMobileSlotAdd = useCallback(() => {
-    setMobileSlotColors((prev) => {
-      const next = [...prev];
-      next[mobileSlotCursor] = mobilePaletteColor;
-      persistMobileSlotColors(next);
-      return next;
-    });
-    setMobileSlotCursor((prev) => (prev + 1) % MOBILE_SLOT_COUNT);
-  }, [mobilePaletteColor, mobileSlotCursor, persistMobileSlotColors]);
+  const commitMobileRecentColor = useCallback((nextColor?: string) => {
+    const resolvedColor = normalizeHexColor(nextColor ?? mobilePaletteColor);
 
-  const handleMobileSlotReset = useCallback(() => {
-    const next = INITIAL_SLOTS.slice(0, MOBILE_SLOT_COUNT);
-    setMobileSlotColors(next);
-    setMobileSlotCursor(0);
-    persistMobileSlotColors(next);
-  }, [persistMobileSlotColors]);
-
-  const handleMobileSlotSelect = useCallback(
-    (slotColor: string, slotIndex: number) => {
-      setMobileSlotCursor(slotIndex);
-
-      if (!slotColor) {
-        return;
-      }
-
-      handleMobilePaletteColorChange(slotColor);
-    },
-    [handleMobilePaletteColorChange],
-  );
-  const openMobilePaletteSheet = useCallback(() => {
-    if (typeof window === "undefined") {
-      setMobileSheet("palette");
+    if (!/^#[0-9A-F]{6}$/.test(resolvedColor)) {
       return;
     }
 
-    window.requestAnimationFrame(() => {
-      setMobileSheet("palette");
+    setMobileRecentColors((prev) => {
+      const next = [
+        resolvedColor,
+        ...prev.filter((color) => color !== resolvedColor),
+      ].slice(0, MOBILE_RECENT_COLOR_LIMIT);
+
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          MOBILE_RECENT_COLORS_STORAGE_KEY,
+          JSON.stringify(next),
+        );
+      }
+
+      return next;
     });
-  }, []);
+  }, [mobilePaletteColor]);
+
+  const handleSelectMobileRecentColor = useCallback(
+    (nextColor: string) => {
+      handleMobilePaletteColorChange(nextColor);
+      commitMobileRecentColor(nextColor);
+    },
+    [commitMobileRecentColor, handleMobilePaletteColorChange],
+  );
 
   const handleSubmitMobileVote = useCallback(
     async (targetCell?: Cell | null) => {
@@ -1275,10 +1309,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
         });
 
         handleVoteSuccess(mobilePaletteColor);
-
-        if (mobileVoteMode === "select" && !mobilePalettePinned) {
-          setMobileSheet(null);
-        }
       } catch (err: unknown) {
         if (err && typeof err === "object" && "response" in err) {
           const axiosErr = err as {
@@ -1306,9 +1336,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       isRoundExpired,
       locale,
       mobilePaletteColor,
-      mobilePalettePinned,
       mobileVoteLoading,
-      mobileVoteMode,
       phase,
       remaining,
       roundId,
@@ -1371,13 +1399,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     cellActivatedHandlerRef.current = (cell) => {
       if (isMobileLayout) {
         setMobileVoteError("");
-
-        if (mobileVoteMode === "instant") {
-          void handleSubmitMobileVote(cell);
-          return;
-        }
-
-        openMobilePaletteSheet();
+        void handleSubmitMobileVote(cell);
         return;
       }
 
@@ -1390,8 +1412,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     handleSubmitDesktopInstantVote,
     handleSubmitMobileVote,
     isMobileLayout,
-    mobileVoteMode,
-    openMobilePaletteSheet,
   ]);
 
   const mobileMenuLabels =
@@ -1433,31 +1453,14 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const activeMobileSheet =
     tutorialOpen && isMobileLayout ? tutorialMobileManagedSheet : mobileSheet;
   const roomGameEndControlsDisabled = phase === GAME_PHASE.GAME_END;
-  const selectedCellLabel = selectedCell
-    ? `(${selectedCell.x}, ${selectedCell.y})`
-    : locale === "ko"
-      ? "선택 없음"
-      : "None";
-  const mobileVoteEntries = useMemo(
-    () =>
-      selectedCell
-        ? buildVotePopupEntries(votes, selectedCell.x, selectedCell.y).slice(
-            0,
-            3,
-          )
-        : [],
-    [selectedCell, votes],
-  );
-  const isPaletteSheetOpen = activeMobileSheet === "palette";
+  const isMobilePaletteVisible =
+    shouldOpenTutorialMobilePalette ||
+    (mobilePaletteOpen &&
+      activeMobileSheet === null &&
+      !introGuideOpen &&
+      !roundSummaryOpen &&
+      !gameSummaryModal);
   const mobilePaletteButtonTextColor = getReadableTextColor(mobilePaletteColor);
-  const canSubmitMobileVote =
-    Boolean(canvasId) &&
-    Boolean(roundId) &&
-    Boolean(selectedCell) &&
-    phase === GAME_PHASE.ROUND_ACTIVE &&
-    !isRoundExpired &&
-    !mobileVoteLoading &&
-    (remaining === null || remaining > 0);
 
   const handleOpenMobileBack = useCallback(() => {
     navigate("/lobby");
@@ -1525,7 +1528,10 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
           <div className="flex h-[58px] items-center rounded-[24px] border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-4 shadow-sm">
             <button
               type="button"
-              onClick={() => setMobileSheet("menu")}
+              onClick={() => {
+                setMobilePaletteOpen(false);
+                setMobileSheet("menu");
+              }}
               className="inline-flex h-9 w-9 items-center justify-center rounded-full text-[color:var(--page-theme-text-secondary)]"
               aria-label={mobileMenuLabels.title}
               data-tutorial-id="tutorial-mobile-menu-button"
@@ -1539,7 +1545,10 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
             <button
               type="button"
-              onClick={() => setMobileSheet("participants")}
+              onClick={() => {
+                setMobilePaletteOpen(false);
+                setMobileSheet("participants");
+              }}
               className="inline-flex min-w-[92px] items-center justify-end gap-1 text-[color:var(--page-theme-text-secondary)]"
               aria-label={t("session.participantList")}
               data-tutorial-id="tutorial-mobile-participants-button"
@@ -1565,7 +1574,10 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
             <button
               type="button"
-              onClick={() => setMobileSheet("history")}
+              onClick={() => {
+                setMobilePaletteOpen(false);
+                setMobileSheet("history");
+              }}
               className="flex items-center justify-between gap-2 border-r border-[color:var(--page-theme-border-primary)] px-3 text-left"
               data-tutorial-id="tutorial-mobile-round-info"
             >
@@ -1659,36 +1671,71 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                 </div>
 
                 <div
-                  className="pointer-events-auto absolute bottom-3 right-3"
+                  ref={mobilePaletteAreaRef}
+                  className="pointer-events-auto absolute right-3 top-3"
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => event.stopPropagation()}
-                  data-tutorial-id="tutorial-mobile-palette-button"
                 >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (isPaletteSheetOpen && !mobilePalettePinned) {
+                  <div className="relative flex flex-col items-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
                         setMobileSheet(null);
-                        return;
+                        setMobileVoteError("");
+                        setMobilePaletteOpen((prev) => !prev);
+                      }}
+                      className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm backdrop-blur ${
+                        isMobilePaletteVisible
+                          ? "border-[color:var(--page-theme-primary-action)]"
+                          : "border-[color:var(--page-theme-border-primary)]"
+                      }`}
+                      style={{
+                        backgroundColor: mobilePaletteColor,
+                        color: mobilePaletteButtonTextColor,
+                      }}
+                      aria-label={
+                        locale === "ko" ? "팔레트 열기" : "Open palette"
                       }
+                      data-tutorial-id="tutorial-mobile-palette-button"
+                    >
+                      <PaletteGlyph />
+                    </button>
 
-                      openMobilePaletteSheet();
-                    }}
-                    className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl border shadow-sm backdrop-blur ${
-                      isPaletteSheetOpen
-                        ? "border-[color:var(--page-theme-primary-action)]"
-                        : "border-[color:var(--page-theme-border-primary)]"
-                    }`}
-                    style={{
-                      backgroundColor: mobilePaletteColor,
-                      color: mobilePaletteButtonTextColor,
-                    }}
-                    aria-label={
-                      locale === "ko" ? "팔레트 열기" : "Open palette"
-                    }
-                  >
-                    <PaletteGlyph />
-                  </button>
+                    <div
+                      className="flex flex-col gap-2"
+                      data-tutorial-id="tutorial-mobile-recent-colors"
+                    >
+                      {mobileRecentColors.map((color) => (
+                        <button
+                          key={color}
+                          type="button"
+                          onClick={() => handleSelectMobileRecentColor(color)}
+                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[color:var(--page-theme-border-primary)] shadow-sm backdrop-blur"
+                          style={{
+                            backgroundColor: color,
+                            color: getReadableTextColor(color),
+                          }}
+                          aria-label={
+                            locale === "ko"
+                              ? `최근 색상 ${color}`
+                              : `Recent color ${color}`
+                          }
+                        >
+                          <span className="text-[10px] font-bold leading-none">
+                            •
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+
+                    <MobileFloatingPalette
+                      open={isMobilePaletteVisible}
+                      color={mobilePaletteColor}
+                      onChange={handleMobilePaletteColorChange}
+                      onCommitColor={commitMobileRecentColor}
+                      tutorialId="tutorial-mobile-palette-panel"
+                    />
+                  </div>
                 </div>
 
                 {mobileVoteError ? (
@@ -1696,43 +1743,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                     {mobileVoteError}
                   </div>
                 ) : null}
-
-                <div
-                  className="pointer-events-auto absolute bottom-3 left-3 flex rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:rgba(255,255,255,0.94)] p-1 shadow-sm backdrop-blur"
-                  onPointerDown={(event) => event.stopPropagation()}
-                  onClick={(event) => event.stopPropagation()}
-                  data-tutorial-id="tutorial-mobile-vote-controls"
-                >
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileVoteMode("select");
-                      setMobileVoteError("");
-                    }}
-                    className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                      mobileVoteMode === "select"
-                        ? "bg-[color:var(--page-theme-primary-action)] text-[color:var(--page-theme-primary-action-text)]"
-                        : "text-[color:var(--page-theme-text-secondary)]"
-                    }`}
-                  >
-                    {locale === "ko" ? "색상 선택 투표" : "Select color vote"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setMobileVoteMode("instant");
-                      setMobileVoteError("");
-                      openMobilePaletteSheet();
-                    }}
-                    className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                      mobileVoteMode === "instant"
-                        ? "bg-[color:var(--page-theme-primary-action)] text-[color:var(--page-theme-primary-action-text)]"
-                        : "text-[color:var(--page-theme-text-secondary)]"
-                    }`}
-                  >
-                    {locale === "ko" ? "바로 투표" : "Instant vote"}
-                  </button>
-                </div>
               </div>
 
               {shouldShowTutorialVotePopup ? (
@@ -1953,6 +1963,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
               type="button"
               onClick={() => {
                 setMobileSheet(null);
+                setMobilePaletteOpen(false);
                 handleOpenIntroGuide();
               }}
               className="inline-flex h-11 w-full items-center justify-center rounded-2xl bg-[color:var(--page-theme-primary-action)] px-4 text-sm font-semibold text-[color:var(--page-theme-primary-action-text)]"
@@ -1981,6 +1992,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                       type="button"
                       onClick={() => {
                         setMobileSheet(null);
+                        setMobilePaletteOpen(false);
                         handleOpenGameSummaryModal(item.data);
                       }}
                       className="inline-flex h-11 items-center justify-center rounded-2xl border border-[color:var(--page-theme-accent-warm)] bg-[color:var(--page-theme-accent-warm-soft)] px-3 text-sm font-bold text-[color:var(--page-theme-accent-warm)]"
@@ -1993,6 +2005,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                       type="button"
                       onClick={() => {
                         setMobileSheet(null);
+                        setMobilePaletteOpen(false);
                         handleOpenRoundSummaryModal(item.data);
                       }}
                       className="inline-flex h-11 items-center justify-center rounded-2xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-3 text-sm font-bold text-[color:var(--page-theme-text-primary)]"
@@ -2003,99 +2016,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                 )}
               </div>
             )}
-          </div>
-        </MobileBottomSheet>
-
-        <MobileBottomSheet
-          open={activeMobileSheet === "palette"}
-          title={
-            <div className="flex w-full flex-col items-start justify-start gap-1 text-left">
-              <h2 className="text-lg font-semibold text-black">
-                {locale === "ko" ? "팔레트" : "Palette"}
-              </h2>
-              <div className="flex h-8 shrink-0 items-center justify-start gap-3 text-left text-base font-semibold leading-none text-black">
-                <button
-                  type="button"
-                  className="h-8 w-8 shrink-0 rounded border border-[color:var(--page-theme-border-secondary)] p-0"
-                  style={
-                    selectedCell?.color
-                      ? { backgroundColor: selectedCell.color }
-                      : {
-                          backgroundColor: "#f9fafb",
-                          backgroundImage: CHECKER_PATTERN,
-                          backgroundPosition: "0 0, 4px 4px",
-                          backgroundSize: "8px 8px",
-                        }
-                  }
-                  onClick={() => {
-                    if (selectedCell?.color) {
-                      handleMobilePaletteColorChange(selectedCell.color);
-                    }
-                  }}
-                />
-                <span className="inline-flex h-8 translate-y-px items-center leading-none">
-                  {selectedCellLabel}
-                </span>
-              </div>
-            </div>
-          }
-          headerActions={
-            <>
-              <button
-                type="button"
-                onClick={() => setMobilePalettePinned((prev) => !prev)}
-                className={`inline-flex h-9 w-9 items-center justify-center rounded-full border ${
-                  mobilePalettePinned
-                    ? "border-[color:var(--page-theme-primary-action)] bg-[color:var(--page-theme-primary-action)] text-[color:var(--page-theme-primary-action-text)]"
-                    : "border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] text-[color:var(--page-theme-text-secondary)]"
-                }`}
-                aria-label={locale === "ko" ? "팔레트 고정" : "Pin palette"}
-              >
-                <img
-                  src={pinIcon}
-                  alt=""
-                  aria-hidden="true"
-                  className="h-8 w-8 object-contain"
-                  draggable={false}
-                />
-              </button>
-            </>
-          }
-          onClose={() => setMobileSheet(null)}
-          maxHeightClassName="max-h-[52vh]"
-          showBackdrop={!mobilePalettePinned}
-          headerActionsOffsetClassName="translate-y-4"
-          tutorialId="tutorial-vote-modal"
-        >
-          <div className="pb-1">
-            {mobileVoteError ? (
-              <div className="mb-3 rounded-2xl border border-[color:var(--page-theme-alert)] bg-[color:var(--page-theme-alert-soft)] px-4 py-2 text-sm text-[color:var(--page-theme-alert)]">
-                {mobileVoteError}
-              </div>
-            ) : null}
-
-            <ColorPalette
-              layout="mobile-compact"
-              selected={mobilePaletteColor}
-              onChange={handleMobilePaletteColorChange}
-              slotColors={mobileSlotColors}
-              slotCursor={mobileSlotCursor}
-              onSlotAdd={handleMobileSlotAdd}
-              onSlotReset={handleMobileSlotReset}
-              onSlotSelect={handleMobileSlotSelect}
-              voteEntries={mobileVoteEntries}
-            />
-
-            <button
-              type="button"
-              onClick={() => void handleSubmitMobileVote()}
-              disabled={!canSubmitMobileVote}
-              className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-[20px] bg-[color:var(--page-theme-primary-action)] px-4 text-sm font-semibold text-[color:var(--page-theme-primary-action-text)] disabled:cursor-not-allowed disabled:opacity-45"
-            >
-              {mobileVoteLoading
-                ? t("vote.popup.loading")
-                : t("vote.popup.submit")}
-            </button>
           </div>
         </MobileBottomSheet>
 
