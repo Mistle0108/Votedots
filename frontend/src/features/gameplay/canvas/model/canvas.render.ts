@@ -1,6 +1,6 @@
 import { getGameConfig } from "@/shared/config/game-config";
 import { SELECTED_STROKE_COLOR, VOTING_STROKE_COLOR } from "./canvas.constants";
-import type { Cell, VisibleCellBounds } from "./canvas.types";
+import type { Cell } from "./canvas.types";
 
 interface RenderPaintWorldCacheParams {
   ctx: CanvasRenderingContext2D;
@@ -26,7 +26,6 @@ interface RenderOverlayLayerParams {
   previewColor: string | null;
   votingCellIds: Set<string>;
   topColorMap: Map<string, string>;
-  visibleCellBounds: VisibleCellBounds | null;
   cameraX: number;
   cameraY: number;
   zoom: number;
@@ -34,23 +33,6 @@ interface RenderOverlayLayerParams {
   worldOffsetY: number;
   isDraggingCanvas?: boolean;
   timestamp?: number;
-}
-
-function isVisible(
-  x: number,
-  y: number,
-  bounds: VisibleCellBounds | null,
-): boolean {
-  if (!bounds) {
-    return false;
-  }
-
-  return (
-    x >= bounds.startCellX &&
-    x <= bounds.endCellX &&
-    y >= bounds.startCellY &&
-    y <= bounds.endCellY
-  );
 }
 
 function clearCanvas(ctx: CanvasRenderingContext2D) {
@@ -151,35 +133,17 @@ export function drawPaintLayerFromCache({
     return;
   }
 
-  const viewportRect = ctx.canvas.getBoundingClientRect();
-  const viewportWidth = viewportRect.width;
-  const viewportHeight = viewportRect.height;
-
-  if (viewportWidth <= 0 || viewportHeight <= 0) {
-    return;
-  }
-
-  const sourceX = Math.min(Math.max(0, cameraX), worldWidth);
-  const sourceY = Math.min(Math.max(0, cameraY), worldHeight);
-  const sourceWidth = Math.min(worldWidth - sourceX, viewportWidth / zoom);
-  const sourceHeight = Math.min(worldHeight - sourceY, viewportHeight / zoom);
-
-  if (sourceWidth <= 0 || sourceHeight <= 0) {
-    return;
-  }
+  const backgroundTranslateX = worldOffsetX - cameraX * zoom;
+  const backgroundTranslateY = worldOffsetY - cameraY * zoom;
 
   ctx.save();
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(
     sourceCanvas,
-    sourceX,
-    sourceY,
-    sourceWidth,
-    sourceHeight,
-    worldOffsetX,
-    worldOffsetY,
-    sourceWidth * zoom,
-    sourceHeight * zoom,
+    backgroundTranslateX,
+    backgroundTranslateY,
+    worldWidth * zoom,
+    worldHeight * zoom,
   );
   ctx.restore();
 }
@@ -190,7 +154,6 @@ export function renderOverlayLayer({
   previewColor,
   votingCellIds,
   topColorMap,
-  visibleCellBounds,
   cameraX,
   cameraY,
   zoom,
@@ -200,10 +163,6 @@ export function renderOverlayLayer({
   timestamp = 0,
 }: RenderOverlayLayerParams) {
   clearCanvas(ctx);
-
-  if (!visibleCellBounds) {
-    return;
-  }
 
   const cellSize = getGameConfig().board.cellSize;
   const pulse = isDraggingCanvas ? 0.5 : (Math.sin(timestamp / 220) + 1) / 2;
@@ -215,10 +174,6 @@ export function renderOverlayLayer({
     const y = Number(yValue);
 
     if (!Number.isFinite(x) || !Number.isFinite(y)) {
-      continue;
-    }
-
-    if (!isVisible(x, y, visibleCellBounds)) {
       continue;
     }
 
@@ -234,6 +189,11 @@ export function renderOverlayLayer({
       worldOffsetX,
       worldOffsetY,
     );
+
+    if (!isScreenRectVisible(ctx, rect.x, rect.y, rect.size)) {
+      continue;
+    }
+
     const { inset, strokeSize, lineWidth } = getStrokeMetrics(rect.size);
 
     if (topColor && !isSelected) {

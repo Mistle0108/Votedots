@@ -8,6 +8,7 @@ import {
   HISTORY_PANEL_WIDTH,
   RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT,
 } from "@/pages/canvas/model/modal-position";
+import { useSwipeDownDismiss } from "@/shared/hooks/use-swipe-down-dismiss";
 import { useI18n } from "@/shared/i18n";
 import { useSnapshotDownload } from "@/shared/hooks/useSnapshotDownload";
 import { PixelSnapshotPreview } from "@/shared/ui/pixel-snapshot-preview";
@@ -129,6 +130,19 @@ export default function GameSummaryModal({
   const { formatNumber, formatPercent, locale, t } = useI18n();
   const [mobilePageIndex, setMobilePageIndex] = useState(0);
   const touchStartXRef = useRef<number | null>(null);
+  const {
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
+    handleTouchCancel,
+    dragOffsetY,
+    isDragging,
+    isClosing,
+    backdropOpacity,
+    transitionDurationMs,
+  } = useSwipeDownDismiss({
+    onDismiss: onClose,
+  });
   const finalSnapshotUrl = summary.snapshotUrl ?? snapshotUrl ?? null;
   const {
     canDownload: canDownloadDefaultSnapshot,
@@ -367,6 +381,16 @@ export default function GameSummaryModal({
   return (
     <div
       className="pointer-events-none fixed inset-0 z-50 px-3 py-6"
+      style={
+        mobileLayout
+          ? {
+              paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
+              paddingRight: "calc(env(safe-area-inset-right, 0px) + 12px)",
+              paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 12px)",
+              paddingLeft: "calc(env(safe-area-inset-left, 0px) + 12px)",
+            }
+          : undefined
+      }
     >
       <div
         className={
@@ -376,29 +400,54 @@ export default function GameSummaryModal({
         }
         style={
           mobileLayout
-            ? undefined
+            ? {
+                opacity: backdropOpacity,
+                transition: isDragging
+                  ? "none"
+                  : `opacity ${transitionDurationMs}ms ease-out`,
+              }
             : {
                 top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
                 left: `${HISTORY_PANEL_WIDTH}px`,
+                opacity: backdropOpacity,
+                transition: isDragging
+                  ? "none"
+                  : `opacity ${transitionDurationMs}ms ease-out`,
               }
         }
         onMouseDown={(event) => event.stopPropagation()}
-        onClick={(event) => event.stopPropagation()}
+        onClick={mobileLayout ? onClose : (event) => event.stopPropagation()}
       />
 
       <div
         className={`pointer-events-auto fixed flex max-h-[calc(100vh-48px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl ${
           mobileLayout
-            ? "left-1/2 top-1/2 w-[min(92vw,700px)] -translate-x-1/2 -translate-y-1/2"
+            ? "left-1/2 top-1/2 w-[min(92vw,700px)]"
             : "w-[700px] max-w-[calc(100vw-24px)]"
         }`}
-        style={mobileLayout ? undefined : { top: position.y, left: position.x }}
+        style={
+          mobileLayout
+            ? {
+                transform: isClosing
+                  ? "translate(-50%, calc(-50% + 100dvh))"
+                  : `translate(-50%, calc(-50% + ${Math.max(0, dragOffsetY)}px))`,
+                transition: isDragging
+                  ? "none"
+                  : `transform ${transitionDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+                willChange: "transform",
+              }
+            : { top: position.y, left: position.x }
+        }
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
         <div
           className="relative flex cursor-move items-center justify-center border-b border-[color:var(--page-theme-border-secondary)] px-5 py-4"
           onMouseDown={mobileLayout ? undefined : onDragStart}
+          onTouchStart={mobileLayout ? handleTouchStart : undefined}
+          onTouchMove={mobileLayout ? handleTouchMove : undefined}
+          onTouchEnd={mobileLayout ? handleTouchEnd : undefined}
+          onTouchCancel={mobileLayout ? handleTouchCancel : undefined}
         >
           <p className="text-center text-lg font-bold text-[color:var(--page-theme-primary-action)]">
             {t("gameSummary.title")}
