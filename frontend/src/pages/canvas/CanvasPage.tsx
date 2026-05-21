@@ -66,6 +66,7 @@ const ROUND_SELECTION_GUIDE_DURATION_MS = 2500;
 const SELECTION_PULSE_DURATION_MS = 1000;
 const MOBILE_VOTE_ERROR_DURATION_MS = 3000;
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
+const MOBILE_LANDSCAPE_MEDIA_QUERY = "(orientation: landscape)";
 const MOBILE_RECENT_COLOR_LIMIT = 6;
 const MOBILE_RECENT_COLORS_STORAGE_KEY = "votedots:mobile-recent-colors";
 const MOBILE_CANVAS_EDGE_PADDING = 72;
@@ -303,6 +304,17 @@ function buildIntroGuideSeenStorageKey(canvasId: number): string {
   return `${INTRO_GUIDE_SEEN_STORAGE_KEY}:${canvasId}`;
 }
 
+function getInitialMobileLandscapeState() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+
+  return (
+    window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches &&
+    window.matchMedia(MOBILE_LANDSCAPE_MEDIA_QUERY).matches
+  );
+}
+
 export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const navigate = useNavigate();
   const { locale, setLocale, t } = useI18n();
@@ -315,6 +327,9 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
     return window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY).matches;
   });
+  const [isMobileLandscape, setIsMobileLandscape] = useState(
+    getInitialMobileLandscapeState,
+  );
   const [mobileSheet, setMobileSheet] = useState<MobileSheetType>(null);
   const [desktopVoteMode, setDesktopVoteMode] = useState<VoteMode>("select");
   const [desktopPaletteColor, setDesktopPaletteColor] = useState(() =>
@@ -372,21 +387,31 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       return undefined;
     }
 
-    const mediaQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
-    const handleMediaQueryChange = (event: MediaQueryListEvent) => {
-      setIsMobileLayout(event.matches);
+    const mobileQuery = window.matchMedia(MOBILE_BREAKPOINT_MEDIA_QUERY);
+    const landscapeQuery = window.matchMedia(MOBILE_LANDSCAPE_MEDIA_QUERY);
+    const syncMobileState = () => {
+      const nextIsMobile = mobileQuery.matches;
+      const nextIsMobileLandscape = nextIsMobile && landscapeQuery.matches;
 
-      if (!event.matches) {
+      setIsMobileLayout(nextIsMobile);
+      setIsMobileLandscape(nextIsMobileLandscape);
+
+      if (!nextIsMobile || nextIsMobileLandscape) {
         setMobileSheet(null);
         setMobilePaletteOpen(false);
         setMobileVoteError("");
       }
     };
 
-    mediaQuery.addEventListener("change", handleMediaQueryChange);
+    syncMobileState();
+    mobileQuery.addEventListener("change", syncMobileState);
+    landscapeQuery.addEventListener("change", syncMobileState);
+    window.addEventListener("resize", syncMobileState);
 
     return () => {
-      mediaQuery.removeEventListener("change", handleMediaQueryChange);
+      mobileQuery.removeEventListener("change", syncMobileState);
+      landscapeQuery.removeEventListener("change", syncMobileState);
+      window.removeEventListener("resize", syncMobileState);
     };
   }, []);
 
@@ -1332,9 +1357,8 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const handleSelectMobileRecentColor = useCallback(
     (nextColor: string) => {
       handleMobilePaletteColorChange(nextColor);
-      commitMobileRecentColor(nextColor);
     },
-    [commitMobileRecentColor, handleMobilePaletteColorChange],
+    [handleMobilePaletteColorChange],
   );
 
   const handleSubmitMobileVote = useCallback(
@@ -1583,6 +1607,39 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     );
   }
 
+  if (isMobileLayout && isMobileLandscape) {
+    return (
+      <div
+        className="flex h-[100dvh] min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-[color:var(--page-theme-page-background)] px-6 text-[color:var(--page-theme-text-primary)]"
+        style={canvasPageThemeStyle}
+      >
+        <div
+          className="flex w-full max-w-sm flex-col items-center rounded-[32px] border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] px-6 py-8 text-center shadow-sm"
+          style={{
+            paddingTop: "calc(env(safe-area-inset-top, 0px) + 32px)",
+            paddingRight: "calc(env(safe-area-inset-right, 0px) + 24px)",
+            paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 32px)",
+            paddingLeft: "calc(env(safe-area-inset-left, 0px) + 24px)",
+          }}
+        >
+          <div className="flex h-16 w-16 items-center justify-center rounded-full border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-secondary)] text-2xl">
+            ↻
+          </div>
+          <h1 className="mt-5 text-xl font-semibold text-[color:var(--page-theme-text-primary)]">
+            {locale === "ko"
+              ? "가로 모드는 지원하지 않습니다."
+              : "Landscape mode is not supported."}
+          </h1>
+          <p className="mt-3 text-sm leading-6 text-[color:var(--page-theme-text-secondary)]">
+            {locale === "ko"
+              ? "기기를 세로로 돌린 뒤 다시 이용해 주세요."
+              : "Rotate your device back to portrait mode to continue."}
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   if (isMobileLayout) {
     return (
       <div
@@ -1792,21 +1849,16 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
                           key={color}
                           type="button"
                           onClick={() => handleSelectMobileRecentColor(color)}
-                          className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[color:var(--page-theme-border-primary)] shadow-sm backdrop-blur"
+                          className="inline-flex h-9 w-9 rounded-xl border border-[color:var(--page-theme-border-primary)] shadow-sm backdrop-blur"
                           style={{
                             backgroundColor: color,
-                            color: getReadableTextColor(color),
                           }}
                           aria-label={
                             locale === "ko"
                               ? `최근 색상 ${color}`
                               : `Recent color ${color}`
                           }
-                        >
-                          <span className="text-[10px] font-bold leading-none">
-                            •
-                          </span>
-                        </button>
+                        />
                       ))}
                     </div>
 
