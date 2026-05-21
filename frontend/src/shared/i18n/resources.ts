@@ -52,6 +52,9 @@ export const resources: Record<Locale, Record<string, string>> = {
       "닉네임은 한글, 영문, 숫자만 사용하며 2~20자여야 해요.",
     "server.auth.invalidPassword":
       "비밀번호는 8~64자이며 영문과 숫자를 포함해야 하고 공백은 사용할 수 없어요.",
+    "server.auth.memberOnly": "회원 전용 기능입니다.",
+    "server.room.privateEntryRequiresMember":
+      "비공개방은 회원만 입장할 수 있어요.",
     "server.vote.missingSession": "세션 정보를 찾을 수 없어요.",
     "server.vote.missingFields":
       "캔버스 ID, 라운드 ID, 좌표, 색상을 모두 입력해주세요.",
@@ -104,7 +107,10 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.error.roomNotFound": "존재하지 않는 입장 코드입니다.",
     "lobby.error.activeLimitReached": "동시에 생성할 수 있는 방은 최대 3개입니다.",
     "lobby.error.accessCodeRequired": "입장 코드를 입력해 주세요.",
+    "lobby.error.memberOnly": "회원 전용 기능입니다.",
     "lobby.error.privateCodePrompt": "비공개방은 입장 코드를 입력해야 합니다.",
+    "lobby.error.privateRoomMembersOnly":
+      "비공개방은 회원만 입장할 수 있어요.",
     "lobby.error.requestFailed": "요청을 처리하지 못했습니다.",
     "lobby.login.usernamePlaceholder": "아이디",
     "lobby.login.passwordPlaceholder": "비밀번호",
@@ -526,6 +532,10 @@ export const resources: Record<Locale, Record<string, string>> = {
       "Nickname must be 2-20 characters using only Korean, English, or numbers without spaces.",
     "server.auth.invalidPassword":
       "Password must be 8-64 characters, include at least one letter and one number, and contain no spaces.",
+    "server.auth.memberOnly":
+      "This feature is only available to registered members.",
+    "server.room.privateEntryRequiresMember":
+      "Private rooms are only available to registered members.",
     "server.vote.missingSession": "We couldn't find your session.",
     "server.vote.missingFields":
       "Please provide the canvas ID, round ID, coordinates, and color.",
@@ -584,8 +594,12 @@ export const resources: Record<Locale, Record<string, string>> = {
     "lobby.error.activeLimitReached":
       "You can create up to three active rooms at the same time.",
     "lobby.error.accessCodeRequired": "Please enter an access code.",
+    "lobby.error.memberOnly":
+      "This feature is only available to registered members.",
     "lobby.error.privateCodePrompt":
       "Private rooms require an access code to join.",
+    "lobby.error.privateRoomMembersOnly":
+      "Private rooms are only available to registered members.",
     "lobby.error.requestFailed": "We couldn't process the request.",
     "lobby.roomCreate.title": "Create room",
     "lobby.roomCreate.close": "Close",

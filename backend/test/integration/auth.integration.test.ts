@@ -109,4 +109,29 @@ describe("auth integration", () => {
       }),
     });
   });
+
+  it("blocks guest sessions from member-only account routes", async () => {
+    const agent = suite.agent();
+
+    await agent.post("/auth/guest-session").send({
+      nickname: "Guest02",
+    });
+
+    const changePasswordResponse = await agent.post("/auth/change-password").send({
+      currentPassword: "password1",
+      newPassword: "password2",
+    });
+
+    expect(changePasswordResponse.status).toBe(403);
+    expect(changePasswordResponse.body).toEqual({
+      message: "AUTH_MEMBER_ONLY",
+    });
+
+    const statsResponse = await agent.get("/mypage/stats");
+
+    expect(statsResponse.status).toBe(403);
+    expect(statsResponse.body).toEqual({
+      message: "AUTH_MEMBER_ONLY",
+    });
+  });
 });

@@ -1,15 +1,19 @@
 import { Router } from "express";
-import { authMiddleware } from "../../middlewares/auth.middleware";
+import { memberOnlyMiddleware } from "../../middlewares/auth.middleware";
 import { mypageController } from "./mypage.controller";
 
 const router = Router();
 
-router.get("/participations", authMiddleware, mypageController.getParticipations);
+router.get(
+  "/participations",
+  memberOnlyMiddleware,
+  mypageController.getParticipations,
+);
 router.get(
   "/participations/:canvasId",
-  authMiddleware,
+  memberOnlyMiddleware,
   mypageController.getParticipationDetail,
 );
-router.get("/stats", authMiddleware, mypageController.getStats);
+router.get("/stats", memberOnlyMiddleware, mypageController.getStats);
 
 export default router;

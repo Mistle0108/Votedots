@@ -1,6 +1,9 @@
 import { Router } from "express";
 import { authController } from "./auth.controller";
-import { authMiddleware } from "../../middlewares/auth.middleware";
+import {
+  authMiddleware,
+  memberOnlyMiddleware,
+} from "../../middlewares/auth.middleware";
 import { createRateLimitMiddleware } from "../../middlewares/rate-limit.middleware";
 
 const router = Router();
@@ -28,8 +31,12 @@ router.post(
 router.post("/register", registerRateLimit, authController.register);
 router.post("/login", loginRateLimit, authController.login);
 router.post("/logout", authMiddleware, authController.logout);
-router.post("/change-password", authMiddleware, authController.changePassword);
-router.post("/withdraw", authMiddleware, authController.withdraw);
+router.post(
+  "/change-password",
+  memberOnlyMiddleware,
+  authController.changePassword,
+);
+router.post("/withdraw", memberOnlyMiddleware, authController.withdraw);
 router.get("/me", authMiddleware, authController.me);
 
 export default router;

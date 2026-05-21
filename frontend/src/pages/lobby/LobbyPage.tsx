@@ -61,6 +61,10 @@ function getErrorMessage(
         return t("lobby.error.activeLimitReached");
       case "ROOM_ACCESS_CODE_REQUIRED":
         return t("lobby.error.accessCodeRequired");
+      case "AUTH_MEMBER_ONLY":
+        return t("lobby.error.memberOnly");
+      case "ROOM_PRIVATE_ENTRY_REQUIRES_MEMBER":
+        return t("lobby.error.privateRoomMembersOnly");
       default:
         return message;
     }

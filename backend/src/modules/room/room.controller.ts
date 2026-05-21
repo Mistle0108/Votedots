@@ -270,6 +270,12 @@ export const roomController = {
         return res.status(400).json({ message: "ROOM_TYPE_INVALID" });
       }
 
+      if (req.session.voter?.isGuest && result.room.type === RoomType.PRIVATE) {
+        return res.status(403).json({
+          message: "ROOM_PRIVATE_ENTRY_REQUIRES_MEMBER",
+        });
+      }
+
       await applyRoomSessionContext(req, result.sessionContext);
 
       return res.json({

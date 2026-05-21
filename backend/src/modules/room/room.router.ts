@@ -1,5 +1,8 @@
 import { Router } from "express";
-import { authMiddleware } from "../../middlewares/auth.middleware";
+import {
+  authMiddleware,
+  memberOnlyMiddleware,
+} from "../../middlewares/auth.middleware";
 import { roomController } from "./room.controller";
 
 const router = Router();
@@ -17,12 +20,24 @@ router.get(
   authMiddleware,
   roomController.getCurrentParticipantList,
 );
-router.get("/current/manage", authMiddleware, roomController.getCurrentManage);
-router.post("/current/end-game", authMiddleware, roomController.endGameCurrent);
-router.post("/current/terminate", authMiddleware, roomController.terminateCurrent);
+router.get(
+  "/current/manage",
+  memberOnlyMiddleware,
+  roomController.getCurrentManage,
+);
+router.post(
+  "/current/end-game",
+  memberOnlyMiddleware,
+  roomController.endGameCurrent,
+);
+router.post(
+  "/current/terminate",
+  memberOnlyMiddleware,
+  roomController.terminateCurrent,
+);
 router.post("/:roomId/enter-public", authMiddleware, roomController.enterPublicByRoomId);
 router.get("/:roomId", roomController.getDetail);
-router.post("/", authMiddleware, roomController.create);
+router.post("/", memberOnlyMiddleware, roomController.create);
 router.post("/enter", authMiddleware, roomController.enter);
 
 export default router;
