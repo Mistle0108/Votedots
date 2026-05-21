@@ -10,6 +10,10 @@ export interface CanvasCurrentResponse {
   gameConfig: GameConfig;
 }
 
+export interface CanvasEntryResponse {
+  canvasId: number;
+}
+
 export interface RoundStateResponse {
   status: "active" | "waiting";
   canvasPhase: GamePhase;
@@ -139,6 +143,9 @@ export interface CreateCanvasRequest {
 }
 
 export const sessionApi = {
+  enterCurrentCanvas: () =>
+    api.post<CanvasEntryResponse>("/canvas/current/enter"),
+
   getCurrentCanvas: () => api.get<CanvasCurrentResponse>("/canvas/current"),
 
   getActiveRound: (canvasId: number) =>

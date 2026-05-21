@@ -68,6 +68,7 @@ describe("room integration", () => {
 
     await agent.post("/auth/guest-session").send({
       nickname: "Guest03",
+      browserKey: "browser-key-room-public-01",
     });
 
     const enterResponse = await agent.post(`/rooms/${room.id}/enter-public`).send();
@@ -96,6 +97,7 @@ describe("room integration", () => {
 
     await agent.post("/auth/guest-session").send({
       nickname: "Guest04",
+      browserKey: "browser-key-room-create-01",
     });
 
     const createResponse = await agent.post("/rooms").send({
@@ -119,6 +121,7 @@ describe("room integration", () => {
 
     await agent.post("/auth/guest-session").send({
       nickname: "Guest05",
+      browserKey: "browser-key-room-private-01",
     });
 
     const enterResponse = await agent.post("/rooms/enter").send({
@@ -128,6 +131,77 @@ describe("room integration", () => {
     expect(enterResponse.status).toBe(403);
     expect(enterResponse.body).toEqual({
       message: "ROOM_PRIVATE_ENTRY_REQUIRES_MEMBER",
+    });
+  });
+
+  it("blocks the same browser from re-entering the same public room as a new guest session", async () => {
+    const room = await createRoomFixture({
+      title: "Public Room Reentry",
+      type: RoomType.PUBLIC,
+      accessCode: "PUBLIC2",
+    });
+    const browserKey = "browser-key-room-reentry-01";
+    const agent = suite.agent();
+
+    await agent.post("/auth/guest-session").send({
+      nickname: "Guest06",
+      browserKey,
+    });
+
+    const firstEnterResponse = await agent.post(`/rooms/${room.id}/enter-public`).send();
+
+    expect(firstEnterResponse.status).toBe(200);
+
+    const logoutResponse = await agent.post("/auth/logout").send();
+
+    expect(logoutResponse.status).toBe(200);
+
+    await agent.post("/auth/guest-session").send({
+      nickname: "Guest07",
+      browserKey,
+    });
+
+    const secondEnterResponse = await agent
+      .post(`/rooms/${room.id}/enter-public`)
+      .send();
+
+    expect(secondEnterResponse.status).toBe(403);
+    expect(secondEnterResponse.body).toEqual({
+      message: "AUTH_GUEST_REENTRY_BLOCKED",
+    });
+  });
+
+  it("blocks a guest session from moving to a different public room after scope is set", async () => {
+    const firstRoom = await createRoomFixture({
+      title: "Public Room A",
+      type: RoomType.PUBLIC,
+      accessCode: "PUBLIC3",
+    });
+    const secondRoom = await createRoomFixture({
+      title: "Public Room B",
+      type: RoomType.PUBLIC,
+      accessCode: "PUBLIC4",
+    });
+    const agent = suite.agent();
+
+    await agent.post("/auth/guest-session").send({
+      nickname: "Guest08",
+      browserKey: "browser-key-room-scope-01",
+    });
+
+    const firstEnterResponse = await agent
+      .post(`/rooms/${firstRoom.id}/enter-public`)
+      .send();
+
+    expect(firstEnterResponse.status).toBe(200);
+
+    const secondEnterResponse = await agent
+      .post(`/rooms/${secondRoom.id}/enter-public`)
+      .send();
+
+    expect(secondEnterResponse.status).toBe(403);
+    expect(secondEnterResponse.body).toEqual({
+      message: "AUTH_GUEST_SCOPE_MISMATCH",
     });
   });
 });

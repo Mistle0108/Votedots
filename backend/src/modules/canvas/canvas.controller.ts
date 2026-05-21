@@ -7,6 +7,7 @@ import { canvasService } from "./canvas.service";
 import { GameSummary } from "../../entities/game-summary.entity";
 import { finalResultImageService } from "../history/final-result-image.service";
 import { summaryService } from "../summary/summary.service";
+import { guestEntryService } from "../auth/guest-entry.service";
 import type { GetCanvasChunksQuery } from "./dto/get-canvas-chunks.dto";
 
 interface CreateCanvasRequestBody {
@@ -87,6 +88,32 @@ function serializeGameSummary(
 }
 
 export const canvasController = {
+  async enterCurrent(req: Request, res: Response) {
+    try {
+      const canvas = await canvasService.getCurrentPlaza();
+
+      if (!canvas) {
+        return res
+          .status(404)
+          .json({ message: "진행 중인 캔버스가 없습니다." });
+      }
+
+      await guestEntryService.authorizeScope(req, {
+        kind: "plaza",
+        scopeId: canvas.id,
+      });
+
+      return res.json({
+        canvasId: canvas.id,
+      });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      const status = guestEntryService.isAccessError(message) ? 403 : 500;
+
+      return res.status(status).json({ message });
+    }
+  },
+
   async create(req: Request, res: Response) {
     try {
       const io = req.app.get("io") as Server;
@@ -115,13 +142,21 @@ export const canvasController = {
           .json({ message: "진행 중인 캔버스가 없습니다." });
       }
 
+      await guestEntryService.authorizeScope(req, {
+        kind: "plaza",
+        scopeId: canvas.id,
+      });
+
       return res.json({
         canvas: serializeCanvas(canvas),
         serverNow: new Date().toISOString(),
         gameConfig: getCanvasGameConfigSnapshot(canvas),
       });
     } catch (err) {
-      return res.status(500).json({ message: String(err) });
+      const message = err instanceof Error ? err.message : String(err);
+      const status = guestEntryService.isAccessError(message) ? 403 : 500;
+
+      return res.status(status).json({ message });
     }
   },
 

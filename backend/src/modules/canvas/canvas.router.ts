@@ -6,6 +6,7 @@ import { authMiddleware } from "../../middlewares/auth.middleware";
 const router = Router();
 
 // TO-BE
+router.post("/current/enter", authMiddleware, canvasController.enterCurrent);
 router.get("/current", authMiddleware, canvasController.getCurrent);
 router.get("/:canvasId/history", authMiddleware, historyController.getCanvasHistory);
 router.get("/:canvasId/chunks", authMiddleware, canvasController.getChunks);

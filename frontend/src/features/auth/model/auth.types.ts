@@ -14,6 +14,7 @@ export interface LoginRequest {
 
 export interface GuestSessionRequest {
   nickname: string;
+  browserKey: string;
 }
 
 export interface Voter {

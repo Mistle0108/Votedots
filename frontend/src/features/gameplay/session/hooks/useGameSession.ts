@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { authApi } from "@/features/auth";
 import { clearActiveGuestEntryScope } from "@/features/auth/model/guest-entry";
 import { useI18n } from "@/shared/i18n";
+import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { SessionBootstrapResult } from "../model/session.types";
 
 interface UseGameSessionParams {
@@ -148,7 +149,7 @@ export function useGameSession({
   onUnauthorized,
   onContextMissing,
 }: UseGameSessionParams) {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -240,6 +241,17 @@ export function useGameSession({
         return null;
       }
 
+      if (
+        message === "AUTH_INVALID_BROWSER_KEY" ||
+        message === "AUTH_GUEST_REENTRY_BLOCKED" ||
+        message === "AUTH_GUEST_SCOPE_MISMATCH"
+      ) {
+        setError(translateServerMessage(message, t, locale));
+        setRetryNonce(0);
+        clearRestartPending();
+        return null;
+      }
+
       setError(t("session.loadCanvasFailed"));
       setRetryNonce(0);
       clearRestartPending();
@@ -248,6 +260,7 @@ export function useGameSession({
   }, [
     bootstrap,
     handleBootstrapSuccess,
+    locale,
     onContextMissing,
     showServiceUnavailableAlert,
     t,

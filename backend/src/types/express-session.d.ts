@@ -10,6 +10,15 @@ declare module "express-session" {
       role: string;
       isGuest: boolean;
     };
+    guest?: {
+      browserKey: string;
+      scope:
+        | {
+            kind: "plaza" | "room";
+            scopeId: number;
+          }
+        | null;
+    };
     room?: {
       roomId: number;
       canvasId: number;

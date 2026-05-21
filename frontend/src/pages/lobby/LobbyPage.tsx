@@ -5,6 +5,7 @@ import { trackVisitEvent } from "@/features/analytics/model/visit-event";
 import { authApi, logoutToLobby } from "@/features/auth";
 import {
   clearActiveGuestEntryScope,
+  getOrCreateGuestBrowserKey,
   getActiveGuestEntryScope,
   hasGuestEntryLock,
   isSameGuestEntryScope,
@@ -12,6 +13,7 @@ import {
   setActiveGuestEntryScope,
   type GuestEntryScope,
 } from "@/features/auth/model/guest-entry";
+import { sessionApi } from "@/features/gameplay/session";
 import { landingApi } from "@/features/landing/api/landing.api";
 import type { LandingCurrentGame } from "@/features/landing/model/landing.types";
 import CompletedCanvasSection from "@/features/lobby/components/CompletedCanvasSection";
@@ -560,13 +562,18 @@ export default function LobbyPage() {
           setAuthState("guest");
         }
 
-        const { data: guestData } = await authApi.createGuestSession({ nickname });
+        const browserKey = getOrCreateGuestBrowserKey();
+        const { data: guestData } = await authApi.createGuestSession({
+          nickname,
+          browserKey,
+        });
         createdGuestSession = true;
         setCurrentVoter(guestData.voter);
         setAuthState("guest");
 
         if (pendingGuestEntry.type === "plaza") {
-          const scope = buildPlazaGuestEntryScope(pendingGuestEntry.canvasId);
+          const { data } = await sessionApi.enterCurrentCanvas();
+          const scope = buildPlazaGuestEntryScope(data.canvasId);
           completeGuestEntryForScope(scope);
           closeGuestEntryModal();
           navigate("/plaza");

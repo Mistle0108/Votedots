@@ -40,8 +40,11 @@ function destroyRequestSession(req: Request): Promise<void> {
 export const authController = {
   async createGuestSession(req: Request, res: Response) {
     try {
-      const { nickname } = req.body ?? {};
-      const validationError = validateGuestSessionInput({ nickname });
+      const { nickname, browserKey } = req.body ?? {};
+      const validationError = validateGuestSessionInput({
+        nickname,
+        browserKey,
+      });
 
       if (validationError) {
         return res.status(400).json({ message: validationError });
@@ -63,6 +66,10 @@ export const authController = {
         nickname: voter.nickname,
         role: voter.role,
         isGuest: voter.isGuest,
+      };
+      req.session.guest = {
+        browserKey,
+        scope: null,
       };
 
       return res.status(201).json({
@@ -138,6 +145,7 @@ export const authController = {
         role: voter.role,
         isGuest: voter.isGuest,
       };
+      delete req.session.guest;
 
       const previousSessionId = await authSessionService.replaceActiveSession(
         voter.id,
