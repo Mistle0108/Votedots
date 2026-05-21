@@ -29,8 +29,14 @@ export default function MobileBottomSheet({
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
+    dragOffsetY,
+    isDragging,
+    isClosing,
+    backdropOpacity,
+    transitionDurationMs,
   } = useSwipeDownDismiss({
     onDismiss: onClose,
+    active: open,
   });
 
   if (!open) {
@@ -44,6 +50,12 @@ export default function MobileBottomSheet({
           type="button"
           aria-label="close"
           className="pointer-events-auto absolute inset-0 bg-[rgba(0,0,0,0.28)]"
+          style={{
+            opacity: backdropOpacity,
+            transition: isDragging
+              ? "none"
+              : `opacity ${transitionDurationMs}ms ease-out`,
+          }}
           onPointerDown={onClose}
           onPointerMove={onClose}
           onTouchStart={onClose}
@@ -57,6 +69,13 @@ export default function MobileBottomSheet({
         className={`pointer-events-auto absolute inset-x-0 bottom-0 flex flex-col overflow-hidden rounded-t-[28px] border border-b-0 border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-page-background)] shadow-[0_-20px_40px_rgba(15,23,42,0.22)] ${maxHeightClassName}`}
         style={{
           paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 16px)",
+          transform: isClosing
+            ? "translateY(calc(100% + 32px))"
+            : `translateY(${Math.max(0, dragOffsetY)}px)`,
+          transition: isDragging
+            ? "none"
+            : `transform ${transitionDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+          willChange: "transform",
         }}
         data-tutorial-id={tutorialId}
       >

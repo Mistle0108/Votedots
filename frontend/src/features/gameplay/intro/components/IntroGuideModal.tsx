@@ -130,8 +130,14 @@ export default function IntroGuideModal({
     handleTouchMove,
     handleTouchEnd,
     handleTouchCancel,
+    dragOffsetY,
+    isDragging,
+    isClosing,
+    backdropOpacity,
+    transitionDurationMs,
   } = useSwipeDownDismiss({
     onDismiss: onClose,
+    active: open,
   });
 
   const description = useMemo(() => buildDescription(gameConfig), [gameConfig]);
@@ -489,10 +495,19 @@ export default function IntroGuideModal({
         }
         style={
           mobileLayout
-            ? undefined
+            ? {
+                opacity: backdropOpacity,
+                transition: isDragging
+                  ? "none"
+                  : `opacity ${transitionDurationMs}ms ease-out`,
+              }
             : {
                 top: `${RIGHT_PANEL_ACTIONS_EXPOSED_HEIGHT}px`,
                 left: `${HISTORY_PANEL_WIDTH}px`,
+                opacity: backdropOpacity,
+                transition: isDragging
+                  ? "none"
+                  : `opacity ${transitionDurationMs}ms ease-out`,
               }
         }
         onMouseDown={(event) => event.stopPropagation()}
@@ -503,10 +518,22 @@ export default function IntroGuideModal({
         ref={modalRef}
         className={`pointer-events-auto fixed flex max-h-[calc(100dvh-16px)] flex-col overflow-hidden rounded-3xl border border-[color:var(--page-theme-border-primary)] bg-[color:var(--page-theme-surface-primary)] shadow-2xl ${
           mobileLayout
-            ? "left-1/2 top-1/2 w-[min(92vw,380px)] -translate-x-1/2 -translate-y-1/2"
+            ? "left-1/2 top-1/2 w-[min(92vw,380px)]"
             : "w-[1400px] max-w-[calc(100vw-24px)]"
         }`}
-        style={mobileLayout ? undefined : { top: position.y, left: position.x }}
+        style={
+          mobileLayout
+            ? {
+                transform: isClosing
+                  ? "translate(-50%, calc(-50% + 100dvh))"
+                  : `translate(-50%, calc(-50% + ${Math.max(0, dragOffsetY)}px))`,
+                transition: isDragging
+                  ? "none"
+                  : `transform ${transitionDurationMs}ms cubic-bezier(0.22, 1, 0.36, 1)`,
+                willChange: "transform",
+              }
+            : { top: position.y, left: position.x }
+        }
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
