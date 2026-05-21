@@ -5,7 +5,6 @@ import { useI18n } from "@/shared/i18n";
 interface GuestEntryModalProps {
   open: boolean;
   loading: boolean;
-  blocked?: boolean;
   error: string | null;
   scopeLabel: string;
   onClose: () => void;
@@ -15,7 +14,6 @@ interface GuestEntryModalProps {
 export default function GuestEntryModal({
   open,
   loading,
-  blocked = false,
   error,
   scopeLabel,
   onClose,
@@ -67,7 +65,7 @@ export default function GuestEntryModal({
             id="guest-entry-nickname"
             type="text"
             value={nickname}
-            disabled={loading || blocked}
+            disabled={loading}
             onChange={(event) => setNickname(event.target.value)}
             placeholder={t("lobby.guestEntry.nicknamePlaceholder")}
             className="mt-2 h-12 w-full rounded-2xl border border-[#d9cdc1] bg-white px-4 text-sm text-[#272E37] outline-none disabled:bg-[#f7f2eb] disabled:text-[#8c8277]"
@@ -104,7 +102,7 @@ export default function GuestEntryModal({
 
         <button
           type="button"
-          disabled={loading || blocked}
+          disabled={loading}
           onClick={async () => {
             const trimmed = nickname.trim();
 

@@ -68,7 +68,6 @@ describe("auth integration", () => {
 
     const guestSessionResponse = await agent.post("/auth/guest-session").send({
       nickname: "Guest01",
-      browserKey: "browser-key-auth-guest-01",
     });
 
     expect(guestSessionResponse.status).toBe(201);
@@ -116,7 +115,6 @@ describe("auth integration", () => {
 
     await agent.post("/auth/guest-session").send({
       nickname: "Guest02",
-      browserKey: "browser-key-auth-guest-02",
     });
 
     const changePasswordResponse = await agent.post("/auth/change-password").send({

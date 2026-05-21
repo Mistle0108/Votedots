@@ -35,6 +35,7 @@ router.post(
   memberOnlyMiddleware,
   roomController.terminateCurrent,
 );
+router.post("/resolve-access-code", roomController.resolveByAccessCode);
 router.post("/:roomId/enter-public", authMiddleware, roomController.enterPublicByRoomId);
 router.get("/:roomId", roomController.getDetail);
 router.post("/", memberOnlyMiddleware, roomController.create);

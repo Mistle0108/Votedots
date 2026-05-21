@@ -5,15 +5,11 @@ import { trackVisitEvent } from "@/features/analytics/model/visit-event";
 import { authApi, logoutToLobby } from "@/features/auth";
 import {
   clearActiveGuestEntryScope,
-  getOrCreateGuestBrowserKey,
   getActiveGuestEntryScope,
-  hasGuestEntryLock,
   isSameGuestEntryScope,
-  markGuestEntryLock,
   setActiveGuestEntryScope,
   type GuestEntryScope,
 } from "@/features/auth/model/guest-entry";
-import { sessionApi } from "@/features/gameplay/session";
 import { landingApi } from "@/features/landing/api/landing.api";
 import type { LandingCurrentGame } from "@/features/landing/model/landing.types";
 import CompletedCanvasSection from "@/features/lobby/components/CompletedCanvasSection";
@@ -47,8 +43,7 @@ type CompletedPreset = "today" | "7d" | "30d";
 type RoomTypeFilter = "all" | "public" | "private";
 type GuestEntryRequest =
   | { type: "plaza"; canvasId: number }
-  | { type: "public-room"; roomId: number }
-  | { type: "room-access-code"; accessCode: string };
+  | { type: "public-room"; roomId: number };
 
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 767px)";
 const MOBILE_ROOM_LIST_PAGE_SIZE = 5;
@@ -135,7 +130,6 @@ export default function LobbyPage() {
   const [enterLoading, setEnterLoading] = useState(false);
   const [guestEntryModalOpen, setGuestEntryModalOpen] = useState(false);
   const [guestEntryLoading, setGuestEntryLoading] = useState(false);
-  const [guestEntryBlocked, setGuestEntryBlocked] = useState(false);
   const [roomTypeFilter, setRoomTypeFilter] = useState<RoomTypeFilter>("all");
   const [mobileRoomPage, setMobileRoomPage] = useState(1);
   const [mobileRoomDetailOpen, setMobileRoomDetailOpen] = useState(false);
@@ -447,40 +441,9 @@ export default function LobbyPage() {
     }
   }, [authState, currentVoter]);
 
-  const resolveGuestScopeLabel = useCallback(
-    (scope: GuestEntryScope) =>
-      scope.kind === "plaza"
-        ? t("lobby.guestEntry.scope.plaza")
-        : t("lobby.guestEntry.scope.publicRoom"),
-    [t],
-  );
-
-  const buildGuestReentryBlockedMessage = useCallback(
-    (scope: GuestEntryScope) =>
-      t("lobby.guestEntry.reentryBlocked", {
-        scope: resolveGuestScopeLabel(scope),
-      }),
-    [resolveGuestScopeLabel, t],
-  );
-
-  const getKnownGuestEntryScope = useCallback(
-    (request: GuestEntryRequest): GuestEntryScope | null => {
-      switch (request.type) {
-        case "plaza":
-          return buildPlazaGuestEntryScope(request.canvasId);
-        case "public-room":
-          return buildRoomGuestEntryScope(request.roomId);
-        case "room-access-code":
-          return null;
-      }
-    },
-    [],
-  );
-
   const openGuestEntryModal = useCallback(
-    (request: GuestEntryRequest, options?: { blocked?: boolean; error?: string | null }) => {
+    (request: GuestEntryRequest, options?: { error?: string | null }) => {
       setPendingGuestEntry(request);
-      setGuestEntryBlocked(Boolean(options?.blocked));
       setGuestEntryError(options?.error ?? null);
       setGuestEntryModalOpen(true);
     },
@@ -490,7 +453,6 @@ export default function LobbyPage() {
   const closeGuestEntryModal = useCallback(() => {
     setGuestEntryModalOpen(false);
     setGuestEntryLoading(false);
-    setGuestEntryBlocked(false);
     setGuestEntryError(null);
     setPendingGuestEntry(null);
   }, []);
@@ -523,7 +485,6 @@ export default function LobbyPage() {
   );
 
   const completeGuestEntryForScope = useCallback((scope: GuestEntryScope) => {
-    markGuestEntryLock(scope);
     setActiveGuestEntryScope(scope);
   }, []);
 
@@ -535,16 +496,6 @@ export default function LobbyPage() {
 
       setGuestEntryLoading(true);
       setGuestEntryError(null);
-      setGuestEntryBlocked(false);
-
-      const knownScope = getKnownGuestEntryScope(pendingGuestEntry);
-
-      if (knownScope && hasGuestEntryLock(knownScope)) {
-        setGuestEntryBlocked(true);
-        setGuestEntryError(buildGuestReentryBlockedMessage(knownScope));
-        setGuestEntryLoading(false);
-        return;
-      }
 
       let createdGuestSession = false;
 
@@ -562,18 +513,13 @@ export default function LobbyPage() {
           setAuthState("guest");
         }
 
-        const browserKey = getOrCreateGuestBrowserKey();
-        const { data: guestData } = await authApi.createGuestSession({
-          nickname,
-          browserKey,
-        });
+        const { data: guestData } = await authApi.createGuestSession({ nickname });
         createdGuestSession = true;
         setCurrentVoter(guestData.voter);
         setAuthState("guest");
 
         if (pendingGuestEntry.type === "plaza") {
-          const { data } = await sessionApi.enterCurrentCanvas();
-          const scope = buildPlazaGuestEntryScope(data.canvasId);
+          const scope = buildPlazaGuestEntryScope(pendingGuestEntry.canvasId);
           completeGuestEntryForScope(scope);
           closeGuestEntryModal();
           navigate("/plaza");
@@ -588,38 +534,6 @@ export default function LobbyPage() {
           enterRoomFromResponse(room);
           return;
         }
-
-        const room = await enterRoomByAccessCodeWithCurrentSession(
-          pendingGuestEntry.accessCode,
-        );
-
-        if (room.type !== "public") {
-          throw new Error("ROOM_PRIVATE_ENTRY_REQUIRES_MEMBER");
-        }
-
-        const scope = buildRoomGuestEntryScope(room.roomId);
-
-        if (hasGuestEntryLock(scope)) {
-          if (createdGuestSession) {
-            try {
-              await authApi.logout();
-            } catch {
-              // Ignore logout failure and keep the UI in a blocked state.
-            }
-          }
-
-          clearActiveGuestEntryScope();
-          clearStoredRoomSessionContext();
-          setCurrentVoter(null);
-          setAuthState("guest");
-          setGuestEntryBlocked(true);
-          setGuestEntryError(buildGuestReentryBlockedMessage(scope));
-          return;
-        }
-
-        completeGuestEntryForScope(scope);
-        closeGuestEntryModal();
-        enterRoomFromResponse(room);
       } catch (error) {
         if (createdGuestSession) {
           try {
@@ -641,14 +555,11 @@ export default function LobbyPage() {
       }
     },
     [
-      buildGuestReentryBlockedMessage,
       closeGuestEntryModal,
       completeGuestEntryForScope,
       currentVoter,
       enterPublicRoomWithCurrentSession,
-      enterRoomByAccessCodeWithCurrentSession,
       enterRoomFromResponse,
-      getKnownGuestEntryScope,
       locale,
       navigate,
       pendingGuestEntry,
@@ -679,26 +590,8 @@ export default function LobbyPage() {
       return;
     }
 
-    if (hasGuestEntryLock(scope)) {
-      openGuestEntryModal(
-        { type: "plaza", canvasId: plazaCurrentGame.canvasId },
-        {
-          blocked: true,
-          error: buildGuestReentryBlockedMessage(scope),
-        },
-      );
-      return;
-    }
-
     openGuestEntryModal({ type: "plaza", canvasId: plazaCurrentGame.canvasId });
-  }, [
-    buildGuestReentryBlockedMessage,
-    navigate,
-    openGuestEntryModal,
-    plazaCurrentGame,
-    syncSessionState,
-    t,
-  ]);
+  }, [navigate, openGuestEntryModal, plazaCurrentGame, syncSessionState, t]);
 
   const handleCreateRoom = useCallback(async () => {
     if (!(await ensureMemberSession())) {
@@ -822,15 +715,40 @@ export default function LobbyPage() {
         return;
       }
 
-      setEnterModalOpen(false);
-      setPrivateAccessCode("");
-      openGuestEntryModal({
-        type: "room-access-code",
-        accessCode,
-      });
+      setEnterLoading(true);
+
+      try {
+        const { data } = await roomApi.resolveRoomByAccessCode(accessCode);
+
+        setEnterModalOpen(false);
+        setPrivateAccessCode("");
+
+        if (data.room.type === "private") {
+          setLoginRequiredOpen(true);
+          return;
+        }
+
+        const scope = buildRoomGuestEntryScope(data.room.roomId);
+        const activeGuestScope = getActiveGuestEntryScope();
+
+        if (
+          sessionState.voter?.isGuest &&
+          isSameGuestEntryScope(activeGuestScope, scope)
+        ) {
+          const room = await enterPublicRoomWithCurrentSession(data.room.roomId);
+          enterRoomFromResponse(room);
+          return;
+        }
+
+        openGuestEntryModal({ type: "public-room", roomId: data.room.roomId });
+      } catch (error) {
+        setModalError(getErrorMessage(error, t, locale));
+      } finally {
+        setEnterLoading(false);
+      }
     },
     [
-      enterRoomByAccessCodeWithCurrentSession,
+      enterPublicRoomWithCurrentSession,
       enterRoomFromResponse,
       locale,
       openGuestEntryModal,
@@ -881,21 +799,9 @@ export default function LobbyPage() {
         return;
       }
 
-      if (hasGuestEntryLock(scope)) {
-        openGuestEntryModal(
-          { type: "public-room", roomId },
-          {
-            blocked: true,
-            error: buildGuestReentryBlockedMessage(scope),
-          },
-        );
-        return;
-      }
-
       openGuestEntryModal({ type: "public-room", roomId });
     },
     [
-      buildGuestReentryBlockedMessage,
       enterPublicRoomWithCurrentSession,
       enterRoomFromResponse,
       locale,
@@ -1416,14 +1322,11 @@ export default function LobbyPage() {
       <GuestEntryModal
         open={guestEntryModalOpen}
         loading={guestEntryLoading}
-        blocked={guestEntryBlocked}
         error={guestEntryError}
         scopeLabel={
           pendingGuestEntry?.type === "plaza"
             ? t("lobby.guestEntry.scope.plaza")
-            : pendingGuestEntry?.type === "public-room"
-              ? t("lobby.guestEntry.scope.publicRoom")
-              : t("lobby.guestEntry.scope.room")
+            : t("lobby.guestEntry.scope.publicRoom")
         }
         onClose={handleCloseGuestEntryModal}
         onSubmit={handleSubmitGuestEntry}

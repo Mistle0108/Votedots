@@ -9,7 +9,6 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
-import { authApi } from "@/features/auth";
 import { clearActiveGuestEntryScope } from "@/features/auth/model/guest-entry";
 import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
 import type { RoomExpiredPayload } from "@/features/gameplay/session/model/socket.types";
@@ -384,7 +383,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
   usePageRootClass("page-shell-root");
   useTrackVisitEvent(gameplayEntryEventType);
-  const [currentVoterUuid, setCurrentVoterUuid] = useState<string | null>(null);
   const [selectionGuideState, dispatchSelectionGuide] = useReducer(
     selectionGuideReducer,
     INITIAL_SELECTION_GUIDE_STATE,
@@ -1127,18 +1125,10 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
   const handleCloseVotePopup = handlePopupClose;
   const selectionLabels = useMemo(() => {
-    if (!currentVoterUuid) {
-      return [];
-    }
-
     const stackCountByCell = new Map<string, number>();
 
     return participants
-      .filter(
-        (participant) =>
-          participant.selectedCell &&
-          participant.voterUuid !== currentVoterUuid,
-      )
+      .filter((participant) => participant.selectedCell)
       .map((participant) => {
         const selectedCell = participant.selectedCell!;
         const cellKey = `${selectedCell.x}:${selectedCell.y}`;
@@ -1154,7 +1144,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
           stackIndex,
         };
       });
-  }, [currentVoterUuid, participants]);
+  }, [participants]);
   const uniqueSelectionCellKeys = useMemo(
     () =>
       Array.from(
@@ -1162,32 +1152,6 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       ),
     [selectionLabels],
   );
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const fetchCurrentVoter = async () => {
-      try {
-        const { data } = await authApi.me();
-
-        if (cancelled) {
-          return;
-        }
-
-        setCurrentVoterUuid(data.voter.uuid);
-      } catch {
-        if (!cancelled) {
-          setCurrentVoterUuid(null);
-        }
-      }
-    };
-
-    void fetchCurrentVoter();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   useEffect(() => {
     return () => {

@@ -54,12 +54,6 @@ export const resources: Record<Locale, Record<string, string>> = {
       "닉네임은 한글, 영문, 숫자만 사용하며 2~20자여야 해요.",
     "server.auth.invalidPassword":
       "비밀번호는 8~64자이며 영문과 숫자를 포함해야 하고 공백은 사용할 수 없어요.",
-    "server.auth.invalidBrowserKey":
-      "이 브라우저의 게스트 식별 정보를 확인하지 못했습니다.",
-    "server.auth.guestReentryBlocked":
-      "이 브라우저에서는 이미 같은 광장 또는 공개방에 게스트로 참여한 기록이 있어 다시 입장할 수 없어요.",
-    "server.auth.guestScopeMismatch":
-      "이 게스트 세션은 다른 광장 또는 공개방에 이미 연결되어 있어요.",
     "server.auth.memberOnly": "회원 전용 기능입니다.",
     "server.room.privateEntryRequiresMember":
       "비공개방은 회원만 입장할 수 있어요.",
@@ -564,12 +558,6 @@ export const resources: Record<Locale, Record<string, string>> = {
       "Nickname must be 2-20 characters using only Korean, English, or numbers without spaces.",
     "server.auth.invalidPassword":
       "Password must be 8-64 characters, include at least one letter and one number, and contain no spaces.",
-    "server.auth.invalidBrowserKey":
-      "We could not verify this browser for guest entry.",
-    "server.auth.guestReentryBlocked":
-      "This browser has already joined the same plaza or public room as a guest and cannot enter again.",
-    "server.auth.guestScopeMismatch":
-      "This guest session is already tied to a different plaza or public room.",
     "server.auth.memberOnly":
       "This feature is only available to registered members.",
     "server.room.privateEntryRequiresMember":

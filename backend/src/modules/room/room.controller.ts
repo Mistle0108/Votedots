@@ -8,7 +8,6 @@ import {
   getCanvasGameConfigSnapshot,
   getGameConfigProfiles,
 } from "../../config/game.config";
-import { guestEntryService } from "../auth/guest-entry.service";
 import { GamePhase } from "../game/game-phase.types";
 import { forceGameEnd, stopGameTimer } from "../game/game.timer";
 import { roundSnapshotService } from "../history/round-snapshot.service";
@@ -277,11 +276,6 @@ export const roomController = {
         });
       }
 
-      await guestEntryService.authorizeScope(req, {
-        kind: "room",
-        scopeId: result.room.id,
-      });
-
       await applyRoomSessionContext(req, result.sessionContext);
 
       return res.json({
@@ -293,9 +287,39 @@ export const roomController = {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const status =
-        guestEntryService.isAccessError(message)
-          ? 403
-          : message === "ROOM_EXPIRED"
+        message === "ROOM_EXPIRED"
+          ? 410
+          : message === "ROOM_NOT_FOUND"
+            ? 404
+            : 400;
+
+      return res.status(status).json({ message });
+    }
+  },
+
+  async resolveByAccessCode(req: Request, res: Response) {
+    try {
+      const accessCode = String(req.body?.accessCode ?? "")
+        .trim()
+        .toUpperCase();
+
+      if (!accessCode) {
+        return res.status(400).json({ message: "ROOM_ACCESS_CODE_REQUIRED" });
+      }
+
+      const room = await roomService.resolveByAccessCode(accessCode);
+
+      return res.json({
+        room: {
+          roomId: room.id,
+          type: room.type,
+          status: room.status,
+        },
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      const status =
+        message === "ROOM_EXPIRED"
           ? 410
           : message === "ROOM_NOT_FOUND"
             ? 404
@@ -315,11 +339,6 @@ export const roomController = {
 
       const result = await roomService.enterPublicByRoomId(roomId);
 
-      await guestEntryService.authorizeScope(req, {
-        kind: "room",
-        scopeId: result.room.id,
-      });
-
       await applyRoomSessionContext(req, result.sessionContext);
 
       return res.json({
@@ -331,9 +350,7 @@ export const roomController = {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const status =
-        guestEntryService.isAccessError(message)
-          ? 403
-          : message === "ROOM_EXPIRED"
+        message === "ROOM_EXPIRED"
           ? 410
           : message === "ROOM_NOT_FOUND"
             ? 404

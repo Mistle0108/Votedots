@@ -414,6 +414,29 @@ export const roomService = {
     };
   },
 
+  async resolveByAccessCode(accessCode: string) {
+    await expireElapsedRooms();
+
+    const foundRoom = await roomRepository.findOne({
+      where: {
+        accessCode,
+      },
+      relations: { canvas: true },
+    });
+
+    if (!foundRoom) {
+      throw new Error("ROOM_NOT_FOUND");
+    }
+
+    const room = await reconcileRoomLifecycle(foundRoom);
+
+    if (room.status === RoomStatus.EXPIRED) {
+      throw new Error("ROOM_EXPIRED");
+    }
+
+    return room;
+  },
+
   async enterPublicByRoomId(roomId: number) {
     const room = await this.getDetailByRoomId(roomId);
 

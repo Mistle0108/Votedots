@@ -116,6 +116,14 @@ export interface RoomEnterResponse {
   };
 }
 
+export interface RoomResolveByAccessCodeResponse {
+  room: {
+    roomId: number;
+    type: "public" | "private";
+    status: "active" | "game_end_wait" | "expired";
+  };
+}
+
 export interface RoomCurrentManageResponse {
   room: {
     roomId: number;
@@ -142,6 +150,10 @@ export const roomApi = {
     api.get<RoomDetailResponse>(`/rooms/${roomId}`),
   createRoom: (payload: RoomCreateRequest) =>
     api.post<RoomCreateResponse>("/rooms", payload),
+  resolveRoomByAccessCode: (accessCode: string) =>
+    api.post<RoomResolveByAccessCodeResponse>("/rooms/resolve-access-code", {
+      accessCode,
+    }),
   enterRoom: (accessCode: string) =>
     api.post<RoomEnterResponse>("/rooms/enter", {
       accessCode,

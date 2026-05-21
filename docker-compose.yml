@@ -7,6 +7,8 @@ services:
         NODE_VERSION: ${NODE_VERSION}
     ports:
       - "4000:4000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     env_file:
       - ./backend/.env.development
     depends_on:

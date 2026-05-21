@@ -5,19 +5,15 @@ export const AUTH_ERROR_MESSAGES = {
   INVALID_USERNAME: "AUTH_INVALID_USERNAME",
   INVALID_NICKNAME: "AUTH_INVALID_NICKNAME",
   INVALID_PASSWORD: "AUTH_INVALID_PASSWORD",
-  INVALID_BROWSER_KEY: "AUTH_INVALID_BROWSER_KEY",
   INVALID_CREDENTIALS: "AUTH_INVALID_CREDENTIALS",
   SESSION_ALREADY_EXISTS: "AUTH_SESSION_ALREADY_EXISTS",
   GUEST_CREATION_FAILED: "AUTH_GUEST_CREATION_FAILED",
-  GUEST_REENTRY_BLOCKED: "AUTH_GUEST_REENTRY_BLOCKED",
-  GUEST_SCOPE_MISMATCH: "AUTH_GUEST_SCOPE_MISMATCH",
   MEMBER_ONLY: "AUTH_MEMBER_ONLY",
 } as const;
 
 const USERNAME_REGEX = /^[a-z0-9]{4,20}$/;
 const NICKNAME_REGEX = /^[A-Za-z0-9가-힣]{2,20}$/;
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d)\S{8,64}$/;
-const BROWSER_KEY_REGEX = /^[A-Za-z0-9_-]{16,128}$/;
 const SUPPORTED_REGISTER_LOCALES = new Set(["ko", "en"]);
 
 function isNonEmptyString(value: unknown): value is string {
@@ -82,20 +78,15 @@ export function validateRegisterInput(params: {
 
 export function validateGuestSessionInput(params: {
   nickname: unknown;
-  browserKey: unknown;
 }): string | null {
-  const { nickname, browserKey } = params;
+  const { nickname } = params;
 
-  if (!isNonEmptyString(nickname) || !isNonEmptyString(browserKey)) {
+  if (!isNonEmptyString(nickname)) {
     return AUTH_ERROR_MESSAGES.MISSING_FIELDS;
   }
 
   if (!NICKNAME_REGEX.test(nickname)) {
     return AUTH_ERROR_MESSAGES.INVALID_NICKNAME;
-  }
-
-  if (!BROWSER_KEY_REGEX.test(browserKey)) {
-    return AUTH_ERROR_MESSAGES.INVALID_BROWSER_KEY;
   }
 
   return null;

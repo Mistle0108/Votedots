@@ -1,6 +1,4 @@
-const GUEST_ENTRY_LOCK_PREFIX = "votedots:guest-entry-lock:";
 const ACTIVE_GUEST_ENTRY_SCOPE_KEY = "votedots:guest-active-scope";
-const GUEST_BROWSER_KEY_STORAGE_KEY = "votedots:guest-browser-key";
 
 export type GuestEntryScope =
   | {
@@ -14,42 +12,6 @@ export type GuestEntryScope =
 
 function canUseStorage() {
   return typeof window !== "undefined";
-}
-
-function generateGuestBrowserKey(): string {
-  if (
-    typeof window !== "undefined" &&
-    typeof window.crypto !== "undefined" &&
-    typeof window.crypto.randomUUID === "function"
-  ) {
-    return window.crypto.randomUUID();
-  }
-
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 18)}`;
-}
-
-function buildGuestEntryLockKey(scope: GuestEntryScope) {
-  if (scope.kind === "plaza") {
-    return `${GUEST_ENTRY_LOCK_PREFIX}plaza:${scope.canvasId}`;
-  }
-
-  return `${GUEST_ENTRY_LOCK_PREFIX}room:${scope.roomId}`;
-}
-
-export function hasGuestEntryLock(scope: GuestEntryScope): boolean {
-  if (!canUseStorage()) {
-    return false;
-  }
-
-  return window.localStorage.getItem(buildGuestEntryLockKey(scope)) === "1";
-}
-
-export function markGuestEntryLock(scope: GuestEntryScope): void {
-  if (!canUseStorage()) {
-    return;
-  }
-
-  window.localStorage.setItem(buildGuestEntryLockKey(scope), "1");
 }
 
 export function getActiveGuestEntryScope(): GuestEntryScope | null {
@@ -104,22 +66,6 @@ export function setActiveGuestEntryScope(scope: GuestEntryScope | null): void {
 
 export function clearActiveGuestEntryScope(): void {
   setActiveGuestEntryScope(null);
-}
-
-export function getOrCreateGuestBrowserKey(): string {
-  if (!canUseStorage()) {
-    return generateGuestBrowserKey();
-  }
-
-  const existing = window.localStorage.getItem(GUEST_BROWSER_KEY_STORAGE_KEY);
-
-  if (existing) {
-    return existing;
-  }
-
-  const nextValue = generateGuestBrowserKey();
-  window.localStorage.setItem(GUEST_BROWSER_KEY_STORAGE_KEY, nextValue);
-  return nextValue;
 }
 
 export function isSameGuestEntryScope(
