@@ -60,8 +60,10 @@ const ZOOM_SCALE = 1.1;
 const MAX_ZOOM = 4;
 const MAX_ZOOM_MULTIPLIER = 4;
 
-const INITIAL_VIEWPORT_GRID_DIVISIONS = 3;
-const ZOOMED_ENTRY_GRID_THRESHOLD = 128;
+const MEDIUM_GRID_ENTRY_ZOOM_MULTIPLIER = 2;
+const LARGE_GRID_ENTRY_ZOOM_MULTIPLIER = 1.5;
+const MEDIUM_GRID_ENTRY_THRESHOLD = 64;
+const LARGE_GRID_ENTRY_THRESHOLD = 256;
 
 function getZoomBounds(
   container: HTMLDivElement,
@@ -163,9 +165,11 @@ function getDefaultView(params: {
   });
   const largestGridSize = Math.max(gridX, gridY);
   const zoom =
-    largestGridSize >= ZOOMED_ENTRY_GRID_THRESHOLD
-      ? clampZoom(bounds.minZoom * INITIAL_VIEWPORT_GRID_DIVISIONS, bounds)
-      : bounds.minZoom;
+    largestGridSize >= LARGE_GRID_ENTRY_THRESHOLD
+      ? clampZoom(bounds.minZoom * LARGE_GRID_ENTRY_ZOOM_MULTIPLIER, bounds)
+      : largestGridSize >= MEDIUM_GRID_ENTRY_THRESHOLD
+        ? clampZoom(bounds.minZoom * MEDIUM_GRID_ENTRY_ZOOM_MULTIPLIER, bounds)
+        : bounds.minZoom;
   const camera = clampCamera(
     (worldWidth - usableViewport.width / zoom) / 2,
     (worldHeight - usableViewport.height / zoom) / 2,
