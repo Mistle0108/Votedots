@@ -55,6 +55,7 @@ import { translateServerMessage } from "@/shared/i18n/server-messages";
 import { usePageRootClass } from "@/shared/hooks/use-page-root-class";
 import { BrandLogo } from "@/shared/ui/brand-logo";
 import { DropdownSelect } from "@/shared/ui/dropdown-select";
+import type { CanvasViewportPadding } from "@/features/gameplay/canvas/model/viewport";
 import MobileBottomSheet from "./components/MobileBottomSheet";
 import MobileFloatingPalette from "./components/MobileFloatingPalette";
 import useCanvasPage from "./model/useCanvasPage";
@@ -67,6 +68,7 @@ const MOBILE_VOTE_ERROR_DURATION_MS = 3000;
 const MOBILE_BREAKPOINT_MEDIA_QUERY = "(max-width: 1023px)";
 const MOBILE_RECENT_COLOR_LIMIT = 6;
 const MOBILE_RECENT_COLORS_STORAGE_KEY = "votedots:mobile-recent-colors";
+const MOBILE_CANVAS_EDGE_PADDING = 72;
 
 type MobileSheetType = "menu" | "participants" | "history" | null;
 type VoteMode = "select" | "instant";
@@ -328,6 +330,13 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   );
   const [mobileVoteError, setMobileVoteError] = useState("");
   const [mobileVoteLoading, setMobileVoteLoading] = useState(false);
+  const [mobileSafeAreaInsets, setMobileSafeAreaInsets] =
+    useState<CanvasViewportPadding>({
+      top: 0,
+      right: 0,
+      bottom: 0,
+      left: 0,
+    });
 
   usePageRootClass("page-shell-root");
   useTrackVisitEvent(gameplayEntryEventType);
@@ -380,6 +389,67 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
       mediaQuery.removeEventListener("change", handleMediaQueryChange);
     };
   }, []);
+
+  useLayoutEffect(() => {
+    if (typeof window === "undefined" || typeof document === "undefined") {
+      return;
+    }
+
+    const probe = document.createElement("div");
+    probe.setAttribute("aria-hidden", "true");
+    probe.style.position = "fixed";
+    probe.style.inset = "0";
+    probe.style.pointerEvents = "none";
+    probe.style.visibility = "hidden";
+    probe.style.paddingTop = "env(safe-area-inset-top, 0px)";
+    probe.style.paddingRight = "env(safe-area-inset-right, 0px)";
+    probe.style.paddingBottom = "env(safe-area-inset-bottom, 0px)";
+    probe.style.paddingLeft = "env(safe-area-inset-left, 0px)";
+
+    document.body.appendChild(probe);
+
+    const readInsets = () => {
+      const styles = window.getComputedStyle(probe);
+      const nextInsets = {
+        top: Number.parseFloat(styles.paddingTop) || 0,
+        right: Number.parseFloat(styles.paddingRight) || 0,
+        bottom: Number.parseFloat(styles.paddingBottom) || 0,
+        left: Number.parseFloat(styles.paddingLeft) || 0,
+      };
+
+      setMobileSafeAreaInsets((prev) =>
+        prev.top === nextInsets.top &&
+        prev.right === nextInsets.right &&
+        prev.bottom === nextInsets.bottom &&
+        prev.left === nextInsets.left
+          ? prev
+          : nextInsets,
+      );
+    };
+
+    readInsets();
+    window.addEventListener("resize", readInsets);
+    window.visualViewport?.addEventListener("resize", readInsets);
+
+    return () => {
+      window.removeEventListener("resize", readInsets);
+      window.visualViewport?.removeEventListener("resize", readInsets);
+      probe.remove();
+    };
+  }, []);
+
+  const mobileCanvasViewportPadding = useMemo<CanvasViewportPadding | undefined>(
+    () =>
+      isMobileLayout
+        ? {
+            top: mobileSafeAreaInsets.top + MOBILE_CANVAS_EDGE_PADDING,
+            right: mobileSafeAreaInsets.right + MOBILE_CANVAS_EDGE_PADDING,
+            bottom: mobileSafeAreaInsets.bottom + MOBILE_CANVAS_EDGE_PADDING,
+            left: mobileSafeAreaInsets.left + MOBILE_CANVAS_EDGE_PADDING,
+          }
+        : undefined,
+    [isMobileLayout, mobileSafeAreaInsets],
+  );
 
   useEffect(() => {
     if (typeof document === "undefined" || !mobilePaletteOpen) {
@@ -566,6 +636,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     onCellActivated: (cell) => {
       cellActivatedHandlerRef.current(cell);
     },
+    viewportPadding: mobileCanvasViewportPadding,
   });
 
   useEffect(() => {
@@ -1469,7 +1540,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   if (loading) {
     return (
       <div
-        className="flex h-screen w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
+        className="flex h-[100dvh] min-h-[100dvh] w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
         style={canvasPageThemeStyle}
       >
         <LoadingScreen />
@@ -1480,7 +1551,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   if (error) {
     return (
       <div
-        className="flex h-screen w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
+        className="flex h-[100dvh] min-h-[100dvh] w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
         style={canvasPageThemeStyle}
       >
         <ErrorScreen message={error} />
@@ -1491,7 +1562,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   if (gameEnded) {
     return (
       <div
-        className="flex h-screen w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
+        className="flex h-[100dvh] min-h-[100dvh] w-full overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
         style={canvasPageThemeStyle}
       >
         <GameEndedScreen />
@@ -1502,7 +1573,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   if (roomExpiredReason) {
     return (
       <div
-        className="flex h-screen w-full items-center justify-center overflow-hidden bg-[color:var(--page-theme-page-background)] px-6 text-center text-lg font-medium text-[color:var(--page-theme-text-primary)]"
+        className="flex h-[100dvh] min-h-[100dvh] w-full items-center justify-center overflow-hidden bg-[color:var(--page-theme-page-background)] px-6 text-center text-lg font-medium text-[color:var(--page-theme-text-primary)]"
         style={canvasPageThemeStyle}
       >
         {roomExpiredReason === "terminated_by_owner"
@@ -1515,11 +1586,14 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   if (isMobileLayout) {
     return (
       <div
-        className="flex h-screen w-full flex-col overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
-        style={canvasPageThemeStyle}
+        className="flex h-[100dvh] min-h-[100dvh] w-full flex-col overflow-hidden bg-[color:var(--page-theme-page-background)] text-[color:var(--page-theme-text-primary)]"
+        style={{
+          ...canvasPageThemeStyle,
+          paddingBottom: "env(safe-area-inset-bottom, 0px)",
+        }}
       >
         <div
-          className="shrink-0 px-3 pb-2 pt-3"
+          className="sticky top-0 z-30 shrink-0 bg-[color:var(--page-theme-page-background)] px-3 pb-2 pt-3"
           style={{
             paddingTop: "calc(env(safe-area-inset-top, 0px) + 12px)",
           }}
@@ -1640,7 +1714,11 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
               <div className="pointer-events-none absolute inset-0 z-10">
                 <div
-                  className="pointer-events-auto absolute left-3 top-3 flex flex-col gap-2"
+                  className="pointer-events-auto absolute flex flex-col gap-2"
+                  style={{
+                    left: "calc(env(safe-area-inset-left, 0px) + 12px)",
+                    top: "calc(env(safe-area-inset-top, 0px) + 12px)",
+                  }}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => event.stopPropagation()}
                 >
@@ -1672,7 +1750,11 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
                 <div
                   ref={mobilePaletteAreaRef}
-                  className="pointer-events-auto absolute right-3 top-3"
+                  className="pointer-events-auto absolute"
+                  style={{
+                    right: "calc(env(safe-area-inset-right, 0px) + 12px)",
+                    top: "calc(env(safe-area-inset-top, 0px) + 12px)",
+                  }}
                   onPointerDown={(event) => event.stopPropagation()}
                   onClick={(event) => event.stopPropagation()}
                 >

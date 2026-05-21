@@ -5,6 +5,10 @@ import {
   type SetStateAction,
 } from "react";
 import { getGameConfig } from "@/shared/config/game-config";
+import {
+  getUsableViewportSize,
+  type CanvasViewportPadding,
+} from "../model/viewport";
 
 interface UseCanvasNavigationParams {
   containerRef: RefObject<HTMLDivElement | null>;
@@ -13,6 +17,7 @@ interface UseCanvasNavigationParams {
   zoom: number;
   setCameraX: Dispatch<SetStateAction<number>>;
   setCameraY: Dispatch<SetStateAction<number>>;
+  viewportPadding?: CanvasViewportPadding;
 }
 
 interface CoordinateLike {
@@ -45,6 +50,7 @@ export function useCanvasNavigation({
   zoom,
   setCameraX,
   setCameraY,
+  viewportPadding,
 }: UseCanvasNavigationParams) {
   const navigateToCoordinate = useCallback(
     (xOrPoint: number | CoordinateLike, maybeY?: number) => {
@@ -60,8 +66,13 @@ export function useCanvasNavigation({
       const worldWidth = gridX * cellSize;
       const worldHeight = gridY * cellSize;
 
-      const viewportWorldWidth = container.clientWidth / zoom;
-      const viewportWorldHeight = container.clientHeight / zoom;
+      const usableViewport = getUsableViewportSize({
+        viewportWidth: container.clientWidth,
+        viewportHeight: container.clientHeight,
+        viewportPadding,
+      });
+      const viewportWorldWidth = usableViewport.width / zoom;
+      const viewportWorldHeight = usableViewport.height / zoom;
 
       const targetWorldCenterX = x * cellSize + cellSize / 2;
       const targetWorldCenterY = y * cellSize + cellSize / 2;
@@ -81,7 +92,7 @@ export function useCanvasNavigation({
       setCameraX(nextCameraX);
       setCameraY(nextCameraY);
     },
-    [containerRef, gridX, gridY, zoom, setCameraX, setCameraY],
+    [containerRef, gridX, gridY, zoom, setCameraX, setCameraY, viewportPadding],
   );
 
   return {

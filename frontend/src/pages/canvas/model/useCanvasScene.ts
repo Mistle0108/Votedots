@@ -12,7 +12,11 @@ import {
   useCanvasRenderer,
   useCanvasViewport,
 } from "@/features/gameplay/canvas";
-import { calculateWorldScreenOffset } from "@/features/gameplay/canvas/model/viewport";
+import {
+  calculateWorldScreenOffset,
+  getUsableViewportSize,
+  type CanvasViewportPadding,
+} from "@/features/gameplay/canvas/model/viewport";
 import type { CanvasBatchUpdatedPayload } from "@/features/gameplay/session/model/socket.types";
 import { getGameConfig } from "@/shared/config/game-config";
 import socket from "@/shared/lib/socket";
@@ -26,6 +30,7 @@ interface UseCanvasSceneParams {
   openPopupOnActivate?: boolean;
   resetPreviewOnActivate?: boolean;
   onCellActivated?: (cell: Cell) => void;
+  viewportPadding?: CanvasViewportPadding;
 }
 
 interface ZoomBounds {
@@ -61,7 +66,14 @@ function getZoomBounds(
   container: HTMLDivElement,
   worldWidth: number,
   worldHeight: number,
+  viewportPadding?: CanvasViewportPadding,
 ): ZoomBounds {
+  const usableViewport = getUsableViewportSize({
+    viewportWidth: container.clientWidth,
+    viewportHeight: container.clientHeight,
+    viewportPadding,
+  });
+
   if (worldWidth <= 0 || worldHeight <= 0) {
     return {
       minZoom: 1,
@@ -69,8 +81,8 @@ function getZoomBounds(
     };
   }
 
-  const fitWidthZoom = container.clientWidth / worldWidth;
-  const fitHeightZoom = container.clientHeight / worldHeight;
+  const fitWidthZoom = usableViewport.width / worldWidth;
+  const fitHeightZoom = usableViewport.height / worldHeight;
   const fittedZoom = Math.min(fitWidthZoom, fitHeightZoom);
   const minZoom =
     Number.isFinite(fittedZoom) && fittedZoom > 0 ? fittedZoom : 1;
@@ -104,9 +116,15 @@ function clampCamera(
   viewportWidth: number,
   viewportHeight: number,
   zoom: number,
+  viewportPadding?: CanvasViewportPadding,
 ) {
-  const maxCameraX = Math.max(0, worldWidth - viewportWidth / zoom);
-  const maxCameraY = Math.max(0, worldHeight - viewportHeight / zoom);
+  const usableViewport = getUsableViewportSize({
+    viewportWidth,
+    viewportHeight,
+    viewportPadding,
+  });
+  const maxCameraX = Math.max(0, worldWidth - usableViewport.width / zoom);
+  const maxCameraY = Math.max(0, worldHeight - usableViewport.height / zoom);
 
   return {
     x: Math.min(Math.max(0, nextCameraX), maxCameraX),
@@ -120,23 +138,42 @@ function getDefaultView(params: {
   gridY: number;
   viewportWidth: number;
   viewportHeight: number;
+  viewportPadding?: CanvasViewportPadding;
 }) {
-  const { container, gridX, gridY, viewportWidth, viewportHeight } = params;
+  const {
+    container,
+    gridX,
+    gridY,
+    viewportWidth,
+    viewportHeight,
+    viewportPadding,
+  } = params;
   const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
-  const bounds = getZoomBounds(container, worldWidth, worldHeight);
+  const bounds = getZoomBounds(
+    container,
+    worldWidth,
+    worldHeight,
+    viewportPadding,
+  );
+  const usableViewport = getUsableViewportSize({
+    viewportWidth,
+    viewportHeight,
+    viewportPadding,
+  });
   const largestGridSize = Math.max(gridX, gridY);
   const zoom =
     largestGridSize >= ZOOMED_ENTRY_GRID_THRESHOLD
       ? clampZoom(bounds.minZoom * INITIAL_VIEWPORT_GRID_DIVISIONS, bounds)
       : bounds.minZoom;
   const camera = clampCamera(
-    (worldWidth - viewportWidth / zoom) / 2,
-    (worldHeight - viewportHeight / zoom) / 2,
+    (worldWidth - usableViewport.width / zoom) / 2,
+    (worldHeight - usableViewport.height / zoom) / 2,
     worldWidth,
     worldHeight,
     viewportWidth,
     viewportHeight,
     zoom,
+    viewportPadding,
   );
 
   return {
@@ -222,6 +259,7 @@ export default function useCanvasScene({
   openPopupOnActivate = true,
   resetPreviewOnActivate = true,
   onCellActivated,
+  viewportPadding,
 }: UseCanvasSceneParams) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -447,6 +485,7 @@ export default function useCanvasScene({
         gridY,
         viewportWidth,
         viewportHeight,
+        viewportPadding,
       });
 
       sceneKeyRef.current = sceneKey;
@@ -480,6 +519,7 @@ export default function useCanvasScene({
     canvasNodeVersion,
     viewportSize.width,
     viewportSize.height,
+    viewportPadding,
   ]);
 
   const { viewport, visibleCellBounds } = useCanvasViewport({
@@ -490,6 +530,7 @@ export default function useCanvasScene({
     cameraX,
     cameraY,
     zoom,
+    viewportPadding,
   });
 
   const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
@@ -499,6 +540,7 @@ export default function useCanvasScene({
     viewportWidth: viewportSize.width,
     viewportHeight: viewportSize.height,
     zoom,
+    viewportPadding,
   });
 
   const buildCellAtCoordinate = useCallback(
@@ -522,8 +564,13 @@ export default function useCanvasScene({
       }
 
       const cellSize = getGameConfig().board.cellSize;
-      const viewportWorldWidth = container.clientWidth / zoomRef.current;
-      const viewportWorldHeight = container.clientHeight / zoomRef.current;
+      const usableViewport = getUsableViewportSize({
+        viewportWidth: container.clientWidth,
+        viewportHeight: container.clientHeight,
+        viewportPadding,
+      });
+      const viewportWorldWidth = usableViewport.width / zoomRef.current;
+      const viewportWorldHeight = usableViewport.height / zoomRef.current;
       const targetWorldCenterX = x * cellSize + cellSize / 2;
       const targetWorldCenterY = y * cellSize + cellSize / 2;
 
@@ -540,7 +587,7 @@ export default function useCanvasScene({
         ),
       };
     },
-    [gridX, gridY, worldHeight, worldWidth],
+    [gridX, gridY, viewportPadding, worldHeight, worldWidth],
   );
 
   const getPopupPositionForCell = useCallback(
@@ -675,6 +722,7 @@ export default function useCanvasScene({
       viewportWidth: container.clientWidth,
       viewportHeight: container.clientHeight,
       zoom,
+      viewportPadding,
     });
     const nextCamera = clampCamera(
       pending.focusWorldX -
@@ -686,6 +734,7 @@ export default function useCanvasScene({
       container.clientWidth,
       container.clientHeight,
       zoom,
+      viewportPadding,
     );
 
     cameraXRef.current = nextCamera.x;
@@ -693,7 +742,7 @@ export default function useCanvasScene({
     setCameraX(nextCamera.x);
     setCameraY(nextCamera.y);
     pendingZoomAdjustmentRef.current = null;
-  }, [zoom, canvasReady, gridX, gridY]);
+  }, [zoom, canvasReady, gridX, gridY, viewportPadding]);
 
   useLayoutEffect(() => {
     const container = containerRef.current;
@@ -703,7 +752,12 @@ export default function useCanvasScene({
     }
 
     const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
-    const bounds = getZoomBounds(container, worldWidth, worldHeight);
+    const bounds = getZoomBounds(
+      container,
+      worldWidth,
+      worldHeight,
+      viewportPadding,
+    );
     const nextZoom = clampZoom(zoomRef.current, bounds);
     const nextCamera = clampCamera(
       cameraXRef.current,
@@ -713,6 +767,7 @@ export default function useCanvasScene({
       container.clientWidth,
       container.clientHeight,
       nextZoom,
+      viewportPadding,
     );
 
     if (
@@ -730,7 +785,14 @@ export default function useCanvasScene({
     setZoom(nextZoom);
     setCameraX(nextCamera.x);
     setCameraY(nextCamera.y);
-  }, [canvasReady, gridX, gridY, viewportSize.height, viewportSize.width]);
+  }, [
+    canvasReady,
+    gridX,
+    gridY,
+    viewportPadding,
+    viewportSize.height,
+    viewportSize.width,
+  ]);
 
   const { navigateToCoordinate } = useCanvasNavigation({
     containerRef,
@@ -739,6 +801,7 @@ export default function useCanvasScene({
     zoom,
     setCameraX,
     setCameraY,
+    viewportPadding,
   });
 
   const handlePan = useCallback(
@@ -777,6 +840,7 @@ export default function useCanvasScene({
           container.clientWidth,
           container.clientHeight,
           zoomRef.current,
+          viewportPadding,
         );
 
         cameraXRef.current = nextCamera.x;
@@ -785,7 +849,7 @@ export default function useCanvasScene({
         setCameraY(nextCamera.y);
       });
     },
-    [gridX, gridY],
+    [gridX, gridY, viewportPadding],
   );
 
   const {
@@ -821,7 +885,12 @@ export default function useCanvasScene({
       const pointerOffsetX = centerClientX - containerRect.left;
       const pointerOffsetY = centerClientY - containerRect.top;
       const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
-      const bounds = getZoomBounds(container, worldWidth, worldHeight);
+      const bounds = getZoomBounds(
+        container,
+        worldWidth,
+        worldHeight,
+        viewportPadding,
+      );
 
       setZoom((currentZoom) => {
         const nextZoom = clampZoom(currentZoom * scale, bounds);
@@ -836,6 +905,7 @@ export default function useCanvasScene({
           viewportWidth: container.clientWidth,
           viewportHeight: container.clientHeight,
           zoom: currentZoom,
+          viewportPadding,
         });
 
         pendingZoomAdjustmentRef.current = {
@@ -944,9 +1014,23 @@ export default function useCanvasScene({
       }
 
       const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
-      const bounds = getZoomBounds(container, worldWidth, worldHeight);
-      const pointerOffsetX = container.clientWidth / 2;
-      const pointerOffsetY = container.clientHeight / 2;
+      const bounds = getZoomBounds(
+        container,
+        worldWidth,
+        worldHeight,
+        viewportPadding,
+      );
+      const usableViewport = getUsableViewportSize({
+        viewportWidth: container.clientWidth,
+        viewportHeight: container.clientHeight,
+        viewportPadding,
+      });
+      const pointerOffsetX =
+        (container.clientWidth - usableViewport.width) / 2 +
+        usableViewport.width / 2;
+      const pointerOffsetY =
+        (container.clientHeight - usableViewport.height) / 2 +
+        usableViewport.height / 2;
 
       setZoom((currentZoom) => {
         const nextZoom = getNextZoom(currentZoom, zoomIn, bounds);
@@ -961,6 +1045,7 @@ export default function useCanvasScene({
           viewportWidth: container.clientWidth,
           viewportHeight: container.clientHeight,
           zoom: currentZoom,
+          viewportPadding,
         });
 
         pendingZoomAdjustmentRef.current = {
@@ -978,7 +1063,7 @@ export default function useCanvasScene({
         return nextZoom;
       });
     },
-    [canvasReady, gridX, gridY],
+    [canvasReady, gridX, gridY, viewportPadding],
   );
 
   const resetCanvasZoom = useCallback(() => {
@@ -994,6 +1079,7 @@ export default function useCanvasScene({
       gridY,
       viewportWidth: container.clientWidth,
       viewportHeight: container.clientHeight,
+      viewportPadding,
     });
 
     pendingZoomAdjustmentRef.current = null;
@@ -1006,7 +1092,7 @@ export default function useCanvasScene({
     setZoom(defaultView.zoom);
     setCameraX(defaultView.camera.x);
     setCameraY(defaultView.camera.y);
-  }, [canvasReady, gridX, gridY]);
+  }, [canvasReady, gridX, gridY, viewportPadding]);
 
   const handleWheel = useCallback(
     (event: WheelEvent) => {
@@ -1024,7 +1110,12 @@ export default function useCanvasScene({
       const zoomIn = event.deltaY < 0;
 
       const { worldWidth, worldHeight } = getWorldSize(gridX, gridY);
-      const bounds = getZoomBounds(container, worldWidth, worldHeight);
+      const bounds = getZoomBounds(
+        container,
+        worldWidth,
+        worldHeight,
+        viewportPadding,
+      );
 
       setZoom((currentZoom) => {
         const nextZoom = getNextZoom(currentZoom, zoomIn, bounds);
@@ -1039,6 +1130,7 @@ export default function useCanvasScene({
           viewportWidth: container.clientWidth,
           viewportHeight: container.clientHeight,
           zoom: currentZoom,
+          viewportPadding,
         });
 
         pendingZoomAdjustmentRef.current = {
@@ -1057,7 +1149,7 @@ export default function useCanvasScene({
         return nextZoom;
       });
     },
-    [canvasReady, gridX, gridY],
+    [canvasReady, gridX, gridY, viewportPadding],
   );
 
   const handleCanvasUpdated = useCallback(
