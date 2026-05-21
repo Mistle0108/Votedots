@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { authApi } from "@/features/auth";
+import { clearActiveGuestEntryScope } from "@/features/auth/model/guest-entry";
 import { useI18n } from "@/shared/i18n";
 import { SessionBootstrapResult } from "../model/session.types";
 
@@ -163,6 +164,7 @@ export function useGameSession({
     }
 
     serviceAlertShownRef.current = true;
+    clearActiveGuestEntryScope();
     clearRestartPending();
     window.alert(t("session.serviceUnavailable"));
     window.location.href = "/login";

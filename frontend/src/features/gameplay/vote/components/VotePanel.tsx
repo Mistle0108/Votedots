@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { clearActiveGuestEntryScope } from "@/features/auth/model/guest-entry";
 import type { Cell, Viewport } from "@/features/gameplay/canvas";
 import type { PlayBackgroundMode } from "@/features/gameplay/canvas/model/background-assets";
 import { MiniMap } from "@/features/gameplay/canvas";
@@ -165,6 +166,7 @@ export default function VotePanel({
   }, [isSettingsOpen]);
 
   const handleNavigateHome = () => {
+    clearActiveGuestEntryScope();
     navigate("/lobby");
   };
 

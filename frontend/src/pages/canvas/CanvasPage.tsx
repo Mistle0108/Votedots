@@ -10,6 +10,7 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useTrackVisitEvent } from "@/features/analytics/hooks/use-track-visit-event";
 import { authApi } from "@/features/auth";
+import { clearActiveGuestEntryScope } from "@/features/auth/model/guest-entry";
 import type { GameplaySessionSourceApi } from "@/features/gameplay/session/api/session-source.api";
 import type { RoomExpiredPayload } from "@/features/gameplay/session/model/socket.types";
 import {
@@ -571,10 +572,12 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
           __votedotsWithdrawPending?: boolean;
         }
       ).__votedotsWithdrawPending = false;
+      clearActiveGuestEntryScope();
       navigate("/login", { replace: true });
       return;
     }
 
+    clearActiveGuestEntryScope();
     clearStoredRoomSessionContext();
     window.alert(t("canvas.sessionEnded"));
     navigate("/lobby", { replace: true });
@@ -582,6 +585,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
 
   const handleUnauthorized = useCallback(
     (message: string) => {
+      clearActiveGuestEntryScope();
       window.alert(message);
       navigate("/login", { replace: true });
     },
@@ -589,6 +593,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   );
 
   const handleContextMissing = useCallback(() => {
+    clearActiveGuestEntryScope();
     clearStoredRoomSessionContext();
     navigate("/lobby", { replace: true });
   }, [navigate]);
@@ -698,6 +703,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
     }
 
     const timeoutId = window.setTimeout(() => {
+      clearActiveGuestEntryScope();
       clearStoredRoomSessionContext();
       setStoredRoomLifecycleNotice(roomExpiredReason);
       navigate("/lobby", { replace: true });
@@ -1586,6 +1592,7 @@ export default function CanvasPage({ sessionSourceApi }: CanvasPageProps) {
   const mobilePaletteButtonTextColor = getReadableTextColor(mobilePaletteColor);
 
   const handleOpenMobileBack = useCallback(() => {
+    clearActiveGuestEntryScope();
     navigate("/lobby");
   }, [navigate]);
 
